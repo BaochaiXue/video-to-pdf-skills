@@ -1,7 +1,3 @@
-- todo
-  - 逻辑连贯，动机清晰；
-  - spwan subagent high detailed output
-
 # video-render-pdf skills
 
 这个仓库托管两个 Codex skill，用于将视频讲座转换为结构化的中文 LaTeX 讲义和最终 PDF。
@@ -94,6 +90,19 @@ cp -R skills/bilibili-render-pdf ~/.codex/skills/
 - 技术课程笔记整理
 - YouTube / Bilibili 教学视频转 LaTeX 讲义
 - 需要封面图、关键帧和总结章节的高质量课程文档生成
+
+## subagents 的触发
+
+- codex 中对于 `spwan_agent` 的触发，规定的比较死，"Only use spawn_agent if and only if the user explicitly asks for sub-agents, delegation, or parallel agent work."，即需要我们在 query 中显式地要求，才可以触发 subagents
+
+```
+$youtube-render-pdf   https://www.youtube.com/watch?v=vXb2QYOUzl4 请 spwan 多 sub agents 执行，隔离上下文，避免 master agent 的“上下文焦虑”， 形成一个完整全面的 pdf：
+  - 1 个 outline agent：先定全局目录、术语、符号表、章节边界等
+  - 5 个 writer agents：各自直接写成完整章节草稿，落盘成 section_*.tex
+  - 1 个 figure agent：单独负责抽帧、筛图、crop、脚本生成新的示意图】、图注和时间脚注等；
+  - 1 个 consistency agent：检查重复定义、前后术语不一致、章节衔接断裂
+```
+
 
 ## License
 

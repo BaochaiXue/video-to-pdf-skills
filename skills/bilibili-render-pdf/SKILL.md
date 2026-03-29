@@ -33,6 +33,16 @@ The output must:
 - be a complete `.tex` document from `\documentclass` to `\end{document}`
 - be compiled successfully to PDF as part of the final delivery
 
+## Pedagogical Standard
+
+The notes must read like a strong human teacher is guiding the reader through the material.
+
+- organize each major section so the reader first understands the motivation, then the main idea, then the mechanism, then the example or evidence, and finally the takeaway
+- be patient and explicit about logical transitions; make it clear why the speaker introduces a concept, what problem it solves, and how the next idea follows
+- aim for deep-but-accessible explanations: keep the technical depth, but introduce formalism only after giving intuition in plain language
+- when a section is dense, break it into smaller subsections that progressively build understanding rather than compressing everything into one long derivation
+- do not dump subtitle content in chronological order; rewrite it into a teaching sequence with clear intent, contrast, and buildup
+
 ## Source Acquisition
 
 ### Metadata Inspection
@@ -82,6 +92,17 @@ Skip subtitles entirely and rely on dense frame sampling to extract teaching con
 3. Keep all source artifacts local when practical.
    Typical working artifacts are metadata, the downloaded cover image, a timestamped subtitle file (CC or Whisper-generated), optional cleaned transcript text, a local video file, and extracted frames.
 
+## Long Video Strategy
+
+For longer videos, do not rely on a single monolithic pass.
+
+- If the video is longer than 20 minutes, or the subtitle file contains more than 300 subtitle entries, split the work into smaller segments.
+- Prefer chapter boundaries or 分P boundaries for splitting. If those are unavailable or too uneven, split by coherent time windows or subtitle ranges.
+- When subagents are available, spawn multiple subagents in parallel for different segments so coverage stays high and detail is not lost.
+- Give each subagent a concrete segment boundary and require it to return: the segment's teaching goal, the core claims, important formulas or code, required figures with time provenance, and any ambiguities that need integration-time resolution.
+- Keep a small overlap between neighboring segments when the explanation crosses boundaries, then deduplicate during integration.
+- The main agent must integrate the segment outputs into one unified outline and one coherent final narrative. The final PDF must read like a single lecture note, not a concatenation of chunk summaries.
+
 ## Teaching Content Rules
 
 Build the notes from all of the following when available:
@@ -108,6 +129,7 @@ Keep the speaker's closing discussion when it carries actual teaching value, suc
 
 2. Organize the document with `\section{...}` and `\subsection{...}`.
    Reconstruct the teaching flow when needed; do not blindly mirror subtitle order.
+   Each section should answer, in order when applicable: what problem is being solved, why simpler views are insufficient, what the core idea is, how it works, and what the reader should retain.
 
 3. Start from `assets/notes-template.tex`.
    Fill in the metadata block, including the local cover image path, and replace the body content block with the generated notes.
@@ -124,10 +146,12 @@ Keep the speaker's closing discussion when it carries actual teaching value, suc
 6. Do not place images inside custom message boxes.
 
 7. When a mathematical formula appears:
+   first explain in plain Chinese what the formula is trying to express and why it appears
    show it in display math using `$$...$$`
    then immediately follow with a flat list that explains every symbol
 
 8. When code examples appear:
+   explain the role of the code before the listing and summarize the expected behavior after it when useful
    wrap them in `lstlisting`
    include a descriptive `caption`
 
@@ -159,6 +183,13 @@ Select figures by necessity and teaching value, not by an arbitrary quota or a b
 
 When locating candidate frames, bias strongly toward recall before precision.
 It is better to inspect too many nearby candidates first than to miss the one frame where the slide, formula, table, or diagram is finally fully revealed and readable.
+
+Frame understanding must come from direct visual inspection.
+
+- Use the `view image` tool to inspect candidate frames and crops before deciding what they show, how they should be described, and whether they are complete enough to include.
+- Do not use OCR tools such as `tesseract` as a substitute for visual understanding of a frame.
+- Do not infer a frame's semantic content only from nearby subtitles, filenames, or timestamps without checking the image itself.
+- Contact sheets, montages, and tiled strips are good for recall, but final keep-or-reject decisions and semantic naming must be based on actual image inspection with `view image`.
 
 ### Frame Selection Checklist
 
@@ -219,6 +250,14 @@ Two acceptable routes:
 - generate LaTeX-native visualizations with TikZ or PGFPlots
 - generate figures ahead of time with scripts and include them as images
 
+For script-generated illustrations, prefer Python tools such as `matplotlib` and `seaborn` when they are the clearest way to produce an accurate teaching figure.
+
+When a visualization is generated externally rather than drawn natively in LaTeX:
+
+- export the figure as `pdf` so it can be inserted into the `.tex` without rasterization loss
+- prefer vector output for plots, charts, and schematic illustrations
+- avoid `png` or `jpg` for script-generated teaching figures unless the content is inherently raster
+
 Use visualizations for:
 
 - process flows
@@ -228,6 +267,14 @@ Use visualizations for:
 - comparisons that are clearer as charts than prose
 
 Do not add decorative graphics that do not teach anything.
+
+## Final Checklist
+
+Before delivery, verify all of the following:
+
+- no important teaching content has been dropped, and no concrete but critical detail has been lost during condensation, restructuring, or summarization
+- the text and figures are aligned: each inserted frame supports the surrounding explanation, necessary crops have been applied, and the chosen frame shows the fullest relevant information rather than a transitional or incomplete state
+- the document is visually rich enough for teaching: check whether more high-information key frames should be added, and whether additional LaTeX-native or Python-script-generated illustrations would improve clarity
 
 ## Delivery
 
