@@ -1,6 +1,6 @@
 ---
 name: youtube-render-pdf
-description: Generate a professional, detailed, figure-rich LaTeX course note and final PDF from a YouTube lecture, tutorial, or technical talk. Use when the user provides a YouTube URL and wants structured Chinese teaching notes that combine the video's title, chapters, diagrams, formulas, code, subtitle explanations, the original video cover on the front page, and a final synthesis chapter, with key frames extracted from the highest usable video resolution and inserted as figures, and where the final deliverable must include a rendered PDF.
+description: Generate a professional, detailed, figure-rich LaTeX course note and final PDF from a YouTube lecture, tutorial, or technical talk. Use when the user provides a YouTube URL and wants structured Chinese teaching notes that combine the video's title, chapters, diagrams, formulas, code, subtitle explanations, the original video cover on the front page, and a final synthesis chapter, with key frames extracted from the highest usable video resolution and inserted as figures, and where the final deliverable must include a rendered PDF. Prefer platform subtitles first, and when suitable subtitles are unavailable, fall back to the same device-aware ASR backend policy used by the Bilibili skill.
 ---
 
 # YouTube Render PDF
@@ -50,7 +50,13 @@ The notes must read like a strong human teacher is guiding the reader through th
    Fall back to the closest available subtitle track only when needed.
    Preserve the subtitle timestamps; do not flatten subtitles into plain text too early if figures still need to be located.
 
-5. Keep all source artifacts local when practical.
+5. If no suitable subtitle track is available, use a device-aware ASR backend.
+   On `CUDA / NVIDIA`, default to `Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B`.
+   On `Apple Silicon Mac`, default to a Whisper backend, prioritizing `whisper.cpp`; MLX and `openai-whisper` are acceptable alternatives.
+   Normalize the result into a timestamped `SRT` file or a `segments` structure with at least `start`, `end`, and `text`.
+   If you use Qwen forced alignment, chunk longer audio into short windows first and then merge the aligned output back into one continuous transcript.
+
+6. Keep all source artifacts local when practical.
    Typical working artifacts are metadata, the downloaded cover image, a timestamped subtitle file, optional cleaned transcript text, a local video file, and extracted frames.
 
 ## Long Video Strategy

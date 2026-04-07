@@ -9,13 +9,23 @@
 
 两个 skill 共享相同的写作规则、配图策略和 LaTeX 模板，但在素材获取阶段有平台特定的差异。
 
+## ASR Backend Policy
+
+当视频没有可用 CC 字幕时，skill 使用统一的“设备感知 ASR backend”策略：
+
+- `CUDA / NVIDIA`：默认使用 `Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B`
+- `Apple Silicon Mac`：默认使用 Whisper backend，优先 `whisper.cpp`，也可使用 MLX / `openai-whisper`
+- 流程层统一输出：标准 `SRT` 或 `timestamped segments`（至少包含 `start` / `end` / `text`）
+
+这样上层的讲义写作、关键帧定位和图文对齐逻辑只依赖统一时间戳接口，不依赖某个具体 ASR 实现。
+
 ### Bilibili 版的核心差异
 
-- **字幕三级回退**：CC 字幕 → Whisper 语音转写 → 纯视觉模式（B 站大量视频无 CC 字幕）
+- **字幕三级回退**：CC 字幕 → 设备感知 ASR backend → 纯视觉模式（B 站大量视频无 CC 字幕）
 - **登录获取高清**：1080P+ 需要 cookies（`yt-dlp --cookies-from-browser chrome`）
 - **分P视频处理**：自动检测多 P，询问用户处理范围
 - **平台话术过滤**：额外排除"一键三连"、"关注投币"等非教学内容
-- **额外依赖**：`whisper`（openai-whisper）用于语音转写
+- **ASR 默认实现**：CUDA 机器优先 Qwen3-ASR；Mac 优先 Whisper 生态实现
 
 ### 共同特点
 
@@ -75,13 +85,20 @@ cp -R skills/bilibili-render-pdf ~/.codex/skills/
 
 ## 外部依赖
 
-| 工具 | 两个 skill 都需要 | 仅 Bilibili 版需要 |
-|------|:-:|:-:|
-| `yt-dlp` | ✓ | |
-| `ffmpeg` | ✓ | |
-| `xelatex` (TeX Live + CTeX) | ✓ | |
-| `magick` (ImageMagick) | ✓ | |
-| `whisper` (openai-whisper) | | ✓ |
+| 工具 | 用途 |
+|------|------|
+| `yt-dlp` | 两个 skill 都需要，用于获取 metadata、字幕、封面和视频 |
+| `ffmpeg` | 两个 skill 都需要，用于抽音频、切片和抽帧 |
+| `xelatex` (TeX Live + CTeX) | 两个 skill 都需要，用于渲染最终 PDF |
+| `magick` (ImageMagick) | 两个 skill 都需要，用于图片裁剪和预处理 |
+| `qwen-asr` + `Qwen3-ASR-1.7B` + `Qwen3-ForcedAligner-0.6B` | CUDA 机器上的默认 ASR fallback |
+| `whisper.cpp` 或 MLX / `openai-whisper` | Apple Silicon Mac 上的默认 ASR fallback |
+
+说明：
+
+- `bilibili-render-pdf` 通常更依赖 ASR fallback，因为 B 站视频缺失 CC 字幕更常见。
+- `youtube-render-pdf` 优先使用平台字幕；只有在缺少合适字幕时才需要启用同一套 backend policy。
+- 无论底层使用 Qwen 还是 Whisper，最终都应标准化为 `SRT` 或 `timestamped segments`，供后续抽帧和写作阶段复用。
 
 此外，运行 skill 的 coding agent 必须具备一定的读图能力，否则很难选择关键帧，很难做到图文align（即至少是一个还不错的 vlm model，ps. MiniMax 2.7 只是一个纯文本模型）。
 

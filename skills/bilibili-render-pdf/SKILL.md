@@ -1,6 +1,6 @@
 ---
 name: bilibili-render-pdf
-description: Generate a professional, detailed, figure-rich LaTeX course note and final PDF from a Bilibili lecture, tutorial, or technical talk. Use when the user provides a Bilibili URL (BV number) and wants structured Chinese teaching notes that combine the video's title, chapters, diagrams, formulas, code, subtitle explanations, the original video cover on the front page, and a final synthesis chapter, with key frames extracted from the highest usable video resolution and inserted as figures, and where the final deliverable must include a rendered PDF. Falls back to Whisper speech-to-text when no CC subtitles are available.
+description: Generate a professional, detailed, figure-rich LaTeX course note and final PDF from a Bilibili lecture, tutorial, or technical talk. Use when the user provides a Bilibili URL (BV number) and wants structured Chinese teaching notes that combine the video's title, chapters, diagrams, formulas, code, subtitle explanations, the original video cover on the front page, and a final synthesis chapter, with key frames extracted from the highest usable video resolution and inserted as figures, and where the final deliverable must include a rendered PDF. Falls back to a device-aware ASR backend when no CC subtitles are available: default to Qwen3-ASR-1.7B plus Qwen3-ForcedAligner-0.6B on CUDA machines, and default to a Whisper backend on Apple Silicon Macs.
 ---
 
 # Bilibili Render PDF
@@ -13,11 +13,11 @@ This skill extends the `youtube-render-pdf` workflow with Bilibili-specific adap
 
 | Aspect | Handling |
 |--------|----------|
-| **Subtitle scarcity** | Try CC subtitles first → fall back to Whisper speech-to-text → visual-only mode |
+| **Subtitle scarcity** | Try CC subtitles first → fall back to a device-aware ASR backend → visual-only mode |
 | **Login-gated HD** | 1080P+ requires cookies; prompt the user to use `yt-dlp --cookies-from-browser chrome` |
 | **Multi-part videos** | Detect 分P videos and ask the user which parts to process |
 | **URL formats** | Support `bilibili.com/video/BVxxxxxxx` and `b23.tv` short links |
-| **Danmaku** | Do not use danmaku as a teaching content source (too noisy); use only CC subtitles or Whisper output |
+| **Danmaku** | Do not use danmaku as a teaching content source (too noisy); use only CC subtitles or normalized ASR output |
 
 ## Goal
 
@@ -66,13 +66,17 @@ yt-dlp --write-subs --sub-langs "zh-Hans,zh-CN,zh,ai-zh" --convert-subs srt \
   --skip-download -o "%(title)s.%(ext)s" "<URL>"
 ```
 
-**Priority 2: Whisper speech-to-text (when no CC subtitles are available)**
+**Priority 2: Device-aware ASR backend (when no CC subtitles are available)**
 
-Extract audio first, then transcribe with Whisper to produce a timestamped SRT file.
+Extract audio first, then transcribe with the backend that matches the current machine.
+
+- On `CUDA / NVIDIA`, default to `Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B`.
+- On `Apple Silicon Mac`, default to a Whisper backend, prioritizing `whisper.cpp`; MLX and `openai-whisper` are acceptable alternatives.
+- Normalize the result into a timestamped `SRT` file or a `segments` structure with at least `start`, `end`, and `text`.
+- If you use Qwen forced alignment, chunk longer audio into short windows first and then merge the aligned output back into one continuous transcript.
 
 ```
 yt-dlp -x --audio-format wav -o "audio.%(ext)s" "<URL>"
-whisper audio.wav --model medium --language zh --output_format srt --output_dir .
 ```
 
 **Priority 3: Visual-only mode (when audio quality is too poor)**
@@ -90,7 +94,7 @@ Skip subtitles entirely and rely on dense frame sampling to extract teaching con
    Note that 1080P+ on Bilibili typically requires login cookies.
 
 3. Keep all source artifacts local when practical.
-   Typical working artifacts are metadata, the downloaded cover image, a timestamped subtitle file (CC or Whisper-generated), optional cleaned transcript text, a local video file, and extracted frames.
+   Typical working artifacts are metadata, the downloaded cover image, a timestamped subtitle file (CC or ASR-generated), optional cleaned transcript text, a local video file, and extracted frames.
 
 ## Long Video Strategy
 
@@ -208,7 +212,7 @@ Before inserting any video frame, first inspect several nearby candidates from t
 - The semantic filename must describe the frame's actual visible content, not a guess based on subtitles, nearby narration, or the intended paragraph topic.
 - If the frame is partially revealed, transitional, or ambiguous, keep searching and do not lock in a semantic name yet.
 
-- Use the timestamped subtitle file (CC or Whisper-generated SRT) as the primary locator for key-frame search.
+- Use the timestamped subtitle file (CC or ASR-generated SRT) as the primary locator for key-frame search.
 - First identify the subtitle span that corresponds to the concept, example, formula, or visual explanation being discussed.
 - Then search within that subtitle-aligned time interval, and slightly around its boundaries when needed, to find the best readable frame.
 - Do not jump directly from one guessed timestamp to one extracted frame.
@@ -287,7 +291,7 @@ Deliver all of the following:
 - the downloaded cover image referenced on the front page
 - any extracted or generated figure assets referenced by the document
 - the compiled PDF
-- the Whisper-generated SRT subtitle file, if speech-to-text was used
+- the ASR-generated `SRT` subtitle file or normalized `timestamped segments`, if speech-to-text was used
 
 ## Asset
 
