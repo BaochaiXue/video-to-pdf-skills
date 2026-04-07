@@ -1,6 +1,17 @@
 ---
 name: bilibili-render-pdf
-description: Generate a professional, detailed, figure-rich LaTeX course note and final PDF from a Bilibili lecture, tutorial, or technical talk. Use when the user provides a Bilibili URL (BV number) and wants structured Chinese teaching notes that combine the video's title, chapters, diagrams, formulas, code, subtitle explanations, the original video cover on the front page, and a final synthesis chapter, with key frames extracted from the highest usable video resolution and inserted as figures, and where the final deliverable must include a rendered PDF. Falls back to a device-aware ASR backend when no CC subtitles are available: default to Qwen3-ASR-1.7B plus Qwen3-ForcedAligner-0.6B on CUDA machines, and default to a Whisper backend on Apple Silicon Macs.
+description: >-
+  Generate a professional, detailed, figure-rich LaTeX course note and final PDF
+  from a Bilibili lecture, tutorial, or technical talk. Use when the user
+  provides a Bilibili URL (BV number) and wants structured Chinese teaching notes
+  that combine the video's title, chapters, diagrams, formulas, code, subtitle
+  explanations, the original video cover on the front page, and a final
+  synthesis chapter, with key frames extracted from the highest usable video
+  resolution and inserted as figures, and where the final deliverable must
+  include a rendered PDF. Falls back to a device-aware ASR backend when no CC
+  subtitles are available: default to Qwen3-ASR-1.7B plus
+  Qwen3-ForcedAligner-0.6B on CUDA machines, and default to a Whisper backend on
+  Apple Silicon Macs.
 ---
 
 # Bilibili Render PDF

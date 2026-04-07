@@ -1,4 +1,4 @@
-# video-render-pdf skills
+# video-to-pdf-skills
 
 这个仓库托管两个 Codex skill，用于将视频讲座转换为结构化的中文 LaTeX 讲义和最终 PDF。
 
@@ -41,6 +41,9 @@
 .
 ├── LICENSE
 ├── README.md
+├── demos/
+│   └── video-render-pdf/
+│       └── *.pdf
 └── skills/
     ├── youtube-render-pdf/
     │   ├── SKILL.md
@@ -66,6 +69,8 @@
   共享的默认 LaTeX 模板，包含首页封面位、盒子样式、代码块样式和正文占位结构。
 - `skills/*/agents/openai.yaml`
   给 agent UI 使用的显示名称、简介和默认提示。
+- `demos/video-render-pdf/`
+  样例 PDF 输出目录，当前沿用历史目录名 `video-render-pdf`。
 
 ## 使用方式
 
@@ -108,15 +113,15 @@ cp -R skills/bilibili-render-pdf ~/.codex/skills/
 - YouTube / Bilibili 教学视频转 LaTeX 讲义
 - 需要封面图、关键帧和总结章节的高质量课程文档生成
 
-## subagents 的触发
+## Subagents 的触发
 
-- codex 中对于 `spwan_agent` 的触发，规定的比较死，"Only use spawn_agent if and only if the user explicitly asks for sub-agents, delegation, or parallel agent work."，即需要我们在 query 中显式地要求，才可以触发 subagents
+- Codex 中对 `spawn_agent` 的触发限制较严格："Only use spawn_agent if and only if the user explicitly asks for sub-agents, delegation, or parallel agent work." 因此需要在 query 中显式要求，才会触发 subagents。
 
 ```
-$youtube-render-pdf   https://www.youtube.com/watch?v=vXb2QYOUzl4 请 spwan 多 sub agents 执行，隔离上下文，避免 master agent 的“上下文焦虑”， 形成一个完整全面的 pdf：
+$youtube-render-pdf https://www.youtube.com/watch?v=vXb2QYOUzl4 请 spawn 多个 subagents 并行执行，隔离上下文，避免 master agent 的“上下文焦虑”，形成一个完整全面的 PDF：
   - 1 个 outline agent：先定全局目录、术语、符号表、章节边界等
   - 5 个 writer agents：各自直接写成完整章节草稿，落盘成 section_*.tex
-  - 1 个 figure agent：单独负责抽帧、筛图、crop、脚本生成新的示意图】、图注和时间脚注等；
+  - 1 个 figure agent：单独负责抽帧、筛图、crop、脚本生成新的示意图、图注和时间脚注等
   - 1 个 consistency agent：检查重复定义、前后术语不一致、章节衔接断裂
 ```
 

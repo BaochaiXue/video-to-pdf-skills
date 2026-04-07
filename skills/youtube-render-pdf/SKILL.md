@@ -1,6 +1,15 @@
 ---
 name: youtube-render-pdf
-description: Generate a professional, detailed, figure-rich LaTeX course note and final PDF from a YouTube lecture, tutorial, or technical talk. Use when the user provides a YouTube URL and wants structured Chinese teaching notes that combine the video's title, chapters, diagrams, formulas, code, subtitle explanations, the original video cover on the front page, and a final synthesis chapter, with key frames extracted from the highest usable video resolution and inserted as figures, and where the final deliverable must include a rendered PDF. Prefer platform subtitles first, and when suitable subtitles are unavailable, fall back to the same device-aware ASR backend policy used by the Bilibili skill.
+description: >-
+  Generate a professional, detailed, figure-rich LaTeX course note and final PDF
+  from a YouTube lecture, tutorial, or technical talk. Use when the user provides
+  a YouTube URL and wants structured Chinese teaching notes that combine the
+  video's title, chapters, diagrams, formulas, code, subtitle explanations, the
+  original video cover on the front page, and a final synthesis chapter, with key
+  frames extracted from the highest usable video resolution and inserted as
+  figures, and where the final deliverable must include a rendered PDF. Prefer
+  platform subtitles first, and when suitable subtitles are unavailable, fall back
+  to the same device-aware ASR backend policy used by the Bilibili skill.
 ---
 
 # YouTube Render PDF
