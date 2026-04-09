@@ -1,0 +1,258 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{CS336 第 13 讲：数据工程 I}
+\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 13 讲视频、字幕与课程材料整理}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025年06月10日}
+\newcommand{\videoduration}{1:19:06}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=WePxmeXU1xg}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%% --- 正文内容开始 --- %%
+
+\section{数据为何成了 foundation model 时代最难复制的护城河}
+
+\subsection{为什么公司最不愿意公开的是数据}
+第 13 讲一开场就抛出一个很尖锐的判断：如果说架构和训练系统在公开论文里越来越透明，那么真正最神秘的部分反而是数据。课程用 Llama 3 一类开源权重模型做例子指出，模型架构、优化器和部分训练细节常常会被详细披露，但数据来源、筛选和配比往往只给模糊描述。
+
+课程给出的原因有两个。第一是竞争：数据直接决定模型差异化，是最难复制的资产。第二是法律风险：越具体披露数据来源，越容易暴露版权、隐私和合同义务问题。因此在 foundation model 时代，数据既是模型能力的来源，也是组织最不愿完全摊开的秘密。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\textwidth]{../../materials/spring2025-lectures/images/llama3-data.png}
+\caption{课程用公开模型的数据说明方式提醒学生：越重要的数据细节，往往越不透明。}
+\end{figure}
+
+\begin{importantbox}{第 13 讲的总判断}
+“数据最重要”不是鸡汤。课程真正想说的是：数据工作既长尾、又依赖人工判断、又有合规风险，因此它比架构和系统更难被完全标准化与复制。
+\end{importantbox}
+
+\subsection{本章小结}
+第 13 讲先把数据的战略地位钉住了。对大模型团队来说，数据不是训练流水线的输入材料，而是最核心、最难复制、也最难完全公开的能力来源。
+
+\section{从 pretraining 到 post-training：数据质量沿着训练阶段不断提高}
+
+\subsection{三阶段视角：大而杂，逐渐走向小而精}
+课程把训练阶段拆成三层：pre-training、mid-training 和 post-training。这个划分非常重要，因为它解释了为什么“好数据”不能只按一个统一标准来看。预训练更关心覆盖广、规模大、信息密度足够高；中训练更关心能力增强，比如长上下文或学科强化；后训练则更关心行为控制、指令跟随和安全性。
+
+课程给出的总体规律很值得记住：从前到后，数据通常会从“大规模、质量参差、贴近自然分布”逐步转向“小规模、质量更高、目标更明确”。这不意味着后面的数据绝对更“真实”，而是它们越来越像人为设计的干预信号。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/olmo2-pretraining.png}
+\caption{OLMo 2 的例子说明：预训练阶段首先关注的是大规模基础语料。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/olmo2-dolmino.png}
+\caption{课程用 OLMo 的中训练示意图说明：后续阶段会更针对能力缺口做数据干预。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/tulu.png}
+\caption{后训练阶段的数据已经从“自然文档”转向更明确的行为和指令分布。}
+\end{figure}
+
+\subsection{为什么这套分层非常关键}
+如果没有这套分层，学生就很容易把“训练数据”理解成某个固定大桶：从网络上抓下来，清洗一下，喂进去就行。课程明确反对这种看法。不同阶段的数据承担的是不同角色，预训练负责世界覆盖，mid-training 负责补特定能力，post-training 负责塑造交互行为。于是同一份数据在不同阶段的价值会完全不同。
+
+\begin{knowledgebox}{base model 与 instruct model 的真正差别}
+课程在术语上也做了澄清：base model 往往是 pretraining 加 mid-training 之后的结果，而 instruct/chat model 则是在此基础上继续做 post-training。也就是说，两者往往不是不同架构，而是同一基础模型看到的数据分布不同。
+\end{knowledgebox}
+
+\subsection{本章小结}
+数据不是一锅炖。第 13 讲通过 pretraining、mid-training、post-training 的分层视角，让我们看到“规模、质量和目标”会随着训练阶段不断变化。
+
+\section{预训练数据到底来自哪里：网页、书籍、论文、代码与社区文本}
+
+\subsection{预训练不是“全网抓一遍”，而是复杂的数据供应链}
+课程接下来做了非常密集的一次数据源巡礼：BooksCorpus、Wikipedia、WebText、Common Crawl、C4、The Pile、RedPajama、FineWeb、Dolma、The Stack、Project Gutenberg、Stack Exchange、GitHub 等。课程的重点不是让你背名字，而是让你看到真实数据管线有多复杂。
+
+例如 Common Crawl 只是一个定期抓取网页的大型基础设施，它给你的往往是 WARC 或 WET 文件，而不是可以直接训练的干净文本。网页要先转纯文本，模板和导航条要剔除，语言要识别，重复内容要去掉，低质量页面要过滤，PII 和明显不当内容也要处理。也就是说，\textbf{原始网页和可训练文档之间，隔着一整条数据加工链。}
+
+\subsection{HTML 转文本、去重和过滤为什么会改变模型质量}
+课程特别指出，很多人以为“数据工程就是脏活累活”，但事实上连 HTML 转文本这种看似基础的环节都会显著影响最终下游表现。Common Crawl 的不同处理方式会得到完全不同的文本分布，而 C4、RefinedWeb、FineWeb、Dolma 等数据集的差异，也大量体现在这些处理选择上。
+
+这就是为什么课程反复讲 C4、CCNet、The Pile、RedPajama 这些项目。它们提供的不只是数据集本身，更是一组对于“什么叫可训练文本”的工程判断：哪些页面更像自然语言、哪些像模板垃圾、哪些虽然大但价值有限。
+
+\subsection{不同来源带来不同能力和风险}
+网页、书籍、论文、代码和问答社区文本各自承担不同角色。网页提供规模和广覆盖，书籍提供长程叙事和稳定文风，论文提供专业知识和形式化表达，代码对程序任务和某些推理任务都很有帮助，问答社区文本则更接近 instruction-following 和真实信息请求场景。
+
+课程在这里特别有价值的一点，是没有把任何来源神化。Wikipedia 虽然高质量，但也会受编辑机制和投毒攻击影响；Books3 这类影子图书馆材料能力价值很高，却伴随极强版权风险；GitHub 和 Stack Exchange 有丰富元数据，但也充满重复、fork 和许可问题。也就是说，\textbf{每一种来源都是能力、噪声和法律风险的捆绑包。}
+
+\subsection{本章小结}
+预训练数据不是“从网上下载文件”的问题，而是一条涵盖抓取、转换、过滤、去重和源类型配比的供应链。课程通过大量具体数据集案例，把这条链的复杂度完整摊开了。
+
+\section{模型式过滤的兴起：从启发式规则到用模型选数据}
+
+\subsection{为什么纯手工规则开始不够用}
+课程在 DataComp-LM、DCLM 和 Nemotron-CC 这一段里传达了一个明显趋势：随着预训练池越来越大，单靠启发式规则很难同时兼顾质量和规模。一套规则也许能去掉不少垃圾，但往往会过于保守，把大量潜在有用数据也一起删掉。
+
+因此，越来越多团队开始用模型来做数据过滤。比如训练 fastText 分类器，把 OpenHermes、ELI5 这类较高质量样本当正例，把较粗糙的网页文本当负例，再把分类器跑到海量候选语料上。这一步让数据过滤从“写规则”升级成“学习一个 quality prior”。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/dclm-quality.png}
+\caption{课程用 DCLM 相关结果说明：模型式质量过滤正在变成更常见的数据工程手段。}
+\end{figure}
+
+\subsection{模型过滤的优势与新问题}
+模型式过滤的优势是更灵活，能在更大语料池里保留更多高价值样本；但新问题也很明显：你到底把什么视为“高质量”？如果正例来自 GPT-4 指令数据和 ELI5，那么过滤器就可能系统性偏向教育性、解释性或特定文风，而不是简单意义上的“通用好文本”。
+
+课程因此没有把模型式过滤描绘成终局。它更像是在说：数据工程已经从“规则清洗”进入“模型筛选”的阶段，但筛选器本身的偏好、保守程度和覆盖范围都会反过来塑造模型。
+
+\begin{warningbox}{关于 model-based filtering 的一个隐患}
+当你用模型去选训练数据时，你实际上把“什么值得学”这件事提前编码进了过滤器。过滤器越强，训练数据分布越不自然；这既可能提升质量，也可能压窄覆盖。
+\end{warningbox}
+
+\subsection{本章小结}
+第 13 讲在这里把数据工程继续推进了一步：过滤不再只是手写规则，而是越来越依赖模型和蒸馏式 quality signal。这让数据处理变得更强，但也引入了新的分布偏见来源。
+
+\section{版权、许可、fair use 与 ToS：数据不是只要看见就能拿来训}
+
+\subsection{版权法关心的是表达，不只是字面复制}
+课程在法律部分非常清楚地说明：互联网绝大多数内容都自动受到版权保护。你是否能拿某份内容训练模型，不只取决于它有没有被模型 verbatim 记住，还取决于获取、复制、转换和最终市场影响这些更底层的问题。
+
+课程特别强调了几个法律直觉。第一，copyright 保护的是 expression 而不是 abstract idea；第二，作品不需要注册就自动受保护；第三，foundation model 训练的第一步“复制数据”本身就已经进入版权讨论范围。这些事实足以打破“网上能看到就等于能拿来训练”的朴素想法。
+
+\subsection{许可、fair use 和 ToS 是三层不同约束}
+课程把合法性拆成三层。第一层是 license：如果拿到了许可，问题会简单很多。第二层是 fair use：在没有许可时，要根据使用目的、作品性质、使用比例和市场影响等因素做复杂判断。第三层则是 terms of service：即便某作品本身可能允许使用，平台合同仍可能禁止特定抓取和下载行为。
+
+这三层约束叠在一起，解释了为什么许多团队宁愿少说细节。数据问题不是单纯的技术处理，而是工程、法务和风险管理的交叉点。
+
+\begin{importantbox}{课程在法律部分最现实的提醒}
+“能训练”不是一个纯技术判断。它同时是许可判断、fair use 判断和合同合规判断。忽略任何一层，都会把数据工程理解得过于天真。
+\end{importantbox}
+
+\subsection{本章小结}
+第 13 讲并没有给出一条简单的合法性公式，而是让学生接受一个现实：数据使用总是在技术价值与法律风险之间做权衡，真正成熟的 pipeline 必须把二者一起管理。
+
+\section{mid-training 与 post-training 数据：能力增强和行为塑形的另一套世界}
+
+\subsection{长上下文和能力增强往往不该在预训练里硬做}
+课程后半段开始转向 mid-training。一个典型例子是长上下文：如果直接在预训练阶段把序列长度推得很大，Transformer 的二次复杂度会让成本爆炸。因此很多团队会在基础预训练之后，再用更针对性的文档、数学和长上下文数据去做能力增强，比如 LongLoRA 一类工作。
+
+这说明数据工程不仅决定“模型会不会”，还决定“哪个能力应该在哪个阶段补”。预训练不是包打天下的大桶；某些能力若在后续阶段补，反而更高效。
+
+\subsection{instruction data 与 synthetic data 已经形成自己的生态}
+课程最后扫过 Super-Natural Instructions、FLAN、Alpaca、Vicuna、WizardLM、MAmmoTH2、OpenHermes、Llama 2 chat、Llama-Nemotron 等数据集，传达出一个非常清晰的趋势：后训练数据已经形成了独立的工业体系，其中 synthetic data 和 dataset aggregation 占比越来越高。
+
+课程尤其强调一个现实：高质量 vendor annotation 的数量未必很大，但往往价值很高；大规模 open 或 synthetic instruction data 则提供覆盖和多样性。团队真正做的是在这些来源之间找平衡，而不是相信某一种来源天然最好。
+
+\subsection{本章小结}
+到了 mid-training 和 post-training，数据从“自然文档”逐渐变成“带明确教学意图或行为意图的监督信号”。这使得后期数据的设计空间和预训练数据完全不同。
+
+\section{总结与延伸}
+第 13 讲把“数据”从抽象名词拆成了一整条现实管线。
+
+第一，\textbf{数据是 foundation model 时代最难复制的护城河。} 因为它同时涉及人工判断、长尾清洗和法律风险。
+
+第二，\textbf{训练阶段不同，数据角色也不同。} pretraining 追求广覆盖与规模，mid-training 补能力，post-training 塑行为。
+
+第三，\textbf{可训练语料来自复杂供应链。} 从 Common Crawl 到 C4、The Pile、FineWeb、Dolma、The Stack，真正的价值在于如何转换、过滤、去重和配比，而不是原始来源本身。
+
+第四，\textbf{数据过滤正在模型化。} model-based filtering 能提升质量，但也会把过滤器的偏好编码进训练分布。
+
+第五，\textbf{法律和合同不是外围问题。} 许可、fair use 与 ToS 共同决定了某份数据能否进入训练 pipeline。
+
+第六，\textbf{mid-training 与 post-training 已经形成独立数据生态。} 长上下文、指令跟随、安全与 reasoning traces 往往都在这些后续阶段被强化。
+
+\begin{warningbox}{我对第 13 讲的压缩提醒}
+如果只把这讲理解成“介绍了很多数据集”，那就太浅了。真正的结论是：\textbf{数据工程是一条同时处理来源、质量、重复、目标和合法性的供应链，而模型能力就是这条供应链的产物。}
+\end{warningbox}
+
+下一讲进入 Data II 之后，课程会从“数据从哪里来、能不能用”进一步推进到“怎样具体做过滤、分类、重要性重采样和去重算法”。第 13 讲是全景图，第 14 讲是机械细节。
+
+%% --- 正文内容结束 --- %%
+
+\end{document}

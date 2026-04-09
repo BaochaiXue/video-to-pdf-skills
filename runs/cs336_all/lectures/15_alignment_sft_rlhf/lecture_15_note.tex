@@ -1,0 +1,249 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{CS336 第 15 讲：对齐：SFT / RLHF}
+\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 15 讲视频、字幕与课程材料整理}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025年06月20日}
+\newcommand{\videoduration}{1:14:51}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=Dfu7vC9jo4w}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%% --- 正文内容开始 --- %%
+
+\section{为什么 base model 很强，却还不是一个好助手}
+
+\subsection{第 15 讲真正关心的是“控制”}
+到第 15 讲为止，课程已经讲完预训练、系统、数据和评估，现在终于开始正面处理 assistant model 的问题。课程给出的核心判断非常直接：预训练模型虽然学会了大规模文本分布，但真实部署需要的是更紧的行为控制，包括更好地遵循指令、控制语气和格式、执行安全边界，并在多种用户意图下保持稳定。
+
+因此，这一讲的主线不是“让模型更懂世界”，而是“让模型更可控”。课程把标准路线概括成 imitation 加 reinforcement：先做 supervised fine-tuning（SFT），再做 RLHF。SFT 负责把模型往我们想要的行为分布上拉，RLHF 则进一步让模型针对偏好或奖励信号优化。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-05.png}
+\caption{课程一开始就把目标说得很清楚：预训练能扩展，但我们需要更紧、更明确的输出控制。}
+\end{figure}
+
+\begin{importantbox}{第 15 讲的核心问题}
+alignment 在这一讲里主要不是哲学问题，而是数据和优化问题：我们怎样收集“想要的行为”，又怎样把这些行为可靠地压进模型里。
+\end{importantbox}
+
+\subsection{本章小结}
+第 15 讲先把对齐问题从抽象伦理讨论拉回工程现实。assistant model 和 base model 的主要差别，往往不是参数量，而是看到的数据分布和被优化的行为目标。
+
+\section{SFT 数据里到底装了什么：答案、风格、格式与安全边界}
+
+\subsection{instruction data 不只是任务答案}
+课程用 FLAN、Alpaca、OpenAssistant 等数据例子做了一个很有启发的展示。不同 instruction 数据集在回答长度、项目符号风格、引用方式、知识密度和安全性方面差异很大。也就是说，SFT 训练时教给模型的不只是“某个问题的正确答案”，还包括“一个好回答看起来像什么”。
+
+这点极其重要，因为很多部署差异都来自这些非答案维度。一个模型可能知道某件事，但不会以用户喜欢、平台允许、产品可接受的方式回答。SFT 的价值就是直接改写这种默认行为。
+
+\subsection{行为分布才是 SFT 真正改写的对象}
+课程希望学生意识到，SFT 的本体不是单个样本，而是行为分布。模型原先在预训练中看到的是大量自然文档和论坛文本，SFT 后它则开始学会“收到 prompt 以后，应该像一个助手那样回答”。于是数据中的长度偏好、列点习惯、引用格式甚至礼貌程度，都会被学进去。
+
+这解释了为什么同样都是 instruction tuning，不同团队出来的模型气质差异非常明显。差异未必首先来自 RL，而可能先来自 SFT 数据分布本身。
+
+\begin{knowledgebox}{为什么课程要让学生看具体样例}
+因为 instruction data 的很多关键属性是统计表格里看不见的。只有直接看样本，你才会发现它在教模型输出多长、引用多少、是更“像论文”还是更“像客服”。
+\end{knowledgebox}
+
+\subsection{本章小结}
+SFT 不是“把知识样本再过一遍模型”那么简单。它真正塑造的是模型在收到指令时默认会采取的回答风格、格式和安全姿态。
+
+\section{SFT 不是免费知识注入：知识提取与事实性问题}
+
+\subsection{为什么“把不会的事实拿去微调”可能反而变糟}
+课程在知识与事实性部分提出了一个非常关键的警告：微调一个模型去回答它原本不太会的尾部知识，未必会让它变得更可靠，反而可能诱发新的幻觉。这是因为模型并不是简单地把一条知识写进可检索数据库，而是在用参数更新改写整体行为。
+
+课程用带引用的复杂问答例子说明：模型在 SFT 中学到的，可能既包括内容本身，也包括“当被要求给出处时，应该生成类似引用的格式”。这两种学习混在一起时，结果未必是更真实，而可能只是更像“看起来很像有依据的回答”。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-19.png}
+\caption{课程借复杂引用样例说明：SFT 既可能在教内容，也可能在教“如何像在引用”。}
+\end{figure}
+
+\subsection{为什么课程说 knowledge extraction 是 messy 的}
+这一段的核心结论不是“SFT 一定会让模型幻觉”，而是知识存储和提取在大模型里本来就非常微妙。你不知道某个事实是在模型里被牢固表示，还是只在某类提示下勉强可被引出；你也不知道新样本是在纠正知识，还是在教模型用更自信的口吻生成不可靠内容。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-20.png}
+\caption{课程总结知识提取与对齐的经验：针对尾部知识的微调常常比想象中更不稳。}
+\end{figure}
+
+\begin{warningbox}{SFT 最容易被误用的地方}
+把 SFT 当成“低成本补知识”的方法往往风险很大。它更擅长塑造行为和格式边界，而不是像数据库更新那样精确地改写模型的知识状态。
+\end{warningbox}
+
+\subsection{本章小结}
+课程在这里把一个常见误解彻底拆开了：instruction tuning 不等于知识编辑。它首先是行为对齐，其次才可能间接影响知识提取。
+
+\section{安全调优与过度拒绝：少量数据就能大幅改模型行为}
+
+\subsection{为什么 safety-tuning 效果会这么强}
+课程用安全调优的例子说明，一个相对小的数据集就能显著改变模型的危险行为分布。这件事很重要，因为它再次证明：后训练数据对行为边界的影响往往远大于对底层知识的影响。你不需要几百万条样本，也可能让模型明显更愿意拒绝有害请求。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\textwidth]{pdf_pages/page-23.png}
+\caption{课程展示了 safety-tuning 的核心机制：少量有针对性的监督就能显著改变模型安全画像。}
+\end{figure}
+
+\subsection{但安全数据太多也会引出 over-refusal}
+课程同样提醒，安全对齐不是越强越好。如果你在安全数据上调得过头，模型就会在明明安全、甚至只是技术性的查询上也开始过度拒绝，比如把正常的编程术语误判成危险意图。这就是所谓 exaggerated safety response。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\textwidth]{pdf_pages/page-24.png}
+\caption{安全调优的另一面：过量或失衡的 safety data 可能把模型推向过度拒绝。}
+\end{figure}
+
+\subsection{本章小结}
+安全调优是第 15 讲里最直观的证据之一。它说明对齐数据的力量确实很大，但这种力量既能解决问题，也能制造新的行为偏差。
+
+\section{从 imitation 到 preference optimization：为什么需要 RLHF}
+
+\subsection{SFT 解决不了所有偏好问题}
+课程在这里把 imitation 和 optimization 区分得很清楚。SFT 假设你有示范答案，可以直接拟合一个参考行为分布；但很多真实偏好很难写成“唯一正确答案”，更容易通过标量反馈或成对比较来表达。比如“哪个回答更 helpful、harmless、honest”，往往人能比较，但不容易从零写出标准最优答案。
+
+这就是 RLHF 出场的理由。它不再要求标注者完整写出回答，而是允许他们对模型生成的多个回答做偏好排序，或者提供更简洁的奖励信号。课程还专门提到一个经济事实：在很多任务上，让专家验证比让专家亲自解题便宜得多，这使 preference data 在实践里很有吸引力。
+
+\subsection{RLHF 数据收集比表面看起来更难}
+课程讲了 InstructGPT 一类众包流程，也讲了 annotator selection、伦理和人口学偏差等问题。众包最难的地方不只是招到人，而是招到真的会认真判断质量、事实性和安全性的 annotator。再加上 GPT-4 等模型已经能辅助甚至替代部分反馈，RLHF 数据收集本身也开始进入“人类反馈 + AI 反馈”的混合状态。
+
+这一段最值得记住的不是某个具体流程，而是：\textbf{偏好数据的分布会直接成为模型行为的分布。} 如果 annotator 群体有强烈的风格、政治或安全偏好，模型就会继承这些偏好。
+
+\subsection{本章小结}
+RLHF 的价值不在于它更“高级”，而在于它适合处理那些“人类更擅长比较而不是直接示范”的目标。与此同时，它的数据收集也更昂贵、更主观、更容易带入标注者偏见。
+
+\section{PPO、DPO 与 RLHF 的副作用}
+
+\subsection{PPO 是原始路线，DPO 是更易用的近代路线}
+课程用很高层的方式回顾了 PPO：它本质上是围绕策略梯度、TRPO 和裁剪目标发展出来的语言模型 reward optimization 方案。问题在于，它流程长、系统复杂、需要 rollout 和 reward model，因此非常“有牙齿”，但也非常折腾。
+
+DPO 的吸引力恰恰在于它试图绕开这些痛点。课程给出的总结很简洁：不再显式训练 reward model，也尽量去掉 on-policy rollout，把偏好优化重写成一种更接近监督学习的目标。它之所以迅速流行，不是因为理论上一定更完美，而是因为工程门槛大幅降低。
+
+\begin{knowledgebox}{为什么 DPO 会迅速流行}
+不是因为 PPO 彻底过时，而是因为很多团队更愿意要一个“稍微没那么精细但好训得多”的方案。对开源社区尤其如此。
+\end{knowledgebox}
+
+\subsection{对齐不会白拿：过优化与模式坍缩仍然存在}
+课程最后非常谨慎地提醒：无论用 PPO、DPO 还是别的变体，只要你在一个有限偏好信号上持续优化，过优化和模式坍缩就会出现。模型可能越来越会赢得 reward，却越来越不像一个校准良好的概率模型；回答也可能越来越单调，缺少多样性。
+
+这部分内容其实是在给第 16、17 讲铺路。第 15 讲告诉你 RLHF 为什么值得做，也告诉你它的边界在哪；下一讲才会进一步说明，为什么大家开始把目光转向 verifiable rewards、GRPO 和 reasoning RL。
+
+\subsection{本章小结}
+第 15 讲并没有把 PPO 和 DPO包装成终局。它真正想传达的是：对齐方法始终在 helpfulness、训练复杂度和副作用之间做取舍，没有一种方案能完全消除这些张力。
+
+\section{总结与延伸}
+第 15 讲把对齐问题从“模型更安全”这种口号，拆回成数据和优化两个具体层面。
+
+第一，\textbf{预训练模型之所以还不够，是因为部署需要更紧的行为控制。} SFT 和 RLHF 的目标首先是把行为分布往助手形态上推。
+
+第二，\textbf{instruction data 教给模型的不只是答案。} 长度、格式、语气、引用方式和安全风格都会被一起学进去。
+
+第三，\textbf{SFT 不是免费知识编辑。} 针对尾部事实做微调，可能改善行为，也可能加重幻觉和伪引用。
+
+第四，\textbf{安全调优既强大又危险。} 少量数据就能显著改变模型安全画像，但也可能把模型推向过度拒绝。
+
+第五，\textbf{RLHF 之所以重要，是因为很多目标更适合比较而不是示范。} 但这也让 annotator 分布和反馈质量成为模型行为的重要来源。
+
+第六，\textbf{PPO 与 DPO 代表的是不同取舍。} 一个更原始、更复杂，一个更易用、更轻量；二者都无法绕开过优化和模式坍缩等副作用。
+
+\begin{warningbox}{我对第 15 讲的压缩提醒}
+如果只记住“先 SFT 再 RLHF”，那还远远不够。真正重要的是：\textbf{对齐是在收集和放大某种行为分布，而这件事从数据样本、标注者偏好到优化目标都会留下明显指纹。}
+\end{warningbox}
+
+下一讲进入 RL I 之后，课程会把这一讲留下的问题进一步形式化：如果 preference optimization 有这么多副作用，那我们能否转向更可验证、更结构化的奖励信号？
+
+%% --- 正文内容结束 --- %%
+
+\end{document}

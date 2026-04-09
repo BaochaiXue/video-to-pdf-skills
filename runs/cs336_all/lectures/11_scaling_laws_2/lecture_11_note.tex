@@ -1,0 +1,258 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{CS336 第 11 讲：Scaling Laws II}
+\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 11 讲视频、字幕与课程材料整理}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025年06月02日}
+\newcommand{\videoduration}{1:18:13}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=OSYuUqGBQxw}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%% --- 正文内容开始 --- %%
+
+\section{Scaling Laws II：从漂亮曲线到可执行 recipe}
+
+\subsection{为什么第 11 讲要从 Chinchilla 继续往前走}
+第 9 讲把 scaling laws 当成一种方法论：在小规模上拟合规律，再把规律外推到大规模。第 11 讲则追问一个更现实的问题：到了 2024--2025 年，真正公开做出强模型的团队，到底是怎样把这套方法落地的？
+
+课程给出的答案很明确。今天的 scaling recipe 已经不只是“估一个 data-to-model ratio”，而是把 \textbf{参数化方式、学习率调度、batch/LR 缩放、joint fit 和 isoflop 分析} 一起纳入。换句话说，现代 recipe 不是一条单独的曲线，而是一整组互相配合的假设和操作。
+
+\begin{importantbox}{第 11 讲的压缩目标}
+把 scaling laws 从“曲线长什么样”推进到“团队怎样真的用这些曲线来选模型、选 batch、选学习率、选调度以及选数据配比”。
+\end{importantbox}
+
+\subsection{公开案例的意义：CerebrasGPT、MiniCPM、DeepSeek}
+课程选择 CerebrasGPT、MiniCPM 和 DeepSeek 作为主要案例，很有代表性。它们都不是把 Chinchilla 原封不动复刻，而是在现代开源模型训练里把 scaling 进一步工程化。CerebrasGPT 更强调 muP 带来的稳定超参数迁移；MiniCPM 在 muP 之外又系统拟合最优 batch、最优学习率和数据配比；DeepSeek 则展示了即便不显式采用 muP，也可以用更直接的经验搜索和 isoflop 分析拿到很强结果。
+
+这三条路线的共同点是：\textbf{它们都不再愿意在最大模型上盲试。} 差别只在于，有的团队相信“先让参数化更可迁移”，有的团队相信“直接把关键超参数都做 scaling fit”。
+
+\begin{warningbox}{第 11 讲最重要的边界提醒}
+不要把某一份 scaling recipe 当成“跨所有模型和数据都成立的物理定律”。课程一再强调：只要架构、训练目标、数据分布或优化细节发生变化，拟合就可能需要重做。
+\end{warningbox}
+
+\subsection{本章小结}
+第 11 讲的起点不是再复述 Kaplan，而是把问题推进到现代公开 recipe：今天真正有竞争力的模型团队，如何把 scaling 变成可以执行的训练流程。
+
+\section{muP：让小模型调参更像是在给大模型调参}
+
+\subsection{muP 想解决的不是“性能更高”，而是“迁移更稳”}
+课程用非常工程化的语言介绍 muP。它的核心承诺不是神奇地让模型更强，而是让不同宽度模型之间的超参数搜索更有尺度不变性。对训练团队来说，这意味着：如果我在一个较小模型上找到了合适的学习率、初始化和若干缩放规则，那么这些设置在更大模型上仍然更可能保持有效。
+
+这件事为什么重要？因为没有这种稳定性，小模型实验的外推价值会迅速下降。你在 100M 模型上扫出来的超参数，到了 10B 模型也许完全失效；那样一来，scaling laws 只能帮你估模型和数据比例，却帮不了最贵的调参问题。muP 的意义就是尽量把这道门重新打开。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-07.png}
+\caption{CerebrasGPT 的结果表明，muP 可以让超参数缩放关系更可预测。}
+\end{figure}
+
+\subsection{课程如何解释 muP 的原则}
+课程没有停留在“这东西很好用”的经验论上，而是给出了两个直观条件：
+\begin{itemize}
+\item 初始化时各层激活量级应保持在 $\Theta(1)$，不要随着网络宽度爆炸或消失；
+\item 做一步梯度更新后，激活变化也应保持在合理量级，不要因为宽度变化而让更新完全失真。
+\end{itemize}
+
+这两个条件听上去抽象，但它们在工程上对应得很具体：embedding 输出如何缩放，残差分支如何缩放，权重初始化标准差怎样设定，不同张量的学习率是否要随宽度变化做补偿。课程的意思是，\textbf{muP 本质上是在给“宽度变化时什么东西应该保持不变”下规则。}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\textwidth]{pdf_pages/page-12.png}
+\caption{MiniCPM 公开列出了 muP 相关的具体操作：embedding 输出、残差、初始化和张量学习率缩放。}
+\end{figure}
+
+\begin{knowledgebox}{为什么 muP 值得单独讲一整段}
+因为它不是某个局部 trick，而是在回答 scaling workflow 里最贵的那个问题：怎样让小模型上的调参结果更可信地迁移到大模型上。
+\end{knowledgebox}
+
+\subsection{本章小结}
+muP 的真正价值不在于某一个公式，而在于它试图让“用小模型代替大模型做超参数搜索”这件事更可靠。对任何希望压缩试错成本的团队来说，这都是非常现实的收益。
+
+\section{MiniCPM：把 batch、学习率和数据配比都纳入缩放分析}
+
+\subsection{从“固定配方”到“系统拟合最优超参数”}
+MiniCPM 是这讲里最系统的案例之一。课程强调，它并没有满足于“用了 muP，所以超参数更稳”这种粗粒度结论，而是进一步去拟合最优 batch、最优学习率和 token-to-size ratio。换句话说，MiniCPM 不只是想知道曲线往哪走，而是想知道在不同规模下具体该怎么训。
+
+这让第 11 讲和第 9 讲形成了很好的呼应：第 9 讲说 scaling laws 可以指导工程变量，第 11 讲则展示了真的有人把工程变量一项项拿去拟合。这里最关键的思想，是把 hyperparameter scaling 本身也当成要建模的对象，而不是只拿固定经验值沿用到所有规模。
+
+\subsection{最优 batch size 和最优学习率为什么也值得拟合}
+课程给出的 MiniCPM 结果说明，随着模型规模和目标损失变化，最优 batch size 会呈现相当干净的规律；学习率在 muP 框架下则更接近尺度稳定。对训练团队来说，这意味着你不必在每个规模上从头大扫参数，而是可以先用较小模型找到一条趋势，再把它带到更大实验中。
+
+这一步很重要，因为 batch 和 LR 直接决定训练稳定性、吞吐和最终收敛速度。只估数据和模型比例，却不估 batch/LR，得到的 recipe 仍然是不完整的。
+
+\subsection{WSD 学习率调度为什么能让 Chinchilla 拟合更便宜}
+课程特别看重 WSD（warmup-stable-decay）调度。传统 Chinchilla 分析为了得到不同模型、不同 token 数下的完整损失，需要做大量从头训练，成本接近平方级膨胀。WSD 的价值在于：你可以在 stable phase 结束后继续延长训练或重启，从而以更低成本估算不同 token-budget 下的表现。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-17.png}
+\caption{WSD 调度把训练过程拆成 warmup、stable 和 decay，使得 token-to-size 分析更便宜。}
+\end{figure}
+
+课程在这里传达了一个很务实的思想：\textbf{如果拟合 scaling law 本身太贵，那么这套方法论就会失去意义。} WSD 并不只是一个学习率技巧，它是让 scaling analysis 变得“可承受”的流程设计。
+
+\subsection{本章小结}
+MiniCPM 的案例说明，现代 scaling recipe 可以比 Chinchilla 更细。团队不仅能估模型和数据比例，还能把 batch、学习率以及调度本身一起纳入拟合流程。
+
+\section{数据模型配比已经不止“20 倍参数量”了}
+
+\subsection{joint fit 和 lower envelope 给出了更高的数据比}
+课程讲到 MiniCPM 的数据配比分析时，最值得注意的结论是：他们得到的最优 data-to-model ratio 显著高于经典的 Chinchilla 经验值。也就是说，随着架构、优化和训练流程改进，很多现代 LLM 可能值得喂远比“20 倍参数量”更多的数据。
+
+这里课程展示了两种思路。一种是 lower envelope，也就是看一组不同模型在不同计算预算下的最优边界；另一种是 joint fit，直接拟合参数规模和数据规模共同作用的表面。两者形式不同，但目标相同：找到固定预算下模型和数据的更优耦合点。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-22.png}
+\caption{MiniCPM 的 Chinchilla method 1 说明：随着模型和数据变化，最优边界可以从实验点中读出来。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.76\textwidth]{pdf_pages/page-23.png}
+\caption{joint fit 直接在参数规模和计算预算上拟合二维曲面，从而得到数据与模型的最优配比。}
+\end{figure}
+
+\subsection{为什么“更多数据”这件事在现代 recipe 里越来越常见}
+课程特别指出，LLaMA 3 等较新的模型也倾向于采用更高的数据配比。这个趋势并不意味着 Chinchilla 错了，而是说明最优配比不是静态常数，它会随着架构选择、学习率调度、优化器和训练细节一起变化。只要这些部分更好，模型也许就能更有效地消化更多数据。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\textwidth]{pdf_pages/page-24.png}
+\caption{课程明确指出：现代模型的数据配比可能远高于“20$\times$ 参数量”的老经验。}
+\end{figure}
+
+\begin{importantbox}{关于 data-to-model ratio 的真正结论}
+不要把某个具体数字当成永恒真理。第 11 讲真正想讲的是：最优配比是一个必须随着 recipe 变化而重估的量，而不是一个一劳永逸的常数。
+\end{importantbox}
+
+\subsection{本章小结}
+第 11 讲通过 MiniCPM 的 joint fit 说明，现代模型的最优数据配比很可能比老经验更高。真正应该保留的是“持续重估”的方法，而不是固守某个具体倍率。
+
+\section{DeepSeek 和更近的 recipe：muP 不是唯一道路}
+
+\subsection{DeepSeek 代表了另一种工程哲学}
+课程选择 DeepSeek 的原因很清楚：它证明了即使不显式依赖 muP，也可以通过小规模实验直接拟合 batch/LR 缩放规律，并结合 WSD 风格调度与 isoflop 分析，拿到很强的模型。它的工程哲学更像是：先假设大多数 Transformer 超参数在尺度上变化不大，再把真正敏感的几个量重点拟合。
+
+这和 MiniCPM 的区别在于，MiniCPM 更强调“先让参数化更可迁移”，DeepSeek 更强调“直接把关键变量经验化拟合出来”。课程把二者并列，不是为了评出唯一正确路线，而是要说明：现代 scaling recipe 是一个设计空间，不是一条单行道。
+
+\subsection{最近的公开模型在做什么}
+课程最后快速扫过 LLaMA 3、Hunyuan、MiniMax 等更新近的工作。它们有的主要公开 isoflop 结果，有的开始把 scaling 扩展到 MoE 架构和架构选择本身。课程在这里的态度很务实：公开细节越少，recipe 可复现性就越低；但即便如此，趋势仍然清楚，那就是大家都在用越来越细致的 scaling workflow 来替代粗糙经验。
+
+\begin{warningbox}{为什么“看起来都用了 scaling laws”还不够}
+公开论文里只给一张 isoflop 图，不代表你就知道了完整 recipe。真正可复用的经验往往藏在 batch、LR、调度、数据配比和训练截断方式里，而这些细节未必都会公开。
+\end{warningbox}
+
+\subsection{本章小结}
+第 11 讲并没有宣判 muP 必胜或 DeepSeek 必胜。它真正展示的是：现代公开 recipe 至少已经分化出几条可行路线，而它们共同遵守的底层原则仍然是“小规模拟合，大规模外推”。
+
+\section{总结与延伸}
+第 11 讲把 scaling laws 从方法论推进成了 recipe 工程。
+
+第一，\textbf{现代 scaling recipe 已经不止估数据和模型配比。} 它同时涉及 muP、batch、学习率和学习率调度。
+
+第二，\textbf{muP 的价值在于提高超参数迁移稳定性。} 它让小模型调参对大模型更有参考价值，因此直接降低了大规模盲试成本。
+
+第三，\textbf{MiniCPM 展示了更细的 scaling workflow。} 最优 batch、最优 LR 和 WSD 调度都可以通过小规模实验拟合。
+
+第四，\textbf{经典 Chinchilla 比例不是永恒常数。} 更现代的 recipe 往往指向更高的数据配比，这意味着模型和数据的最优耦合点会随训练方法而变化。
+
+第五，\textbf{DeepSeek 说明 muP 不是唯一道路。} 你也可以不先追求尺度不变参数化，而是直接对关键超参数做经验拟合。
+
+\begin{warningbox}{我对第 11 讲的压缩提醒}
+如果只把这讲理解成“又介绍了几个模型”，那就漏掉重点了。真正值得带走的是：\textbf{scaling laws 在现代训练里已经演化成一套 recipe 设计方法，而 recipe 的主体恰恰是那些以前最难调、最贵调的训练细节。}
+\end{warningbox}
+
+接下来进入评估、数据和对齐章节时，可以把第 11 讲的视角保留下来：一套模型 recipe 之所以成立，不只是因为 loss 下降，还因为它在成本、可迁移性和可验证性上形成了闭环。
+
+%% --- 正文内容结束 --- %%
+
+\end{document}

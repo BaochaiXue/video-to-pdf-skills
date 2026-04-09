@@ -1,0 +1,312 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{CS336 第 12 讲：评估体系}
+\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 12 讲视频、字幕与课程材料整理}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025年06月04日}
+\newcommand{\videoduration}{1:20:48}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=x-R5l2HsXqM}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%% --- 正文内容开始 --- %%
+
+\section{评估不是排行榜，而是把“想知道什么”翻译成实验}
+
+\subsection{课程为什么说 evaluation 决定模型的未来}
+第 12 讲开头就故意打断一种常见直觉：评估不是把几个提示词扔给模型、算个平均分那么机械。评估实际上决定了研究者和公司会把资源优化到哪里，因此它会直接塑造下一代模型。你衡量什么，团队就会沿着什么方向爬坡；你忽略什么，模型就可能在那个维度悄悄退化。
+
+课程用很简单但很扎实的框架来组织这个问题：评估之前，先问自己到底要回答什么问题。是用户要做采购决策，还是研究者要测原始能力，还是监管者要看风险，还是模型团队要得到调参反馈？这些目标不同，对应的输入、调用方式、评分方法和结果解释都会完全不同。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{../../materials/spring2025-lectures/images/deepseek-r1-benchmarks.png}
+\caption{课程先从大家最熟悉的 benchmark 汇总图切入，再追问这些分数到底在回答什么问题。}
+\end{figure}
+
+\begin{importantbox}{第 12 讲的总纲}
+不存在唯一正确的 evaluation。评估首先是一个问题定义任务，随后才是数据集、prompt、judge 和指标的技术实现。
+\end{importantbox}
+
+\subsection{评估框架：输入、调用、输出、解释}
+课程给出了一套非常值得记住的四步框架：
+\begin{enumerate}
+\item 输入是什么，覆盖了哪些 use case，尾部困难样本是否存在；
+\item 模型怎么被调用，是否允许 CoT、tool use、RAG 或 agent scaffold；
+\item 输出如何评分，用什么指标、是否计入成本、如何处理开放式答案；
+\item 分数如何解释，它反映的是方法、模型、系统，还是部署准备度。
+\end{enumerate}
+
+这套框架的价值在于，它强迫你把很多默认假设显式化。比如“91\% 准确率”究竟意味着什么？如果 prompt 写法换了、judge 换了、是否允许工具换了，这个数字还代表同一件事吗？课程的答案很明确：\textbf{不先界定规则，就谈不上解释分数。}
+
+\subsection{本章小结}
+第 12 讲首先把评估从“收集分数”提升成“翻译目标”的工作。真正严肃的 evaluation 总是从问题定义开始，而不是从 leaderboard 开始。
+
+\section{从 perplexity 到能力 benchmark：分数为什么看起来客观，却未必回答了你要的问题}
+
+\subsection{perplexity 仍然重要，但它不是全部}
+课程先回到语言建模最原始的评估指标：perplexity。因为语言模型本质上是一个序列分布 $p(x)$，所以 perplexity 衡量的是模型给测试数据赋予高概率的能力。它在预训练里特别自然，也因为连续、平滑，依旧非常适合做 scaling law 拟合。
+
+但课程也明确指出，perplexity 并不能自动替代任务表现。它更像是一种“通用的、分布级的”评估，而下游任务往往关心某一类具体能力。于是从 GPT-2、GPT-3 之后，社区越来越多地转向 task accuracy、pass@k 和 benchmark score。课程在这里的立场并不是二选一，而是：\textbf{perplexity 仍然有价值，但它回答的问题更偏训练分布拟合，而不是直接的产品能力。}
+
+\subsection{标准 benchmark 为何方便，也为何容易被误解}
+MMLU、GPQA、HLE 这类 benchmark 的好处是清晰、可复现、便于横向比较。它们把评估问题变成近似标准化考试，方便我们快速感知一个模型在知识、专业题或高难度综合任务上的位置。
+
+问题在于，这些 benchmark 也会把“模型强不强”偷换成“在这套题上强不强”。课程特别指出，MMLU 本质上更像知识测试而不是语言理解测试；MMLU-Pro 则通过去掉太简单或噪声较大的题、扩大选项数、允许 CoT，试图缓和饱和问题。也就是说，benchmark 本身也会演化，因为模型会把旧 benchmark 做穿。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{../../materials/spring2025-lectures/images/helm-capabilities-leaderboard.png}
+\caption{能力排行榜看上去很客观，但它始终是“在一套特定规则下”的客观。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.76\textwidth]{../../materials/spring2025-lectures/images/mmlu-pro.png}
+\caption{MMLU-Pro 通过去噪、加难和允许 CoT，试图延缓标准题库的饱和。}
+\end{figure}
+
+\begin{knowledgebox}{为什么课程反复说“看实例，不只看均分”}
+因为同样 80 分的两个模型，可能一个输在知识盲区，另一个输在格式约束、推理步骤或 prompt 适配；这些差异只有看具体样本和预测才能分辨。
+\end{knowledgebox}
+
+\subsection{本章小结}
+perplexity 和标准 benchmark 都很有用，但它们只回答了问题空间的一部分。课程真正想建立的是：没有哪个分数天然就是“模型综合实力”的代理。
+
+\section{当 benchmark 想测“更纯的推理”时，它又会遇到什么问题}
+
+\subsection{HLE、ARC-AGI 与“知识和推理到底能不能分开”}
+官方 \texttt{lecture\_12.py} 在这里继续往前追问：前面的 benchmark 大多仍然混合了世界知识、语言理解和推理步骤，那么能不能设计更像“纯推理”的评估？课程拿 Humanity's Last Exam 和 ARC-AGI 做了两个很有代表性的对照。
+
+HLE 的特点是把多学科、多模态、高难短答和多项选择揉在一起，试图逼近“非常广义的专家级综合能力”；ARC-AGI 则反过来，尽量减少对具体知识背景的依赖，转而考查模式抽象、类比和规则发现。课程借这两个 benchmark 想说明：\textbf{你对 intelligence 的定义不同，评估形式就会完全不同。}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../../materials/spring2025-lectures/images/hle-results.png}
+\caption{HLE 更像极高难度、多模态综合考试。}
+\end{subfigure}
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../../materials/spring2025-lectures/images/hle-pipeline.png}
+\caption{课程也强调了 HLE 自身复杂的题目筛选和构建流程。}
+\end{subfigure}
+\caption{当 benchmark 想测“更高层能力”时，题目构造和评审流程本身也会急剧复杂化。}
+\end{figure}
+
+\subsection{“纯推理 benchmark” 并不自动等于“更真实”}
+课程在这一段的态度其实很克制。它承认 ARC-AGI 一类任务很吸引人，因为它们不像 MMLU 那样明显依赖记忆事实；但它也没有把这类 benchmark 神化成终局。原因很简单：真实世界里的有用智能往往既需要推理，也需要知识、工具和上下文交互。因此“更纯”不一定“更有产品价值”，它只是在回答另一类研究问题。
+
+\begin{knowledgebox}{第 12 讲对 reasoning benchmark 的真正提醒}
+当你看到一个 benchmark 宣称自己在测“更纯的智能”时，先问它到底把哪些现实能力排除掉了。去掉知识负担可能更利于研究分析，但也可能离真实使用更远。
+\end{knowledgebox}
+
+\subsection{本章小结}
+HLE、ARC-AGI 这类 benchmark 提醒我们：评估并不只是在同一维度上不断加难，而是在不断更换“我们到底想测什么”的定义。
+
+\section{开放式回答、偏好和 agent 任务：评估开始越来越像真实使用}
+
+\subsection{从“会做题”到“用户愿不愿意用”}
+课程接着把视角从标准化题目推进到开放式生成。Chatbot Arena、IFEval、AlpacaEval、WildBench 都在回答一个共同问题：如果答案不是选择题，没有唯一 ground truth，那模型到底好不好？
+
+这里最关键的变化是，评估不再只看 correctness，还开始看偏好、约束满足、真实对话质量和使用体验。比如 Chatbot Arena 依靠随机用户对匿名模型两两比较，再用 ELO 聚合；IFEval 把开放式指令转成一组可自动验证的约束；WildBench 则直接从真实聊天流量里采样任务，再用更复杂的 judge 流程做打分。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{../../materials/spring2025-lectures/images/wildbench.png}
+\caption{WildBench 的价值在于离真实人类聊天更近，因此常被拿来与 Arena 结果做 sanity check。}
+\end{figure}
+
+\subsection{风格、长度和 judge bias 为什么会污染结论}
+课程专门强调了偏好评估的脆弱性。模型回答更长、更像“认真在答题”，就可能更容易赢得评审，无论这个答案是否真的更对。再加上 judge model 本身也有风格偏好、立场偏好和 prompt 敏感性，所谓“开放式评估”很容易从测能力滑向测包装。
+
+这也是第 12 讲不停提醒学生要小心的地方：\textbf{当 benchmark 改为开放式时，judge 就成了评估系统的一部分。} 这意味着你不仅在评模型，也在评你的 judge pipeline。
+
+\subsection{agent benchmark 的出现，说明模型调用方式已经变了}
+课程后面讲到 SWE-Bench、CyBench、MLEBench 时，评估对象已经不再是“裸模型”，而是“模型加外部环境和控制逻辑”的 agent 系统。SWE-Bench 要求模型在真实仓库里修 issue 并通过单元测试，CyBench 则看攻防任务，MLEBench 让系统去跑 Kaggle 式机器学习任务。
+
+这类 benchmark 的意义是，它们更接近真实价值创造过程；但代价是，评估变量更多了。你到底是在测基础模型，还是在测 scaffold、工具调用、搜索策略和重试机制？课程非常明确地指出：\textbf{用户关心的是系统效果，模型研发者往往更关心纯模型能力；这两种 evaluation 不能混为一谈。}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{../../materials/spring2025-lectures/images/cybench-results.png}
+\caption{agent benchmark 已经开始把模型放进长期、多步、带工具的任务环境里。}
+\end{figure}
+
+\subsection{本章小结}
+一旦任务变成开放式生成或 agent 行为，评估就会从“标准答案匹配”升级成“偏好、约束和环境交互”的组合问题。课程在这里最想提醒的是：调用方式变了，评估语义也跟着变了。
+
+\section{能力、安全和现实性：评估不只是“谁更聪明”}
+
+\subsection{安全评估常常和能力评估纠缠在一起}
+课程在安全部分最有力量的一句话是：很多所谓“安全 benchmark”其实同时也是“能力 benchmark”。例如 CyBench 既能衡量一个系统是否擅长网络攻防，也会因此暴露它的双重用途风险。对 API 模型来说，propensity 很关键，因为系统可以拒绝；对开源权重模型来说，capability 更关键，因为拒绝行为很容易被微调掉。
+
+这意味着安全不能被简单理解成“拒不拒绝坏请求”。一个模型在医疗场景里少幻觉，不只是更安全，也是在某种意义上更有能力。课程借此提醒学生：安全维度是高度情境化的，它和能力并不是简单对立关系。
+
+\subsection{真实使用场景与隐私、代表性之间的张力}
+课程后面讨论 Clio 和 MedHELM，非常有代表性。真正有价值的评估数据往往来自真实用户流量或真实专业工作流，但这类数据又会立刻碰到隐私、同意和去标识化问题。于是评估里经常存在一个两难：越真实，越难大规模公开；越标准化，越容易远离真实使用。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{../../materials/spring2025-lectures/images/clio-table4.png}
+\caption{Clio 用真实用户数据去总结“人们实际上在拿模型做什么”，这是 realism 视角的一个代表。}
+\end{figure}
+
+官方 lecture script 在这里其实有一个很值得保留的区分：真实流量里的 prompt 大致可以分成 `quizzing` 和 `asking` 两类。前者像标准考试，用户知道答案、只是在考系统；后者才更像真实使用，用户不知道答案、希望系统替自己解决问题。课程想说的是，很多 benchmark 更接近 quizzing，而真正创造价值的应用往往更接近 asking。
+
+\subsection{MedHELM 为什么是个好例子}
+MedHELM 之所以在课程里被点名，不只是因为它是医疗 benchmark，而是因为它展示了 realism 与 privacy 的真实张力。和传统医学考试题不同，MedHELM 尝试从临床工作流里抽取更真实的任务；但任务一旦真实，就不可避免会卷入隐私保护、数据访问权限和去标识化复杂度。
+
+这部分内容的意义在于，它把 evaluation 从“学术数据集设计”推进到了“真实世界数据治理”。课程并不是在说标准 benchmark 没价值，而是在说：\textbf{离真实工作流越近，评估的社会和制度成本就越高。}
+
+\begin{warningbox}{现实性不是白拿的}
+如果 benchmark 完全像标准考试，它可能离真实用户太远；如果它完全来自真实流量，你又会碰到隐私、噪声和不可控偏差。课程的意思不是“二选一”，而是要在 realism 与 controllability 之间明确做设计取舍。
+\end{warningbox}
+
+\subsection{本章小结}
+第 12 讲把评估从“能力分数”扩展到了安全和现实性。对部署者来说，这几乎总是比单纯排行榜更重要，因为系统最终要在具体场景里承担收益和风险。
+
+\section{如何知道分数靠得住：train-test overlap 与“游戏规则”}
+
+\subsection{foundation model 时代，train-test overlap 成了常态风险}
+课程最后把刀落在评估有效性上。传统机器学习时代的数据集通常有清楚的 train/test split；foundation model 时代，模型先在海量互联网文本上训练，开发者又未必完全公开训练数据，于是 train-test overlap 变成了常态风险。
+
+这会带来一个很麻烦的问题：高分究竟来自真实泛化，还是来自模型在预训练时见过类似内容？课程介绍了两类思路，一类是从模型行为中反推重合迹象，另一类是推动更好的报告规范与置信区间披露。但无论采用哪条路，核心结论都一样：\textbf{不处理 contamination，很多 benchmark 分数都没法直接解释。}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{../../materials/spring2025-lectures/images/contamination-exchangeability.png}
+\caption{课程用 train-test overlap 相关图示提醒：foundation model 时代的“泛化”解释比过去困难得多。}
+\end{figure}
+
+\subsection{我们到底在评方法、模型还是系统}
+课程最后一个问题非常基础，但经常被忽略：规则到底是什么？过去很多 benchmark 评的是方法，因为大家共享训练集、验证集和测试集，模型差异主要来自算法；现在很多评估评的是模型或系统，因为训练数据、微调数据、推理技巧和外部工具都不受统一约束。
+
+这两种游戏规则都合理，只是目标不同。评方法更利于研究创新，评系统更利于终端用户选型。课程的提醒是：\textbf{一定要把规则写明白。} 不然同一个排行榜上的两个分数，可能根本不是在同一场比赛里得来的。
+
+\subsection{为什么课程会专门提 nanogpt speedrun 和 DataComp-LM}
+官方 script 在最后举的两个例子非常有代表性。`nanogpt speedrun` 明确固定数据和目标验证损失，评的是“用同样规则更快抵达一个结果”的方法创新；`DataComp-LM` 则固定训练 pipeline，让大家围绕数据处理算法做比较。它们都属于“规则极其明确”的评测，因此更适合推动算法研究。
+
+和这类方法评测相对的，就是今天大量榜单式 model/system evaluation：训练数据不固定、后训练和推理技巧也不固定，榜单更像给终端用户做选型。课程真正想讲的是，这两类评估都合理，但\textbf{绝不能把它们混成一个游戏。}
+
+\begin{importantbox}{“把规则写明白”不是形式主义}
+在 foundation model 时代，是否固定训练数据、是否允许 CoT、是否允许工具、是否记成本、是否评 judge pipeline，本身就是评估语义的一部分。规则不清，分数就没有稳定解释。
+\end{importantbox}
+
+\begin{importantbox}{第 12 讲最值得反复回想的一句话}
+没有 one true evaluation。真正高质量的评估，不是追求一个万能分数，而是清楚说明自己想回答什么问题，以及为了回答它采用了什么规则。
+\end{importantbox}
+
+\subsection{本章小结}
+评估是否可信，最终取决于两件事：数据是否干净、规则是否明确。分数本身并不会告诉你这两件事，只有评估设计者能告诉你。
+
+\section{总结与延伸}
+第 12 讲把 evaluation 从排行榜解构成了一整套问题定义与实验设计流程。
+
+第一，\textbf{评估先问目标，再选 benchmark。} 用户选型、研究测能力、部署看风险、团队做反馈，这些目标天然不同。
+
+第二，\textbf{perplexity 和标准 benchmark 仍然重要，但都不是总答案。} 它们更像是不同问题的局部投影。
+
+第三，\textbf{开放式评估和 agent benchmark 把调用方式也纳入了测量对象。} 因此 judge、tool use 和 scaffold 不再是旁观者，而是评估系统的一部分。
+
+第四，\textbf{安全、现实性和隐私会改变你对“好模型”的定义。} 真实世界里的有用与安全，往往不能用一套标准考试完全代表。
+
+第五，\textbf{foundation model 时代必须认真对待 contamination 和规则定义。} 否则很多漂亮分数都没有稳定含义。
+
+\begin{warningbox}{我对第 12 讲的压缩提醒}
+如果只把这讲理解成“介绍了一堆 benchmark”，那就错过了重点。真正重要的是：\textbf{evaluation 是把抽象目标翻译成具体规则的过程，而规则一旦变了，分数的语义也会跟着变。}
+\end{warningbox}
+
+接下来进入数据章节时，第 12 讲的视角会继续起作用，因为“训练什么数据”和“用什么方法评估”本质上是同一件事的两面：前者决定模型会变成什么样，后者决定你能否看见它变成了什么样。
+
+%% --- 正文内容结束 --- %%
+
+\end{document}
