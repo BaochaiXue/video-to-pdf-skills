@@ -170,6 +170,11 @@
 
 课程在这里特别有价值的一点，是没有把任何来源神化。Wikipedia 虽然高质量，但也会受编辑机制和投毒攻击影响；Books3 这类影子图书馆材料能力价值很高，却伴随极强版权风险；GitHub 和 Stack Exchange 有丰富元数据，但也充满重复、fork 和许可问题。也就是说，\textbf{每一种来源都是能力、噪声和法律风险的捆绑包。}
 
+\subsection{从 BERT、GPT-2 到 LLaMA：公开 recipe 的重心是怎样迁移的}
+官方 \texttt{lecture\_13.py} 其实把一条非常重要的谱系讲得很清楚。早期如 BERT 的预训练语料仍然带有较强的人工挑选痕迹，例如 BooksCorpus 加 Wikipedia；GPT-2 的 WebText 开始明显走向“利用用户行为信号替代人工挑选”，用 Reddit 外链和 karma 当成粗糙质量代理；到了 GPT-3、The Pile、LLaMA、RefinedWeb、FineWeb、Dolma 这些更后期的 recipe，整个问题已经变成“如何在巨大的开放网页池中，通过去重、过滤、语言识别和若干规则或模型，把 raw crawl 压成可训练分布”。
+
+这条谱系的意义在于，它说明公开数据 recipe 的重心已经从“找几份好语料”转向“设计一条可扩展的数据处理管线”。课程列举 The Pile、MassiveText、LLaMA、FineWeb 时，其实并不是在比数据集名气，而是在比这些项目分别如何回答同一个问题：\textbf{开放网页足够大，但要怎样加工，才值得拿去训练 foundation model。}
+
 \subsection{本章小结}
 预训练数据不是“从网上下载文件”的问题，而是一条涵盖抓取、转换、过滤、去重和源类型配比的供应链。课程通过大量具体数据集案例，把这条链的复杂度完整摊开了。
 
@@ -194,6 +199,17 @@
 \begin{warningbox}{关于 model-based filtering 的一个隐患}
 当你用模型去选训练数据时，你实际上把“什么值得学”这件事提前编码进了过滤器。过滤器越强，训练数据分布越不自然；这既可能提升质量，也可能压窄覆盖。
 \end{warningbox}
+
+\subsection{DCLM 和 Nemotron-CC 代表了更近代的 recipe}
+官方脚本在 DCLM 和 Nemotron-CC 这里其实已经明显进入了 2024 年之后的 recipe 风格。DCLM 的核心不是“再做一套规则”，而是先把 Common Crawl 压成一个极大的候选池，再训练质量分类器去选样本；Nemotron-CC 则进一步往前走，认为 FineWebEdu 和 DCLM 仍然过于保守，于是尝试在保住质量的同时拿回更多 token，并且开始用更强模型给文档打“教育价值”分，再蒸馏到更便宜的选择器上。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/nemotron-results.png}
+\caption{Nemotron-CC 的结果体现了一个新趋势：不是简单删更多数据，而是在更大语料池里更精细地保质量、保覆盖。}
+\end{figure}
+
+课程拿这两个案例想说明的是，foundation model 数据工程已经越来越像一个多阶段 pipeline：先有极大候选池，再有 model-based filtering，再有 classifier ensembling，最后甚至还会对低质量文本做 synthetic rephrasing，对高质量文本做 task extraction。也就是说，\textbf{“数据处理”已经开始和“数据生成”交织在一起。}
 
 \subsection{本章小结}
 第 13 讲在这里把数据工程继续推进了一步：过滤不再只是手写规则，而是越来越依赖模型和蒸馏式 quality signal。这让数据处理变得更强，但也引入了新的分布偏见来源。
@@ -228,6 +244,11 @@
 课程最后扫过 Super-Natural Instructions、FLAN、Alpaca、Vicuna、WizardLM、MAmmoTH2、OpenHermes、Llama 2 chat、Llama-Nemotron 等数据集，传达出一个非常清晰的趋势：后训练数据已经形成了独立的工业体系，其中 synthetic data 和 dataset aggregation 占比越来越高。
 
 课程尤其强调一个现实：高质量 vendor annotation 的数量未必很大，但往往价值很高；大规模 open 或 synthetic instruction data 则提供覆盖和多样性。团队真正做的是在这些来源之间找平衡，而不是相信某一种来源天然最好。
+
+\subsection{为什么课程把 LongLoRA、FLAN 和 Alpaca 放在同一段}
+官方 \texttt{lecture\_13.py} 这一段有个容易被忽略的意思：mid-training 和 post-training 并不是完全割裂的两个宇宙。LongLoRA 代表“先用针对性数据把能力补起来”，而 FLAN、Super-Natural Instructions、Alpaca、Vicuna 等则代表“把任务或对话行为重新编码成 prompt-response 监督”。它们共同体现了一个趋势：团队越来越少指望预训练一次性把所有能力都学到，而是愿意在后续阶段用更小、更贵、更目标明确的数据做能力和行为定向强化。
+
+课程后面提到的 \texttt{two-phase training} 或“把 instruction tuning 混回 pretraining”的思路，也正是在这个背景下出现的。它试图避免“先海量预训练、再一次性短 SFT”这种过于割裂的流程，而改成让 instruction-style 数据更早进入训练分布，再在最后做更短、更集中的行为定型。
 
 \subsection{本章小结}
 到了 mid-training 和 post-training，数据从“自然文档”逐渐变成“带明确教学意图或行为意图的监督信号”。这使得后期数据的设计空间和预训练数据完全不同。
