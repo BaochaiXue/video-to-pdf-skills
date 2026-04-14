@@ -1,0 +1,1618 @@
+Lecture 4
+
+CME 295: Transformers &
+Large Language Models
+
+Afshine Amidi & Shervine Amidi
+
+Logistics
+Midterm.
+●
+
+When? Friday October 24th, 3:30pm - 5:00pm (duration: 1h30)
+
+●
+●
+
+Where? Thornton 110 (i.e. this classroom)
+Topics? Lecture 1 + 2 + 3 + 4
+
+Logistics
+Midterm.
+●
+
+When? Friday October 24th, 3:30pm - 5:00pm (duration: 1h30)
+
+●
+●
+
+Where? Thornton 110 (i.e. this classroom)
+Topics? Lecture 1 + 2 + 3 + 4
+
+Final.
+●
+
+When? Wednesday December 10th, 7:00pm - 8:30pm (duration: 1h30)
+
+●
+●
+
+Where? Hewlett Teaching Center 201
+Topics? Lecture 5 + 6 + 7 + 8 + 9
+
+Recap of last episode…
+
+Recap of last episode…
+G
+FFNN1
+
+x
+
+FFNN2
+
+…
+FFNNn
+
+Recap of last episode…
+G
+FFNN1
+
+x
+
+FFNN2
+
+…
+FFNNn
+
+Figure from "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Recap of last episode…
+G
+FFNN1
+
+x
+
+FFNN2
+
+…
+FFNNn
+
+Inference optimizations. KV cache, PagedAttention, speculative decoding, GQA,
+multi-head latent attention, multi-token prediction
+
+Pretraining
+
+Transformers &
+Large Language
+Models
+
+Training optimizations
+Supervised ﬁnetuning
+Parameter-eﬃcient ﬁnetuning
+
+Paradigm shift
+Traditional ML. Given task, train model from scratch
+
+Spam detection
+model
+Sentiment extraction
+model
+Translation
+model
+
+Paradigm shift
+Traditional ML. Given task, train model from scratch
+Transfer learning. Reuse trained model to some capacity
+Spam detection
+model
+Sentiment extraction
+model
+Translation
+model
+
+Paradigm for LLM training
+LLM training. Train LLM to understand language, then tune it for end task
+
+Paradigm for LLM training
+LLM training. Train LLM to understand language, then tune it for end task
+
+1
+
+Pretraining
+
+"Pretrained" model
+
+Paradigm for LLM training
+LLM training. Train LLM to understand language, then tune it for end task
+
+1
+
+Pretraining
+
+2
+
+"Tuning"
+Spam detection
+model
+
+"Pretrained" model
+
+Sentiment extraction
+model
+Translation
+model
+
+Pretraining overview
+Goal. Learn pattern of language and code
+English
+
+teddy_bear.py
+
+My cute teddy bear is reading by the window, his tiny
+paws holding a book almost bigger than him. The
+afternoon light dances across his soft fur as he turns each
+page with great care…
+
+class TeddyBear:
+def __init__(self, name):
+self.name = name
+def hug(self):
+print(f"{self.name} gives a warm hug!")
+
+Multi-lingual
+Mon ours en peluche est mon plus ﬁdèle compagnon.
+Toujours assis sur mon lit, il m’attend patiemment, prêt à
+écouter mes secrets…
+‫ ﻫﻤﯿﺸﻪ رو ﺗﺨﺖ‬.‫ﺧﺮس ﺗﺪی ﻣﻦ ﺻﻤﯿمﯽﺗﺮیﻦ دوﺳﺖ ﻣﻦ ﻫﺴﺖ‬
+...‫ﻣﻦ ﻧﺸﺴتﻪ و ﺣﺎﺿﺮه ﺑﻪ ﻗﺼﻪﻫﺎی ﻣﻦ ﮔﻮش ﺑﺪه‬
+…
+
+TeddyBear("Fluffy").hug()...
+
+teddy_bear.go
+package main
+func main(){
+println("Teddy bear hug!")
+}
+
+Pretraining overview
+Goal. Learn pattern of language and code
+Objective function. Predict next token
+
+A
+
+teddy
+
+bear
+
+is
+
+?
+
+bear
+
+is
+
+LLM
+
+[BOS]
+
+A
+
+teddy
+
+Pretraining overview
+Goal. Learn pattern of language and code
+Objective function. Predict next token
+Data mixtures.
+●
+
+Web-scraped (e.g. Common Crawl, Wikipedia)
+
+●
+
+Code (GitHub, StackOverﬂow)
+
+Teddy bear Wikipedia article, screenshot taken on October 14, 2025. A GitHub repo, screenshot taken on October 15, 2025.
+
+Pretraining overview
+Goal. Learn pattern of language and code
+Objective function. Predict next token
+Data mixtures.
+●
+
+Web-scraped (e.g. Common Crawl, Wikipedia)
+
+●
+
+Code (GitHub, StackOverﬂow)
+
+Size. Approx. trillions of tokens
+
+Model
+
+Pretraining size (# tokens)
+
+GPT-3
+
+300 billion
+
+LLaMA 3
+
+15 trillion
+
+"Language Models are Few-Shot Learners", Brown et al., 2020. "The Llama 3 Herd of Models", LLaMA team, 2024.
+
+Notations
+
+📖 FLOPs
+
+FLoating-point OPerations
+
+Computational performance
+
+⚡ FLOPS or FLOP/s
+
+FLoating-point OPerations
+per Second
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Notations
+
+📖 FLOPs
+
+FLoating-point OPerations
+
+Computational performance
+
+⚡ FLOPS or FLOP/s
+
+FLoating-point OPerations
+per Second
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Takeaways
+Scaling.
+
+"Scaling Laws for Neural Language Models", Kaplan et al., 2020.
+
+Takeaways
+Scaling.
+Sample eﬃciency.
+
+"Scaling Laws for Neural Language Models", Kaplan et al., 2020.
+
+Takeaways
+Scaling.
+Sample eﬃciency.
+Chinchilla law.
+
+"Training Compute-Optimal Large Language Models", Hoﬀmann et al., 2022.
+
+Takeaways
+Scaling.
+Sample eﬃciency.
+Chinchilla law.
+
+"Training Compute-Optimal Large Language Models", Hoﬀmann et al., 2022.
+
+Challenges
+Cost.
+●
+
+(At least) millions of dollars
+
+●
+
+Takes time
+
+●
+
+Environment / electricity
+
+Challenges
+Cost.
+
+Learned knowledge.
+
+●
+
+(At least) millions of dollars
+
+●
+
+"Knowledge cutoﬀ"
+
+●
+
+Takes time
+
+●
+
+Hard to edit knowledge
+
+●
+
+Environment / electricity
+
+●
+
+"Plagiarism"
+
+Challenges
+Cost.
+
+Learned knowledge.
+
+●
+
+(At least) millions of dollars
+
+●
+
+"Knowledge cutoﬀ"
+
+●
+
+Takes time
+
+●
+
+Hard to edit knowledge
+
+●
+
+Environment / electricity
+
+●
+
+"Plagiarism"
+
+https://platform.openai.com/docs/models/gpt-5, screenshot taken on October 14, 2025.
+
+Challenges
+Cost.
+
+Learned knowledge.
+
+●
+
+(At least) millions of dollars
+
+●
+
+"Knowledge cutoﬀ"
+
+●
+
+Takes time
+
+●
+
+Hard to edit knowledge
+
+●
+
+Environment / electricity
+
+●
+
+"Plagiarism"
+
+https://platform.openai.com/docs/models/gpt-5, screenshot taken on October 14, 2025.
+
+Pretraining
+
+Transformers &
+Large Language
+Models
+
+Training optimizations
+Supervised ﬁnetuning
+Parameter-eﬃcient ﬁnetuning
+
+Setup of LLM training
+
+“Attention Is All You Need”, Vaswani et al., 2017.
+
+Setup of LLM training
+
+“Attention Is All You Need”, Vaswani et al., 2017.
+
+Setup of LLM training
+
+(Many) GPU(s)!
+
+“Attention Is All You Need”, Vaswani et al., 2017.
+
+Recap of LLM training
+Initialization
+
+Model parameters. O(billions) - O(100s of billions)
+LLM
+
+Recap of LLM training
+Forward pass. Compute loss.
+
+Activations. Needed to compute the loss.
+LLM
+
+Function of model size, batch size, context
+length
+
+Recap of LLM training
+Backwards pass. Compute gradients.
+
+Gradients. Needed for weights update.
+LLM
+
+Recap of LLM training
+Weights update. Update model parameters.
+
+Optimizer state. Updates the weights.
+LLM
+
+Adam optimizer
+
+with:
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+Suggested readings: "Decoupled Weight Decay Regularization", Loshchilov et al., 2017 ; "Adam: A Method for Stochastic Optimization", Kingma et al., 2014.
+
+Bottleneck: memory
+
+"NVIDIA H100 Tensor Core GPU", NVIDIA website.
+
+Bottleneck: memory
+
+Limited memory, O(10s of GB)
+
+"NVIDIA H100 Tensor Core GPU", NVIDIA website.
+
+Data parallelism
+Idea.
+●
+
+Divide batch of data across devices
+
+●
+
+Model replicated on each device
+
+…
+
+GPU 1
+
+GPU n
+
+Data parallelism
+Idea.
+●
+
+Divide batch of data across devices
+
+●
+
+Model replicated on each device
+
+parameters
+…
+
+gradients
+optimizer state
+
+GPU 1
+
+GPU n
+
+Data parallelism with ZeRO
+Idea. Redundant information across devices
+
+ZeRO = Zero Redundancy Optimization
+
+"ZeRO: Memory Optimizations Toward Training Trillion Parameter Models", Rajbhandari et al., 2019.
+
+Data parallelism with ZeRO
+Idea. Redundant information across devices
+
+ZeRO = Zero Redundancy Optimization
+Variations. ZeRO-1: Share optimizer state
+
+…
+
+GPU 1
+
+GPU n
+
+"ZeRO: Memory Optimizations Toward Training Trillion Parameter Models", Rajbhandari et al., 2019.
+
+Data parallelism with ZeRO
+Idea. Redundant information across devices
+
+ZeRO = Zero Redundancy Optimization
+Variations. ZeRO-2: Share optimizer state + gradients
+
+…
+
+GPU 1
+
+GPU n
+
+"ZeRO: Memory Optimizations Toward Training Trillion Parameter Models", Rajbhandari et al., 2019.
+
+Data parallelism with ZeRO
+Idea. Redundant information across devices
+
+ZeRO = Zero Redundancy Optimization
+Variations. ZeRO-3: Share optimizer state + gradients + parameters
+
+…
+
+GPU 1
+
+GPU n
+
+"ZeRO: Memory Optimizations Toward Training Trillion Parameter Models", Rajbhandari et al., 2019.
+
+Model parallelism
+Idea. Split the model computations across several devices
+
+Variations.
+●
+
+Tensor Parallelism (TP).
+
+●
+
+Pipeline Parallelism (PP).
+
+●
+
+Sequence Parallelism (SP).
+
+●
+
+Context Parallelism (CP).
+
+●
+
+Expert Parallelism (EP).
+
+Suggested reading: "The Ultra-Scale Playbook: Training LLMs on GPU Clusters", HuggingFace team, 2025.
+
+Optimization via Flash Attention
+Strategy. Leverage components of GPU to speed up attention computations.
+
+GPU
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Optimization via Flash Attention
+Strategy. Leverage components of GPU to speed up attention computations.
+
+SRAM
+
+CU
+
+HBM
+
+GPU
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Optimization via Flash Attention
+Strategy. Leverage components of GPU to speed up attention computations.
+
+Small and fast
+
+Big and slow
+
+SRAM
+
+CU
+
+HBM
+
+GPU
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+Context. "Standard" self-attention computation
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+Context. "Standard" self-attention computation
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+LOAD Q, K from HBM by blocks
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+Compute S
+
+🔄
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+WRITE S to HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+READ S from HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+Compute P
+
+🔄
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+WRITE P to HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+LOAD P, V from HBM by blocks
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+Compute O
+
+🔄
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Standard self-attention computation
+WRITE O to HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in action
+1st idea. Minimize read/writes to HBM with "tiling" via SRAM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in action
+1st idea. Minimize read/writes to HBM with "tiling" via SRAM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in action
+1st idea. Minimize read/writes to HBM with "tiling" via SRAM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in action
+Trick. No need to compute the full
+
+before applying softmax.
+
+…
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+…
+
+Flash Attention in action
+Load blocks of Q, K, V to SRAM, compute block of O and write the result to HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in action
+Load blocks of Q, K, V to SRAM, compute block of O and write the result to HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in action
+Load blocks of Q, K, V to SRAM, compute block of O and write the result to HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in action
+Load blocks of Q, K, V to SRAM, compute block of O and write the result to HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in action
+Load blocks of Q, K, V to SRAM, compute block of O and write the result to HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in action
+Load blocks of Q, K, V to SRAM, compute block of O and write the result to HBM
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Flash Attention in the backwards pass
+2nd idea. Sometimes, it is better to recompute instead of storing
+
+Before
+Store
+
+in the HBM
+
+After
+Recompute
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+with tiling via SRAM
+
+Flash Attention in the backwards pass
+2nd idea. Sometimes, it is better to recompute instead of storing
+
+Before
+Store
+
+After
+
+in the HBM
+
+Recompute
+
+More FLOPs, but less runtime!!
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+with tiling via SRAM
+
+Flash Attention in action
+Results. Flash Attention leads to a signiﬁcant speedup with exact computation
+
+"FlashAttention: Fast and Memory-Eﬃcient Exact Attention with IO-Awareness", Dao et al., 2022.
+
+Precision of numbers
+2.7015402…
+
+1.2015432…
+2.4024402…
+-0.7055120…
+
+-1.7067140…
+0.2741131…
+
+-1.5312410…
+
+0.4025222…
+
+Precision of numbers
+2.7015402…
+
+1.2015432…
+2.4024402…
+-0.7055120…
+
+-1.7067140…
+0.2741131…
+
+-1.5312410…
+
+0.4025222…
+
+Representation of a ﬂoat
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Representation of a ﬂoat
+Sign
+
+Exponent
+
+Mantissa
+
+FP16
+(Floating-Point 16)
+
+1
+
+5
+
+10
+
+FP32
+(Floating-Point 32)
+
+1
+
+8
+
+23
+
+FP64
+(Floating-Point 64)
+
+1
+
+11
+
+52
+
+BFLOAT16
+(Brain Float 16)
+
+1
+
+8
+
+7
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Example of a GPU
+
+"NVIDIA H100 Tensor Core GPU", NVIDIA website.
+
+Example of a GPU
+
+🔻 Lower precision → Faster processing 🐇
+
+"NVIDIA H100 Tensor Core GPU", NVIDIA website.
+
+Mixed precision training
+Objective. Speed up training and decrease memory requirements
+
+"Mixed Precision Training", Micikevicius et al., 2017.
+
+Mixed precision training
+Objective. Speed up training and decrease memory requirements
+●
+
+Forward pass. Activations in low precision
+
+Mixed precision training
+Objective. Speed up training and decrease memory requirements
+●
+
+Forward pass. Activations in low precision
+
+●
+
+Backwards pass. Gradient updates in low precision
+
+Mixed precision training
+Objective. Speed up training and decrease memory requirements
+●
+
+Forward pass. Activations in low precision
+
+●
+
+Backwards pass. Gradient updates in low precision
+
+●
+
+Weights update. Keep weights in high precision
+
+Pretraining
+
+Transformers &
+Large Language
+Models
+
+Training optimizations
+Supervised ﬁnetuning
+Parameter-eﬃcient ﬁnetuning
+
+What we covered in the ﬁrst part of this lecture
+Initialized model
+
+Pretraining
+
+Model with "basic
+knowledge" about
+language, code, etc.
+
+Pretrained model behavior
+
+Can I put my
+teddy bear in
+the washer?
+
+Pretrained
+LLM
+
+?
+
+Pretrained model behavior
+
+Can I put my
+teddy bear in
+the washer?
+
+Pretrained
+LLM
+
+Teddy bears are often
+made of materials like
+polyester and cotton,
+with plastic eyes and
+sometimes small
+accessories.
+
+Remedy
+Initialized model
+
+Pretraining
+
+Finetuning
+
+Model with "basic
+knowledge" about
+language, code, etc.
+
+Model tuned for
+speciﬁc tasks
+
+Supervised ﬁnetuning
+SFT = Supervised FineTuning
+Idea. Change the model behavior by tuning its weights
+Strategy.
+●
+
+Collect pairs of input/outputs with desired behavior (aka SFT data)
+
+●
+
+Train using next word prediction objective given the input
+
+Supervised ﬁnetuning
+SFT = Supervised FineTuning
+Idea. Change the model behavior by tuning its weights
+Strategy.
+●
+
+Collect pairs of input/outputs with desired behavior (aka SFT data)
+
+●
+
+Train using next word prediction objective given the input
+
+Special case. SFT on instruction-following data: "Instruction tuning"
+
+Instruction tuning overview
+Goal. "Graduate" the model to being a helpful assistant.
+
+"Finetuned language models are zero-shot learners", Wei et al., 2022.
+
+Instruction tuning overview
+Goal. "Graduate" the model to being a helpful assistant.
+Story writing
+
+Lists generation
+
+Write a short story about a teddy bear who likes to read
+poetry.
+
+List three fun activities a teddy bear might do on a rainy
+day.
+
+Once upon a time, a bear, Teddy, stumbled upon verses
+from Attar. The bear became so captivated with the
+rhythm of the poem's sentences that he got ﬁlled with
+happiness.
+
+Sure!
+1. Read poetry with friends.
+2. Be cute.
+3. Hug its owner tightly.
+
+Poem creation
+
+Explanation
+
+Create a poem about my cute teddy bear.
+
+Explain why a teddy bear is a great friend.
+
+Soft and cuddly, full of charm,
+Always keeps me safe from harm,
+With button eyes and fur so neat,
+My teddy bear is oh so sweet.
+
+A teddy bear is a great friend because it provides comfort
+and companionship. Its soft fur and cuddly nature is
+perfect for hugs. Teddy bears are always there in both
+happy and sad moments.
+
+Instruction tuning overview
+Goal. "Graduate" the model to being a helpful assistant.
+Objective function. Predict next token given the input.
+
+Do
+
+X
+
+.
+
+Sure
+
+...
+
+.
+
+Sure
+
+LLM
+
+[BOS]
+
+Do
+
+X
+
+"Finetuned language models are zero-shot learners", Wei et al., 2022.
+
+Instruction tuning overview
+Goal. "Graduate" the model to being a helpful assistant
+Objective function. Predict next token given the input.
+Data mixtures. Can be both human-written and synthetic data.
+●
+
+Assistant dialogs
+
+●
+
+Synthetic instructions
+
+●
+
+Maths, reasoning, code
+
+●
+
+Safety alignment
+
+●
+
+...
+
+Instruction tuning overview
+Goal. "Graduate" the model to being a helpful assistant
+Objective function. Predict next token given the input.
+Data mixtures. Can be both human-written and synthetic data.
+
+Size. Thousands to millions of examples.
+
+Model
+
+SFT size (# examples)
+
+GPT-3
+
+13 thousands
+
+LLaMA 3
+
+10 million
+
+"Language Models are Few-Shot Learners", Brown et al., 2020. "The Llama 3 Herd of Models", LLaMA team, 2024.
+
+Behavior
+
+Can I put my
+teddy bear in
+the washer?
+
+Pretrained +
+instruction
+tuned LLM
+
+?
+
+Behavior
+
+Can I put my
+teddy bear in
+the washer?
+
+Pretrained +
+instruction
+tuned LLM
+
+No, it might get
+damaged. Try hand
+washing instead.
+
+Challenges
+●
+
+Very high-quality data needed
+
+●
+
+Sensitive to prompt distribution
+
+●
+
+Generalization
+
+●
+
+Diﬃcult to evaluate
+
+●
+
+Computationally expensive
+
+Benchmarks
+Dimensions.
+●
+
+General knowledge: MMLU
+
+●
+
+Basic reasoning: ARC-Challenge
+
+●
+
+Math reasoning: GSM8K
+
+●
+
+Code generation: HumanEval
+
+Benchmarks
+Dimensions.
+●
+
+General knowledge: MMLU
+
+●
+
+Basic reasoning: ARC-Challenge
+
+●
+
+Math reasoning: GSM8K
+
+●
+
+Code generation: HumanEval
+
+Validity. Recommended to train on the test task to compare across models.
+
+"Training on the Test Task Confounds Evaluation and Emergence", Dominguez-Olmedo et al., 2024.
+
+"Real-life" feeling
+
+Idea. Websites like "Chatbot Arena"
+run A/B tests for user prompts.
+
+Screenshot taken on Tuesday, October 14, 2025 from LMArena > Leaderboard Overview, lmarena.ai/leaderboard.
+
+"Real-life" feeling
+Beneﬁts. Puts a number on "vibes"
+
+"Real-life" feeling
+Beneﬁts. Puts a number on "vibes"
+Outstanding challenges.
+● Unequal exposure of models/"cold start" problem
+●
+
+Easy to "rig"
+
+●
+
+User inability to accurately assess important aspects, e.g. factuality
+
+●
+
+Personal preference bias (non-representative distribution)
+
+●
+
+Safety penalization
+
+"Exploring and Mitigating Adversarial Manipulation of Voting-Based Leaderboards", Huang et al., 2025.
+
+"Real-life" feeling
+Beneﬁts. Puts a number on "vibes"
+Outstanding challenges.
+● Unequal exposure of models/"cold start" problem
+●
+
+Easy to "rig"
+
+●
+
+User inability to accurately assess important aspects, e.g. factuality
+
+●
+
+Personal preference bias (non-representative distribution)
+
+●
+
+Safety penalization
+
+...evaluation is a hard problem in itself!
+
+What we'll see in Lecture 5
+Initialized model
+
+Pretraining
+
+Finetuning
+
+Preference tuning
+
+Model with "basic
+knowledge" about
+language, code, etc.
+
+Model tuned for
+speciﬁc tasks
+
+Model does not
+misbehave as much
+
+Summary of lifecycle of an LLM
+Initialized model
+
+Pretraining
+
+Finetuning
+
+Preference tuning
+
+Model with "basic
+knowledge" about
+language, code, etc.
+
+Model tuned for
+speciﬁc tasks
+
+Model does not
+misbehave as much
+
+"Alignment" of the model
+
+Pretraining
+
+Transformers &
+Large Language
+Models
+
+Training optimizations
+Supervised ﬁnetuning
+Parameter-eﬃcient ﬁnetuning
+
+Parameter-eﬃcient ﬁnetuning with LoRA
+Context. SFT is resource intensive and not everyone has big GPUs.
+Idea. Low-Rank Adaptation (LoRA) approximates matrix with product of two
+low-rank matrices
+=
+W
+
++
+W0
+
+"LoRA: Low-Rank Adaptation of Large Language Models", Hu et al., 2021.
+
+x
+B
+
+A
+
+Parameter-eﬃcient ﬁnetuning with LoRA
+Context. SFT is resource intensive and not everyone has big GPUs.
+Idea. Low-Rank Adaptation (LoRA) approximates matrix with product of two
+low-rank matrices
+=
+W
+
++
+W0
+
+x
+B
+
+A
+
+Discussion.
+● Fraction of parameters need to be trained with similar performance
+● Other methods include preﬁx tuning and adapters
+"LoRA: Low-Rank Adaptation of Large Language Models", Hu et al., 2021.
+
+Finetuning evolution
+Before. "Regular" ﬁnetuning optimizes the full matrix of weights
+
+W
+
+Finetuning evolution
+After. LoRA ﬁnetuning optimizes the full matrix of weights
+
+W0
+
++
+
+A
+
+r
+
+"LoRA: Low-Rank Adaptation of Large Language Models", Hu et al., 2021.
+
+B
+
+Beneﬁt of LoRA: swap matrices = swap tasks
+
+W0
+
+Spam detection task
+
+x
+
++
+B spam
+
+Aspam
+
+Beneﬁt of LoRA: swap matrices = swap tasks
+
+B spam
+
+W0
+
++
+W0
+
+Spam detection task
+
+x
+
++
+
+Aspam
+
+x
+B sentiment
+
+Sentiment extraction task
+
+A sentiment
+
+Beneﬁt of LoRA: swap matrices = swap tasks
+
+B spam
+
+W0
+
++
+
++
+W0
+
+Aspam
+
+x
+B sentiment
+
+W0
+
+Spam detection task
+
+x
+
++
+
+Sentiment extraction task
+
+A sentiment
+
+x
+B translation A translation
+
+Translation task
+
+Locations where to apply LoRA
+Originally. As experimented in the original
+paper.
+
+"LoRA: Low-Rank Adaptation of Large Language Models", Hu et al., 2021.
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Locations where to apply LoRA
+Updated guidance. As done and
+recommended nowadays.
+
+most important location
+
+"LoRA Without Regret", Schulman et al., 2025.
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Training dynamics
+"Fun" facts. Beware of training diﬀerences:
+●
+
+LoRA needs a higher learning rate than full ﬁne-tuning
+
+●
+
+LoRA does poorly on large batch size compared to full ﬁne-tuning
+
+"LoRA Without Regret", Schulman et al., 2025..
+
+Training dynamics
+"Fun" facts. Beware of training diﬀerences:
+●
+
+LoRA needs a higher learning rate than full ﬁne-tuning
+empirical
+
+●
+
+LoRA does poorly on large batch size compared to full ﬁne-tuning
+empirical
+
+"LoRA Without Regret", Schulman et al., 2025..
+
+QLoRA
+Idea. Quantize all frozen weights to relieve memory bottleneck.
+
+QLoRA: Eﬃcient Finetuning of Quantized LLMs, Dettmers et al., 2023.
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+QLoRA
+Idea. Quantize all frozen weights to relieve memory bottleneck.
+
++
+W0
+
+x
+B
+
+QLoRA: Eﬃcient Finetuning of Quantized LLMs, Dettmers et al., 2023.
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+A
+
+QLoRA
+Idea. Quantize all frozen weights to relieve memory bottleneck.
+
++
+W0
+stored quantized
+
+x
+B
+
+A
+
+stored in full precision
+
+QLoRA: Eﬃcient Finetuning of Quantized LLMs, Dettmers et al., 2023.
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+QLoRA
+Idea. Quantize all frozen weights to relieve memory bottleneck.
+
++
+W0
+stored quantized
+
+x
+B
+
+A
+
+stored in full precision
+
+computations in full precision
+
+QLoRA: Eﬃcient Finetuning of Quantized LLMs, Dettmers et al., 2023.
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Eﬃcient quantization
+Trick. Use 4-bit NormalFloat (NF4) to best split the space
+
+Uniform distribution cutoﬀs
+INT8
+
+Based on Normal quantiles
+NF4
+
+Figure from "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Quantization...
+No quantization
+
+Single quantization
+
+Weights
+
+Quantization
+constants
+
+Figure from "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Double quantization
+
+Quantization...
+No quantization
+
+Single quantization
+
+Weights
+
+Quantization
+constants
+
+Figure from "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Double quantization
+
+Quantization...
+Single quantization
+
+Weights
+
+Quantization
+constants
+
+Figure from "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Double quantization
+
+...done two times!
+Single quantization
+
+Weights
+
+Quantization
+constants
+
+Figure from "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Double quantization
+
+QLoRA
+Idea. Quantize all frozen weights to relieve memory bottleneck.
+Beneﬁts.
+●
+
+VRAM savings enable ﬁnetuning on smaller GPUs, and faster
+
+●
+
+Better trade-oﬀ memory resources/quality
+
+QLoRA: Eﬃcient Finetuning of Quantized LLMs, Dettmers et al., 2023.
+
+QLoRA
+Idea. Quantize all frozen weights to relieve memory bottleneck.
+Beneﬁts.
+●
+
+VRAM savings enable ﬁnetuning on smaller GPUs, and faster
+
+●
+
+Better trade-oﬀ memory resources/quality
+
+Orders of magnitude. Results reported out of LLaMA 65B:
+●
+
+~16x VRAM savings during ﬁnetuning
+
+●
+
+Double quantization trick saves an extra ~6%
+QLoRA: Eﬃcient Finetuning of Quantized LLMs, Dettmers et al., 2023.
+
+Thank you for your attention!
+
+

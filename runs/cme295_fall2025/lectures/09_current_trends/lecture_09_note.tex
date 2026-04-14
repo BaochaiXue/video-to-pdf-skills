@@ -1,0 +1,286 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CME 295 第9讲：Current Trends}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{2025-12-05}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-12-09}
+\newcommand{\videoduration}{1:51:31}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=Q86qzJ1K1Ss\&list=PLoROMvodv4rOCXd21gf0CF4xr35yINeOy\&index=9}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{全课地图回放：这门课到底串起了什么}
+
+最后一讲的开场不是继续堆新名词，而是试图把整个季度的内容重新连成一张地图。讲者把课程分成三部分：先回顾整个学期的逻辑，再讨论 2025 年正在冒头的趋势，最后给出一些面向学生的 closing thoughts。
+
+这种安排本身就揭示了课程的判断：大模型领域变化太快，单独记住每一篇论文、每一个技巧没有意义，更重要的是理解“哪一类问题催生了哪一类设计”。因此回顾部分并不是简单复述前八讲，而是把每一讲放回一条共同的能力演化链上。
+
+课程回顾大致可以浓缩为：
+
+\begin{enumerate}
+\item Lecture 1--2：理解 Transformer 及其关键构件，如 self-attention、位置编码、结构改造；
+\item Lecture 3--5：理解 LLM 的规模化、训练、对齐与推理增强；
+\item Lecture 6--8：理解 RAG、tool calling、agents 与 evaluation 如何把模型嵌进真实系统。
+\end{enumerate}
+
+讲者在口头回顾里还特别强调了模型生命周期视角：initialized model、pretraining、finetuning、preference tuning 这些阶段并不是彼此孤立，而是在不断把“会生成文本的模型”塑造成“更能满足用户需求的系统”。
+
+\begin{knowledgebox}{最后一讲的阅读方式}
+本讲不是单一技术专题，而是“复习 + 展望 + 方法论建议”的混合体。阅读时最好把它理解为一门课的系统整合，而不是一篇单独的技术讲义。
+\end{knowledgebox}
+
+\subsection{本章小结}
+
+回顾部分帮助我们把课程主线重新压缩成一条能力演化路径：从 Transformer 结构，到 LLM 训练与对齐，再到把模型接入知识、工具、agent 和评测体系。后面的趋势讨论，都是建立在这条路径之上的。
+
+\section{Transformer 不只属于文本：从视觉到多模态}
+
+\subsection{为什么要跳出“文本专用”的想象}
+
+课程先提醒我们，Transformer 最早并不是为“聊天机器人”设计的，而是为机器翻译提出的通用序列建模架构。它依赖 query、key、value 与 self-attention 的组合，本质上是在处理“对象之间的关系”，而不是只处理自然语言。
+
+因此，一个自然问题是：如果图像也能被切分成 token-like 的 patch，那么 attention 能不能同样建模图像内部的关系？这就是课程转向 Vision Transformer 的动机。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-51.png}
+\caption{Vision Transformer 的基本结构：把图像切成 patch，线性投影后加上位置编码，再送入 Transformer encoder。}
+\end{figure}
+
+\subsection{ViT 与视觉语言模型的两条路径}
+
+ViT 的关键思想很直接：把图像分成固定大小的 patch，对每个 patch 做线性映射，再像文本 token 一样送入 Transformer。这样，原本针对序列设计的架构就可以迁移到视觉任务中。课程用它来说明“Transformer 的归纳能力并不局限于文字”。
+
+沿着这个方向，课程进一步介绍了视觉语言模型的两类常见设计：
+
+\begin{enumerate}
+\item 复用 decoder-only 结构：把视觉表示转成某种可被语言模型消费的 token 序列，再让模型做 text-in, text-out；
+\item 在语言生成器里加入 cross-attention：让文本生成过程显式读取视觉 encoder 的表示。
+\end{enumerate}
+
+这部分的重点不是区分谁绝对更好，而是说明多模态系统的发展常常是“把已有文本架构改造得能消费别的模态”。这会在后文的 diffusion LLM 讨论里再次出现。
+
+\subsection{本章小结}
+
+这一节说明了 Transformer 的两个特征：一是结构足够通用，可以迁移到视觉和多模态；二是很多趋势并非全新范式，而是把既有结构重新编码到新的输入与任务上。
+
+\section{从自回归到 Diffusion：文本生成是否必须逐 token 展开}
+
+\subsection{当前主流范式的局限}
+
+课程先重新回到 autoregressive modeling。传统 LLM 按 token 顺序一步步预测下一个词，这种方式概念清晰、训练成熟，但它也天然带来串行生成瓶颈：后一个 token 必须等待前一个 token，推理延迟因此受到限制。
+
+讲者在口头部分把这个问题和成本趋势连起来看：如果未来很多能力需求已经“基本够用”，研究重点就会越来越转向成本、速度与部署效率，而不是单纯再多刷几个 benchmark 点数。这也正是 diffusion-based text models 被拿出来讨论的原因。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-82.png}
+\caption{课程展示的 2025 新闻切片：Google、Inception、ByteDance 等都在推动 diffusion-based text/code 模型，说明它已从纯研究话题变成产业关注方向。}
+\end{figure}
+
+\subsection{先从图像 diffusion 理解直觉}
+
+为了让文本 diffusion 更容易理解，课程先回到图像生成。标准 diffusion 图景可以概括为两步：
+
+\begin{enumerate}
+\item 正向过程：不断向真实样本加噪，把它推向接近纯噪声的分布；
+\item 反向过程：训练模型逐步去噪，从噪声恢复出真实样本。
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-89.png}
+\caption{图像 diffusion 的核心直觉：前向加噪、反向去噪。课程用它作为过渡，解释为什么文本也可以尝试“非自回归地逐步恢复内容”。}
+\end{figure}
+
+在图像里，加噪通常是连续空间里的高斯噪声；但文本 token 是离散符号，不能直接像像素那样加连续噪声。所以课程接着用 masked diffusion 的思路把图像 diffusion 迁移到文本：不是对 token 加实值噪声，而是以一定概率把 token mask 掉，再让模型逐步恢复。
+
+\subsection{文本中的 Masked Diffusion Model}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-95.png}
+\caption{课程给出的 MDM 示意：以 mask 代替连续噪声，在更少的 forward passes 中同时恢复多个 token。}
+\end{figure}
+
+Masked Diffusion Model 的诱人之处在于：一次前向可以同时更新多个位置，因此潜在地比严格自回归生成更快。课程把它的卖点概括为“decoding done in fewer forward passes”。如果把自回归视为每一步只补一个 token，那么 masked diffusion 更像是每轮并行修复一批未知位置。
+
+但课程也没有把它讲成银弹。讲者在口头说明里提到几个现实障碍：
+
+\begin{enumerate}
+\item 文本是离散空间，forward / reverse process 的设计比图像复杂；
+\item 很多后训练技术，如偏好优化、强化学习、对齐流程，原本是围绕自回归接口建立的，迁移到 diffusion LLM 并不直接；
+\item benchmark 提升不等于工程落地，训练稳定性、评测协议、部署接口都要重写。
+\end{enumerate}
+
+\begin{importantbox}{课程的核心判断}
+Diffusion LLM 值得认真关注，但目前更像一个正在快速探索的方向，而不是已经完全替代自回归 LLM 的既成事实。
+\end{importantbox}
+
+\subsection{本章小结}
+
+这一节完成了从 ARM 到 diffusion 的范式对照：自回归方式成熟、稳定，但串行；masked diffusion 可能更快、更并行，却需要为离散文本重新设计训练与对齐方法。它代表的是“体系结构仍未定型”这一现实。
+
+\section{2025 的几条大趋势：跨模态借鉴、效率优先与硬件回归}
+
+\subsection{跨模态 ideas 正在互相流动}
+
+课程明确提出一个趋势：不同模态之间会互相借鉴有效设计。图像领域的 diffusion 思想开始进入文本；文本领域的对齐、工具调用和 agent 框架又会反过来影响多模态系统。这种 cross-pollination 意味着，未来不一定再有严格的“NLP 技术”和“CV 技术”边界。
+
+讲者同时提醒，基础研究并没有结束。相反，微观设计层面的差异仍然很多，包括数据配比、位置编码、注意力变体、训练阶段划分、是否引入 mid-training、是否混入模型生成数据等。尤其在口头结尾中，他提到 model collapse 风险和高质量数据稀缺，说明“数据工程”本身会继续成为核心竞争力。
+
+\subsection{第二条 Pareto frontier：质量之外，更看重成本}
+
+回顾 2025 的系统选型，讲者给出一个很有洞察力的说法：过去几年大家主要在追求 benchmark 更高；但当很多 use case 已经“够用了”，接下来的竞争会越来越落在第二条 Pareto frontier 上，也就是“在保持足够高质量的同时，把推理成本、延迟和能耗继续压低”。
+
+这也是 small language models、routing、更细的 serving optimization 会持续升温的原因。未来的研究重点不只是“能不能做”，更是“能不能便宜地做、稳定地做、大规模地做”。
+
+\subsection{硬件重新进入叙事中心}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-114.png}
+\caption{课程中的硬件优化示意：不是仅仅改软件 kernel，而是尝试把 attention 所需的一部分算子与数据流更深地编码进硬件。}
+\end{figure}
+
+课程在这里把话题从模型算法拉回到硬件现实。GPU 擅长矩阵乘法，但 Transformer 的注意力并不只需要矩阵乘法，它还高度依赖 KV 读写、内存搬运和中间状态管理。FlashAttention 一类工作已经说明，很多瓶颈来自 memory movement，而不是算子本身。
+
+更进一步，讲者介绍了一类模拟硬件方向的工作，尝试把某些 attention 相关计算直接体现在电路和信号流里。无论这条路最终是否成为主流，它都说明一个事实：大模型系统性能的上限，并不只由算法决定，也受制于底层计算介质。
+
+\subsection{本章小结}
+
+这一节想表达的不是“某个具体热点会胜出”，而是三种长期张力：跨模态借鉴会继续、效率竞争会增强、硬件与系统实现会重新变得像模型结构一样重要。
+
+\section{Closing Thoughts：真实世界会如何消化这些能力}
+
+\subsection{日常工作与学习已经被重塑}
+
+课程的 closing thoughts 不是抽象口号，而是从学生和工程师的日常体验出发。讲者认为，coding assistants、浏览器级 AI、文案与创意草稿、课堂中即时用 ChatGPT 澄清概念，这些都已经是现实存在的价值场景。尤其对学习而言，得到一个“即时讨论对象”和“低成本反馈回路”本身就是很大的增益。
+
+这段话与整门课前面的内容其实是一致的：真正有价值的系统未必是最炫的 benchmark 冠军，而是能把知识获取、执行效率和认知负担降下来。
+
+\subsection{Agent 的民主化与 OS-level 想象}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-118.png}
+\caption{课程以 Atlas 等产品作为“近未来”信号：agentic workflow 可能从专家工具走向更广泛用户界面，先浏览器化，再逐步操作系统化。}
+\end{figure}
+
+讲者判断，未来几年一个重要方向是 agent 能力的 democratization。也就是说，今天只有熟悉该领域的人会用的 agentic workflow，会逐渐通过自然语言界面进入普通人的日常工作流。浏览器级助手、桌面级助手、移动端 OS-level assistant，都属于这条演化链的一部分。
+
+但课程同样保留了现实主义：agent 步数越多，失败概率越高；安全、权限、注入攻击、防止越权执行，仍然是阻碍大规模普及的主要因素。讲者甚至把“你是否愿意真的让 AI 客服替代人工客服”当作一个现实测试，借此说明 empathy、groundedness 和对隐性规则的把握，仍然是困难问题。
+
+\subsection{仍未解决的长期难题}
+
+最后一讲没有用“AGI 快到了”之类的句子收尾，而是回到几个更朴素但更硬的问题：
+
+\begin{enumerate}
+\item 固定权重问题：模型训练完成后权重冻结，RAG 和 tools 只是绕开了连续学习问题，并没有真正解决它；
+\item Hallucination 问题：从 next-token prediction 目标出发，模型天生不是“事实数据库”；
+\item Personalization、interpretability、safety：这些都还远未被彻底解决。
+\end{enumerate}
+
+讲者给学生的最后建议则非常具体：想持续跟进该领域，就去看 arXiv、NeurIPS / ICML / ICLR / ACL / EMNLP 等 venue；不要只读论文，也要读作者给出的代码；此外，Hugging Face 的 trending papers 这类入口，可以帮助你快速捕捉近期热点。
+
+\begin{warningbox}{课程结尾的现实判断}
+未来突破未必只来自更大的模型或更高的 benchmark。它同样可能来自更好的数据、更便宜的推理、更合适的硬件、更新的体系结构，或者更贴近真实任务的产品接口。
+\end{warningbox}
+
+\subsection{本章小结}
+
+Closing thoughts 把技术趋势重新落回真实使用场景：LLM 已经开始深刻改变学习、编码与信息获取方式，但要走向普遍可依赖的 agent 系统，还需要解决稳定性、安全性和连续学习等长期问题。
+
+\section{总结与延伸}
+
+第 9 讲并没有试图预测某一条唯一正确的未来路线，而是用回顾与展望告诉我们：大模型领域仍然处在快速重构阶段。课程至少给出了四个值得长期记住的判断。
+
+\begin{enumerate}
+\item Transformer 很重要，但未必是最终形态；它已经扩展到视觉、多模态，也可能被新的结构部分替代。
+\item 自回归 LLM 依然是今天的主流，但 diffusion、并行生成等路线说明“逐 token 串行生成”并非唯一答案。
+\item 未来竞争会越来越看重质量与成本的联合最优，而不是单维 benchmark。
+\item 真正决定产品形态的，不只是模型分数，还包括硬件、系统接口、安全边界与用户工作流。
+\end{enumerate}
+
+如果把整门课的收获压成一句话，可以说：\textbf{理解大模型，不只是理解一个网络结构，而是理解一个不断在数据、训练、推理、外部工具、评测体系和真实世界约束之间重新平衡的系统。}
+
+对已经学完这门课的人来说，最有价值的下一步不是死记热点，而是练习两种能力：第一，能把任何新论文放回“它在解决哪一类老问题”的坐标系里；第二，能把任何新模型放回“它是否真的改善了我的任务、成本和风险”的工程坐标系里。
+
+这也正是本课程最后一讲的意义所在：它不只是总结学期内容，而是在训练一种继续学习这门领域的方法。
+
+\end{document}

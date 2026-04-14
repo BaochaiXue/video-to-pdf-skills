@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 import json
 import subprocess
 from pathlib import Path
@@ -8,6 +9,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_DIR = ROOT / "build"
+
+
+def latex_escape(text: str) -> str:
+    replacements = {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+    }
+    for src, dst in replacements.items():
+        text = text.replace(src, dst)
+    return text
 
 
 def compile_tex(tex_path: Path) -> None:
@@ -51,7 +66,7 @@ def main() -> None:
     ]
 
     for lecture in manifest["lectures"]:
-        lines.append(f"{lecture['lecture_id']} & {lecture['title']} & {lecture['date']}\\\\")
+        lines.append(f"{lecture['lecture_id']} & {latex_escape(lecture['title'])} & {lecture['date']}\\\\")
     lines.extend([r"\end{longtable}", ""])
 
     for lecture in manifest["lectures"]:
@@ -59,11 +74,12 @@ def main() -> None:
         if not pdf_rel or pdf_rel.endswith("missing.pdf"):
             continue
         pdf_path = ROOT / pdf_rel
-        section_title = lecture["title"].replace("&", r"\&")
+        include_path = os.path.relpath(pdf_path, BUILD_DIR)
+        section_title = latex_escape(lecture["title"])
         lines.extend(
             [
                 f"\\section{{{section_title}}}",
-                f"\\includepdf[pages=-,pagecommand={{\\thispagestyle{{plain}}}}]{{{pdf_path.relative_to(BUILD_DIR)}}}",
+                f"\\includepdf[pages=-,pagecommand={{\\thispagestyle{{plain}}}}]{{{include_path}}}",
                 "",
             ]
         )

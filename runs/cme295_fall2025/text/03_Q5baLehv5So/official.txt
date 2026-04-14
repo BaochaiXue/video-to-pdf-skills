@@ -1,0 +1,1596 @@
+Lecture 3
+
+CME 295: Transformers &
+Large Language Models
+
+Afshine Amidi & Shervine Amidi
+
+Recap of last episode…
+
+Recap of last episode…
+3 categories of Transformer-based models:
+
+Encoderdecoder
+
+Text to text
+
+T5, mT5, ByT5
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Recap of last episode…
+3 categories of Transformer-based models:
+
+Encoderdecoder
+
+Text to text
+
+T5, mT5, ByT5
+
+Encoderonly
+
+Projection of embedding
+for class prediction (e.g.
+sentiment extraction)
+
+BERT, DistilBERT,
+RoBERTa
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Recap of last episode…
+3 categories of Transformer-based models:
+
+Encoderdecoder
+
+Text to text
+
+T5, mT5, ByT5
+
+Encoderonly
+
+Projection of embedding
+for class prediction (e.g.
+sentiment extraction)
+
+BERT, DistilBERT,
+RoBERTa
+
+Decoderonly
+
+Text to text
+
+GPT series
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Recap of last episode…
+3 categories of Transformer-based models:
+
+Encoderdecoder
+
+Text to text
+
+T5, mT5, ByT5
+
+Encoderonly
+
+Projection of embedding
+for class prediction (e.g.
+sentiment extraction)
+
+BERT, DistilBERT,
+RoBERTa
+
+Decoderonly
+
+Text to text
+
+GPT series
+
+LLM overview
+
+Transformers &
+Large Language
+Models
+
+MoE-based LLMs
+Response generation
+Prompting strategies
+Inference optimizations
+
+Terminology
+LLM = Large Language Model
+
+Terminology
+LLM = Large Language Model
+
+Terminology
+LLM = Large Language Model
+"A language model is a statistical or machine
+learning model that assigns probabilities to
+sequences of tokens."
+
+Terminology
+LLM = Large Language Model
+
+Terminology
+LLM = Large Language Model
+● Model size: billions of parameters or more
+● Training data: 100s of billions of tokens or more
+● Compute: a lot of GPUs
+
+Characteristics
+Decoder-only Transformer-based model
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Characteristics
+Decoder-only Transformer-based model
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Characteristics
+Decoder-only Transformer-based model
+
+Examples: GPT series, LLaMA, Gemma, DeepSeek, Mistral, Qwen, …
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+LLM overview
+
+Transformers &
+Large Language
+Models
+
+MoE-based LLMs
+Response generation
+Prompting strategies
+Inference optimizations
+
+Motivation
+
+x
+
+Huge model
+
+Motivation
+Idea. Not all weights are useful in the forward pass
+
+Subset of the huge
+model
+
+x
+
+Motivation
+
+E1
+x
+
+E2
+…
+
+En
+
+Motivation
+
+G
+E1
+x
+
+E2
+…
+
+En
+
+Motivation
+
+G
+E1
+x
+
+E2
+…
+
+En
+
+Motivation
+
+E1
+x
+
+E2
+…
+
+En
+
+Overview of MoEs
+MoE = Mixture of Experts
+
+G
+E1
+x
+
+E2
+…
+
+En
+
+Overview of MoEs
+MoE = Mixture of Experts
+Dense MoE. Output is weighted
+
+G
+
+average of all expert outputs.
+E1
+
+0.1
+x
+
+0.8
+
+…
+
+0.05
+
+E2
+
+En
+
+Overview of MoEs
+MoE = Mixture of Experts
+Sparse MoE. Output is weighted
+
+G
+
+average of selected expert outputs.
+E1
+
+x
+
+E2
+…
+
+En
+
+Via top-k selection
+
+"Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer", Shazeer et al., 2017.
+
+MoE in Transformer-based models
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+MoE in Transformer-based models
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+MoE in Transformer-based models
+Routing done for each token!
+G
+FFNN1
+
+x
+
+FFNN2
+
+…
+FFNNn
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Training challenges include routing collapse
+Symptom. Same expert gets selected most of the time.
+
+"routing collapse"
+
+"Switch Transformers: Scaling to Trillion Parameter Models with Simple and Eﬃcient Sparsity", Fedus et al., 2021.
+
+Training challenges include routing collapse
+Symptom. Same expert gets selected most of the time.
+
+"routing collapse"
+Remedy. Force other experts to be "part of the game" too via auxiliary loss:
+
+= fraction of tokens routed to expert i
+= average routing probability for expert i
+
+"Switch Transformers: Scaling to Trillion Parameter Models with Simple and Eﬃcient Sparsity", Fedus et al., 2021.
+
+Interpreting experts
+
+Each color represent an expert
+
+"Mixtral of Experts", Jiang et al., 2024.
+
+LLM overview
+
+Transformers &
+Large Language
+Models
+
+MoE-based LLMs
+Response generation
+Prompting strategies
+Inference optimizations
+
+Next token prediction
+
+LLM
+
+[BOS]
+
+Next token prediction
+
+LLM
+
+[BOS]
+
+Next token prediction
+
+A
+
+LLM
+
+[BOS]
+
+Next token prediction
+
+A
+
+LLM
+
+[BOS]
+
+A
+
+Next token prediction
+
+A
+
+LLM
+
+[BOS]
+
+A
+
+Next token prediction
+
+A
+
+teddy
+
+LLM
+
+[BOS]
+
+A
+
+Next token prediction
+
+A
+
+teddy
+
+bear
+
+LLM
+
+[BOS]
+
+A
+
+teddy
+
+Next token prediction
+
+A
+
+teddy
+
+bear
+
+is
+
+LLM
+
+[BOS]
+
+A
+
+teddy
+
+bear
+
+Next token prediction
+
+A
+
+teddy
+
+bear
+
+is
+
+?
+
+bear
+
+is
+
+LLM
+
+[BOS]
+
+A
+
+teddy
+
+Predicting next token
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Predicting next token
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Predicting next token
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017. "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Predicting next token with greedy decoding
+1st idea. Take token with highest predicted probability
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017. "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Predicting next token with greedy decoding
+1st idea. Take token with highest predicted probability
+
+Limitations. Output not optimal, natural and/or diverse
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017. "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Predicting next token with beam search
+2nd idea. Keep k paths that are the most likely
+
+[BOS]
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Predicting next token with beam search
+2nd idea. Keep k paths that are the most likely
+
+a
+[BOS]
+
+cute
+the
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Predicting next token with beam search
+2nd idea. Keep k paths that are the most likely
+
+a
+[BOS]
+
+cute
+the
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Predicting next token with beam search
+2nd idea. Keep k paths that are the most likely
+cute
+a
+
+teddy
+bear
+
+[BOS]
+
+cute
+the
+
+fluffy
+sleepy
+dog
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Predicting next token with beam search
+2nd idea. Keep k paths that are the most likely
+0.7
+cute
+
+0.2
+
+teddy
+
+a
+cute
+
+[BOS]
+
+0.2
+
+the
+0.6
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+bear
+fluffy
+sleepy
+dog
+
+Predicting next token with beam search
+2nd idea. Keep k paths that are the most likely
+
+a
+[BOS]
+
+cute
+the
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+cute
+
+kitten
+
+teddy
+
+teddy
+
+bear
+
+bear
+
+fluffy
+
+sloth
+
+sleepy
+
+bear
+
+dog
+
+dog
+
+Predicting next token with beam search
+2nd idea. Keep k paths that are the most likely
+
+a
+[BOS]
+
+cute
+the
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+cute
+
+kitten
+
+teddy
+
+teddy
+
+bear
+
+bear
+
+fluffy
+
+sloth
+
+sleepy
+
+bear
+
+dog
+
+dog
+
+Predicting next token with beam search
+2nd idea. Keep k paths that are the most likely
+
+a
+[BOS]
+
+cute
+the
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+cute
+
+kitten
+
+teddy
+
+teddy
+
+bear
+
+bear
+
+fluffy
+
+sloth
+
+sleepy
+
+bear
+
+dog
+
+dog
+
+Ends at [EOS]
+
+Predicting next token with beam search
+2nd idea. Keep k paths that are the most likely
+
+a
+[BOS]
+
+cute
+the
+
+cute
+
+kitten
+
+teddy
+
+teddy
+
+bear
+
+bear
+
+fluffy
+
+sloth
+
+sleepy
+
+bear
+
+dog
+
+dog
+
+Ends at [EOS]
+
+Limitations. Needs computations + lacks diversity/creativity
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Predicting next token with sampling
+3rd idea. Sample next token from probability distribution:
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Sampling strategies
+●
+
+Top-k: Sample among top k most probable tokens
+
+k=4
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Sampling strategies
+●
+
+Top-k: Sample among top k most probable tokens
+
+k=4
+
+●
+
+Top-p: Random sample among smallest set of tokens with
+cumulative probability >= p
+p = 90%
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Next token prediction
+
+But how are probabilities obtained?
+
+Probability computation
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Probability computation
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Temperature allows to tweak output probabilities
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Impact of temperature on probabilities
+Small T
+
+?
+
+High T
+
+?
+
+Impact of temperature on probabilities
+Small T
+
+High T
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+Suggested reading: "Defeating Nondeterminism in LLM Inference", He et al., 2025.
+
+Constraining the output via guided decoding
+Motivation. Generate output in a speciﬁc format
+Input prompt
+
+Generate a description of my
+33-year old teddy bear who
+likes reading.
+
+Desired output (JSON)
+
+{
+"first_name": "teddy",
+"last_name": "bear",
+"age": 33,
+"hobby": "reading"
+
+Do this in JSON format.
+}
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+[BOS]
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+{
+[BOS]
+
+the
+}
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+{
+[BOS]
+
+the
+}
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+road
+
+[BOS]
+
+{
+
+sun
+
+the
+
+"first_name"
+
+}
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+road
+
+[BOS]
+
+{
+
+sun
+
+the
+
+"first_name"
+
+}
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+road
+
+[BOS]
+
+{
+
+sun
+
+,
+
+the
+
+"first_name"
+
+:
+
+}
+
+to
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+road
+
+[BOS]
+
+{
+
+sun
+
+,
+
+the
+
+"first_name"
+
+:
+
+}
+
+to
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+road
+
+[BOS]
+
+{
+
+sun
+
+,
+
+10
+
+the
+
+"first_name"
+
+:
+
+"Jane"
+
+to
+
+"teddy"
+
+}
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+road
+
+[BOS]
+
+{
+
+sun
+
+,
+
+10
+
+the
+
+"first_name"
+
+:
+
+"Jane"
+
+to
+
+"teddy"
+
+}
+
+Constraining the output via guided decoding
+Idea. Only allow "valid" next tokens
+
+road
+
+[BOS]
+
+{
+
+sun
+
+,
+
+10
+
+the
+
+"first_name"
+
+:
+
+"Jane"
+
+to
+
+"teddy"
+
+}
+
+LLM overview
+
+Transformers &
+Large Language
+Models
+
+MoE-based LLMs
+Response generation
+Prompting strategies
+Inference optimizations
+
+Terminology
+
+Is a teddy bear cute?
+Context length
+Context size
+Window size
+
+LLM
+
+Yes.
+
+Terminology
+
+Is a teddy bear cute?
+Context length
+Context size
+Window size
+
+Discussion. Orders of magnitude by:
+●
+
+Input type
+
+●
+
+Models
+
+LLM
+
+Yes.
+
+Terminology
+
+Is a teddy bear cute?
+
+LLM
+
+Yes.
+
+Context length
+Context size
+Window size
+
+Discussion. Orders of magnitude by:
+●
+
+Input type
+
+●
+
+Models
+
+Beware of "context rot"!
+
+"Context Rot: How Increasing Input Tokens Impacts LLM Performance", Hong et al., 2025.
+
+Main structure
+My teddy bear had a long day and
+needs a bedtime story.
+
+Context
+
+Generate a bedtime story that takes
+place in a specific location.
+
+Instructions
+
+Location: Country of teddy bears
+
+Input
+
+The story needs to be suitable for
+teddy bears that are tired.
+
+Constraints
+
+"Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+In-context learning
+ICL = In-Context Learning
+
+"Language Models are Few-Shot Learners", Brown et al., 2020.
+
+In-context learning
+ICL = In-Context Learning
+Zero-shot learning
+●
+●
+
+Question is asked without examples
+Performance heavily depends on
+performance of initial model
+
+"Language Models are Few-Shot Learners", Brown et al., 2020.
+
+Few-shot learning
+●
+●
+
+Prompt contains examples of input /
+output
+Typically has a better performance
+
+In-context learning
+ICL = In-Context Learning
+Zero-shot learning
+●
+●
+
+Question is asked without examples
+Performance heavily depends on
+performance of initial model
+
+Few-shot learning
+●
+●
+
+Prompt contains examples of input /
+output
+Typically has a better performance
+
+Discussion. Showing examples in the prompt is generally better but:
+● Requires eﬀort
+● Increases computational complexity & cost
+● Increases latency
+
+Chain of thought
+Idea. Explaining reasoning helps in improving performance.
+Q: How old is this bear?
+A: The bear was born in
+2020. It is therefore 4.
+LLM
+Q: How old will the bear
+be next year?
+
+Discussion.
+● Interpretability + explanation
+● More tokens: higher cost and latency
+"Chain-of-Thought Prompting Elicits Reasoning in Large Language Models", Wei et al., 2022.
+
+A: It will be one
+year older than
+its age this year,
+which was 4.
+Hence, it will be
+5.
+
+Self-consistency
+Idea. Aggregating over reasoning paths improves performance.
+A: It will be one year
+older than its age this
+year, which was 4.
+Hence, it will be 5.
+LLM
+
+A: The bear was born in
+2020. It will therefore
+be 5.
+A: Next year is 2024.
+The bear with then be 4.
+
+Discussion. Trade-oﬀ between performance and added cost.
+"Self-Consistency Improves Chain of Thought Reasoning in Language Models", Wang et al., 2022.
+
+5
+
+LLM overview
+
+Transformers &
+Large Language
+Models
+
+MoE-based LLMs
+Response generation
+Prompting strategies
+Inference optimizations
+
+Challenges
+Motivation. Computations are expensive, any way to reduce complexity?
+Categories. Many dimensions to optimize for.
+
+Challenges
+Motivation. Computations are expensive, any way to reduce complexity?
+Categories. Many dimensions to optimize for.
+"Exact" eﬃciency:
+●
+●
+●
+
+Avoid redundancies
+Memory management
+Reformulate the math
+
+Challenges
+Motivation. Computations are expensive, any way to reduce complexity?
+Categories. Many dimensions to optimize for.
+"Exact" eﬃciency:
+●
+●
+●
+
+Avoid redundancies
+Memory management
+Reformulate the math
+
+Approximations:
+●
+●
+●
+
+Architectural changes
+Embeddings representations
+Token prediction
+
+Attention-based tricks
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+
+a
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+
+a
+
+cute
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+
+a
+
+cute
+
+teddy bear
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+
+a
+
+cute
+
+teddy bear
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+is
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+
+a
+
+cute
+
+teddy bear
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+is
+
+reading
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+Idea. Keep keys and values in a cache.
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+Idea. Keep keys and values in a cache.
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+Idea. Keep keys and values in a cache.
+From cache
+
+From cache
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+Idea. Keep keys and values in a cache.
+From cache
+
+From cache
+
+Reusing computations with KV caching
+Motivation. New token needs to interact with all previous tokens.
+Idea. Keep keys and values in a cache.
+Cache
+
+KV caching = Key-Value Caching
+
+Cache
+
+Sharing attention heads
+
+Sharing attention heads
+
+Number of
+query heads
+
+In vanilla MHA,
+
+Number of
+key heads
+Number of
+=
+query heads
+
+Number of
+key heads
+
+Number of
+value heads
+
+=
+
+Number of
+value heads
+
+=
+
+h
+
+Sharing attention heads
+Idea. Share key/value attention heads within groups of queries
+
+Figure from "Super Study Guide: Transformers & Large Language Models", Amidi et al., 2024.
+
+Sharing attention heads
+Multi-Query Attention
+(MQA)
+
+Group-Query Attention
+(GQA)
+
+Multi-Head Attention
+(MHA)
+Figure from "Super Study Guide: Transformers & Large Language Models", Amidi et al., 2024.
+
+Sharing attention heads with GQA
+
+Number of
+query heads
+
+Number of
+key heads
+
+Number of
+value heads
+
+=h
+
+=G<h
+
+=G<h
+
+Manage memory with PagedAttention
+Observation. Lots of memory waste when storing KV cache.
+
+Figure from "Eﬃcient Memory Management for Large Language Model Serving with PagedAttention", by Kwon et al., 2023.
+
+Manage memory with PagedAttention
+Idea. Store K and V in non-contiguous space to minimize wasted memory.
+
+Figure from "Eﬃcient Memory Management for Large Language Model Serving with PagedAttention", by Kwon et al., 2023.
+
+Reduce memory of KV cache with latent attention
+Goal. Reduce dimension of K and V stored in memory.
+
+too big
+
+Reduce memory of KV cache with latent attention
+Solution. Store compressed representations instead!
+
+?
+big
+
+small
+
+xh
+"DeepSeek-V2: A Strong, Economical, and Eﬃcient Mixture-of-Experts Language Model", by DeepSeek, 2023.
+
+Reduce memory of KV cache with latent attention
+BEFORE
+teddy bear
+
+xh
+"DeepSeek-V2: A Strong, Economical, and Eﬃcient Mixture-of-Experts Language Model", by DeepSeek, 2023.
+
+Reduce memory of KV cache with latent attention
+teddy bear
+
+xh
+"DeepSeek-V2: A Strong, Economical, and Eﬃcient Mixture-of-Experts Language Model", by DeepSeek, 2023.
+
+Reduce memory of KV cache with latent attention
+teddy bear
+
+shared
+
+xh
+"DeepSeek-V2: A Strong, Economical, and Eﬃcient Mixture-of-Experts Language Model", by DeepSeek, 2023.
+
+Reduce memory of KV cache with latent attention
+AFTER
+teddy bear
+
+shared
+
+xh
+"DeepSeek-V2: A Strong, Economical, and Eﬃcient Mixture-of-Experts Language Model", by DeepSeek, 2023.
+
+Reduce memory of KV cache with latent attention
+AFTER
+teddy bear
+
+shared
+
+xh
+"DeepSeek-V2: A Strong, Economical, and Eﬃcient Mixture-of-Experts Language Model", by DeepSeek, 2023.
+
+Token generation tricks
+
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+Speeding up decoding with speculative decoding
+Idea. Use a draft (small) model to generate tokens validated by a target (big) model.
+
+"Accelerating Large Language Model Decoding with Speculative Sampling", Chen et al., 2023.
+
+Speeding up decoding with speculative decoding
+P1
+
+P2
+
+...
+
+Pk
+
+is
+
+cute
+
+and
+
+smart
+
+Draft LLM
+
+[BOS]
+
+my
+
+teddy
+
+bear
+
+"Accelerating Large Language Model Decoding with Speculative Sampling", Chen et al., 2023.
+
+Speeding up decoding with speculative decoding
+
+Q1
+
+Q2
+
+...
+
+Qk
+
+Qk+1
+
+cute
+
+and
+
+smart
+
+Target LLM
+
+[BOS]
+
+my
+
+teddy
+
+bear
+
+is
+
+"Accelerating Large Language Model Decoding with Speculative Sampling", Chen et al., 2023.
+
+Speeding up decoding with speculative decoding
+Sampling algorithm. We distinguish the following cases:
+●
+
+If Qi(
+
+●
+
+Otherwise
+○ with probability Qi(
+○
+
+token
+
+) >= Pi(
+
+token
+
+)
+
+token
+
+with probability 1 - Qi(
+
+) / Pi(
+
+token
+
+token
+
+) / Pi(
+
+)
+
+token
+
+)
+
+token
+
+✅
+
+token
+
+✅
+
+token
+
+❌
+
+If a rejection happens, re-sample next token with distribution [Qi - Pi]+ and exit
+"Accelerating Large Language Model Decoding with Speculative Sampling", Chen et al., 2023.
+
+Generate several tokens at once via MTP
+MTP = Multi-Token Prediction
+is
+
+cute
+
+LLM
+
+[BOS]
+
+my
+
+teddy
+
+bear
+
+"Better & Faster Large Language Models via Multi-token Prediction", Gloeckle et al., 2024.
+
+and
+
+smart
+
+Generate several tokens at once via MTP
+Idea. Train k prediction heads: same draft and target models!
+t+1
+
+t+2
+
+...
+
+t
+Figure adapted from "Attention is All You Need", Vaswani et al., 2017.
+
+t+k
+
+Challenges
+Categories. Many dimensions to optimize for.
+"Exact" eﬃciency:
+●
+●
+●
+
+Avoid redundancies
+Memory management
+Reformulate the math
+
+Approximations:
+●
+●
+●
+
+Architectural changes
+Embeddings representations
+Token prediction
+
+Challenges and some remedies
+Categories. Many dimensions to optimize for.
+"Exact" eﬃciency:
+●
+●
+●
+
+Avoid redundancies
+Memory management
+Reformulate the math
+
+KV cache
+PagedAttention
+Speculative decoding
+
+Approximations:
+●
+●
+●
+
+Architectural changes
+Embeddings representations
+Token prediction
+
+Grouped query attention
+Latent attention
+Multi-token prediction
+
+Thank you for your attention!
+
+

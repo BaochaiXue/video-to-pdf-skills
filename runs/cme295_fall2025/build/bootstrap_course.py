@@ -184,8 +184,19 @@ def download(url: str, dest: Path) -> None:
     urllib.request.urlretrieve(url, dest)
 
 
-def run(cmd: list[str], cwd: Path | None = None) -> None:
-    subprocess.run(cmd, cwd=cwd, check=True)
+def run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(cmd, cwd=cwd, check=check, text=True)
+
+
+def clear_dir(path: Path) -> None:
+    if not path.exists():
+        return
+    for child in sorted(path.iterdir()):
+        if child.is_dir():
+            clear_dir(child)
+            child.rmdir()
+        else:
+            child.unlink()
 
 
 def raw_dir(item: dict) -> Path:
@@ -308,7 +319,6 @@ def write_lecture_dir(item: dict) -> None:
         ensure_symlink(RUN_ROOT / meta["transcript_text"], ldir / "transcript.txt")
     ensure_symlink(RUN_ROOT / meta["official_text"], ldir / "official.txt")
     ensure_symlink(RUN_ROOT / meta["material"], ldir / "slides.pdf")
-    ensure_symlink(lecture_slide_pdf(item).parent / f"{item['playlist_index']:02d}_{item['slug']}.pdf", ldir / "slides.pdf")
     pages_src = ldir / "pdf_pages"
     render_slide_pages(lecture_slide_pdf(item), pages_src)
 
@@ -376,29 +386,64 @@ def fetch_video_assets(item: dict) -> None:
     rdir.mkdir(parents=True, exist_ok=True)
     target_prefix = rdir / f"{item['playlist_index']:02d}_{item['video_id']}"
     info_json = target_prefix.with_suffix(".info.json")
+    video_url = f"https://www.youtube.com/watch?v={item['video_id']}"
+    existing_srts = list(rdir.glob("*.srt"))
+    existing_jpgs = list(rdir.glob("*.jpg"))
     if info_json.exists():
-        return
+        info = json.loads(info_json.read_text())
+        if info.get("id") == item["video_id"] and info.get("_type") != "playlist" and existing_srts and existing_jpgs:
+            return
+        if info.get("id") != item["video_id"] or info.get("_type") == "playlist":
+            clear_dir(rdir)
+
+    base_cmd = [
+        "yt-dlp",
+        "--no-playlist",
+        "--skip-download",
+        "-o",
+        str(target_prefix) + ".%(ext)s",
+    ]
+
     run(
-        [
-            "yt-dlp",
-            "--skip-download",
+        base_cmd
+        + [
             "--write-info-json",
             "--write-thumbnail",
             "--convert-thumbnails",
             "jpg",
+            video_url,
+        ]
+    )
+
+    manual_result = run(
+        base_cmd
+        + [
             "--write-subs",
-            "--write-auto-subs",
             "--sub-langs",
-            "en.*,en",
+            "en-US,en,en-GB",
             "--sub-format",
             "srt/vtt/best",
             "--convert-subs",
             "srt",
-            "-o",
-            str(target_prefix) + ".%(ext)s",
-            item["video_url"],
-        ]
+            video_url,
+        ],
+        check=False,
     )
+    if not list(rdir.glob("*.srt")):
+        run(
+            base_cmd
+            + [
+                "--write-auto-subs",
+                "--sub-langs",
+                "en-US,en,en-GB",
+                "--sub-format",
+                "srt/vtt/best",
+                "--convert-subs",
+                "srt",
+                video_url,
+            ],
+            check=False,
+        )
 
 
 def write_course_bundle() -> None:

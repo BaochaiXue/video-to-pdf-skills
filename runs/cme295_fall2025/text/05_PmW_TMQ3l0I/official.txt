@@ -1,0 +1,1750 @@
+Lecture 5
+
+CME 295: Transformers &
+Large Language Models
+
+Afshine Amidi & Shervine Amidi
+
+Recap of last episodes…
+Initialized model
+
+Pretraining
+
+Model with "basic
+knowledge" about
+language, code, etc.
+
+Recap of last episodes…
+Initialized model
+
+Pretraining
+
+Finetuning
+
+Model with "basic
+knowledge" about
+language, code, etc.
+
+Model tuned for
+speciﬁc tasks
+
+Recap of last episodes…
+Initialized model
+
+Pretraining
+
+Finetuning
+
+Preference tuning
+
+Model with "basic
+knowledge" about
+language, code, etc.
+
+Model tuned for
+speciﬁc tasks
+
+Model aligns with
+(human) preferences
+
+Today's focus
+Initialized model
+
+Pretraining
+
+Finetuning
+
+Preference tuning
+
+Model with "basic
+knowledge" about
+language, code, etc.
+
+Model tuned for
+speciﬁc tasks
+
+Model aligns with
+(human) preferences
+
+Preference tuning
+
+Transformers &
+Large Language
+Models
+
+Data collection
+RLHF
+DPO
+
+Preference tuning
+Context. Model may misbehave. Need to inject negative signals.
+Suggest a new activity I
+could do with my teddy bear.
+
+LLMSFT
+
+I'd suggest you do not
+spend much time with your
+teddy bear at all.
+
+Preference tuning
+Context. Model may misbehave. Need to inject negative signals.
+Suggest a new activity I
+could do with my teddy bear.
+
+I'd suggest you do not
+spend much time with your
+teddy bear at all.
+
+LLMSFT
+
+Idea. Collect preference pairs and train the model on it.
+
+I'd suggest you do not
+spend much time with your
+teddy bear at all.
+
+Preference tuning
+Context. Model may misbehave. Need to inject negative signals.
+Suggest a new activity I
+could do with my teddy bear.
+
+I'd suggest you do not
+spend much time with your
+teddy bear at all.
+
+LLMSFT
+
+Idea. Collect preference pairs and train the model on it.
+Of course! Teddy bears not only make awesome
+companions for a delightful sleep, but can
+also be great buddies for fun activities. How
+about you both watch a movie together?
+
+I'd suggest you do not
+spend much time with your
+teddy bear at all.
+
+Why preference tuning?
+●
+
+Easier to compare (e.g. A better than B) than generate (e.g. generate A from
+scratch)
+
+Why preference tuning?
+●
+
+Easier to compare (e.g. A better than B) than generate (e.g. generate A from
+scratch)
+
+●
+
+Distribution is very important for SFT: easy to "mess up"
+
+Why preference tuning?
+●
+
+Easier to compare (e.g. A better than B) than generate (e.g. generate A from
+scratch)
+
+●
+
+Distribution is very important for SFT: easy to "mess up"
+
+●
+
+Not scalable: data quality is very important and hard to get
+
+Why preference tuning?
+●
+
+Easier to compare (e.g. A better than B) than generate (e.g. generate A from
+scratch)
+
+●
+
+Distribution is very important for SFT: easy to "mess up"
+
+●
+
+Not scalable: data quality is very important and hard to get
+
+However, "model misbehaving" can also be a good wake-up call to check SFT
+data quality
+
+Preference tuning
+
+Transformers &
+Large Language
+Models
+
+Data collection
+RLHF
+DPO
+
+Preference data
+Observation = (prompt
+
+, response
+
+)
+
+Preference data
+Observation = (prompt
+Pointwise
+Obs 1
+
+0.4
+
+Obs 2
+
+0.9
+
+Obs 3
+
+0.1
+
+Obs 4
+
+0.2
+
+, response
+
+)
+
+Preference data
+Observation = (prompt
+
+, response
+
+Pointwise
+
+)
+Pairwise
+
+Obs 1
+
+0.4
+
+Obs 1
+
+<
+
+Obs 2
+
+Obs 2
+
+0.9
+
+Obs 1
+
+>
+
+Obs 3
+
+Obs 3
+
+0.1
+
+Obs 1
+
+>
+
+Obs 4
+
+Obs 4
+
+0.2
+
+Obs 2
+
+>
+
+Obs 3
+
+Preference data
+Observation = (prompt
+
+, response
+
+Pointwise
+
+)
+Pairwise
+
+Listwise
+
+Obs 1
+
+0.4
+
+Obs 1
+
+<
+
+Obs 2
+
+Obs 2
+
+1
+
+Obs 2
+
+0.9
+
+Obs 1
+
+>
+
+Obs 3
+
+Obs 1
+
+2
+
+Obs 3
+
+0.1
+
+Obs 1
+
+>
+
+Obs 4
+
+Obs 4
+
+3
+
+Obs 4
+
+0.2
+
+Obs 2
+
+>
+
+Obs 3
+
+Obs 3
+
+4
+
+Preference data
+Observation = (prompt
+
+, response
+
+Pointwise
+
+)
+Pairwise
+
+Listwise
+
+Obs 1
+
+0.4
+
+Obs 1
+
+<
+
+Obs 2
+
+Obs 2
+
+1
+
+Obs 2
+
+0.9
+
+Obs 1
+
+>
+
+Obs 3
+
+Obs 1
+
+2
+
+Obs 3
+
+0.1
+
+Obs 1
+
+>
+
+Obs 4
+
+Obs 4
+
+3
+
+Obs 4
+
+0.2
+
+Obs 2
+
+>
+
+Obs 3
+
+Obs 3
+
+4
+
+Recipe to get (pairwise) preference data
+1.
+
+Generate pair of responses
+
+for the same prompt
+
+●
+
+Input
+
+via logs / reference distribution
+
+●
+
+Output
+
+via SFT model with
+
+/ synthetic / rewrites
+
+Recipe to get (pairwise) preference data
+1.
+
+Generate pair of responses
+
+for the same prompt
+
+●
+
+Input
+
+via logs / reference distribution
+
+●
+
+Output
+
+via SFT model with
+
+2. Label
+
+/ synthetic / rewrites
+
+and
+
+●
+
+Human rating
+
+●
+
+Proxies (e.g. LLM-as-a-judge, BLEU, ROUGE, etc.)
+
+●
+
+Variants: binary scale (better or worse) vs "nuanced" scale
+
+Preference tuning
+
+Transformers &
+Large Language
+Models
+
+Data collection
+RLHF
+DPO
+
+RL formulation
+
+Agent
+State
+Reward
+Action
+Environment
+Policy
+
+RL formulation for LLMs
+
+LLM
+State
+Reward
+Action
+Environment
+Policy
+
+RL formulation for LLMs
+
+LLM
+Input so far
+Reward
+Action
+Environment
+Policy
+
+RL formulation for LLMs
+
+LLM
+Input so far
+Reward
+Next token
+Environment
+Policy
+
+RL formulation for LLMs
+
+LLM
+Input so far
+Reward
+Next token
+Tokens
+Policy
+
+RL formulation for LLMs
+
+LLM
+Input so far
+Reward
+Next token
+Tokens
+Probability of next token
+
+RL formulation for LLMs
+
+LLM
+Input so far
+
+Human
+preference
+
+Next token
+Tokens
+Probability of next token
+
+RL formulation for LLMs
+Idea. Learn
+
+so that
+
+aligns with human preferences
+
+LLM
+Input so far
+
+Human
+preference
+
+Next token
+Tokens
+Probability of next token
+
+RLHF overview
+RLHF = Reinforcement Learning from Human Feedback
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+RLHF overview
+RLHF = Reinforcement Learning from Human Feedback
+⚖ Step 1 – Reward modeling: Distinguish good from bad!
+●
+
+Input: (prompt
+
+, response
+
+●
+
+Output: quantitative score
+
+)
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+RLHF overview
+RLHF = Reinforcement Learning from Human Feedback
+⚖ Step 1 – Reward modeling: Distinguish good from bad!
+●
+
+Input: (prompt
+
+, response
+
+●
+
+Output: quantitative score
+
+)
+
+⚙ Step 2 – Reinforcement learning: Align the model!
+●
+
+Input: prompt
+
+●
+
+Output: response
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 1: Reward modeling
+Idea. Know which answers are bad and which are good via Reward Model.
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 1: Reward modeling
+Idea. Know which answers are bad and which are good via Reward Model.
+Suggest a new activity I could do with my teddy bear.
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+prompt
+
+Step 1: Reward modeling
+Idea. Know which answers are bad and which are good via Reward Model.
+Suggest a new activity I could do with my teddy bear.
+
+Of course! Teddy bears not only make awesome
+companions for a delightful sleep, but can also be
+great buddies for fun activities. How about you
+both watch a movie together?
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+RM
+
+prompt
+
+Step 1: Reward modeling
+Idea. Know which answers are bad and which are good via Reward Model.
+Suggest a new activity I could do with my teddy bear.
+
+Of course! Teddy bears not only make awesome
+companions for a delightful sleep, but can also be
+great buddies for fun activities. How about you
+both watch a movie together?
+
+RM
+
+I'd suggest you do not spend
+much time with your teddy
+bear at all.
+
+RM
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+prompt
+
+Step 1: Reward modeling
+Bradley-Terry formulation. Probability that
+
+where
+
+rewards of
+
+better than
+
+respectively
+
+"The rank analysis of incomplete block designs: I. the method of paired comparisons", Bradley et al., 1952.
+
+is deﬁned as:
+
+Step 1: Reward modeling
+Bradley-Terry formulation. Probability that
+
+where
+
+rewards of
+
+better than
+
+respectively
+
+"The rank analysis of incomplete block designs: I. the method of paired comparisons", Bradley et al., 1952.
+
+is deﬁned as:
+
+Step 1: Reward modeling
+Training. Learn
+
+based on pairwise preference data
+
+Figure from "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Step 1: Reward modeling
+Training. Learn
+
+based on pairwise preference data
+
+Figure from "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+Step 1: Reward modeling
+Data.
+●
+
+O(10,000) observations
+
+●
+
+label = human rating (which is where the "HF" from RLHF comes from)
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 1: Reward modeling
+Data.
+●
+
+O(10,000) observations
+
+●
+
+label = human rating (which is where the "HF" from RLHF comes from)
+
+Model.
+●
+
+Pretrained LLM with classiﬁcation head (instead of next token prediction)
+
+●
+
+Encoder-only: BERT and the like via [CLS] projection
+
+"RewardBench: Evaluating Reward Models for Language Modeling", Lambert et al., 2024.
+
+Step 2: Reinforcement learning
+Idea. Change weights of LLM to penalize bad answers and promote good answers
+via Reinforcement Learning using the Reward Model.
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 2: Reinforcement learning
+Idea. Change weights of LLM to penalize bad answers and promote good answers
+via Reinforcement Learning using the Reward Model.
+
+Suggest a new
+activity I
+could do with
+my teddy bear.
+
+LLM
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 2: Reinforcement learning
+Idea. Change weights of LLM to penalize bad answers and promote good answers
+via Reinforcement Learning using the Reward Model.
+
+Suggest a new
+activity I
+could do with
+my teddy bear.
+
+LLM
+
+I'd suggest you
+do not spend
+much time with
+your teddy bear
+at all.
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 2: Reinforcement learning
+Idea. Change weights of LLM to penalize bad answers and promote good answers
+via Reinforcement Learning using the Reward Model.
+
+Suggest a new
+activity I
+could do with
+my teddy bear.
+
+LLM
+
+I'd suggest you
+do not spend
+much time with
+your teddy bear
+at all.
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+RM
+
+Step 2: Reinforcement learning
+Idea. Change weights of LLM to penalize bad answers and promote good answers
+via Reinforcement Learning using the Reward Model.
+
+Suggest a new
+activity I
+could do with
+my teddy bear.
+
+LLM
+
+I'd suggest you
+do not spend
+much time with
+your teddy bear
+at all.
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+RM
+
+Step 2: Reinforcement learning
+Idea. Change weights of LLM to penalize bad answers and promote good answers
+via Reinforcement Learning using the Reward Model.
+
+Suggest a new
+activity I
+could do with
+my teddy bear.
+
+LLM
+
+I'd suggest you
+do not spend
+much time with
+your teddy bear
+at all.
+
+via RL
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+RM
+
+Step 2: Reinforcement learning
+Idea. Change weights of LLM to penalize bad answers and promote good answers
+via Reinforcement Learning using the Reward Model.
+
+Suggest a new
+activity I
+could do with
+my teddy bear.
+
+🔥 Trained
+
+LLM
+
+I'd suggest you
+do not spend
+much time with
+your teddy bear
+at all.
+
+via RL
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+❄ Frozen
+
+RM
+
+Step 2: Reinforcement learning
+Idea. Change weights of LLM to penalize bad answers and promote good answers
+via Reinforcement Learning using the Reward Model.
+
+Suggest a new
+activity I
+could do with
+my teddy bear.
+
+LLM
+
+I'd suggest you
+do not spend
+much time with
+your teddy bear
+at all.
+
+RM
+
+via RL
+
+Objective function optimizes for higher rewards without going too far from the
+base model
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 2: Reinforcement learning
+Data.
+●
+
+O(100,000) observations
+
+●
+
+label = score given by reward model
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 2: Reinforcement learning
+Data.
+●
+
+O(100,000) observations
+
+●
+
+label = score given by reward model
+
+Model. Initialized at SFT model
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 2: Reinforcement learning
+Data.
+●
+
+O(100,000) observations
+
+●
+
+label = score given by reward model
+
+Model. Initialized at SFT model
+Training. Change weights of policy (LLM) via objective function:
+
+Maximize rewards
+
+Don't deviate too much
+from base model
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Step 2: Reinforcement learning
+Data.
+●
+
+O(100,000) observations
+
+●
+
+label = score given by reward model
+
+Model. Initialized at SFT model
+
+Avoid "reward hacking" + training instability
+
+Training. Change weights of policy (LLM) via objective function:
+
+Maximize rewards
+
+Don't deviate too much
+from base model
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Common RL algorithm: PPO
+PPO = Proximal Policy Optimization
+Maximize rewards
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Don't deviate too much
+from base model
+
+Common RL algorithm: PPO
+PPO = Proximal Policy Optimization
+Maximize rewards
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Don't deviate too much
+from base model
+
+Common RL algorithm: PPO
+PPO = Proximal Policy Optimization
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Common RL algorithm: PPO
+PPO = Proximal Policy Optimization
+
+Maximize rewards
+
+Don't deviate too much
+from base model
+
+"Training language models to follow instructions with human feedback", Ouyang et al., 2022.
+
+Common RL algorithm: PPO
+PPO = Proximal Policy Optimization
+
+Figure from "Super Study Guide: Transformers and Large Language Models", Amidi et al., 2024.
+
+PPO actually computes advantages (and not just rewards)
+Maximize rewards
+
+Don't deviate too much
+from base model
+
+PPO actually computes advantages (and not just rewards)
+Maximize advantages
+
+Don't deviate too much
+from base model
+
+Advantage ~ Reward - Baseline
+
+PPO actually computes advantages (and not just rewards)
+Maximize advantages
+
+Don't deviate too much
+from base model
+
+Advantage ~ Reward - Baseline
+
+Value
+function
+
+PPO actually computes advantages (and not just rewards)
+Maximize advantages
+
+Don't deviate too much
+from base model
+
+Advantage ~ Reward - Baseline
+Value function.
+●
+
+Token-level
+
+●
+
+What would be the reward if follow the policy
+
+●
+
+Trained jointly with policy
+
+●
+
+Label = reward
+
+Value
+function
+
+PPO actually computes advantages (and not just rewards)
+Maximize advantages
+
+Don't deviate too much
+from base model
+
+Advantage ~ Reward - Baseline
+
+Value
+function
+
+Value function.
+●
+
+Token-level
+
+●
+
+What would be the reward if follow the policy
+
+●
+
+Trained jointly with policy
+
+●
+
+Label = reward
+Suggested reading: "High-Dimensional Continuous Control Using Generalized Advantage Estimation", Schulman et al., 2015.
+
+GAE method
+
+Variation 1: PPO-Clip
+Idea. Clip ratio between new and old policy to prevent large updates
+
+with
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Variation 1: PPO-Clip
+Idea. Clip ratio between new and old policy to prevent large updates
+
+with
+
+Terminology. Confusing since it is an objective
+function ("maximize") and NOT a loss.
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Variation 1: PPO-Clip
+Idea. Clip ratio between new and old policy to prevent large updates
+
+with
+
+Terminology. Confusing since rewards noted "r".
+Here we are talking about the ratio.
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Variation 1: PPO-Clip
+Idea. Clip ratio between new and old policy to prevent large updates
+
+with
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Variation 1: PPO-Clip
+Idea. Clip ratio between new and old policy to prevent large updates
+
+with
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Variation 2: PPO-KL Penalty
+Idea. Penalize diﬀerence in policy distributions
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Variation 2: PPO-KL Penalty
+Idea. Penalize diﬀerence in policy distributions
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Variation 2: PPO-KL Penalty
+Idea. Penalize diﬀerence in policy distributions
+
+Terminology.
+●
+●
+
+old = model from previous RL iteration
+ref = base model
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Variation 2: PPO-KL Penalty
+Idea. Penalize diﬀerence in policy distributions
+
+Nowadays, KL divergence is with respect
+to ref (base model)
+
+"Proximal Policy Optimization Algorithms", Schulman et al., 2017.
+
+Alternatives of PPO
+Limitations of PPO.
+●
+
+Need 4 models (policy, value, reward model, base)
+
+●
+
+Is it worth it?
+
+Alternatives of PPO
+Limitations of PPO.
+●
+
+Need 4 models (policy, value, reward model, base)
+
+●
+
+Is it worth it?
+
+Variants.
+●
+
+REINFORCE
+
+●
+
+GRPO
+
+●
+
+… and many more!
+"DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models", Shao et al., 2024.
+
+Challenges with RL-based approach
+●
+
+Requires training a reward model (2-stage process)
+
+Challenges with RL-based approach
+●
+
+Requires training a reward model (2-stage process)
+
+●
+
+Many hyperparameters to tune
+
+Challenges with RL-based approach
+●
+
+Requires training a reward model (2-stage process)
+
+●
+
+Many hyperparameters to tune
+
+●
+
+Training instability
+
+Challenges with RL-based approach
+●
+
+Requires training a reward model (2-stage process)
+
+●
+
+Many hyperparameters to tune
+
+●
+
+Training instability
+
+●
+
+Metric to monitor training
+
+Challenges with RL-based approach
+●
+
+Requires training a reward model (2-stage process)
+
+●
+
+Many hyperparameters to tune
+
+●
+
+Training instability
+
+●
+
+Metric to monitor training
+
+●
+
+Need diversity in completions!
+
+Challenges with RL-based approach
+●
+
+Requires training a reward model (2-stage process)
+
+●
+
+Many hyperparameters to tune
+
+●
+
+Training instability
+
+●
+
+Metric to monitor training
+
+●
+
+Need diversity in completions!
+
+●
+
+Not abundantly clear why preference tuning absolutely needs RL
+
+Workaround if we don't want to do RL
+BoN = Best of N
+
+Workaround if we don't want to do RL
+BoN = Best of N
+Idea. Skip the RL step and leverage the reward model scores
+
+Workaround if we don't want to do RL
+BoN = Best of N
+Idea. Skip the RL step and leverage the reward model scores
+Strategy.
+●
+
+Given a prompt, generate several outputs with SFT model
+
+●
+
+Rank output with score given by reward model
+
+●
+
+Take the best one
+
+BoN in action
+
+Suggest a new
+activity I
+could do with
+my teddy
+bear.
+
+BoN in action
+
+Suggest a new
+activity I
+could do with
+my teddy
+bear.
+
+LLMSFT
+
+BoN in action
+Of course! Teddy bears not
+only make awesome companions
+for a delightful sleep, but
+can also be great buddies for
+fun activities. How about you
+both watch a movie together?
+Suggest a new
+activity I
+could do with
+my teddy
+bear.
+
+LLMSFT
+
+I'd suggest you do not spend
+much time with your teddy
+bear at all.
+
+Take your teddy bear on a
+picnic in your backyard.
+
+BoN in action
+
+Suggest a new
+activity I
+could do with
+my teddy
+bear.
+
+LLMSFT
+
+Of course! Teddy bears not
+only make awesome companions
+for a delightful sleep, but
+can also be great buddies for
+fun activities. How about you
+both watch a movie together?
+
+RM
+
+I'd suggest you do not spend
+much time with your teddy
+bear at all.
+
+RM
+
+Take your teddy bear on a
+picnic in your backyard.
+
+RM
+
+BoN in action
+
+Suggest a new
+activity I
+could do with
+my teddy
+bear.
+
+LLMSFT
+
+Of course! Teddy bears not
+only make awesome companions
+for a delightful sleep, but
+can also be great buddies for
+fun activities. How about you
+both watch a movie together?
+
+RM
+
+0.8
+
+I'd suggest you do not spend
+much time with your teddy
+bear at all.
+
+RM
+
+-2
+
+Take your teddy bear on a
+picnic in your backyard.
+
+RM
+
+0.2
+
+BoN in action
+
+Suggest a new
+activity I
+could do with
+my teddy
+bear.
+
+LLMSFT
+
+Of course! Teddy bears not
+only make awesome companions
+for a delightful sleep, but
+can also be great buddies for
+fun activities. How about you
+both watch a movie together?
+
+RM
+
+0.8
+
+1
+
+I'd suggest you do not spend
+much time with your teddy
+bear at all.
+
+RM
+
+-2
+
+3
+
+Take your teddy bear on a
+picnic in your backyard.
+
+RM
+
+0.2
+
+2
+
+BoN in action
+
+Suggest a new
+activity I
+could do with
+my teddy
+bear.
+
+LLMSFT
+
+Of course! Teddy bears not
+only make awesome companions
+for a delightful sleep, but
+can also be great buddies for
+fun activities. How about you
+both watch a movie together?
+
+RM
+
+0.8
+
+1
+
+I'd suggest you do not spend
+much time with your teddy
+bear at all.
+
+RM
+
+-2
+
+3
+
+Take your teddy bear on a
+picnic in your backyard.
+
+RM
+
+0.2
+
+2
+
+Preference tuning
+
+Transformers &
+Large Language
+Models
+
+Data collection
+RLHF
+DPO
+
+Motivation
+●
+
+Limitations using RL
+
+1
+
+2
+
+3
+4
+
+2
+
+1
+
+Motivation
+●
+
+Limitations using RL
+
+●
+
+Best-of-N is costly at inference time
+
+Motivation
+●
+
+Limitations using RL
+
+●
+
+Best-of-N is costly at inference time
+
+●
+
+Why don't we train in a supervised fashion?
+
+Supervised approach with DPO
+DPO = Direct Preference Optimization
+Rewrite the loss function in a supervised way:
+
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+Supervised approach with DPO
+DPO = Direct Preference Optimization
+Rewrite the loss function in a supervised way:
+
+●
+
+No need to train a separate reward model
+
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+No r(x, y)!
+
+Supervised approach with DPO
+DPO = Direct Preference Optimization
+Rewrite the loss function in a supervised way:
+
+●
+
+No need to train a separate reward model
+
+●
+
+Operates directly on preference data
+
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+Supervised approach with DPO
+DPO = Direct Preference Optimization
+Rewrite the loss function in a supervised way:
+
+●
+
+No need to train a separate reward model
+
+●
+
+Operates directly on preference data
+
+●
+
+Similar to the Bradley-Terry formulation with a special kind of reward!
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+Supervised approach with DPO
+DPO = Direct Preference Optimization
+Rewrite the loss function in a supervised way:
+
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+Where does the DPO formulation come from?
+1
+
+Start from PPO objective
+
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+Where does the DPO formulation come from?
+1
+
+Start from PPO objective
+
+2
+
+Derive optimal policy
+*
+
+*
+
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+Where does the DPO formulation come from?
+1
+
+Start from PPO objective
+
+2
+
+Derive optimal policy
+
+3
+
+Identify a "reward" term
+*
+
+*
+
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+Where does the DPO formulation come from?
+1
+
+Start from PPO objective
+
+2
+
+Derive optimal policy
+
+3
+
+Identify a "reward" term
+
+4
+
+Write Bradley-Terry formulation for this "reward"
+
+w
+
+l
+
+l
+
+w
+
+l
+
+w
+
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+Where does the DPO formulation come from?
+1
+
+Start from PPO objective
+
+2
+
+Derive optimal policy
+
+3
+
+Identify a "reward" term
+
+4
+
+Write Bradley-Terry formulation for this "reward"
+
+5
+
+"Infer" DPO loss function
+
+"Direct Preference Optimization: Your Language Model is Secretly a Reward Model", Rafailov et al., 2023.
+
+Use PPO-based RLHF or DPO?
+Ease of implementation.
+RLHF
+
+DPO
+
+●
+
+Multi-stage training
+
+●
+
+Supervised learning
+
+●
+
+Needs extra models: reward
+model, value model, base
+model
+
+●
+
+Base model is the only extra
+model needed
+
+Performance. No common absolute consensus. Varies from task to task and
+sensitive to implementation.
+"Is DPO Superior to PPO for LLM Alignment? A Comprehensive Study", Xu et al., 2024.
+
+Behavior
+
+Can I put my
+teddy bear in
+the washer?
+
+Pretrained +
+instruction
+tuned LLM
+
+No, it might get
+damaged. Try hand
+washing instead.
+
+Behavior
+
+Can I put my
+teddy bear in
+the washer?
+
+Pretrained +
+instruction
+tuned +
+preference
+tuned LLM
+
+?
+
+Behavior
+
+Can I put my
+teddy bear in
+the washer?
+
+Pretrained +
+instruction
+tuned +
+preference
+tuned LLM
+
+It's better not to.
+Your teddy could get
+hurt! A gentle hand
+wash is safer.
+
+Thank you for your attention!
+
+

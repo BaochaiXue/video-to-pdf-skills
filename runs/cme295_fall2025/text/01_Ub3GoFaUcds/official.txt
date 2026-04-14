@@ -1,0 +1,2565 @@
+Lecture 1
+
+CME 295: Transformers &
+Large Language Models
+
+Afshine Amidi & Shervine Amidi
+
+Teaching staﬀ
+
+Afshine and Shervine
+
+Teaching staﬀ
+
+Afshine
+Centrale Paris ('16), MIT ('17)
+Uber, Google, Netﬂix
+
+Shervine
+Centrale Paris ('16), Stanford ('19)
+Uber, Google, Netﬂix
+
+Welcome to CME 295!
+Goals.
+1. Understand how Transformers work and how they relate to LLMs
+2. Learn how LLMs are trained and used in various applications
+
+Welcome to CME 295!
+Goals.
+1. Understand how Transformers work and how they relate to LLMs
+2. Learn how LLMs are trained and used in various applications
+Audience.
+●
+
+●
+
+Interested in LLMs
+○
+
+Career goal
+
+○
+
+Personal project
+
+○
+
+"AI literacy" or curiosity
+
+Prerequisite: machine learning basics, linear algebra
+
+Logistics
+Date & time.
+●
+
+Fridays from 3:30pm to 5:20pm
+
+●
+
+Thornton 110
+
+Logistics
+Date & time.
+●
+
+Fridays from 3:30pm to 5:20pm
+
+●
+
+Thornton 110
+
+Details about the class.
+●
+
+2 units
+
+●
+
+Letter or Credit/No credit
+
+●
+
+Lectures are recorded
+
+●
+
+Midterm (50% grade), scheduled on October 24th
+
+●
+
+Final exam (50% grade), week of December 8th (exact date TBD)
+
+Material
+Class website. cme295.stanford.edu
+●
+
+Contains syllabus & logistics
+
+●
+
+Slides and recordings will be posted there
+
+Material
+Class website. cme295.stanford.edu
+●
+
+Contains syllabus & logistics
+
+●
+
+Slides and recordings will be posted there
+
+Class textbook.
+Super Study Guide:
+Transformers &
+Large Language Models
+Book: https://superstudy.guide
+
+Material
+
+VIP Cheatsheet
+(also translated in 11 languages so far)
+
+Link to PDF: https://github.com/afshinea/stanford-cme-295-transformers-large-language-models
+
+Class communications
+Canvas.
+●
+
+Announcements
+
+●
+
+Class discussions via Ed
+
+Class communications
+Canvas.
+●
+
+Announcements
+
+●
+
+Class discussions via Ed
+
+Any other general inquiries / questions, email us:
+●
+
+cme295-aut2526-staﬀ@lists.stanford.edu
+
+●
+
+afshine@stanford.edu, shervine@stanford.edu
+
+Example of a slide in this class
+Explanation of a CME 295 concept
+
+Source & suggested reading, if interested
+
+Some paper
+
+Disclaimer before starting: many abbreviations....
+BERT
+
+BLE
+
+FLAN
+
+U
+
+SFT
+
+BPE
+
+MLM
+
+WNLI
+MRPC
+
+GPT
+
+LaaJ
+
+LSTM
+
+PoS
+
+GLUE
+
+PEFT
+
+PPO
+
+T5
+
+QA
+
+E
+ROUG
+F1
+
+GRU
+
+RAG
+PPL
+
+SQuAD
+
+WP
+
+LLaMA
+DPO
+
+C4
+SP
+
+NER
+
+MT
+NL
+G
+
+RL
+H
+
+F
+
+METE
+
+OR
+
+...but don't worry!
+BERT, T5, GPT, LLaMA
+Transformer-based models
+
+SFT, PEFT, FLAN, RL, RM, RLHF, PPO, DPO
+Training strategies
+
+MNLI, WNLI, C4, SQuAD, GLUE, MRPC
+Datasets
+
+LSTM, GRU, GloVe, BPE, CoT, ToT, SC, RAG
+Misc architectures & techniques
+
+NER, PoS, MLM, NSP, MT, QA, NLG
+Tasks
+
+F1, PPL, ROUGE, BLEU, METEOR, LaaJ, WER
+Metrics
+
+NLP overview
+Tokenization
+
+CME 295
+Transformers &
+Large Language
+Models
+
+Word representation
+RNNs
+Self-attention mechanism
+Transformer architecture
+End-to-end example
+
+NLP tasks overview
+Classiﬁcation
+
+Input text
+
+Model
+
+●
+
+Sentiment extraction
+
+●
+
+Intent detection
+
+●
+
+Language detection
+
+●
+
+Topic modeling
+
+3
+
+NLP tasks overview
+Classiﬁcation
+
+Input text
+
+Model
+
+“Multi”-classiﬁcation
+
+3
+
+Input text
+
+Model
+
+Input text
+
+5
+
+●
+
+Sentiment extraction
+
+●
+
+Part of speech tagging
+
+●
+
+Intent detection
+
+●
+
+Named entity recognition
+
+●
+
+Language detection
+
+●
+
+Dependency parsing
+
+●
+
+Topic modeling
+
+●
+
+Constituency parsing
+
+1
+
+NLP tasks overview
+Classiﬁcation
+
+Input text
+
+Model
+
+“Multi”-classiﬁcation
+
+3
+
+Input text
+
+Model
+
+Input text
+
+5
+
+Generation
+
+Input text
+
+Model
+
+Out text
+
+1
+
+●
+
+Sentiment extraction
+
+●
+
+Part of speech tagging
+
+●
+
+Machine translation
+
+●
+
+Intent detection
+
+●
+
+Named entity recognition
+
+●
+
+Question answering
+
+●
+
+Language detection
+
+●
+
+Dependency parsing
+
+●
+
+Summarization
+
+●
+
+Topic modeling
+
+●
+
+Constituency parsing
+
+●
+
+Text generation
+
+NLP task: Sentiment Extraction
+This teddy bear is SO CUTE!
+
+Model
+
++
+
+NLP task: Sentiment Extraction
+This teddy bear is SO CUTE!
+
+Model
+
++
+
+Datasets
+Amazon reviews
+
+IMDB critiques
+
+Evaluation metrics
+●
+
+Accuracy → % of observations that were correctly predicted?
+
+●
+
+Precision → % of predicted positive that were correct?
+
+●
+
+Recall → % of actually positive that were correct?
+
+●
+
+F1 score → score that is a function of precision and recall
+
+Twitter
+
+NLP task: Named Entity Recognition
+ENTITY
+
+A cute teddy bear is reading...
+
+Model
+
+A cute teddy bear is reading...
+
+NLP task: Named Entity Recognition
+ENTITY
+
+A cute teddy bear is reading...
+
+Model
+
+A cute teddy bear is reading...
+
+Datasets
+Annotated Reuters newspaper (CoNLL-2003, CoNLL++)
+Evaluation metrics
+●
+
+Accuracy
+
+●
+
+Precision
+
+●
+
+Recall
+
+●
+
+F1 score
+
+at a token level, per entity type
+
+NLP task: Machine Translation
+A cute teddy bear is reading
+
+Model
+
+Un ours en peluche mignon lit
+
+NLP task: Machine Translation
+A cute teddy bear is reading
+
+Model
+
+Un ours en peluche mignon lit
+
+Datasets
+WMT’14 English-French
+
+WMT’14 English-German
+
+Evaluation metrics
+●
+
+BLEU → quality of text translated, similar to “precision”
+
+●
+
+ROUGE → quality of text generated, similar to “recall”
+
+●
+
+Perplexity → quantiﬁes how ‘surprised’ the model is to see some words
+together
+Formulas can be found on this website: http://www.statmt.org/book/slides/08-evaluation.pdf
+
+High-level timeline
+1980s
+
+Recurrent neural networks (RNNs)
+Theoretical foundations
+
+1997
+
+2013
+2017
+2020s
+
+Long short-term memory (LSTM)
+
+Word2vec
+Transformers
+Large Language Models
+
+Lots of data, growing
+computing power
+Fast iterations on ideas
+
+NLP overview
+Tokenization
+
+CME 295
+Transformers &
+Large Language
+Models
+
+Word representation
+RNNs
+Self-attention mechanism
+Transformer architecture
+End-to-end example
+
+Tokenization
+A cute teddy bear is reading.
+
+Tokenization
+A cute teddy bear is reading.
+arbitrary
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+Tokenization
+A cute teddy bear is reading.
+
+word
+
+A
+
+cute
+
+A
+
+cute
+
+teddy bear
+
+teddy
+
+bear
+
+is
+
+reading
+
+.
+
+is
+
+reading
+
+.
+
+Tokenization
+A cute teddy bear is reading.
+
+sub-word
+
+A
+
+A
+
+cute
+
+A
+
+cute
+
+cute
+
+teddy bear
+
+teddy
+
+ted
+
+##dy
+
+is
+
+reading
+
+.
+
+bear
+
+is
+
+reading
+
+.
+
+bear
+
+is
+
+read
+
+##ing
+
+.
+
+Tokenization
+A cute teddy bear is reading.
+A
+
+cute
+
+A
+
+cute
+
+A
+
+A
+
+_
+
+c
+
+u
+
+t
+
+cute
+
+e
+
+_
+
+t
+
+teddy bear
+
+teddy
+
+ted
+
+e
+
+d
+
+##dy
+
+d
+
+y
+
+_
+
+b
+
+is
+
+reading
+
+.
+
+bear
+
+is
+
+reading
+
+.
+
+bear
+
+is
+
+e
+
+a
+
+r
+
+_
+
+read
+
+i
+
+s
+
+_
+
+##ing
+
+r
+
+e
+
+a
+
+.
+
+d
+
+i
+
+n
+
+g
+
+.
+
+Tokenization summary
+Method
+
+Word-level
+
+Pros
+
+Cons
+
+●
+
+Simple
+
+●
+
+Risk of OOV
+
+●
+
+Interpretable
+
+●
+
+Does not leverage
+knowledge of root
+
+Subword-level
+
+●
+
+Leverages common
+
+●
+
+preﬁxes and suﬃxes
+e.g. WordPiece, BPE
+
+Character-level
+
+Risk of OOV, though less
+than word-level
+
+●
+
+Learned from the data
+
+●
+
+Small chance of OOV
+
+●
+
+Makes computations slower
+
+●
+
+RoBUsT tO CASinG anD
+
+●
+
+Embeddings not
+
+MIspeliNGs
+
+interpretable
+
+NLP overview
+Tokenization
+
+CME 295
+Transformers &
+Large Language
+Models
+
+Word representation
+RNNs
+Self-attention mechanism
+Transformer architecture
+End-to-end example
+
+Token representations
+Motivation
+Naive (one-hot) encoding
+
+Figure adapted from “VIP cheatsheets for Stanford’s CS 230”, Amidi. stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks
+
+Token representations
+Motivation
+Naive (one-hot) encoding
+
+Learned embedding
+
+Figure adapted from “VIP cheatsheets for Stanford’s CS 230”, Amidi. stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks
+
+Word2vec
+Overview
+●
+●
+
+Neural network with a proxy task over billions of words worth of text
+Learns an embedding layer
+
+Proxy tasks
+●
+
+CBOW (continuous bag of words)
+...A cute teddy bear is reading...
+
+●
+
+Skip-gram
+
+...A cute teddy bear is reading...
+
+Word2vec paper "Eﬃcient Estimation of Word Representations in Vector Space", Mikolov et al., 2013.
+
+Word2vec
+Architecture
+
+output
+
+size V
+
+hidden
+
+size d
+
+input
+
+size V
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+
+A cute teddy bear is reading
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+
+[1,0,0,0,0,0]
+A cute teddy bear is reading
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+
+[0.2, 0.9]
+
+[1,0,0,0,0,0]
+A cute teddy bear is reading
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+[0.2, 0.4, 0.1, 0.1, 0.1, 0.1]
+
+[0.2, 0.9]
+
+[1,0,0,0,0,0]
+A cute teddy bear is reading
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+
+A cute teddy bear is reading
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+
+[0,1,0,0,0,0]
+A cute teddy bear is reading
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+
+[0.8, 0.4]
+
+[0,1,0,0,0,0]
+A cute teddy bear is reading
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+[0.2, 0.2, 0.2, 0.1, 0.2, 0.1]
+
+[0.8, 0.4]
+
+[0,1,0,0,0,0]
+A cute teddy bear is reading
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+
+A cute teddy bear is reading
+
+Word2vec
+Example with predicting next word
+A cute teddy bear is reading
+
+A cute teddy bear is reading
+
+Word2vec
+A cute teddy bear is reading
+output
+
+size V
+
+hidden
+
+size d
+
+input
+
+size V
+
+A cute teddy bear is reading
+
+Figure adapted from “VIP cheatsheets for Stanford’s CS 230”, Amidi. stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks
+
+NLP overview
+Tokenization
+
+CME 295
+Transformers &
+Large Language
+Models
+
+Word representation
+RNNs
+Self-attention mechanism
+Transformer architecture
+End-to-end example
+
+Recurrent Neural Networks (RNNs)
+Overview
+●
+
+First introduced in the 80s
+
+●
+
+Class of neural networks where connections form a temporal sequence
+
+General form
+
+Figure adapted from “VIP cheatsheets for Stanford’s CS 230”, Amidi. stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks
+
+Recurrent Neural Networks (RNNs)
+
+A
+
+Recurrent Neural Networks (RNNs)
+
+A
+
+Recurrent Neural Networks (RNNs)
+
+cute
+
+A
+
+Recurrent Neural Networks (RNNs)
+
+cute
+
+A
+
+cute
+
+Recurrent Neural Networks (RNNs)
+
+cute
+
+teddy bear
+
+A
+
+cute
+
+Recurrent Neural Networks (RNNs)
+
+cute
+
+teddy bear
+
+A
+
+cute
+
+teddy bear
+
+Recurrent Neural Networks (RNNs)
+
+cute
+
+teddy bear
+
+is
+
+A
+
+cute
+
+teddy bear
+
+Recurrent Neural Networks (RNNs)
+
+cute
+
+teddy bear
+
+is
+
+A
+
+cute
+
+teddy bear
+
+is
+
+Recurrent Neural Networks (RNNs)
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+A
+
+cute
+
+teddy bear
+
+is
+
+Recurrent Neural Networks (RNNs)
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+A
+
+cute
+
+teddy bear
+
+is
+
+Recurrent Neural Networks (RNNs)
+Classiﬁcation
+
+Input text
+
+Model
+
+“Multi”-classiﬁcation
+
+3
+
+Input text
+
+Model
+
+Input text
+
+5
+Sentiment
+
+Opinion
+
+Generation
+
+Input text
+
+Model
+
+1
+
+Tags
+
+Text
+
+Out text
+
+Translation
+
+Source
+
+Figure adapted from “VIP cheatsheets for Stanford’s CS 230”, Amidi. stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks
+
+Long Short-Term Memory (LSTM)
+Overview
+●
+
+Introduced in “Long short-term memory” (1997)
+
+●
+
+Uses a more structured approach in the cell’s hidden state
+
+General form
+
+Figure adapted from “VIP cheatsheets for Stanford’s CS 230”, Amidi. stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks
+
+Summary of main methods (non-exhaustive list)
+Method
+
+Pros
+●
+
+Word2vec
+e.g. CBOW, Skip-gram
+
+Very simple, yet
+
+Cons
+●
+
+powerful
+●
+
+Intuitive embeddings
+
+Word order does not
+count
+
+●
+
+Embeddings not
+context aware
+
+Recurrent Neural Networks
+e.g. traditional RNN, LSTM
+
+●
+
+Word order matters
+
+●
+
+State-of-the-art results
+
+●
+
+Vanishing gradient
+problem
+
+●
+
+Slow computations
+
+History of attention
+●
+
+Introduced in 2014
+
+●
+
+Translation tasks had a real issue with long-term dependencies
+
+●
+
+Seq2seq unable to "remember" what input sentence was saying
+
+"Neural Machine Translation by Jointly Learning to Align and Translate”, Bahdanau et al., 2014.
+
+History of attention
+●
+
+Introduced in 2014
+
+●
+
+Translation tasks had a real issue with long-term dependencies
+
+●
+
+Seq2seq unable to "remember" what input sentence was saying
+
+Un
+
+A
+
+cute
+
+teddy bear
+
+is
+
+ours en peluche
+
+reading
+
+"Neural Machine Translation by Jointly Learning to Align and Translate”, Bahdanau et al., 2014.
+
+mignon
+
+?
+
+History of attention
+●
+
+Introduced in 2014
+
+●
+
+Translation tasks had a real issue with long-term dependencies
+
+●
+
+Seq2seq unable to "remember" what input sentence was saying
+
+Un
+
+A
+
+cute
+
+teddy bear
+
+is
+
+ours en peluche
+
+reading
+
+"Neural Machine Translation by Jointly Learning to Align and Translate”, Bahdanau et al., 2014.
+
+mignon
+
+?
+
+History of attention
+●
+
+Introduced in 2014
+
+●
+
+Translation tasks had a real issue with long-term dependencies
+
+●
+
+Seq2seq unable to "remember" what input sentence was saying
+
+Un
+
+A
+
+cute
+
+teddy bear
+
+is
+
+ours en peluche
+
+reading
+
+"Neural Machine Translation by Jointly Learning to Align and Translate”, Bahdanau et al., 2014.
+
+mignon
+
+lit
+
+NLP overview
+Tokenization
+
+Transformers &
+Large Language
+Models
+
+Word representation
+RNNs
+Self-attention mechanism
+Transformer architecture
+End-to-end example
+
+Overview of the Transformer
+●
+
+Introduced in the 2017 paper "Attention is All You Need"
+
+●
+
+Relies on the self-attention mechanism
+
+●
+
+State-of-the-art results on machine translation tasks
+
+Overview of the Transformer
+●
+
+Introduced in the 2017 paper "Attention is All You Need"
+
+●
+
+Relies on the self-attention mechanism
+
+●
+
+State-of-the-art results on machine translation tasks
+
+Overview of the Transformer
+●
+
+Introduced in the 2017 paper "Attention is All You Need"
+
+●
+
+Relies on the self-attention mechanism
+
+●
+
+State-of-the-art results on machine translation tasks
+
+Attention mechanism
+Concept of Query, Key, Value
+
+"Super Study Guide: Transformers & Large Language Models", by Amidi, 2024
+
+Attention mechanism
+Concept of Query, Key, Value
+
+"Super Study Guide: Transformers & Large Language Models", by Amidi, 2024
+
+Attention mechanism
+Concept of Query, Key, Value
+
+"Super Study Guide: Transformers & Large Language Models", by Amidi, 2024
+
+Attention mechanism
+Concept of Query, Key, Value
+
+"Super Study Guide: Transformers & Large Language Models", by Amidi, 2024
+
+Attention mechanism
+
+Eﬃcient computations with matrices:
+
+Attention mechanism
+
+Eﬃcient computations with matrices:
+
+Figure adapted from “Attention Is All You Need”, Vaswani et al., 2017.
+
+NLP overview
+Tokenization
+
+Transformers &
+Large Language
+Models
+
+Word representation
+RNNs
+Self-attention mechanism
+Transformer architecture
+End-to-end example
+
+Transformer architecture
+Attention layer (MHA)
+●
+●
+
+Self-attention (Encoder-Encoder,
+Decoder-Decoder)
+Encoder-Decoder attention layer
+
+Feed Forward Neural Network (FFNN)
+Positional Encoding (PE)
+
+Figure adapted from “Attention Is All You Need”, Vaswani et al., 2017.
+
+Input
+Overview
+●
+●
+
+Text is "tokenized"
+Learned embeddings for tokens
+
+Parameters
+●
+●
+
+V: vocabulary size
+d_model: embedding dimensions
+
+Figure adapted from “Attention Is All You Need”, Vaswani et al., 2017.
+
+... with a trick!
+Positional encoding
+Idea:
+Add position information to inputs
+Can be either learned or hardcoded
+max
+Position
+
++1
+
+Position
+
+●
+●
+
+dot product
+
+-1
+Dimension
+
+Position
+
+min
+
+Goal: let model understand relative input position
+Left ﬁgure adapted from “Attention Is All You Need”, Vaswani et al., 2017.
+Right ﬁgures adapted from “Transformer Architecture: The Positional Encoding”, Kazemnejad, 2019.
+
+Encoder
+Overview
+●
+●
+●
+
+Encoder-Encoder attention / self-attention
+Feed Forward Neural Network
+Normalization layer
+
+Parameters
+●
+●
+●
+●
+
+N: layers stacked
+h: number of attention heads
+d_FF, d_key, d_value: sub-layer dimension
+d_model: embedding dimensions
+
+Figure adapted from “Attention Is All You Need”, Vaswani et al., 2017.
+
+Output "shifted right"
+Overview
+●
+●
+
+Learned embeddings for output tokens
+In practice, will start with [BOS] during
+translation
+
+Parameters
+●
+●
+
+V: vocabulary size
+d_model: embedding dimensions
+
+Figure adapted from “Attention Is All You Need”, Vaswani et al., 2017.
+
+Decoder
+Overview
+●
+●
+●
+●
+
+Decoder-Decoder attention / self-attention
+Encoder-Decoder attention
+Feed Forward Neural Network
+Normalization layer
+
+Parameters
+●
+●
+●
+●
+
+N: layers stacked
+h: number of attention heads
+d_FF, d_key, d_value: sub-layer dimension
+d_model: embedding dimensions
+
+Figure adapted from “Attention Is All You Need”, Vaswani et al., 2017.
+
+Output
+Overview
+●
+●
+
+Linear projection
+Classiﬁcation problem that outputs
+probability of belonging to a class, where
+class = word
+
+Parameters
+●
+●
+
+V: vocabulary size
+d_model: embedding dimensions
+
+Figure adapted from “Attention Is All You Need”, Vaswani et al., 2017.
+
+Computational tricks
+Multi-head attention
+Idea:
+●
+
+Run multiple self-attention layers in parallel
+
+Beneﬁts:
+●
+●
+
+Enables the model to capture diﬀerent
+attention features in parallel
+Comparison: multiple ﬁlters of a convolutional
+layer in computer vision
+
+Left ﬁgure adapted from “Attention Is All You Need”, Vaswani et al., 2017. Right ﬁgure from “VIP cheatsheets for Stanford’s CS 230”, Amidi, 2019.
+
+Computational tricks
+Label smoothing
+Idea:
+●
+●
+
+2015 vision paper: overconﬁdence is bad
+Introduce noise in true labels
+
+Beneﬁts:
+●
+●
+
+General technique that prevents overﬁtting
+Improves accuracy and BLEU score
+
+Figure adapted from “Attention Is All You Need”, Vaswani et al., 2017.
+
+NLP overview
+Tokenization
+
+Transformers &
+Large Language
+Models
+
+Word representation
+RNNs
+Self-attention mechanism
+Transformer architecture
+End-to-end example
+
+Stitching all the pieces together with an example
+
+A cute teddy bear is reading.
+
+Stitching all the pieces together with an example
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+Stitching all the pieces together with an example
+
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+embedding
+
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+position embedding
+embedding
+
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+position-aware embedding
+
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+position-aware
+embeddings
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+position-aware
+embeddings
+matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+position-aware
+embeddings
+matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+encoder
+
+position-aware
+embeddings matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+encoder
+Wq
+
+Wk
+
+Wv
+
+position-aware
+embeddings
+matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+Q
+Wq
+
+V
+
+K
+Wk
+
+encoder
+
+Wv
+
+position-aware
+embeddings
+matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+Q
+Wq
+
+V
+
+K
+Wk
+
+encoder
+
+Wv
+
+position-aware
+embeddings
+matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+Q
+Wq
+
+V
+
+K
+Wk
+
+encoder
+
+Wv
+
+PAUSE
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+position-aware
+embeddings
+matrix
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+Q
+[BOS]
+A
+cute
+teddy bear
+is
+reading
+.
+[EOS]
+
+Stitching all the pieces together with an example
+
+[EOS]
+
+[EOS]
+
+.
+
+.
+
+reading
+
+reading
+
+is
+
+is
+
+cute
+
+teddy bear
+
+A
+
+cute
+
+[BOS]
+
+A
+
+teddy bear
+
+[BOS]
+
+Stitching all the pieces together with an example
+
+[EOS]
+
+[EOS]
+
+.
+
+.
+
+reading
+
+reading
+
+is
+
+is
+
+cute
+
+teddy bear
+
+A
+
+cute
+
+[BOS]
+
+A
+
+teddy bear
+
+[BOS]
+
+Stitching all the pieces together with an example
+
+...
+..
+
+.
+
+...
+
+Stitching all the pieces together with an example
+V
+[BOS]
+A
+...
+
+..
+
+cute
+teddy bear
+
+.
+is
+
+...
+
+reading
+.
+[EOS]
+
+Stitching all the pieces together with an example
+
+...
+
+Stitching all the pieces together with an example
+
+weighted average of values
+with weights being a function of
+
+Stitching all the pieces together with an example
+
+Q
+Wq
+
+V
+
+K
+Wk
+
+encoder
+
+Wv
+
+position-aware
+embeddings
+matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+...
+
+Q
+Wq
+
+V
+
+K
+Wk
+
+Wv
+
+(
+
+(
+
+hx
+
+encoder
+
+position-aware
+embeddings
+matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+...
+
+Q
+Wq
+
+V
+
+K
+Wk
+
+Wv
+
+(
+
+(
+
+hx
+
+Wo
+
+encoder
+
+position-aware
+embeddings
+matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+
+Feed forward network
+
+encoder
+Self-attention layer
+
+position-aware
+embeddings matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+context-aware
+encoded
+embeddings
+Feed forward network
+
+encoder
+Self-attention layer
+
+position-aware
+embeddings matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+context-aware
+encoded
+embeddings
+
+ENCODER
+
+position-aware
+embeddings matrix
+[BOS]
+
+A
+
+cute
+
+teddy bear
+
+is
+
+reading
+
+.
+
+[EOS]
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+ENCODER
+
+A cute teddy bear
+is reading.
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+ENCODER
+
+A cute teddy bear
+is reading.
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+ENCODER
+
+A cute teddy bear
+is reading.
+
+[BOS]
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+ENCODER
+
+A cute teddy bear
+is reading.
+
+decoder
+
+[BOS]
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+ENCODER
+
+decoder
+
+Self-attention layer
+
+A cute teddy bear
+is reading.
+
+[BOS]
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+ENCODER
+
+decoder
+
+Self-attention layer
+
+A cute teddy bear
+is reading.
+
+[BOS]
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+ENCODER
+
+Encoder - Decoder
+attention layer
+
+Self-attention layer
+
+A cute teddy bear
+is reading.
+
+[BOS]
+
+decoder
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+ENCODER
+
+Encoder - Decoder
+attention layer
+
+Self-attention layer
+
+A cute teddy bear
+is reading.
+
+[BOS]
+
+decoder
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+Feed forward network
+
+ENCODER
+
+Encoder - Decoder
+attention layer
+
+Self-attention layer
+
+A cute teddy bear
+is reading.
+
+[BOS]
+
+decoder
+
+Stitching all the pieces together with an example
+encoded
+embedding
+Softmax layer
+Feed forward network
+
+ENCODER
+
+Encoder - Decoder
+attention layer
+
+Self-attention layer
+
+A cute teddy bear
+is reading.
+
+[BOS]
+
+decoder
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+[0.001, 0.0003, …, 0.4, …, 0.002]
+
+Softmax layer
+Feed forward network
+
+ENCODER
+
+Encoder - Decoder
+attention layer
+
+Self-attention layer
+
+A cute teddy bear
+is reading.
+
+[BOS]
+
+decoder
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+Un
+
+Softmax layer
+Feed forward network
+
+ENCODER
+
+Encoder - Decoder
+attention layer
+
+Self-attention layer
+
+A cute teddy bear
+is reading.
+
+[BOS]
+
+decoder
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+Un
+
+ENCODER
+
+A cute teddy bear
+is reading.
+
+DECODER
+
+[BOS]
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+Un
+
+ENCODER
+
+A cute teddy bear
+is reading.
+
+DECODER
+
+[BOS]
+
+Un
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+Un
+
+ours en peluche
+
+ENCODER
+
+A cute teddy bear
+is reading.
+
+DECODER
+
+[BOS]
+
+Un
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+Un
+
+ours en peluche
+
+ENCODER
+
+A cute teddy bear
+is reading.
+
+mignon
+
+lit
+
+[EOS]
+
+DECODER
+
+[BOS]
+
+Un
+
+ours en peluche
+
+mignon
+
+lit
+
+Stitching all the pieces together with an example
+encoded
+embedding
+
+ENCODER
+
+A cute teddy bear is reading.
+
+Un ours en peluche mignon lit.
+
+DECODER
+
+Thank you for your attention!
+
+

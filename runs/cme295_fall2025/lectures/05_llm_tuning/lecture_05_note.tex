@@ -1,0 +1,290 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CME 295 第 5 讲：LLM Tuning}
+\newcommand{\noteauthors}{Codex 基于 Stanford CME 295 第 5 讲视频、字幕、讲稿与 slides 整理}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{Stanford CME 295}
+\newcommand{\videopublishdate}{2025年10月31日课程录播}
+\newcommand{\videoduration}{1:47:41}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=PmW_TMQ3l0I&list=PLoROMvodv4rOCXd21gf0CF4xr35yINeOy&index=5}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{为什么 SFT 之后还需要 Preference Tuning}
+
+\subsection{SFT 能教模型行为，但不一定能稳定注入“负信号”}
+Lecture 5 一开始先回顾前一讲：预训练让模型具备语言和代码能力，SFT 让模型学会某种期望行为，但这还不够。课程给出的关键动机是，模型即使已经经过 SFT，仍然可能在语气、安全性、帮助性或偏好上“行为不对劲”。例如同样是建议和泰迪熊做什么活动，模型可能给出并不友好、也不符合人类期待的回答。
+
+老师强调，这类问题并不总能通过继续往 SFT 数据里追加“正确答案”来解决。因为 SFT 更像是明确教模型“应该生成什么”，而 preference tuning 更适合告诉模型“这类输出比另一类输出更好”。也就是说，SFT 擅长正向示范，preference tuning 擅长引入排序和负信号。
+
+\subsection{为什么偏好数据往往比 SFT 数据更容易收集}
+课程给出一个很实用的人类认知视角：让标注者从零写出高质量答案很难，但让标注者在两个答案之间选一个更好，通常容易得多。对于真实系统也是如此，很多时候人类产品团队并不容易直接写出完美回答，但很容易判断“回答 A 比回答 B 更安全、更有帮助、更像我们想要的风格”。
+
+此外，字幕里的讲解还特别提醒：SFT 数据分布非常敏感，一旦不断往数据里补某一类 prompt，模型就可能被过度拉向某个局部行为分布。preference tuning 则提供了一种更柔性的方式，通过“偏好比较”而不是“硬编码唯一正确输出”来修正模型行为。
+
+\begin{importantbox}{Lecture 5 的出发点}
+这一讲不是在否定 SFT，而是在补足 SFT。课程想说明的是：要让模型不仅会回答，还要会按照人类偏好回答，排序信号和奖励信号就变得必要。
+\end{importantbox}
+
+\subsection{本章小结}
+Lecture 5 的问题意识非常明确：SFT 负责把模型变成可用助手，preference tuning 负责把助手变成更符合人类偏好的助手。两者不是替代关系，而是能力塑形链条上的前后两步。
+
+\section{偏好数据：如何把“更好”变成可训练的监督}
+
+\subsection{Pointwise、pairwise、listwise 三种视角}
+Slides 把 preference data 统一写成观测 $(x, \hat{y})$，也就是 prompt 和模型回答。接着课程介绍了三种标注思路：
+\begin{itemize}
+\item pointwise：给单个回答打分；
+\item pairwise：比较两个回答谁更好；
+\item listwise：给一组回答排序。
+\end{itemize}
+老师的判断很明确：\textbf{pairwise 是最实用的主流方案}。pointwise 最大的问题是分数尺度不稳定，很难保证不同标注者对 `0.9` 和 `0.4` 的理解一致；listwise 信息更丰富，但认知负担更高。pairwise 则在信息量和可操作性之间取得了很好的平衡。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{pdf_pages/page-18.png}
+\caption{课程把偏好数据分成 pointwise、pairwise 与 listwise 三类，并强调 pairwise 是现实中最常用的折中方案。}
+\end{figure}
+
+\subsection{课程给出的 pairwise 数据采集 recipe}
+Lecture 5 没有停留在概念层面，而是给出一套很具体的 recipe。第一步，对同一个 prompt 生成多个回答。输入 prompt 既可以来自用户日志，也可以来自某个参考分布；候选回答可以来自 SFT 模型采样、合成重写，或者更一般的候选生成机制。第二步，对这些候选进行标注，得到“赢者/输者”。
+
+这个流程里最关键的点在于：\textbf{偏好数据不是凭空来的，而是从候选生成和人类判断共同构成的流水线里产出的。} 换句话说，偏好训练的上限很大程度上取决于候选回答是否足够多样、标注标准是否稳定，以及 prompt 分布是否贴近真实应用。
+
+\subsection{Bradley--Terry 视角：把“更好”写成概率}
+为了把 pairwise preference data 变成可优化目标，课程引入了 Bradley--Terry 形式。若给定 prompt $x$，回答 $y_w$ 比回答 $y_l$ 更受偏好，那么可以写成
+\[
+P(y_w \succ y_l \mid x) =
+\frac{\exp(r(x,y_w))}{\exp(r(x,y_w)) + \exp(r(x,y_l))}.
+\]
+这个公式表达的是：比较的不是绝对真值，而是两个候选回答的相对奖励大小。
+
+符号说明如下：
+\begin{itemize}
+\item $x$：输入 prompt；
+\item $y_w$：被偏好的回答，也就是“winner”；
+\item $y_l$：不被偏好的回答，也就是“loser”；
+\item $r(x,y)$：模型或奖励函数给回答分配的标量分数；
+\item $P(y_w \succ y_l \mid x)$：在给定 prompt 下，赢者比输者更优的概率。
+\end{itemize}
+
+这一步的意义在于，偏好数据终于从“人工主观比较”转成了“可学习的概率建模对象”，从而为 reward model 或 DPO 这类方法打下了统一基础。
+
+\subsection{本章小结}
+偏好数据的核心不是给出唯一标准答案，而是把人类判断转成相对排序。pairwise 标注因此成为最常用方案，而 Bradley--Terry 形式则进一步把“谁更好”变成了一个能被优化的概率目标。
+
+\section{RLHF：先学奖励模型，再用强化学习对齐策略}
+
+\subsection{RLHF 的两阶段结构}
+RLHF 的全称是 Reinforcement Learning from Human Feedback。课程把它拆成两个阶段：第一阶段训练奖励模型，输入是 prompt 和回答，输出是一个可比较的分数；第二阶段用这个奖励信号去更新当前策略模型，让它更偏向高分回答。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{pdf_pages/page-33.png}
+\caption{RLHF 的基本结构是两步：先训练 reward model，再用强化学习把策略朝更优回答推进。}
+\end{figure}
+
+这两阶段结构非常重要，因为它说明 RLHF 不是“直接拿人工偏好去训语言模型”，而是先把人工偏好压缩成奖励函数，再把语言模型放进 RL 框架里迭代优化。
+
+\subsection{奖励模型学到的是“好坏判别器”}
+课程在 reward modeling 里强调，奖励模型本质上是一个判别器。它不负责生成回答，而负责对候选回答打分，告诉后续 RL 哪种输出更值得鼓励。Slides 指出，这一步通常使用数量级为 $O(10^4)$ 的人工偏好样本，并且经常是在一个预训练语言模型上加分类头来完成。
+
+这一阶段的目标不是彻底解决生成问题，而是构造一个足够稳定的“偏好代理”。如果这个代理本身学偏了，那么第二阶段的 RL 就会把偏差放大。于是，reward model 的质量直接决定 RLHF 后半段的训练方向。
+
+\subsection{把 LLM 写进 RL 框架}
+Lecture 5 还把经典 RL 设置重新映射到 LLM 上：agent 就是语言模型，state 是当前为止的输入与已生成 token，action 是下一个 token，policy 是下一个 token 的概率分布，reward 则来自人类偏好或奖励模型。这个映射有助于学生理解，为什么语言模型也可以被看成一个逐 token 决策系统。
+
+在这个视角下，RLHF 并不是魔法，而是把语言建模问题改写成序列决策问题。模型每多生成一个 token，就相当于在当前状态下做了一次动作选择；整个回答结束后，再根据完整输出获得奖励或优势信号。
+
+\subsection{本章小结}
+RLHF 的结构可以浓缩成一句话：\textbf{先学一个会打分的偏好代理，再让语言模型对着这个代理优化。} 它的强大之处在于能利用排序信号持续调整策略，但也因此天然是一个多阶段、较重的系统。
+
+\section{PPO、挑战与 Best-of-N：当 RL 真正落地时会遇到什么}
+
+\subsection{PPO 的直觉：既追奖励，又别偏离基座太远}
+课程把 PPO 作为 RLHF 中最经典的策略优化算法来讲。Slides 的核心信息是：优化目标不能只追求更高 reward，否则模型会迅速偏离原本已经学到的有用行为模式，出现 reward hacking 或训练不稳定。因此 PPO 需要同时处理两件事：
+\begin{itemize}
+\item 让高优势回答更容易被生成；
+\item 约束新策略不要离旧策略或参考策略太远。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{pdf_pages/page-60.png}
+\caption{PPO 在课程中的呈现重点是“奖励提升”和“KL 约束”并存：模型要变好，但不能失控。}
+\end{figure}
+
+课程还特别提醒学生，PPO 里常见的“奖励”并不总是原始 reward，本质上优化的是 advantage，也就是“比基线好多少”。
+
+\subsection{优势函数为什么重要}
+课程在后续 slides 中解释了 advantage 的角色。若直接使用 reward，梯度方差会很大，训练不稳定；因此通常会减去一个 baseline，得到更稳定的优势估计：
+\[
+A = R - b.
+\]
+这里的含义是，如果某次输出虽然奖励高，但本来就很容易得到，那它不值得被过度放大；真正值得强化的是“比预期更好”的那部分。
+
+符号说明如下：
+\begin{itemize}
+\item $A$：advantage，表示当前输出比基线好多少；
+\item $R$：最终奖励，可以来自 reward model；
+\item $b$：baseline，常由 value function 或其他估计器提供。
+\end{itemize}
+
+这种设计直接服务于训练稳定性，也是 PPO 区别于“只追求高分”的简单方法的关键。
+
+\subsection{PPO 为什么在工程上很重}
+Lecture 5 对 PPO 的批评非常具体。Slides 列出了几个现实缺点：通常需要政策模型、value 模型、reward 模型和参考模型四套角色；超参数很多；训练过程容易不稳定；监控指标也不好选。此外，还要保证采样足够多样，否则模型容易被窄分布输出困住。
+
+这些问题解释了为什么 RLHF 很强，但代价也很高。它不仅是“再训练一次模型”，而是搭起了一整套相互依赖的优化系统。
+
+\subsection{Best-of-N：如果不做 RL，还能怎样利用奖励模型}
+课程接着给出一个很务实的 workaround：Best-of-N（BoN）。思想很简单，不更新策略模型，而是在推理时对同一 prompt 生成 $N$ 个候选回答，用 reward model 给它们打分，再选出最好的那个。于是流程变成：
+\begin{itemize}
+\item 给定 prompt；
+\item 用 SFT 模型生成多个候选；
+\item 用 reward model 排序；
+\item 取最高分回答。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{pdf_pages/page-85.png}
+\caption{Best-of-N 的核心是跳过 RL 训练，把 reward model 用在推理阶段的候选重排上。}
+\end{figure}
+
+BoN 之所以重要，不是因为它最终一定最好，而是因为它揭示了“训练时改策略”和“推理时改选择”之间的替代关系。课程后面再引出 DPO，就是在继续探索能否把偏好学习重新拉回监督学习范式。
+
+\subsection{本章小结}
+PPO 说明 RLHF 的核心难点不只是目标定义，还包括训练稳定性、模型数量和系统复杂度。BoN 则提供了一个不做 RL 的替代方向，为后面的 DPO 铺路。
+
+\section{DPO：把偏好学习重新写回监督学习}
+
+\subsection{DPO 的出发点}
+Lecture 5 后半部分的核心转折是 Direct Preference Optimization。它的问题非常直接：既然 RLHF 太重、BoN 又把成本挪到了推理期，那能不能直接在偏好数据上做一种监督式优化，而不显式训练 reward model 和 value model？DPO 的答案是可以。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-100.png}
+\caption{DPO 把偏好学习重新表达成监督目标：直接比较赢者和输者在当前策略与参考策略下的相对概率。}
+\end{figure}
+
+\subsection{DPO 损失在优化什么}
+课程把 DPO 解释成一种“特殊形式的 Bradley--Terry + 参考模型对比”。其典型目标可写成
+\[
+\mathcal{L}_{\mathrm{DPO}} =
+- \mathbb{E}_{(x,y_w,y_l)\sim \mathcal{D}}
+\log \sigma \left(
+\beta \log \frac{\pi_{\theta}(y_w \mid x)}{\pi_{\mathrm{ref}}(y_w \mid x)}
+- \beta \log \frac{\pi_{\theta}(y_l \mid x)}{\pi_{\mathrm{ref}}(y_l \mid x)}
+\right).
+\]
+这意味着，模型被鼓励在参考模型的基准上，提高对赢者回答的相对偏好，同时压低对输者回答的相对偏好。
+
+符号说明如下：
+\begin{itemize}
+\item $\mathcal{D}$：偏好数据集；
+\item $x$：prompt；
+\item $y_w, y_l$：偏好比较中的赢者与输者回答；
+\item $\pi_{\theta}$：当前待训练策略；
+\item $\pi_{\mathrm{ref}}$：参考策略，通常是基座或 SFT 模型；
+\item $\beta$：控制偏好强度的超参数；
+\item $\sigma(\cdot)$：sigmoid 函数。
+\end{itemize}
+
+从教学角度看，课程最想让学生理解的是：DPO 并没有否定 RLHF 的思路，而是把 RLHF 中隐含的奖励结构重新改写成一个更接近监督学习的目标。
+
+\subsection{DPO 与 RLHF 的取舍}
+Slides 最后专门做了对比。DPO 的好处是流程更简单，不需要单独维护 reward model 和 value model；代价是它仍然依赖偏好数据质量，并且不同任务上是否优于 PPO 没有统一结论。课程因此并没有把 DPO 讲成“全面替代 RLHF 的答案”，而是把它定位为一类更轻、更容易实现、但仍需具体问题具体分析的方案。
+
+\begin{knowledgebox}{课程给出的结论很克制}
+在实现复杂度上，DPO 明显比 PPO-based RLHF 轻；但在最终效果上，没有普适的绝对赢家，很多结论都依赖任务、数据与工程实现细节。
+\end{knowledgebox}
+
+\subsection{本章小结}
+DPO 的价值在于，它把偏好学习重新拉回监督学习框架，让训练流程更轻、更直接；但这不等于 RLHF 就过时了。Lecture 5 真正建立的是一张方法地图：从 pairwise data 到 reward model，再到 PPO、BoN 和 DPO，每一种方法都在不同位置权衡了训练成本、推理成本和实现复杂度。
+
+\section{总结与延伸}
+Lecture 5 完成了从“模型会遵循指令”到“模型更符合人类偏好”的过渡。课程首先说明，SFT 不能自然提供足够稳定的负信号，因此需要偏好比较；接着用 pairwise 数据和 Bradley--Terry 形式把“更好”变成可训练对象；然后引出 RLHF 的两阶段结构，并以 PPO 为代表讲清楚为什么真实对齐训练必须在奖励提升与策略约束之间做平衡。随后，BoN 展示了不用 RL 也能利用 reward model 的推理期方案，而 DPO 则把偏好学习重新表达成监督优化，显著降低了系统复杂度。
+
+如果把 Lecture 4 和 Lecture 5 连起来看，可以得到一条很清楚的能力塑形路径：预训练学通用知识，SFT 学任务行为，preference tuning 学人类偏好。再往下一讲，课程就会进一步把这些偏好优化和 RL 技术迁移到 reasoning model 的训练上，讨论如何让模型不仅“更像人”，还“更会想”。 
+
+\end{document}

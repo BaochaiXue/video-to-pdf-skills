@@ -1,0 +1,360 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CME 295 课程笔记：Lecture 2 Transformer-Based Models \& Tricks}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-13}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-10-17}
+\newcommand{\videoduration}{1:47:19}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=yT84Y5zCnaA}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{从原始 Transformer 到现代变体：本讲的目标}
+
+第二讲不是重新介绍 Transformer，而是回答两个更工程化的问题：原始 Transformer 中哪些部件后来被改掉了，以及为什么要改。课程先用上一讲的 attention map 和架构图做 recap，再明确本讲的主题包括位置编码、层归一化、注意力近似、Transformer-based 模型家族，以及 BERT 的深入分析。
+
+这一讲的总体逻辑非常清楚：Transformer 的主干思想几乎没变，但一些局部机制会显著影响长度外推能力、训练稳定性、推理内存占用和任务适配方式。因此，理解“tricks”不是记零散技巧，而是理解现代模型为何在原论文基础上继续演化。
+
+\subsection{本章小结}
+
+第二讲的定位是“结构细化课”。它默认你已经理解自注意力与 encoder-decoder 主干，现在开始讨论哪些设计在实践里更稳、更省、更适合现代大模型。
+
+\section{位置编码的演进：从绝对位置到相对位置信息}
+
+\subsection{为什么必须注入位置信息}
+
+自注意力允许任意 token 直接交互，但这也意味着如果不额外处理，模型只看到一个集合，而看不到顺序。课程把这个问题表述为：direct links 会“丢掉”位置信息。所以原始 Transformer 需要把 position embedding 加到 token embedding 上。
+
+最早的做法是每个位置学一个独立向量，然后直接相加。优点是简单；缺点是如果训练时只见过长度 \(L\) 的序列，那么位置 \(L+1\) 之后就没有学习到的 embedding，长度外推会失败。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-15.png}
+\caption{原始 Transformer 用正弦和余弦构造硬编码位置向量。}
+\end{figure}
+
+\subsection{正弦位置编码的公式与动机}
+
+课程随后转向 hardcoded position embeddings，也就是经典的正弦位置编码：
+\[
+\mathrm{PE}_{(m,2i)}=\sin\left(\frac{m}{10000^{2i/d}}\right), \quad
+\mathrm{PE}_{(m,2i+1)}=\cos\left(\frac{m}{10000^{2i/d}}\right)
+\]
+
+符号说明如下：
+\begin{itemize}
+\item \(m\)：序列中的位置索引；
+\item \(i\)：embedding 维度中的第 \(i\) 个频率块；
+\item \(d\)：位置向量总维度；
+\item 偶数维用正弦，奇数维用余弦；
+\item 不同频率让模型同时编码近距离和远距离的位置信号。
+\end{itemize}
+
+这类编码的关键优势不是“更优雅”，而是可以无须为每个位置单独学习参数，因此天然支持更长序列的外推。课程还特别强调，相似位置在这种表示下会有可解释的几何关系。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-22.png}
+\caption{正弦位置编码既给出随位置变化的波形，也诱导出位置之间的相似性结构。}
+\end{figure}
+
+\subsection{从绝对位置到相对位置：ALiBi 与 RoPE}
+
+讲者随后指出，注意力真正关心的往往不是“绝对第几位”，而是“彼此相距多远”。这就引出相对位置思想：不要只在输入端相加位置向量，而要直接在 attention 打分里引入位置信息。
+
+ALiBi 的做法是在 query-key 分数中加入线性 bias，使距离更远的 token 在没有特殊证据时自然受到更强惩罚。它参数更少，也有不错的长度外推表现。
+
+如今更常见的选择是 RoPE（Rotary Position Embeddings）。RoPE 的思想不是额外加一个位置向量，而是对 query 与 key 做旋转变换。二维情形下可以写成：
+\[
+R_m =
+\begin{bmatrix}
+\cos(m\theta) & -\sin(m\theta) \\
+\sin(m\theta) & \cos(m\theta)
+\end{bmatrix}
+\]
+
+其中：
+\begin{itemize}
+\item \(m\)：位置；
+\item \(\theta\)：不同维度块使用的旋转频率；
+\item \(R_m q\) 与 \(R_n k\) 的内积会自然带出 \(m-n\) 的相对位置信息。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-29.png}
+\caption{RoPE 把位置信息写进 query/key 的旋转变换，而不是只加到输入 embedding 上。}
+\end{figure}
+
+\begin{knowledgebox}{为什么 RoPE 在现代模型里常见}
+因为它把相对位置信息直接注入相似度计算本身，既贴合 attention 的工作位置，又兼顾外推能力和工程简洁度。课程也指出今天大量模型都使用 RoPE 或其变体。
+\end{knowledgebox}
+
+\subsection{本章小结}
+
+位置编码的演进可以概括为三步：先有可学习绝对位置向量，再有可外推的正弦位置编码，最后进一步发展到直接作用于注意力分数或 query/key 表示的相对位置方法。今天主流选择偏向 RoPE，本质上是因为它更贴近注意力机制本身。
+
+\section{层归一化与训练稳定性：Post-Norm 到 Pre-Norm}
+
+课程提醒我们，Transformer 之所以能堆很多层，不只靠注意力本身，也靠归一化和残差连接控制训练动态。Layer Normalization（LN）是在单个样本内部、沿特征维做标准化：
+\[
+\mathrm{LN}(x)=\gamma \odot \frac{x-\mu}{\sqrt{\sigma^2+\epsilon}} + \beta
+\]
+
+其中：
+\begin{itemize}
+\item \(x\)：某个位置的隐藏向量；
+\item \(\mu,\sigma^2\)：该向量各维度上的均值与方差；
+\item \(\epsilon\)：防止分母为零的稳定项；
+\item \(\gamma,\beta\)：可学习的缩放和平移参数。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{pdf_pages/page-41.png}
+\caption{课程用结构图比较 LayerNorm 放在子层前后带来的差异。}
+\end{figure}
+
+原始 Transformer 采用 Post-Norm，也就是先做子层计算与残差相加，再归一化。后来很多模型改成 Pre-Norm，即先归一化，再进入 attention 或 FFN 子层。讲者给出的核心判断是：Pre-Norm 往往更利于深层网络的梯度传播，因此“如今”更常见。
+
+从理解上说，归一化并不是附属模块，它决定了深层堆叠是否稳定。只要模型层数、参数量和训练语料继续上升，这类稳定性设计就会持续重要。
+
+\subsection{本章小结}
+
+LayerNorm 的公式不复杂，但位置放置会影响整个模型的优化路径。现代大模型偏向 Pre-Norm，不是因为原论文错了，而是因为规模继续扩大后，训练稳定性成为首要工程约束。
+
+\section{注意力近似与结构省算：局部窗口、MQA 与 GQA}
+
+\subsection{全局自注意力的代价}
+
+如果每个 token 都和所有 token 交互，那么长度为 \(n\) 的序列需要计算 \(n \times n\) 的相关性矩阵。随着 context 增大，显存和计算都会迅速上涨。因此现代模型不再总是坚持“所有位置全连”。
+
+\subsection{局部与全局注意力的折中}
+
+课程先介绍 sliding window attention（SWA）：每个 token 只看局部邻域，而不是整段序列。它的思想与卷积类似，利用语言中很多依赖是局部的事实，把昂贵的全局关系计算近似成局部窗口运算。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{pdf_pages/page-48.png}
+\caption{SWA 只保留局部邻域的注意力连接，用更低成本保留主要局部依赖。}
+\end{figure}
+
+课程也提到可以交替使用 local 与 global attention 层。换句话说，局部近似不是否认长程依赖，而是把“每一层都全局交互”改成“有计划地稀疏化交互”。
+
+\subsection{从 MHA 到 MQA/GQA}
+
+另一个省算方向出现在 head 的 key/value 组织方式上。标准 multi-head attention 中，每个 query head 都有自己独立的 key 和 value 投影，这会推高 KV cache 和推理内存。
+
+MQA（Multi-Query Attention）让多个 query head 共享同一组 key/value；GQA（Grouped-Query Attention）则在两者之间折中，让若干 query head 共享一组 key/value。这样做会牺牲一部分自由度，但可以显著降低推理内存压力。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-51.png}
+\caption{课程用共享示意图说明 MQA/GQA 如何减少 key/value 的冗余存储。}
+\end{figure}
+
+\begin{importantbox}{这一节的统一视角}
+不论是 SWA 还是 MQA/GQA，它们都不是在改变 Transformer 的基本语义，而是在回答同一个工程问题：当序列更长、模型更大时，如何让注意力的表达能力和推理成本保持平衡。
+\end{importantbox}
+
+\subsection{本章小结}
+
+现代 Transformer 的“tricks”很多都围绕注意力成本展开：要么减少可见连接数，要么压缩 key/value 的复制开销。理解这一点后，后面看到长上下文模型和高吞吐服务框架时，就不会把它们误认为完全不同的架构。
+
+\section{Transformer-based 模型家族与 BERT 深入解析}
+
+\subsection{三大模型家族}
+
+课程先回到高层分类。常见 Transformer-based 模型主要有三类：
+\begin{itemize}
+\item encoder-decoder
+\item encoder-only
+\item decoder-only
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{pdf_pages/page-56.png}
+\caption{三类 Transformer-based 模型的结构与典型任务：编码-解码、纯编码、纯解码。}
+\end{figure}
+
+这三类结构并不是谁替代谁，而是分别对应不同任务偏好：
+\begin{itemize}
+\item encoder-decoder 更适合 text-to-text 变换；
+\item encoder-only 更适合分类、检索、抽取等“先编码再判别”的任务；
+\item decoder-only 更适合自回归生成。
+\end{itemize}
+
+\subsection{为什么是 BERT}
+
+BERT 是 Bidirectional Encoder Representations from Transformers。它保留原始 Transformer 的 encoder 部分，去掉 decoder，从而得到一个能双向聚合上下文的编码模型。课程专门强调了“bidirectional”这一点：它不是只看左侧上下文，而是能同时利用左右信息。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{pdf_pages/page-74.png}
+\caption{BERT 继承原始 Transformer 的 encoder 堆栈，把重点放在输入表示学习而非文本生成。}
+\end{figure}
+
+在输入构造上，BERT 不只是 token embedding，还会加入 position embedding 和 segment embedding，用来区分句对输入中的不同句子。特殊 token 如 \texttt{[CLS]} 和 \texttt{[SEP]} 也在后续任务适配中扮演关键角色。
+
+\subsection{BERT 的预训练任务}
+
+课程讲了 BERT 的两个经典 proxy task：
+\begin{itemize}
+\item MLM（Masked Language Modeling）：随机挑出部分 token 做预测；
+\item NSP（Next Sentence Prediction）：判断两个句子是否相邻。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-79.png}
+\caption{MLM 通过掩码预测学习双向上下文表征，是 BERT 预训练的核心任务。}
+\end{figure}
+
+其中 MLM 是最本质的一项。课程明确提到典型设置是 15\% token 参与预测，其中大部分替换为 \texttt{[MASK]}，少部分替换成随机词或保持不变。这么做的目的是避免模型只会识别 \texttt{[MASK]} 这个特殊训练场景。
+
+\subsection{从预训练到微调}
+
+BERT 的强项在于它学到的 contextual embeddings 可以直接迁移到下游任务。做情感分类时，可以把 \texttt{[CLS]} 的最终表示接一个小型分类头；做问答时，则可以在每个位置上预测答案起点与终点。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-97.png}
+\caption{BERT 微调示意：把预训练 encoder 产生的上下文化表示接到具体任务头上。}
+\end{figure}
+
+这也是 BERT 曾经如此成功的原因：它把“大量无监督语料上的表示学习”和“小数据监督任务上的快速适配”分离开来，大幅提高了 NLP 任务的迁移效率。
+
+\subsection{本章小结}
+
+BERT 的意义不只是一个模型名，而是一个范式：先用大语料学强表征，再用简单任务头做下游适配。它代表了 encoder-only 路线的成熟形态，也为后续各种判别式文本模型打下了基础。
+
+\section{BERT 的局限与两类变体：DistilBERT、RoBERTa}
+
+\subsection{BERT 的局限}
+
+课程总结了 BERT 的几个现实限制：
+\begin{itemize}
+\item 上下文长度有限，原始版本通常只到 512；
+\item 参数量和延迟仍然偏高；
+\item 预训练目标是否最优并不确定，尤其 NSP 的必要性值得怀疑。
+\end{itemize}
+
+这些问题催生了两条不同方向的改进：一条是更省，一条是更强。
+
+\subsection{DistilBERT：更小更快}
+
+DistilBERT 的核心思路是蒸馏。教师模型输出的不只是硬标签，而是一整条概率分布；这条分布比单点标签包含更多关于类别相似性和不确定性的知识。学生模型通过拟合教师分布，在更小参数规模下尽量保留性能。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\textwidth]{pdf_pages/page-102.png}
+\caption{蒸馏把教师模型的软分布迁移给学生模型，以更少层数换取更快推理。}
+\end{figure}
+
+课程在口头解释里还补充了一个很重要的判断：DistilBERT 之所以高效，不只是因为层数减半，更因为它把“老师学到的结构性概率信息”也迁移了过去。
+
+\subsection{RoBERTa：把预训练做得更扎实}
+
+RoBERTa 并没有发明全新结构，而是系统地审视 BERT 训练流程：如果拿掉 NSP、改成动态 masking、增大数据量、训练更久，会发生什么？课程给出的结论是，这些训练层面的改良本身就能显著提升性能。
+
+\begin{warningbox}{这一结论的启发}
+很多模型改进并不来自结构创新，而来自训练设定的重新审视。RoBERTa 说明“把已有架构训练对”本身就是一种重要研究方向。
+\end{warningbox}
+
+\subsection{本章小结}
+
+DistilBERT 和 RoBERTa 分别代表了两种不同优化目标：前者是在性能可接受前提下更省资源，后者是在同类结构上把预训练流程打磨到更高上限。它们说明 BERT 之后的进展，不只是“换架构”，也包括“换训练策略”和“换部署成本曲线”。
+
+\section{总结与延伸}
+
+第二讲把第一讲的骨架真正拉成了现代模型设计图。最值得提炼的认识有四点：
+\begin{enumerate}
+\item \textbf{位置信息不是附件，而是自注意力成立的前提。} 从 learned PE 到 sinusoidal PE，再到 ALiBi 和 RoPE，变化的是注入方式，不变的是“必须显式处理顺序”。
+\item \textbf{模型能否稳定堆深，取决于归一化与残差布局。} LayerNorm 的放置位置是训练工程的重要决策。
+\item \textbf{注意力的成本决定了现代架构细节。} 局部窗口、MQA、GQA 都是在为长上下文和低内存推理让路。
+\item \textbf{BERT 展示了 encoder-only 路线的威力。} 通过预训练表示再微调任务头，NLP 进入了大规模迁移学习时代。
+\end{enumerate}
+
+如果第一讲回答的是“Transformer 是什么”，那么第二讲回答的是“为什么今天的模型长得不完全像 2017 年论文里的样子”。现代大模型并没有背离 Transformer，恰恰相反，它们是在保留主干思想的前提下，不断修补最影响长度、稳定性和成本的局部机制。理解这些变化，后面再看 LLM、KV cache、长上下文和推理优化时，就能把它们放回同一条技术脉络之中。
+
+\end{document}

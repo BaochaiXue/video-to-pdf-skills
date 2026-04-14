@@ -1,0 +1,2609 @@
+Lecture 7
+
+CME 295: Transformers &
+Large Language Models
+
+Afshine Amidi & Shervine Amidi
+
+Recap of last episode…
+Reasoning models
+Question
+
+LLM
+
+Reasoning
+chain
+
+Answer
+
+Recap of last episode…
+Reasoning models
+Question
+
+LLM
+
+Reasoning
+chain
+
+Answer
+
+GRPO
+
+Figure from "DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models", Shao et al., 2024.
+
+Recap of last episode…
+
+"DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning", DeepSeek-AI, 2025.
+
+Recap of last episode…
+
+Original
+
+"DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning", DeepSeek-AI, 2025.
+
+Recap of last episode…
+
+Original
+
+DAPO
+
+Dr. GRPO
+
+"Understanding R1-Zero-Like Training: A Critical Perspective", Liu et al., 2025.
+"DAPO: An Open-Source LLM Reinforcement Learning System at Scale", Yu et al., 2025.
+
+Recap of last episode…
+Strengths.
+●
+
+Great at imitation or idea generation
+
+●
+
+Amazing at generating or debugging code
+
+Weaknesses.
+●
+
+Limited reasoning
+
+●
+
+Knowledge is static
+
+●
+
+Cannot perform actions
+
+●
+
+Hard to evaluate
+
+Recap of last episode…
+Strengths.
+●
+
+Great at imitation or idea generation
+
+●
+
+Amazing at generating or debugging code
+
+Weaknesses.
+●
+
+Limited reasoning
+
+●
+
+Knowledge is static
+
+●
+
+Cannot perform actions
+
+●
+
+Hard to evaluate
+
+Focus of last lecture
+
+Recap of last episode…
+Strengths.
+●
+
+Great at imitation or idea generation
+
+●
+
+Amazing at generating or debugging code
+
+Weaknesses.
+●
+
+Limited reasoning
+
+●
+
+Knowledge is static
+
+●
+
+Cannot perform actions
+
+●
+
+Hard to evaluate
+
+Focus of today
+
+Transformers &
+Large Language
+Models
+
+RAG
+Tool calling
+Agents
+
+Motivation
+●
+
+Knowledge of LLM constrained to pretraining data
+
+Motivation
+●
+
+Knowledge of LLM constrained to pretraining data
+
+Screenshot of OpenAI's GPT-5 model card, taken on November 9th, 2025.
+
+Motivation
+●
+
+Knowledge of LLM constrained to pretraining data
+
+Screenshot of OpenAI's GPT-5 model card, taken on November 9th, 2025.
+
+Motivation
+●
+
+Knowledge of LLM constrained to pretraining data
+
+●
+
+Limited context size
+
+Motivation
+●
+
+Knowledge of LLM constrained to pretraining data
+
+●
+
+Limited context size
+
+Screenshot of OpenAI's GPT-5 model card, taken on November 9th, 2025.
+
+Motivation
+●
+
+Knowledge of LLM constrained to pretraining data
+
+●
+
+Limited context size
+
+●
+
+LLM gets distracted by useless information
+
+Motivation
+●
+
+Knowledge of LLM constrained to pretraining data
+
+●
+
+Limited context size
+
+●
+
+LLM gets distracted by useless information
+
+GitHub repo containing "Needle in a Haystack - Pressure Testing LLMs" tests, Kamradt, 2023.
+
+Motivation
+●
+
+Knowledge of LLM constrained to pretraining data
+
+●
+
+Limited context size
+
+●
+
+LLM gets distracted by useless information
+
+●
+
+Pricing is per input/output token
+
+Motivation
+●
+
+Knowledge of LLM constrained to pretraining data
+
+●
+
+Limited context size
+
+●
+
+LLM gets distracted by useless information
+
+●
+
+Pricing is per input/output token
+
+Overview
+RAG = Retrieval-Augmented Generation
+
+"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks", Lewis et al., 2020.
+
+Overview
+RAG = Retrieval-Augmented Generation
+Idea. Augment prompt with relevant pieces of information.
+
+"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks", Lewis et al., 2020.
+
+Overview
+RAG = Retrieval-Augmented Generation
+Idea. Augment prompt with relevant pieces of information.
+
+Figure from "Super Study Guide: Transformers & Large Language Models", Amidi et al., 2024.
+
+Overview
+RAG = Retrieval-Augmented Generation
+Idea. Augment prompt with relevant pieces of information.
+
+Figure from "Super Study Guide: Transformers & Large Language Models", Amidi et al., 2024.
+
+Overview
+RAG = Retrieval-Augmented Generation
+Idea. Augment prompt with relevant pieces of information.
+
+Figure from "Super Study Guide: Transformers & Large Language Models", Amidi et al., 2024.
+
+Retrieve, Generate, Augment
+1. Retrieve relevant document via similarity operation across the knowledge base
+User prompt
+
+Retrieve, Generate, Augment
+1. Retrieve relevant document via similarity operation across the knowledge base
+User prompt
+
+2. Augment prompt with retrieved information
+User prompt
+
+Retrieved info
+User prompt
+
+Retrieve, Generate, Augment
+1. Retrieve relevant document via similarity operation across the knowledge base
+User prompt
+
+2. Augment prompt with retrieved information
+User prompt
+
+Retrieved info
+User prompt
+
+3. Generate response
+Retrieved info
+User prompt
+
+LLM
+
+Response
+
+Retrieve, Generate, Augment
+1. Retrieve relevant document via similarity operation across the knowledge base
+User prompt
+
+2. Augment prompt with retrieved information
+User prompt
+
+Retrieved info
+User prompt
+
+3. Generate response
+Retrieved info
+User prompt
+
+LLM
+
+Response
+
+Focus on retrieval stage
+1. Retrieve relevant document via similarity operation across the knowledge base
+User prompt
+
+2. Augment prompt with retrieved information
+User prompt
+
+Retrieved info
+User prompt
+
+3. Generate response
+Retrieved info
+User prompt
+
+LLM
+
+Response
+
+Prerequisite: Create knowledge base
+
+Document 1
+Document 2
+…
+
+Collect
+
+Prerequisite: Create knowledge base
+Document 1
+
+Document 2
+
+Document 1
+Document 2
+…
+
+Collect
+
+Divide
+
+…
+
+Prerequisite: Create knowledge base
+Document 1
+
+Document 2
+
+…
+
+Document 1
+Document 2
+
+0.48
+
+…
+
+0.33
+
+=
+
+…
+
+-0.51
+
+Collect
+
+Divide
+
+Embed
+
+Prerequisite: Create knowledge base
+Document 1
+
+Document 2
+
+…
+
+Document 1
+Document 2
+
+0.48
+
+…
+
+0.33
+
+=
+
+…
+
+-0.51
+
+Collect
+
+Divide
+
+Embed
+
+Hyperparameters. Embedding size, chunk size, overlap between chunks
+
+Retrieval overview
+🎣 Step 1 – Candidate retrieval: Select potentially-relevant candidates
+●
+
+Maximize recall
+
+●
+
+Semantic embeddings and optionally keyword-based methods
+
+Retrieval overview
+🎣 Step 1 – Candidate retrieval: Select potentially-relevant candidates
+●
+
+Maximize recall
+
+●
+
+Semantic embeddings and optionally keyword-based methods
+
+💯 Step 2 – Ranking: Give ﬁnal relevance score
+●
+
+Maximize precision
+
+●
+
+Re-ranking on smaller set of candidates
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 1. Semantic search using embeddings-based similarity
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 1. Semantic search using embeddings-based similarity
+
+Query
+
+Chunk
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 1. Semantic search using embeddings-based similarity
+
+0.48
+
+Query
+
+=
+
+…
+
+-0.51
+
+-0.82
+
+Chunk
+
+=
+
+…
+
+-0.43
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 1. Semantic search using embeddings-based similarity
+
+0.48
+
+Query
+
+=
+
+…
+
+-0.51
+
+-0.82
+
+Chunk
+
+=
+
+…
+
+-0.43
+
+similarity
+operation
+
+similarity
+score
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 1. Semantic search using embeddings-based similarity
+
+0.48
+
+Query
+
+Encoder
+
+…
+
+-0.51
+
+-0.82
+
+Chunk
+
+Encoder
+
+…
+
+-0.43
+"Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks", Reimers et al., 2019.
+
+similarity
+operation
+
+similarity
+score
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 1. Semantic search using embeddings-based similarity
+"bi-encoder"
+0.48
+
+Query
+
+Encoder
+
+…
+
+-0.51
+
+-0.82
+
+Chunk
+
+Encoder
+
+…
+
+-0.43
+"Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks", Reimers et al., 2019.
+
+similarity
+operation
+
+similarity
+score
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 1. Semantic search using embeddings-based similarity
+
+[…] Huggy likes to work downstairs […]
+[...] Where is Paris located? [...]
+Where is Cuddly?
+[...] he was in a cuddly mood [...]
+[ …] Cuddly spends most days surrounded by
+books [...]
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 2. Search based on keywords matching via BM25
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 2. Search based on keywords matching via BM25
+
+[…] Huggy likes to work downstairs […]
+[...] Where is Paris located? [...]
+Where is Cuddly?
+[...] he was in a cuddly mood [...]
+[ …] Cuddly spends most days surrounded by
+books [...]
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 3. Search based on hybrid combination of semantics and BM25
+
+Step 1: candidate retrieval
+Objective. Select potentially-relevant candidates via search across knowledge base
+Method 3. Search based on hybrid combination of semantics and BM25
+
+[…] Huggy likes to work downstairs […]
+[...] Where is Paris located? [...]
+Where is Cuddly?
+[...] he was in a cuddly mood [...]
+[ …] Cuddly spends most days surrounded by
+books [...]
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+"Precise Zero-Shot Dense Retrieval without Relevance Labels", Gao et al., 2022.
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+Prompt
+
+Where is Cuddly?
+
+"Precise Zero-Shot Dense Retrieval without Relevance Labels", Gao et al., 2022.
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+Prompt
+
+Fake
+document
+
+Where is Cuddly?
+
+Cuddly is in…
+
+"Precise Zero-Shot Dense Retrieval without Relevance Labels", Gao et al., 2022.
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+Prompt
+
+Fake
+document
+
+Where is Cuddly?
+
+Cuddly is in…
+
+"Precise Zero-Shot Dense Retrieval without Relevance Labels", Gao et al., 2022.
+
+Chunks
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+●
+
+Contextualize document chunks
+
+Chunk 1
+
+…
+Chunk n
+
+Introducing Contextual Retrieval, Anthropic team, 2024.
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+●
+
+Contextualize document chunks
+
+Chunk 1
+
+Introducing Contextual Retrieval, Anthropic team, 2024.
+
+Chunk 1
+…
+
+…
+Chunk n
+
+Context 1
+
+Context n
+Chunk n
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+●
+
+Contextualize document chunks
+<document>
+{WHOLE_DOCUMENT}
+</document>
+Here is the chunk we want to situate within the whole document:
+{CHUNK_CONTENT}
+
+Please give a short succinct context to situate this chunk within the overall
+document for the purposes of improving search retrieval of the chunk. Answer
+only with the succinct context and nothing else.
+
+Introducing Contextual Retrieval, Anthropic team, 2024.
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+●
+
+Contextualize document chunks
+
+Prompt caching
+
+<document>
+{WHOLE_DOCUMENT}
+</document>
+Here is the chunk we want to situate within the whole document:
+{CHUNK_CONTENT}
+
+Please give a short succinct context to situate this chunk within the overall
+document for the purposes of improving search retrieval of the chunk. Answer
+only with the succinct context and nothing else.
+
+Introducing Contextual Retrieval, Anthropic team, 2024.
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+●
+
+Contextualize document chunks
+
+OpenAI model pricing page, screenshot taken on November 10th, 2025.
+
+Extensions that can help with initial retrieval
+●
+
+Mitigate discrepancy in nature of embeddings
+
+●
+
+Contextualize document chunks
+
+OpenAI model pricing page, screenshot taken on November 10th, 2025.
+
+Step 2: ranking
+Objective. Provide ﬁnal relevance score using more sophisticated (re-)ranker
+
+Query
+
+Chunk
+
+Step 2: ranking
+Objective. Provide ﬁnal relevance score using more sophisticated (re-)ranker
+
+Query
+
+Encoder
+
+Chunk
+
+Suggested reading: "Cross-Encoders", SBERT.net
+
+relevance
+score
+
+Step 2: ranking
+Objective. Provide ﬁnal relevance score using more sophisticated (re-)ranker
+"cross-encoder"
+Query
+
+Encoder
+
+Chunk
+
+Suggested reading: "Cross-Encoders", SBERT.net
+
+relevance
+score
+
+Step 2: ranking
+Objective. Provide ﬁnal relevance score using more sophisticated (re-)ranker
+
+Chunk d
+
+User prompt
+
+Chunk b
+Re-Ranker
+Chunk a
+
+Chunk c
+
+Step 2: ranking
+Objective. Provide ﬁnal relevance score using more sophisticated (re-)ranker
+
+User prompt
+
+Chunk a
+
+1
+
+Chunk b
+
+2
+
+Chunk a
+
+Chunk c
+
+3
+
+Chunk c
+
+Chunk d
+
+4
+
+Chunk d
+
+Chunk b
+Re-Ranker
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+
+Chunks
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+
+User prompt
+
+Chunks
+
+Relevant
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+
+Top k
+
+User prompt
+
+Chunks
+
+Relevant
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+1
+
+…
+
+…
+k
+k+1
+
+…
+
+…
+n
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+1
+
+…
+
+…
+k
+k+1
+
+…
+
+…
+n
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+
+●
+
+1
+
+…
+
+…
+k
+k+1
+
+…
+
+…
+n
+
+Normalized Discounted Cumulative Gain at k (NDCG@k)
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+
+●
+
+Normalized Discounted Cumulative Gain at k (NDCG@k)
+
+1
+
+…
+
+…
+k
+k+1
+
+…
+
+…
+n
+
+with
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+
+●
+
+Normalized Discounted Cumulative Gain at k (NDCG@k)
+
+1
+
+…
+
+…
+
+with
+
+k
+k+1
+
+…
+
+…
+n
+
+if ranking was perfect
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+1
+
+●
+
+Normalized Discounted Cumulative Gain at k (NDCG@k)
+
+●
+
+Reciprocal Rank at k (RR@k)
+
+…
+
+…
+k
+k+1
+
+…
+
+…
+n
+
+rank of the ﬁrst relevant chunk
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+1
+
+…
+
+…
+k
+k+1
+
+…
+
+…
+n
+
+●
+
+Normalized Discounted Cumulative Gain at k (NDCG@k)
+
+●
+
+Reciprocal Rank at k (RR@k)
+
+●
+
+Recall at k
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+1
+
+…
+
+…
+k
+k+1
+
+…
+
+…
+n
+
+●
+
+Normalized Discounted Cumulative Gain at k (NDCG@k)
+
+●
+
+Reciprocal Rank at k (RR@k)
+
+●
+
+Recall at k
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+1
+
+…
+
+…
+
+●
+
+Normalized Discounted Cumulative Gain at k (NDCG@k)
+
+●
+
+Reciprocal Rank at k (RR@k)
+
+●
+
+Recall at k
+
+●
+
+Precision at k
+
+k
+k+1
+
+…
+
+…
+n
+
+Quantify performance of retrieval
+Setup. Evaluate if retrieved chunks are relevant
+Ranking
+1
+
+…
+
+…
+
+●
+
+Normalized Discounted Cumulative Gain at k (NDCG@k)
+
+●
+
+Reciprocal Rank at k (RR@k)
+
+●
+
+Recall at k
+
+●
+
+Precision at k
+
+k
+k+1
+
+…
+
+…
+n
+
+Transformers &
+Large Language
+Models
+
+RAG
+Tool calling
+Agents
+
+Motivation
+
+Unstructured
+RAG
+
+Motivation
+
+Unstructured
+RAG
+
+ID
+
+Field
+
+…
+
+123
+
+Obs
+
+…
+
+…
+
+…
+
+…
+
+Structured
+
+Idea
+Function
+def get_data(
+id, field, ...
+ID
+
+Field
+
+…
+
+123
+
+Obs
+
+…
+
+# Logic.
+
+…
+
+…
+
+…
+
+…
+
+):
+
+return result
+
+Deﬁnition
+
+"Tool calling [...] allows autonomous systems to
+complete complex tasks by dynamically
+accessing and [may act] upon external
+resources."
+
+"Tool calling overview", IBM.
+
+Deﬁnition
+
+"Tool calling [...] allows autonomous systems
+to complete complex tasks by dynamically
+accessing and [may act] upon external
+resources."
+
+"Tool calling overview", IBM.
+
+Real-life example
+LLM as we've
+known it so far
+
+Find a bear near me!
+
+LLM
+
+Sorry, I don't know
+which bears are near
+you.
+
+Real-life example
+LLM as we've
+known it so far
+
+LLM with tools
+
+Find a bear near me!
+
+LLM
+
+<function API>
+Find a bear near me!
+
+LLM
+
+Sorry, I don't know
+which bears are near
+you.
+
+?
+
+Real-life example
+LLM as we've
+known it so far
+
+LLM with tools
+
+Find a bear near me!
+
+LLM
+
+<function API>
+Find a bear near me!
+
+LLM
+
+Sorry, I don't know
+which bears are near
+you.
+
+?
+
+Real-life example
+ﬁnd_teddy_bear.py
+from dataclasses import dataclass
+from geopy.distance import geodesic
+import requests
+@dataclass
+class TeddyBearInfo:
+name: str
+distance_meters: float
+mood: str
+message: str
+def find_teddy_bear(location: tuple[float, float]) -> TeddyBearInfo:
+"""
+Finds the nearest teddy bear to the given GPS coordinates.
+Parameters:
+location: A (latitude, longitude) pair representing the user's current
+location.
+Returns:
+TeddyBearInfo: Information about the nearest teddy bear found.
+"""
+# Call API to get the closest teddy bear
+user_lat, user_lon = location
+api_url = "https://api.to.teddy.bears.com/v1/closest"
+try:
+response = requests.get(
+api_url,
+params={"latitude": user_lat, "longitude": user_lon},
+timeout=5
+)
+response.raise_for_status()
+closest_teddy_bear = response.json()
+except requests.RequestException as e:
+raise RuntimeError(f"Failed to fetch teddy bear data from API: {e}")
+
+# Extract coordinates from API response
+bear_lat, bear_lon = closest_teddy_bear["coords"]
+# Compute distance to the bear using geopy (returns distance in meters)
+distance = geodesic((user_lat, user_lon), (bear_lat, bear_lon)).meters
+return TeddyBearInfo(
+name=closest_teddy_bear["name"],
+distance_meters=round(distance, 2),
+mood=closest_teddy_bear["mood"],
+message=f"{closest_teddy_bear['name']} is {closest_teddy_bear['mood']} "
+f"and only {round(distance, 2)} meters away!"
+)
+
+Real-life example
+ﬁnd_teddy_bear.py
+from dataclasses import dataclass
+from geopy.distance import geodesic
+import requests
+@dataclass
+class TeddyBearInfo:
+name: str
+distance_meters: float
+mood: str
+message: str
+def find_teddy_bear(location: tuple[float, float]) -> TeddyBearInfo:
+"""
+Finds the nearest teddy bear to the given GPS coordinates.
+Parameters:
+location: A (latitude, longitude) pair representing the user's current
+location.
+Returns:
+TeddyBearInfo: Information about the nearest teddy bear found.
+"""
+# Call API to get the closest teddy bear
+user_lat, user_lon = location
+api_url = "https://api.to.teddy.bears.com/v1/closest"
+try:
+response = requests.get(
+api_url,
+params={"latitude": user_lat, "longitude": user_lon},
+timeout=5
+)
+response.raise_for_status()
+closest_teddy_bear = response.json()
+except requests.RequestException as e:
+raise RuntimeError(f"Failed to fetch teddy bear data from API: {e}")
+
+# Extract coordinates from API response
+bear_lat, bear_lon = closest_teddy_bear["coords"]
+# Compute distance to the bear using geopy (returns distance in meters)
+distance = geodesic((user_lat, user_lon), (bear_lat, bear_lon)).meters
+return TeddyBearInfo(
+name=closest_teddy_bear["name"],
+distance_meters=round(distance, 2),
+mood=closest_teddy_bear["mood"],
+message=f"{closest_teddy_bear['name']} is {closest_teddy_bear['mood']} "
+f"and only {round(distance, 2)} meters away!"
+)
+
+has a descriptive,
+well-documented API
+
+Real-life example
+ﬁnd_teddy_bear.py
+from dataclasses import dataclass
+from geopy.distance import geodesic
+import requests
+@dataclass
+class TeddyBearInfo:
+name: str
+distance_meters: float
+mood: str
+message: str
+def find_teddy_bear(location: tuple[float, float]) -> TeddyBearInfo:
+"""
+Finds the nearest teddy bear to the given GPS coordinates.
+
+# Extract coordinates from API response
+bear_lat, bear_lon = closest_teddy_bear["coords"]
+# Compute distance to the bear using geopy (returns distance in meters)
+distance = geodesic((user_lat, user_lon), (bear_lat, bear_lon)).meters
+return TeddyBearInfo(
+name=closest_teddy_bear["name"],
+distance_meters=round(distance, 2),
+mood=closest_teddy_bear["mood"],
+message=f"{closest_teddy_bear['name']} is {closest_teddy_bear['mood']} "
+f"and only {round(distance, 2)} meters away!"
+)
+
+Parameters:
+location: A (latitude, longitude) pair representing the user's current
+location.
+Returns:
+TeddyBearInfo: Information about the nearest teddy bear found.
+"""
+# Call API to get the closest teddy bear
+user_lat, user_lon = location
+api_url = "https://api.to.teddy.bears.com/v1/closest"
+try:
+response = requests.get(
+api_url,
+params={"latitude": user_lat, "longitude": user_lon},
+timeout=5
+)
+response.raise_for_status()
+closest_teddy_bear = response.json()
+except requests.RequestException as e:
+raise RuntimeError(f"Failed to fetch teddy bear data from API: {e}")
+
+(optional) has some
+backend call
+
+Real-life example
+ﬁnd_teddy_bear.py
+from dataclasses import dataclass
+from geopy.distance import geodesic
+import requests
+@dataclass
+class TeddyBearInfo:
+name: str
+distance_meters: float
+mood: str
+message: str
+def find_teddy_bear(location: tuple[float, float]) -> TeddyBearInfo:
+"""
+Finds the nearest teddy bear to the given GPS coordinates.
+Parameters:
+location: A (latitude, longitude) pair representing the user's current
+location.
+Returns:
+TeddyBearInfo: Information about the nearest teddy bear found.
+"""
+# Call API to get the closest teddy bear
+user_lat, user_lon = location
+api_url = "https://api.to.teddy.bears.com/v1/closest"
+try:
+response = requests.get(
+api_url,
+params={"latitude": user_lat, "longitude": user_lon},
+timeout=5
+)
+response.raise_for_status()
+closest_teddy_bear = response.json()
+except requests.RequestException as e:
+raise RuntimeError(f"Failed to fetch teddy bear data from API: {e}")
+
+# Extract coordinates from API response
+bear_lat, bear_lon = closest_teddy_bear["coords"]
+# Compute distance to the bear using geopy (returns distance in meters)
+distance = geodesic((user_lat, user_lon), (bear_lat, bear_lon)).meters
+return TeddyBearInfo(
+name=closest_teddy_bear["name"],
+distance_meters=round(distance, 2),
+mood=closest_teddy_bear["mood"],
+message=f"{closest_teddy_bear['name']} is {closest_teddy_bear['mood']} "
+f"and only {round(distance, 2)} meters away!"
+)
+
+returns some info
+
+How it works
+
+How it works
+1. Let LLM ﬁnd argument for relevant function call
+<function API>
+Find a bear near me!
+
+LLM
+
+location = (37.42,-122.17)
+with find_teddy_bear()
+
+How it works
+1. Let LLM ﬁnd argument for relevant function call
+<function API>
+Find a bear near me!
+
+LLM
+
+location = (37.42,-122.17)
+with find_teddy_bear()
+
+2. Make function call
+find_teddy_bear(location)
+
+Backend
+
+{"name": "Teddy", …}
+
+How it works
+1. Let LLM ﬁnd argument for relevant function call
+<function API>
+Find a bear near me!
+
+location = (37.42,-122.17)
+with find_teddy_bear()
+
+LLM
+
+2. Make function call
+find_teddy_bear(location)
+
+Backend
+
+{"name": "Teddy", …}
+
+3. Let LLM deduce conclusion based on results
+{"name": "Teddy", …}
+
+LLM
+
+response
+
+Teach a model to use a tool
+Method 1: via training
+
+Teach a model to use a tool
+Method 1: via training
+
+<function API>
+Find a bear near me!
+
+location = (37.42,-122.17)
+with find_teddy_bear()
+
+Tool prediction
+
+Teach a model to use a tool
+Method 1: via training
+
+<function API>
+Find a bear near me!
+LLM
+
+<function API>
+Find a bear near me!
+
+location = (37.42,-122.17)
+with find_teddy_bear()
+Backend
+
+location = (37.42,-122.17)
+with find_teddy_bear()
+
+Tool prediction
+
+{"name": "Teddy", …}
+
+response
+
+Response generation
+
+Teach a model to use a tool
+<function API>
+
+Method 1: via training
+conversation
+history so far
+
+Find a bear near me!
+LLM
+
+<function API>
+location = (37.42,-122.17)
+with find_teddy_bear()
+
+Find a bear near me!
+
+Backend
+{"name": "Teddy", …}
+
+location = (37.42,-122.17)
+with find_teddy_bear()
+
+response
+
+Tool prediction
+desired
+prediction
+
+Response generation
+
+Teach a model to use a tool
+Method 1: via training
+<function API>
+<function API>
+<function
+Find a API>
+bear in Paris!
+Find a bear near me!
+Find a bear near me!
+
+location = (48.86,2.35)
+location = (37.42,-122.17)
+with find_teddy_bear()
+location
+= (37.42,-122.17)
+with find_teddy_bear()
+with find_teddy_bear()
+
+Tool prediction
+
+<function API>
+<function API>
+<function
+Find a API>
+bear in Paris!
+Find a bear near me!
+Find a bear near me!
+LLM
+LLM
+LLM
+location = (48.86,2.35)
+location = (37.42,-122.17)
+with find_teddy_bear()
+location
+= (37.42,-122.17)
+with find_teddy_bear()
+with find_teddy_bear()
+Backend
+Backend
+Backend
+{"name": "Ours", …}
+{"name": "Teddy", …}
+{"name": "Teddy", …}
+response
+response
+response
+
+Response generation
+
+Teach a model to use a tool
+Method 1: via training
+Method 2: via prompting
+
+<function API> + <detailed explanation on how to use it>
+Find a bear near me!
+
+Teach a model to use a tool
+Method 1: via training
+Method 2: via prompting
+
+how to write such a
+description?
+
+<function API> + <detailed explanation on how to use it>
+Find a bear near me!
+
+Teach a model to use a tool
+Method 1: via training
+Method 2: via prompting
+
+how to write such a
+description?
+
+<function API> + <detailed explanation on how to use it>
+Find a bear near me!
+
+One way:
+
+Use SFT pairs as evaluation + use a powerful reasoning model
+to write it for you!
+
+Examples of common use cases
+Information
+● Web/database search
+● Weather, stocks, and any other tracker
+● Codebase
+Computation
+● Calculator
+● Code execution (often in Python)
+
+...and many more!
+
+Action
+● Send emails/messages and other in-computer action
+● anything else within the domain of an assistant
+
+In practice: many tools
+def find_teddy_bear(
+location: tuple[float,
+float]
+) -> TeddyBearInfo:
+# ...
+
+def hug_teddy_bear(
+recipient: TeddyBear,
+intensity: str = "warm"
+) -> HugResponse:
+# ...
+
+def check_teddy_mood(
+name: TeddyBear
+) -> TeddyMood:
+# ...
+
+def send_teddy_gift(
+recipient: TeddyBear,
+gift: str = "poetry book"
+) -> GiftResponse:
+# ...
+
+def schedule_playdate(
+host: TeddyBear,
+guest: TeddyBear,
+time: datetime
+) -> Confirmation:
+# ...
+
+def send_message(
+recipient: TeddyBear,
+message: str
+) -> MessageResponse:
+# ...
+
+In practice: many tools
+
+<function API>
+Find a bear near me!
+
+LLM
+
+location = (37.42,-122.17)
+with find_teddy_bear()
+
+LLM
+
+location = (37.42,-122.17)
+with find_teddy_bear()
+
+<list of function APIs>
+Find a bear near me!
+
+Tools summary
+Beneﬁts.
+● LLMs just became way more useful!
+●
+
+They can also interact with the real world
+
+●
+
+Overcomes "knowledge cutoﬀ" limitation
+
+Tools summary
+Beneﬁts.
+● LLMs just became way more useful!
+●
+
+They can also interact with the real world
+
+●
+
+Overcomes "knowledge cutoﬀ" limitation
+
+Challenges.
+●
+
+More tools = decrease performance
+
+●
+
+Finite context length: not scalable
+
+●
+
+Many tools to deﬁne. Lots of work.
+"Automatic Tool Selection to Reduce Large Language Model Latency", Robert et al., 2024.
+
+Tool selection
+Goal. Both reduce latency and improve performance
+
+"Automatic Tool Selection to Reduce Large Language Model Latency", Robert et al., 2024.
+
+Tool selection
+Goal. Both reduce latency and improve performance
+
+1
+
+Find a bear near me!
+
+Router
+
+"Automatic Tool Selection to Reduce Large Language Model Latency", Robert et al., 2024.
+
+List of selected tools
+
+Tool selection
+Goal. Both reduce latency and improve performance
+
+1
+
+Find a bear near me!
+
+Router
+
+List of selected tools
+
+LLM
+
+...
+
+<selected function APIs>
+
+2
+
+Find a bear near me!
+
+"Automatic Tool Selection to Reduce Large Language Model Latency", Robert et al., 2024.
+
+Motivation for standardized protocol
+Goal. Avoid duplication of tool implementations
+
+LLM 1
+
+Tool 1
+
+LLM 2
+
+Tool 2
+
+LLM 3
+
+Tool 3
+
+Standardization: MCP
+MCP = Model Context Protocol
+Idea. Connect tools/data to LLMs in a standard way
+
+"Introducing the Model Context Protocol", Anthropic, 2024.
+
+Standardization: MCP
+MCP = Model Context Protocol
+Idea. Connect tools/data to LLMs in a standard way
+LLM 1
+
+LLM 2
+
+LLM 3
+
+"Introducing the Model Context Protocol", Anthropic, 2024.
+
+Tool 1
+
+MCP
+
+Tool 2
+
+Tool 3
+
+Standardization: MCP
+MCP host
+
+MCP server
+
+MCP client
+
+User
+
+"About MCP > Architecture overview", Anthropic, 2024.
+
+Tools
+
+Prompts
+
+Resources
+
+Standardization: MCP
+Claude Desktop
+
+Book provider
+MCP server
+
+MCP client
+
+"Recommend a new
+poetry book to my teddy
+bear"
+"About MCP > Architecture overview", Anthropic, 2024.
+
+Find
+
+ﬁnd_title
+
+Personal
+collection
+
+Recommend
+
+recommend_
+taste
+
+Top books
+
+Transformers &
+Large Language
+Models
+
+RAG
+Tool calling
+Agents
+
+Deﬁnition
+
+"An agent is a system that autonomously
+pursues goals and completes tasks on a
+user's behalf."
+
+Deﬁnition
+
+"An agent is a system that autonomously
+pursues goals and completes tasks on a
+user's behalf."
+
+High-level idea
+Traditional
+Question
+
+LLM
+
+Answer
+
+LLM
+
+Reasoning
+
+Reasoning
+Question
+
+Answer
+
+High-level idea
+Traditional
+Question
+
+LLM
+
+Answer
+
+LLM
+
+Reasoning
+
+LLM
+
+Calls
+
+Reasoning
+Question
+
+Answer
+
+Agent
+Question
+
+LLM
+
+…
+
+Answer
+
+Overview
+ReAct = Reason + Act
+
+Input
+
+Output
+
+Observe
+
+Act
+
+"ReAct: Synergizing Reasoning and Acting in Language Models", Yao et al., 2022.
+
+Plan
+
+ReAct in action
+
+Input
+My teddy bear is cold.
+Please do something.
+
+Examples:
+●
+
+Manually entered (e.g. user question)
+
+●
+
+External event (e.g. metric going beyond a threshold)
+
+ReAct in action
+The user's teddy bear is cold, which may
+be due to the current temperature of the
+room, which is currently unknown.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+●
+
+Synthesize previous actions + explicitly state what is currently known
+including own knowledge
+
+●
+
+Reasoning-heavy step to ﬁgure out what is needed
+
+ReAct in action
+The user's teddy bear is cold, which may
+be due to the current temperature of the
+room, which is currently unknown.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Plan
+Determine the temperature
+of the room.
+
+Detail what tasks need to be accomplished and what tools to call
+
+ReAct in action
+The user's teddy bear is cold, which may
+be due to the current temperature of the
+room, which is currently unknown.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+
+Plan
+Determine the temperature
+of the room.
+
+●
+
+Perform an action via an API
+
+●
+
+Look for info in a database of documents
+
+ReAct in action
+The user's teddy bear is cold, which may
+be due to the current temperature of the
+room, which is currently unknown.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+get_current_room_temperature()
+
+●
+
+Perform an action via an API
+
+●
+
+Look for info in a database of documents
+
+Plan
+Determine the temperature
+of the room.
+
+ReAct in action
+The user's teddy bear is cold, which may
+be due to the current temperature of the
+room, which is currently unknown.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+get_current_room_temperature()
+
+Plan
+Determine the temperature
+of the room.
+
+ReAct in action
+The temperature in the room is
+currently 65F. This is about 5F less
+than an average temperature. We need
+to increase the room temperature.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+get_current_room_temperature()
+
+Plan
+Determine the temperature
+of the room.
+
+ReAct in action
+The temperature in the room is
+currently 65F. This is about 5F less
+than an average temperature. We need
+to increase the room temperature.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+get_current_room_temperature()
+
+Plan
+Determine the temperature
+of the room.
+
+ReAct in action
+The temperature in the room is
+currently 65F. This is about 5F less
+than an average temperature. We need
+to increase the room temperature.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+get_current_room_temperature()
+
+Plan
+Increase the temperature
+by 5F.
+
+ReAct in action
+The temperature in the room is
+currently 65F. This is about 5F less
+than an average temperature. We need
+to increase the room temperature.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+get_current_room_temperature()
+
+Plan
+Increase the temperature
+by 5F.
+
+ReAct in action
+The temperature in the room is
+currently 65F. This is about 5F less
+than an average temperature. We need
+to increase the room temperature.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+increase_temperature(value=5)
+
+Plan
+Increase the temperature
+by 5F.
+
+ReAct in action
+The temperature in the room is
+currently 65F. This is about 5F less
+than an average temperature. We need
+to increase the room temperature.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+increase_temperature(value=5)
+
+Plan
+Increase the temperature
+by 5F.
+
+ReAct in action
+The thermostat is now set to 70F. This
+should be warm enough.
+
+Input
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+increase_temperature(value=5)
+
+Plan
+Increase the temperature
+by 5F.
+
+ReAct in action
+The thermostat is now set to 70F. This
+should be warm enough.
+
+Input
+
+Output
+
+Observe
+
+My teddy bear is cold.
+Please do something.
+
+Act
+increase_temperature(value=5)
+
+Plan
+Increase the temperature
+by 5F.
+
+ReAct in action
+The thermostat is now set to 70F. This
+should be warm enough.
+
+Input
+
+Output
+
+Observe
+
+The thermostat is now
+set to 70F. Your
+teddy bear soon feel
+warmer.
+
+My teddy bear is cold.
+Please do something.
+
+Act
+increase_temperature(value=5)
+
+Plan
+Increase the temperature
+by 5F.
+
+"Agentic" view
+
+Output
+
+Input
+My teddy bear is cold.
+Please do something.
+
+Thermostat agent
+
+The thermostat is now
+set to 70F. Your
+teddy bear soon feel
+warmer.
+
+There can be agents for many things
+Occupancy
+agent
+
+Energy
+management
+agent
+
+Thermostat
+agent
+
+Air quality
+agent
+
+How can agents communicate with each other?
+Occupancy
+agent
+
+?
+Energy
+management
+agent
+
+?
+
+Thermostat
+agent
+
+?
+Air quality
+agent
+
+Standardization: A2A
+A2A = Agent2Agent
+A2A
+Energy
+management
+agent
+
+A2A
+
+Occupancy
+agent
+
+Thermostat
+agent
+
+A2A
+Air quality
+agent
+
+"Announcing the Agent2Agent Protocol (A2A)", Google, 2025.
+
+Standardization: A2A
+
+AgentSkill
+
+Thermostat
+agent
+
+=
+
+id='maintain_
+id='prepare_
+comfort'
+id='optimize_
+home'
+description=
+energy'
+description=
+'Maintain
+a
+description=
+'Sets
+T
+to
+comfortabletarget
+T'
+'Reduces
+energy
+by
+arrival'
+examples=['Set to
+consumption'
+examples=['Warm
+focus
+mode while
+examples=['Save
+up
+the
+house to
+I'm working']
+energy
+70F when I am
+overnight']
+back']
+
+"Agent2Agent (A2A) Protocol Oﬃcial Speciﬁcation", Google, 2025.
+
+AgentCard
+
+AgentExecutor
+
+name='thermostat
+agent'
+url='http://path.
+to.agent'
+version='1.0.0'
+skills=[
+optimize_energy,
+prepare_home,
+]
+
+async def
+execute(self, ...):
+# Logic.
+async def
+cancel(self, ...):
+# Logic.
+
+Safety
+Risks.
+●
+
+Potential for harm in the real world
+
+●
+
+Example: data exﬁltration
+
+"ToolSword: Unveiling Safety Issues of Large Language Models in Tool Learning Across Three Stages", Ye et al., 2024.
+
+Safety
+Risks.
+●
+
+Potential for harm in the real world
+
+●
+
+Example: data exﬁltration
+
+Remediations.
+●
+
+Training steps
+
+●
+
+Inference safeguards
+
+●
+
+Benchmarks, e.g. Agent-SafetyBench
+
+"Towards Tool Use Alignment of Large Language Models", Chen et al., 2024.
+
+Safety
+Risks.
+●
+
+Potential for harm in the real world
+
+●
+
+Example: data exﬁltration
+
+Remediations.
+●
+
+Training steps
+
+●
+
+Inference safeguards
+
+●
+
+Benchmarks, e.g. Agent-SafetyBench
+
+...very important topic!
+
+Just yesterday in the news
+
+"Disrupting the ﬁrst reported AI-orchestrated cyber espionage campaign", Anthropic, 2025.
+
+Closing thoughts
+●
+
+Hallucination is a (big) problem
+
+Closing thoughts
+●
+
+Hallucination is a (big) problem
+
+●
+
+Reasoning abilities are a bottleneck
+○
+
+Finetuning helps, but hard
+
+○
+
+New capabilities are very welcome
+
+Closing thoughts
+●
+
+Hallucination is a (big) problem
+
+●
+
+Reasoning abilities are a bottleneck
+
+●
+
+○
+
+Finetuning helps, but hard
+
+○
+
+New capabilities are very welcome
+
+Evaluation is challenging
+
+Closing thoughts
+●
+
+Hallucination is a (big) problem
+
+●
+
+Reasoning abilities are a bottleneck
+○
+
+Finetuning helps, but hard
+
+○
+
+New capabilities are very welcome
+
+●
+
+Evaluation is challenging
+
+●
+
+Good to start simple, then iterate and progressively scale up
+
+●
+
+Good to start with capable models, optimize on size later
+
+Closing thoughts
+●
+
+Hallucination is a (big) problem
+
+●
+
+Reasoning abilities are a bottleneck
+○
+
+Finetuning helps, but hard
+
+○
+
+New capabilities are very welcome
+
+●
+
+Evaluation is challenging
+
+●
+
+Good to start simple, then iterate and progressively scale up
+
+●
+
+Good to start with capable models, optimize on size later
+
+●
+
+Transparency / observability helps with user trust and debuggability
+
+Bonus: AI agents in your daily life
+Personal favorite use case: coding!
+
+agent
+
+Thank you for your attention!
+
+
