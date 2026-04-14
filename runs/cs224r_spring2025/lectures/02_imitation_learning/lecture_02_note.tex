@@ -1,0 +1,306 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS224R 课程笔记：Lecture 2 Imitation Learning}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-13}
+\newcommand{\videochannel}{CS224R / Stanford}
+\newcommand{\videopublishdate}{课程讲次日期：2025-04-04}
+\newcommand{\videoduration}{未在本地元数据中提供}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=WxRDyObrm_M}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{模仿学习问题的基本设定}
+
+第二讲从上一节建立的 RL 记号继续往前走，但这次不直接做在线试错，而是假设我们已经有了专家演示数据。模仿学习的直觉非常自然：如果某个专家能够高质量完成任务，那么能否直接从专家的轨迹里学出一个策略？
+
+\subsection{数据、目标与未知专家策略}
+
+课程把演示数据记作
+\[
+\mathcal{D}=\{(s_1,a_1,\ldots,s_T,a_T)\},
+\]
+也就是若干条由专家收集的轨迹。这里隐含着一个关键假设：这些数据样本来自某个未知的专家策略 \(\pi_{\text{expert}}\)，但我们看不到策略本身，只能看到它留下的行为轨迹。
+
+模仿学习的目标是学出一个策略 \(\pi_\theta\)，使它在任务上的表现接近专家。与强化学习直接从奖励优化不同，模仿学习试图利用更强的监督信号，把“专家在这个状态下做了什么”当作可学习的标签。
+
+\subsection{Behavior Cloning：版本 0}
+
+最直接的办法是 behavior cloning。对于确定性策略，课上把它写成一个标准监督学习问题：给定状态 \(s\)，预测动作 \(\hat a=\pi_\theta(s)\)，再让它尽可能接近专家动作 \(a\)。
+
+\[
+\min_\theta \frac{1}{|\mathcal{D}|}\sum_{(s,a)\in\mathcal{D}} \|a-\hat a\|_2^2.
+\]
+
+符号说明如下：
+\begin{itemize}
+\item \(\mathcal{D}\)：专家演示数据集；
+\item \(a\)：专家动作；
+\item \(\hat a\)：策略在相同状态上的预测动作；
+\item \(\|\cdot\|_2^2\)：在连续动作空间里常见的平方误差。
+\end{itemize}
+
+这就是课件所说的 imitation learning version 0。它的优点是简单、可扩展、容易放进常规深度学习训练管线。很多实际系统都会先用这一步做初始化。
+
+\subsection{本章小结}
+
+模仿学习把 RL 问题暂时转写成“从专家行为监督学习策略”的问题。最简单的形式就是 behavior cloning，用状态预测动作，训练快、实现简单，但它的表达能力和分布泛化能力都还没有被认真处理。
+
+\section{为什么仅用均值回归不够：需要表达性策略分布}
+
+\subsection{多峰动作分布与均值灾难}
+
+讲者用自动驾驶例子指出，演示数据往往不是单峰的。面对同一个路况，专家有可能选择并道向左，也有可能保持直行。若我们用 \(L_2\) 回归学习一个确定性动作，模型很容易输出“两个模式的平均值”，而这个平均值本身可能根本不是一个可执行的好动作。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{pdf_pages/page-07.png}
+\caption{当演示数据包含多个合理动作模式时，单一均值回归会输出危险的“平均动作”。}
+\end{figure}
+
+这个现象在讲者口头说明里被描述得非常明确：当数据由多个人收集、或者任务本身就存在多个合理解时，这种问题会一直出现。也就是说，网络更深并不能自动解决“输出分布错了”的问题。
+
+\subsection{从单点动作到条件分布}
+
+课程随后把目标从学习单点 \(\hat a\) 改成学习条件分布 \(p(a\mid s)\)。这一步的意义不是“为了更 fancy”，而是承认动作本身可能具有不确定性、多模态与组合结构。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{pdf_pages/page-10.png}
+\caption{表达性策略分布的三条常见路线：高斯混合、自回归离散化和 diffusion。}
+\end{figure}
+
+讲者先回顾了离散动作和连续动作中最常见的简单参数化：
+\begin{itemize}
+\item 离散动作可以输出 categorical distribution；
+\item 连续动作可以输出高斯分布的均值与方差。
+\end{itemize}
+
+但这些方法仍然可能不够 expressive。于是课程引入更强的 generative policy 建模方式：
+\begin{itemize}
+\item Mixture of Gaussians：允许多个峰值，适合表达多模态连续动作；
+\item Discretize + Autoregressive：把动作维度离散化后按顺序建模条件概率；
+\item Diffusion：通过迭代去噪生成动作样本。
+\end{itemize}
+
+\subsection{为什么“网络表达力强”不等于“分布表达力强”}
+
+这一讲特别提醒，不能把“神经网络很强”与“动作分布建模得好”混为一谈。即便用一个很大的网络预测动作，如果目标函数仍然只是把多峰数据压成单个均值，它学到的仍可能是一个坏策略。
+
+\begin{importantbox}{这讲的关键判断}
+表达性策略分布之所以重要，不是因为生成模型流行，而是因为模仿学习要面对的监督对象本来就是“同一状态下可能存在多种合理动作”。
+\end{importantbox}
+
+\subsection{从研究示例到工业落地}
+
+课件还给出两类具体应用：
+\begin{itemize}
+\item 机器人操控里，diffusion policy 一类方法能更好地捕捉复杂动作分布；
+\item 自动驾驶里，自回归离散化预测被用于更稳定地表示高维控制输出。
+\end{itemize}
+
+讲者在总结页里把要点概括成一句话：如果数据来自单一且高度一致的专家，简单分布也许足够；但一旦动作分布是多峰的，就必须用更有表达力的生成式策略。
+
+\subsection{本章小结}
+
+模仿学习的第一个真正难点不是“怎么优化”，而是“策略究竟应该输出什么对象”。当专家行为具有多模态结构时，确定性均值回归会系统性失败，因此课程把策略从单点预测升级为条件分布建模问题。
+
+\section{模仿学习的核心风险：Compounding Errors}
+
+\subsection{监督学习的假设为什么在行为学习里破裂}
+
+behavior cloning 的第二个问题比“均值灾难”更深。普通监督学习默认测试时输入仍然来自训练分布；而行为学习里，模型预测出来的动作会改变下一步访问到的状态。这意味着一个早期小错误会把策略带到专家数据稀少的新状态区间，再导致更大的错误。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{pdf_pages/page-18.png}
+\caption{行为监督学习与普通监督学习的差别在于：预测动作会影响未来状态，因此误差会随时间累积。}
+\end{figure}
+
+课程把这件事写成 covariate shift：
+\[
+p_{\text{expert}}(s)\neq p_{\pi}(s).
+\]
+
+左边是专家访问到的状态分布，右边是当前学习策略实际访问到的状态分布。只要两者不同，策略在训练时没见过的状态就会在测试时不断冒出来。
+
+\subsection{为什么错误会越滚越大}
+
+讲者用图示说明这个过程：如果在 \(s_2\) 的动作稍微偏了一点，后面就会落到一个不同的 \(s_3\)。而 \(s_3\) 可能根本不在专家分布的高密区域内，此时模型只能在陌生状态上继续猜动作，结果又把自己带得更偏。
+
+这就是 compounding errors。它不是偶然 bug，而是 behavior cloning 在顺序决策里天然会碰到的结构性问题。
+
+\begin{warningbox}{为什么这比普通泛化误差更危险}
+因为这里的输入偏移是策略自己造成的。模型不是被动地接收分布外样本，而是在每一步决策后主动把自己推进新的分布区域。
+\end{warningbox}
+
+\subsection{本章小结}
+
+模仿学习的第二个核心难点是分布失配。训练集来自专家，部署时状态由学习到的策略自己诱导，因此小误差会沿时间累计并不断放大，最终让策略远离演示分布。
+
+\section{如何缓解分布失配：DAgger 与 Human-Gated DAgger}
+
+\subsection{Dataset Aggregation 的基本思路}
+
+解决 compounding errors 的直接办法，是不要只在专家原始分布上学，而要让数据集逐步覆盖学习策略真实会访问到的状态。课程给出的第一种方法是 DAgger（dataset aggregation）。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.94\textwidth]{pdf_pages/page-20.png}
+\caption{DAgger 的基本循环：让当前策略访问状态，再查询专家动作并把这些纠正样本聚合进数据集。}
+\end{figure}
+
+它的核心步骤是：
+\begin{enumerate}
+\item 用当前 learned policy rollout 一批轨迹；
+\item 在这些实际访问到的状态上查询专家动作 \(a^{*}\sim\pi_{\text{expert}}(\cdot\mid s)\)；
+\item 把新收集到的 \((s,a^{*})\) 与原数据聚合；
+\item 重新训练或继续更新策略。
+\end{enumerate}
+
+它的优点是数据效率高，而且纠正样本正好落在策略会犯错的状态区域。于是训练分布和部署分布的差距被逐步缩小。
+
+\subsection{Human-Gated DAgger：更实用的人机接口}
+
+但标准 DAgger 有一个实际问题：如果智能体全程自主运行，专家必须持续观察并随时标注访问到的状态，接口不够自然。为此课程介绍了 human-gated DAgger。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.94\textwidth]{pdf_pages/page-21.png}
+\caption{Human-Gated DAgger 让专家只在策略明显出错时介入，并从介入点开始提供局部纠正示范。}
+\end{figure}
+
+它的流程更贴近真实系统：
+\begin{itemize}
+\item 学习策略开始执行；
+\item 一旦专家发现策略要出错，就在时刻 \(t\) 接管；
+\item 从该接管状态起，专家给出部分 demonstration；
+\item 把这些局部纠正片段并入数据集再训练。
+\end{itemize}
+
+这个版本的好处是交互更自然，更适合人类在机器人或驾驶等系统上实时提供纠正。代价是需要可靠地发现“什么时候该介入”。
+
+\subsection{本章小结}
+
+DAgger 的核心不是简单加数据，而是让新数据来自学习策略真正访问到的状态。HG-DAgger 则把这一思想改造成更可操作的人机协作流程，从而更实际地缓解 compounding errors。
+
+\section{演示从哪里来：收集方式与 Embodiment Gap}
+
+\subsection{数据收集并不总是理所当然}
+
+课程最后提醒，模仿学习依赖 demonstrations，但 demonstrations 的来源高度依赖具体领域。在驾驶或文本等场景中，人类本来就在自然地产生可记录的行为；而在机器人领域，收集高质量示范往往更加昂贵。
+
+\subsection{为什么机器人不能直接模仿人类或动物视频}
+
+讲者给出的答案是 embodiment gap。人类、动物和机器人之间在两个层面可能不一致：
+\begin{itemize}
+\item 外观不同，视觉输入中的身体和环境结构不一致；
+\item 物理能力、关节结构、自由度和执行约束不同。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{pdf_pages/page-24.png}
+\caption{人类 / 动物视频与机器人动作之间存在 embodiment gap，因此不能简单逐帧照搬。}
+\end{figure}
+
+这意味着“看视频学动作”不是不可能，而是不能天真地把人类动作直接当作机器人动作标签。更现实的做法通常是把人类 / 动物视频当作探索、奖励或技能先验的弱指导，而不是直接的一一对应监督。
+
+\subsection{本章小结}
+
+模仿学习的成功很大程度上取决于演示质量与采集接口。不同领域的数据可得性差异很大，而机器人场景还会额外遇到 embodiment gap，使跨主体模仿变成一个单独的研究问题。
+
+\section{总结与延伸}
+
+第二讲把 imitation learning 从“看起来像监督学习”变成了一个更真实的顺序决策问题。课程先说明最基础的 behavior cloning 形式，再指出两个决定性困难：第一，动作分布往往是多峰的，单一均值预测不够；第二，策略会改变自己未来访问到的状态，因此 compounding errors 会不断累积。
+
+围绕这两个问题，这讲给出了两组解决思路。第一组是让策略输出真正有表达力的动作分布，例如高斯混合、自回归和 diffusion。第二组是让数据分布逐步靠近部署分布，例如 DAgger 与 HG-DAgger。二者分别解决“你学的对象对不对”和“你学到的数据是不是部署时会遇到的状态”。
+
+因此，模仿学习并不是“有示范就万事大吉”。它真正的研究问题在于：
+\begin{itemize}
+\item 如何表示复杂、随机、多峰的行为分布；
+\item 如何控制训练分布与部署分布的偏移；
+\item 如何用合适的人机接口持续收集高质量纠正数据；
+\item 如何跨越 embodiment gap，把非机器人数据转化为对机器人仍然有用的学习信号。
+\end{itemize}
+
+从课程节奏看，这一讲也起到了承前启后的作用。它一方面保留了监督学习式的强信号，另一方面已经把大家带到“策略影响状态分布”的核心 RL 难点上，为之后进入在线 RL 和 policy gradients 做了铺垫。
+
+\end{document}

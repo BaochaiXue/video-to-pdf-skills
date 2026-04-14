@@ -1,0 +1,5852 @@
+1
+00:00:00,000 --> 00:00:05,680
+
+2
+00:00:05,680 --> 00:00:08,000
+OK, let's get started.
+
+3
+00:00:08,000 --> 00:00:12,000
+As a recap of some of the stuff
+that we've talked about so far,
+
+4
+00:00:12,000 --> 00:00:14,440
+we've formulated this
+reinforcement learning problem
+
+5
+00:00:14,440 --> 00:00:16,840
+where we have
+states and actions.
+
+6
+00:00:16,840 --> 00:00:20,600
+We have some trajectories
+that we might be collecting,
+
+7
+00:00:20,600 --> 00:00:22,777
+which are sequences
+of states and actions.
+
+8
+00:00:22,777 --> 00:00:24,360
+We have a reward
+function, which tells
+
+9
+00:00:24,360 --> 00:00:29,240
+us how good is a particular
+state and action,
+
+10
+00:00:29,240 --> 00:00:31,080
+and also a policy,
+which is usually
+
+11
+00:00:31,080 --> 00:00:32,960
+what we're trying to learn.
+
+12
+00:00:32,960 --> 00:00:35,800
+And this is representing
+the behavior
+
+13
+00:00:35,800 --> 00:00:38,000
+that we're trying to learn.
+
+14
+00:00:38,000 --> 00:00:40,060
+And then the goal of
+reinforcement learning,
+
+15
+00:00:40,060 --> 00:00:42,420
+which we talked about
+in the first lecture,
+
+16
+00:00:42,420 --> 00:00:46,700
+is to try to maximize the
+expected sum of rewards.
+
+17
+00:00:46,700 --> 00:00:53,880
+So we want to produce behavior
+that leads to positive outcomes.
+
+18
+00:00:53,880 --> 00:00:57,200
+And we can actually
+mathematically write this
+
+19
+00:00:57,200 --> 00:01:00,480
+down as an expectation over
+the probability distribution
+
+20
+00:01:00,480 --> 00:01:03,600
+over trajectories, where this
+probability distribution is
+
+21
+00:01:03,600 --> 00:01:06,480
+a function of the
+policy which is acting
+
+22
+00:01:06,480 --> 00:01:09,560
+in the world, the
+environment dynamics which
+
+23
+00:01:09,560 --> 00:01:13,770
+might be stochastic, and of
+course, the reward function.
+
+24
+00:01:13,770 --> 00:01:17,240
+
+25
+00:01:17,240 --> 00:01:20,000
+Last week on Friday, we
+started talking about one way
+
+26
+00:01:20,000 --> 00:01:22,420
+to do this, which is if you
+have expert demonstrations,
+
+27
+00:01:22,420 --> 00:01:24,840
+you could try to
+imitate the expert
+
+28
+00:01:24,840 --> 00:01:29,920
+by trying to maximize the
+likelihood of the actions
+
+29
+00:01:29,920 --> 00:01:32,600
+that the demonstrator did--
+so trying to actually produce
+
+30
+00:01:32,600 --> 00:01:36,520
+a policy that leads to
+actions that the expert would
+
+31
+00:01:36,520 --> 00:01:37,380
+have taken.
+
+32
+00:01:37,380 --> 00:01:39,680
+This is a very simple
+and scalable approach,
+
+33
+00:01:39,680 --> 00:01:43,000
+but it cannot outperform the
+demonstrator and doesn't allow
+
+34
+00:01:43,000 --> 00:01:46,720
+improvement through
+trial and error.
+
+35
+00:01:46,720 --> 00:01:50,080
+We also introduced the notion
+of an offline algorithm that
+
+36
+00:01:50,080 --> 00:01:53,280
+only uses an existing
+data set, and no new data
+
+37
+00:01:53,280 --> 00:01:56,120
+from a learned policy, and
+an online algorithm that
+
+38
+00:01:56,120 --> 00:01:59,230
+uses new data from
+the learned policy.
+
+39
+00:01:59,230 --> 00:02:01,750
+And today we'll be
+talking about ways
+
+40
+00:02:01,750 --> 00:02:03,205
+in which we can
+use reinforcement
+
+41
+00:02:03,205 --> 00:02:04,830
+learning to outperform
+the demonstrator
+
+42
+00:02:04,830 --> 00:02:06,292
+to improve from practice.
+
+43
+00:02:06,292 --> 00:02:07,750
+And specifically,
+we'll be starting
+
+44
+00:02:07,750 --> 00:02:10,310
+to talk about online
+reinforcement learning
+
+45
+00:02:10,310 --> 00:02:13,150
+algorithms.
+
+46
+00:02:13,150 --> 00:02:15,110
+Particularly, our first
+online RL algorithm
+
+47
+00:02:15,110 --> 00:02:17,070
+will be policy gradients.
+
+48
+00:02:17,070 --> 00:02:19,470
+We'll talk about a couple of
+different variants of policy
+
+49
+00:02:19,470 --> 00:02:23,570
+gradients and introduce both the
+mathematical derivation for it,
+
+50
+00:02:23,570 --> 00:02:26,150
+as well as some of the
+intuition behind it.
+
+51
+00:02:26,150 --> 00:02:28,350
+And policy gradients
+are the basis
+
+52
+00:02:28,350 --> 00:02:31,310
+for some popular reinforcement
+learning algorithms, including
+
+53
+00:02:31,310 --> 00:02:35,270
+ones that are used to train
+legged robots, algorithms that
+
+54
+00:02:35,270 --> 00:02:37,870
+are used to train
+language models,
+
+55
+00:02:37,870 --> 00:02:41,590
+and are also part of
+the default project.
+
+56
+00:02:41,590 --> 00:02:43,270
+We won't get the
+complete algorithm
+
+57
+00:02:43,270 --> 00:02:47,990
+that was used to train these
+today, but we'll get most of--
+
+58
+00:02:47,990 --> 00:02:49,650
+or halfway there, basically.
+
+59
+00:02:49,650 --> 00:02:54,270
+And by Friday, we'll have
+most of the algorithm for it.
+
+60
+00:02:54,270 --> 00:02:55,830
+And then the key
+goals will be to try
+
+61
+00:02:55,830 --> 00:02:57,930
+to get the intuition
+behind policy gradients,
+
+62
+00:02:57,930 --> 00:03:00,570
+how to implement them,
+and when to use them.
+
+63
+00:03:00,570 --> 00:03:03,510
+
+64
+00:03:03,510 --> 00:03:04,430
+OK.
+
+65
+00:03:04,430 --> 00:03:08,510
+So the outline of an online
+reinforcement learning algorithm
+
+66
+00:03:08,510 --> 00:03:11,010
+is going to look
+something like this.
+
+67
+00:03:11,010 --> 00:03:15,690
+So first, we need to initialize
+our policy in some way.
+
+68
+00:03:15,690 --> 00:03:17,190
+When you train a
+neural network, you
+
+69
+00:03:17,190 --> 00:03:18,950
+need to initialize its weights.
+
+70
+00:03:18,950 --> 00:03:21,883
+We could initialize the
+weights of our policy randomly.
+
+71
+00:03:21,883 --> 00:03:24,050
+We could also initialize
+it with imitation learning.
+
+72
+00:03:24,050 --> 00:03:26,630
+We could also use heuristics.
+
+73
+00:03:26,630 --> 00:03:29,270
+It depends on the
+problem setting.
+
+74
+00:03:29,270 --> 00:03:31,550
+And after we
+initialize our policy,
+
+75
+00:03:31,550 --> 00:03:34,030
+we'll run our policy
+to collect some data.
+
+76
+00:03:34,030 --> 00:03:38,190
+So actually, try out
+different things in the world.
+
+77
+00:03:38,190 --> 00:03:42,670
+Then we'll use that batch of
+data to improve the policy.
+
+78
+00:03:42,670 --> 00:03:44,250
+And then we will
+repeat that process.
+
+79
+00:03:44,250 --> 00:03:47,270
+We'll then collect new data
+with our updated policy
+
+80
+00:03:47,270 --> 00:03:51,710
+and update our policy again
+using that latest batch of data.
+
+81
+00:03:51,710 --> 00:03:54,650
+So we're going to attempt the
+task and try to get better.
+
+82
+00:03:54,650 --> 00:03:56,860
+So what this might look
+like is the first iteration,
+
+83
+00:03:56,860 --> 00:03:59,980
+we attempt whatever--
+
+84
+00:03:59,980 --> 00:04:02,980
+some kind of simple
+2D navigation task.
+
+85
+00:04:02,980 --> 00:04:04,960
+The reward for some
+of them is bad.
+
+86
+00:04:04,960 --> 00:04:08,060
+The reward for other
+trajectories is OK.
+
+87
+00:04:08,060 --> 00:04:10,902
+And then after more
+iterations of this,
+
+88
+00:04:10,902 --> 00:04:12,860
+we might have a policy
+that's a bit better that
+
+89
+00:04:12,860 --> 00:04:15,417
+is able to get a higher
+reward but isn't perfect.
+
+90
+00:04:15,417 --> 00:04:16,959
+So sometimes it gets
+a higher reward,
+
+91
+00:04:16,959 --> 00:04:20,260
+sometimes it still
+gets a low reward.
+
+92
+00:04:20,260 --> 00:04:22,500
+Then we'll use that to
+improve the policy again.
+
+93
+00:04:22,500 --> 00:04:25,180
+And after more
+iterations, hopefully, we
+
+94
+00:04:25,180 --> 00:04:30,025
+will get a policy that
+is able to succeed.
+
+95
+00:04:30,025 --> 00:04:32,780
+So this is this notion of
+online reinforcement learning
+
+96
+00:04:32,780 --> 00:04:35,260
+where we're collecting
+data online and improving
+
+97
+00:04:35,260 --> 00:04:38,318
+using that data.
+
+98
+00:04:38,318 --> 00:04:39,860
+So we talked about
+this reinforcement
+
+99
+00:04:39,860 --> 00:04:41,220
+learning objective.
+
+100
+00:04:41,220 --> 00:04:45,020
+And say you have
+some policy, and you
+
+101
+00:04:45,020 --> 00:04:48,515
+want to actually understand
+how good that policy is,
+
+102
+00:04:48,515 --> 00:04:50,140
+to do that, we can't
+just actually look
+
+103
+00:04:50,140 --> 00:04:51,682
+at the weights of
+the neural network.
+
+104
+00:04:51,682 --> 00:04:53,380
+We actually have
+to run the policy
+
+105
+00:04:53,380 --> 00:04:55,380
+to understand how good it is.
+
+106
+00:04:55,380 --> 00:05:01,180
+And so what we'll do is to
+estimate this expectation, which
+
+107
+00:05:01,180 --> 00:05:03,200
+is a function of the policy.
+
+108
+00:05:03,200 --> 00:05:05,780
+We can actually just run
+the policy multiple times,
+
+109
+00:05:05,780 --> 00:05:11,580
+observe the resulting reward,
+and then compute the average
+
+110
+00:05:11,580 --> 00:05:13,060
+over the observed reward.
+
+111
+00:05:13,060 --> 00:05:16,440
+And that's an estimate of
+how good our policy is.
+
+112
+00:05:16,440 --> 00:05:19,780
+
+113
+00:05:19,780 --> 00:05:24,140
+So we can then sum over the
+samples from our policy.
+
+114
+00:05:24,140 --> 00:05:26,912
+Now, let's start to think about
+how we actually-- so we have
+
+115
+00:05:26,912 --> 00:05:28,120
+this trial and error process.
+
+116
+00:05:28,120 --> 00:05:31,860
+We collect some data and
+we improve our policy.
+
+117
+00:05:31,860 --> 00:05:33,680
+Collecting the data
+is straightforward.
+
+118
+00:05:33,680 --> 00:05:35,740
+We've talked about
+how to run a policy
+
+119
+00:05:35,740 --> 00:05:37,680
+to get a rollout
+in the environment.
+
+120
+00:05:37,680 --> 00:05:40,320
+We can sample an action,
+observe the next state,
+
+121
+00:05:40,320 --> 00:05:43,540
+then run that through our policy
+again to get a new action,
+
+122
+00:05:43,540 --> 00:05:45,300
+and repeat that process.
+
+123
+00:05:45,300 --> 00:05:48,220
+But how do we actually
+then improve our policy
+
+124
+00:05:48,220 --> 00:05:51,220
+after we've collected that data?
+
+125
+00:05:51,220 --> 00:05:56,050
+So we have our objective, and
+this can be written down--
+
+126
+00:05:56,050 --> 00:05:58,010
+we have some policy pi-theta.
+
+127
+00:05:58,010 --> 00:06:04,370
+And our goal is to maximize
+the expected rewards when
+
+128
+00:06:04,370 --> 00:06:06,110
+we sample from that policy.
+
+129
+00:06:06,110 --> 00:06:09,370
+So we can consider the
+trajectories that are sampled
+
+130
+00:06:09,370 --> 00:06:14,250
+from the policy as being drawn
+by some distribution that
+
+131
+00:06:14,250 --> 00:06:16,890
+I'll write as p-theta of tau--
+
+132
+00:06:16,890 --> 00:06:19,490
+theta because the
+distribution over trajectories
+
+133
+00:06:19,490 --> 00:06:24,290
+is a function of the
+policy that you're using.
+
+134
+00:06:24,290 --> 00:06:28,810
+And our goal is to maximize
+the sum of rewards.
+
+135
+00:06:28,810 --> 00:06:30,650
+I'm going to use shorthand here.
+
+136
+00:06:30,650 --> 00:06:36,890
+And I'm going to use shorthand
+for r of the trajectory, where
+
+137
+00:06:36,890 --> 00:06:43,530
+this just means the sum of the
+rewards along that trajectory.
+
+138
+00:06:43,530 --> 00:06:47,290
+So our goal is to
+maximize the rewards.
+
+139
+00:06:47,290 --> 00:06:49,210
+We're going to maximize
+this with respect
+
+140
+00:06:49,210 --> 00:06:53,490
+to our policy parameters theta.
+
+141
+00:06:53,490 --> 00:06:57,150
+Now, how do we
+actually optimize this?
+
+142
+00:06:57,150 --> 00:06:59,450
+So we want to use gradient
+descent because we typically
+
+143
+00:06:59,450 --> 00:07:01,283
+train neural networks
+with gradient descent.
+
+144
+00:07:01,283 --> 00:07:03,810
+We need to figure out the
+gradient of this objective
+
+145
+00:07:03,810 --> 00:07:06,610
+with regard to theta.
+
+146
+00:07:06,610 --> 00:07:15,970
+And we'll refer to this
+term right here as j-theta
+
+147
+00:07:15,970 --> 00:07:17,470
+to be able to write it.
+
+148
+00:07:17,470 --> 00:07:20,675
+This is the objective that
+we're trying to maximize.
+
+149
+00:07:20,675 --> 00:07:22,050
+And it's a little
+bit challenging
+
+150
+00:07:22,050 --> 00:07:25,410
+to try to get a
+gradient of this thing
+
+151
+00:07:25,410 --> 00:07:28,170
+directly because
+the relationship
+
+152
+00:07:28,170 --> 00:07:30,650
+that this has on theta is
+through the trajectories
+
+153
+00:07:30,650 --> 00:07:32,210
+that we sampled.
+
+154
+00:07:32,210 --> 00:07:36,850
+So we can't just differentiate
+through the sampling process.
+
+155
+00:07:36,850 --> 00:07:38,650
+And that sampling
+process also depends
+
+156
+00:07:38,650 --> 00:07:42,945
+on the dynamics of the world,
+which we also don't know.
+
+157
+00:07:42,945 --> 00:07:44,570
+So if we're going to
+think about trying
+
+158
+00:07:44,570 --> 00:07:53,040
+to get a gradient
+of j-theta, it's
+
+159
+00:07:53,040 --> 00:07:59,560
+helpful to write down this
+expectation as an integral.
+
+160
+00:07:59,560 --> 00:08:03,880
+So this expectation
+can be written
+
+161
+00:08:03,880 --> 00:08:14,520
+as an integral of p-theta
+of tau times r of tau d tau.
+
+162
+00:08:14,520 --> 00:08:20,440
+So this is just from the
+definition of an expectation.
+
+163
+00:08:20,440 --> 00:08:23,785
+Now, because an
+integral is a summation,
+
+164
+00:08:23,785 --> 00:08:25,160
+and that's a linear
+operation, we
+
+165
+00:08:25,160 --> 00:08:30,200
+can bring the gradient
+inside the integral.
+
+166
+00:08:30,200 --> 00:08:32,919
+And so in particular,
+what that looks
+
+167
+00:08:32,919 --> 00:08:42,600
+like is the integral of
+the gradient of p-theta
+
+168
+00:08:42,600 --> 00:08:47,360
+of tau r of tau.
+
+169
+00:08:47,360 --> 00:08:50,620
+Now, this doesn't really
+help us directly in any way,
+
+170
+00:08:50,620 --> 00:08:53,360
+because we don't want to have to
+evaluate this integral in order
+
+171
+00:08:53,360 --> 00:08:55,200
+to take a gradient.
+
+172
+00:08:55,200 --> 00:09:01,120
+And at this point, there is kind
+of a trick, a convenient trick
+
+173
+00:09:01,120 --> 00:09:02,640
+that we can use
+to try to put this
+
+174
+00:09:02,640 --> 00:09:04,110
+into a form that's more useful.
+
+175
+00:09:04,110 --> 00:09:07,240
+
+176
+00:09:07,240 --> 00:09:11,800
+And in particular,
+the trick is that--
+
+177
+00:09:11,800 --> 00:09:14,760
+we'll write it over here--
+
+178
+00:09:14,760 --> 00:09:21,680
+is that if you
+think about p-theta
+
+179
+00:09:21,680 --> 00:09:32,400
+of tau times the gradient of
+p-theta of tau-- actually,
+
+180
+00:09:32,400 --> 00:09:34,590
+sorry, times the
+gradient of the log.
+
+181
+00:09:34,590 --> 00:09:41,480
+
+182
+00:09:41,480 --> 00:09:44,680
+Does anyone remember what
+the gradient of a log is
+
+183
+00:09:44,680 --> 00:09:46,060
+or the derivative of log?
+
+184
+00:09:46,060 --> 00:09:48,070
+[INAUDIBLE]
+
+185
+00:09:48,070 --> 00:09:50,910
+1 over, right?
+
+186
+00:09:50,910 --> 00:09:53,350
+Then what this is equal to?
+
+187
+00:09:53,350 --> 00:10:03,367
+This is equal to p-theta of tau
+times 1 over p-theta of tau.
+
+188
+00:10:03,367 --> 00:10:04,950
+And then we need to
+use the chain rule
+
+189
+00:10:04,950 --> 00:10:06,695
+to apply the gradient to this.
+
+190
+00:10:06,695 --> 00:10:08,070
+And so with the
+chain rule, we'll
+
+191
+00:10:08,070 --> 00:10:13,510
+get the gradient
+of p-theta of tau.
+
+192
+00:10:13,510 --> 00:10:15,910
+And these two will
+then cancel out.
+
+193
+00:10:15,910 --> 00:10:22,390
+And this is equal to the
+gradient of p-theta of tau.
+
+194
+00:10:22,390 --> 00:10:26,750
+And the reason why this is a
+convenient equality between
+
+195
+00:10:26,750 --> 00:10:28,090
+gradient of p-theta--
+
+196
+00:10:28,090 --> 00:10:29,750
+and this is we
+could actually then
+
+197
+00:10:29,750 --> 00:10:34,990
+replace the gradient of p-theta
+down here with this first thing
+
+198
+00:10:34,990 --> 00:10:36,590
+right here.
+
+199
+00:10:36,590 --> 00:10:41,590
+If we replace this gradient
+of p-theta of tau right here,
+
+200
+00:10:41,590 --> 00:10:49,630
+we replace this, we now get an
+integral of p-theta of tau times
+
+201
+00:10:49,630 --> 00:11:03,430
+grad log p-theta of tau
+times r of tau d tau.
+
+202
+00:11:03,430 --> 00:11:05,630
+Now, this is something
+that's useful
+
+203
+00:11:05,630 --> 00:11:07,030
+because we can
+now represent this
+
+204
+00:11:07,030 --> 00:11:10,550
+as an expectation, this
+first term right here.
+
+205
+00:11:10,550 --> 00:11:14,230
+And so this is equal
+to an expectation
+
+206
+00:11:14,230 --> 00:11:22,442
+of tau sampled from
+p-theta of tau of grad log
+
+207
+00:11:22,442 --> 00:11:27,810
+p-theta of tau times r of tau.
+
+208
+00:11:27,810 --> 00:11:30,710
+
+209
+00:11:30,710 --> 00:11:34,310
+So what we did there is
+we used this log trick
+
+210
+00:11:34,310 --> 00:11:38,590
+to then get the p-theta out here
+and then get an expectation.
+
+211
+00:11:38,590 --> 00:11:41,830
+And we're starting to get to
+something that's actually more
+
+212
+00:11:41,830 --> 00:11:43,430
+what we can evaluate.
+
+213
+00:11:43,430 --> 00:11:45,620
+And in particular,
+this expectation
+
+214
+00:11:45,620 --> 00:11:47,980
+is something that we can
+estimate with samples.
+
+215
+00:11:47,980 --> 00:11:52,540
+And now theta is actually
+appearing on the inside here.
+
+216
+00:11:52,540 --> 00:11:55,460
+And that means that
+this is actually
+
+217
+00:11:55,460 --> 00:11:57,700
+getting closer to something
+that we can evaluate.
+
+218
+00:11:57,700 --> 00:12:00,160
+We still have this
+term right here,
+
+219
+00:12:00,160 --> 00:12:03,380
+which doesn't look
+like pi of a given S.
+
+220
+00:12:03,380 --> 00:12:05,388
+So we need to work on this term.
+
+221
+00:12:05,388 --> 00:12:07,180
+But we're starting to
+get towards something
+
+222
+00:12:07,180 --> 00:12:09,300
+that we can evaluate.
+
+223
+00:12:09,300 --> 00:12:12,480
+So the question is, how is this
+more useful than the first term,
+
+224
+00:12:12,480 --> 00:12:14,220
+because we still
+have the sampling,
+
+225
+00:12:14,220 --> 00:12:17,220
+and the issue with
+the first case
+
+226
+00:12:17,220 --> 00:12:20,200
+was that we can't differentiate
+through the sampling?
+
+227
+00:12:20,200 --> 00:12:21,700
+Now, the thing
+that's different here
+
+228
+00:12:21,700 --> 00:12:24,740
+is that theta actually appears
+inside the expectation.
+
+229
+00:12:24,740 --> 00:12:26,700
+Now we're not going to
+be able to differentiate
+
+230
+00:12:26,700 --> 00:12:29,420
+through the sampling, still.
+
+231
+00:12:29,420 --> 00:12:31,420
+But the thing that's
+useful here is
+
+232
+00:12:31,420 --> 00:12:34,420
+that we will actually
+be able to differentiate
+
+233
+00:12:34,420 --> 00:12:36,220
+with respect to theta.
+
+234
+00:12:36,220 --> 00:12:39,380
+And we're still not going to
+differentiate in this part,
+
+235
+00:12:39,380 --> 00:12:42,240
+but we'll be able to get an
+estimate that's still useful.
+
+236
+00:12:42,240 --> 00:12:45,620
+And we could potentially
+draw many, many samples.
+
+237
+00:12:45,620 --> 00:12:47,740
+And then measure this
+quantity to get actually
+
+238
+00:12:47,740 --> 00:12:52,567
+a pretty accurate representation
+of the gradient in a way that
+
+239
+00:12:52,567 --> 00:12:53,650
+actually depends on theta.
+
+240
+00:12:53,650 --> 00:12:57,640
+
+241
+00:12:57,640 --> 00:12:58,140
+OK.
+
+242
+00:12:58,140 --> 00:13:00,970
+Let's talk a little bit
+about this term right here.
+
+243
+00:13:00,970 --> 00:13:03,566
+
+244
+00:13:03,566 --> 00:13:06,420
+And actually, maybe in
+case it's useful in terms
+
+245
+00:13:06,420 --> 00:13:09,960
+of where we're at so far, we can
+show that on the slides as well.
+
+246
+00:13:09,960 --> 00:13:16,820
+So we looked at this j of theta,
+wrote it down as an integral.
+
+247
+00:13:16,820 --> 00:13:19,900
+We found this convenient
+identity over here,
+
+248
+00:13:19,900 --> 00:13:23,700
+where p grad log p
+is equal to grad p.
+
+249
+00:13:23,700 --> 00:13:27,540
+And then we can use that to
+derive this second equation
+
+250
+00:13:27,540 --> 00:13:30,660
+right here.
+
+251
+00:13:30,660 --> 00:13:33,340
+And now we're right here.
+
+252
+00:13:33,340 --> 00:13:37,860
+So for this part,
+for grad log p,
+
+253
+00:13:37,860 --> 00:13:40,060
+this is something
+that we can write out.
+
+254
+00:13:40,060 --> 00:13:41,780
+And if we use--
+
+255
+00:13:41,780 --> 00:13:51,570
+if we remember that p-theta
+of tau equals p of S1 times pi
+
+256
+00:13:51,570 --> 00:13:59,490
+of at given St and P of
+St plus 1, given St at,
+
+257
+00:13:59,490 --> 00:14:06,090
+and then with a product over t.
+
+258
+00:14:06,090 --> 00:14:10,290
+Then when we take the log
+of this, it's over there,
+
+259
+00:14:10,290 --> 00:14:19,170
+the log of p-theta of
+tau is equal to the log
+
+260
+00:14:19,170 --> 00:14:35,090
+of p of S1 plus the sum over T
+of the log of pi plus the log
+
+261
+00:14:35,090 --> 00:14:37,020
+of the dynamics.
+
+262
+00:14:37,020 --> 00:14:41,930
+
+263
+00:14:41,930 --> 00:14:49,890
+And then once we actually take
+the gradient of log p tau, then
+
+264
+00:14:49,890 --> 00:14:52,290
+the gradient of this
+with respect to theta,
+
+265
+00:14:52,290 --> 00:14:54,870
+theta doesn't affect the
+initial state distribution.
+
+266
+00:14:54,870 --> 00:14:57,450
+It also doesn't affect
+the dynamics in any way.
+
+267
+00:14:57,450 --> 00:15:05,570
+And so the gradient
+of log p-theta of tau
+
+268
+00:15:05,570 --> 00:15:09,650
+is equal to just the gradient
+of this term right here.
+
+269
+00:15:09,650 --> 00:15:24,062
+So the gradient of log
+pi-theta of a given S.
+
+270
+00:15:24,062 --> 00:15:25,770
+And so this is really
+useful because this
+
+271
+00:15:25,770 --> 00:15:31,183
+means that we can actually
+plug in this over there.
+
+272
+00:15:31,183 --> 00:15:33,350
+And this is actually something
+that we can evaluate.
+
+273
+00:15:33,350 --> 00:15:36,050
+We can evaluate
+the gradient of--
+
+274
+00:15:36,050 --> 00:15:41,040
+or the log-- the
+gradient of log pi.
+
+275
+00:15:41,040 --> 00:15:43,400
+And this is just
+taking a backward pass
+
+276
+00:15:43,400 --> 00:15:46,870
+through the log of the
+output of our neural network.
+
+277
+00:15:46,870 --> 00:15:50,240
+
+278
+00:15:50,240 --> 00:15:55,120
+And so then we actually get a
+gradient that we can evaluate.
+
+279
+00:15:55,120 --> 00:16:08,320
+So the gradient that we
+get when we plug things in,
+
+280
+00:16:08,320 --> 00:16:13,600
+the gradient of j-theta
+when we plug this in,
+
+281
+00:16:13,600 --> 00:16:19,840
+is we have an expectation
+over trajectories
+
+282
+00:16:19,840 --> 00:16:23,280
+sampled from our policy.
+
+283
+00:16:23,280 --> 00:16:27,440
+And inside that expectation,
+we can bring the gradient
+
+284
+00:16:27,440 --> 00:16:29,360
+inside that summation.
+
+285
+00:16:29,360 --> 00:16:35,600
+And so we'll have a sum
+over time steps of grad log
+
+286
+00:16:35,600 --> 00:16:41,000
+pi of at given St, right here.
+
+287
+00:16:41,000 --> 00:16:43,800
+And then we still
+have our r of t
+
+288
+00:16:43,800 --> 00:16:47,320
+right here, so we can
+write that as r of tau.
+
+289
+00:16:47,320 --> 00:16:55,370
+We could also write it as a
+summation of r of St comma at.
+
+290
+00:16:55,370 --> 00:16:58,760
+
+291
+00:16:58,760 --> 00:17:02,320
+So this is what's called the
+policy gradient or the vanilla
+
+292
+00:17:02,320 --> 00:17:03,920
+policy gradient.
+
+293
+00:17:03,920 --> 00:17:07,960
+And this is a lot
+nicer than the version
+
+294
+00:17:07,960 --> 00:17:13,079
+up there because we can sample
+trajectories from our policy,
+
+295
+00:17:13,079 --> 00:17:14,560
+compute their reward.
+
+296
+00:17:14,560 --> 00:17:19,319
+Also, compute the
+gradient of each of log
+
+297
+00:17:19,319 --> 00:17:21,760
+of pi for each of the actions.
+
+298
+00:17:21,760 --> 00:17:25,880
+And then sum those
+together, multiply,
+
+299
+00:17:25,880 --> 00:17:27,760
+and we can get a
+gradient that we
+
+300
+00:17:27,760 --> 00:17:30,720
+can apply to the weights
+of our neural network.
+
+301
+00:17:30,720 --> 00:17:32,990
+That's actually leading
+to a higher reward.
+
+302
+00:17:32,990 --> 00:17:36,200
+
+303
+00:17:36,200 --> 00:17:41,710
+So again, on the
+slides, we wrote down
+
+304
+00:17:41,710 --> 00:17:44,070
+what the probability
+of a trajectory is.
+
+305
+00:17:44,070 --> 00:17:46,790
+If you take the log
+of that, you get
+
+306
+00:17:46,790 --> 00:17:49,950
+a summation instead
+of a product,
+
+307
+00:17:49,950 --> 00:17:53,190
+and the log of each of
+the individual terms.
+
+308
+00:17:53,190 --> 00:17:59,630
+Then if we plug that
+into our gradient
+
+309
+00:17:59,630 --> 00:18:03,110
+and we take the
+gradient of log p tau,
+
+310
+00:18:03,110 --> 00:18:06,230
+then the first term
+and the last term
+
+311
+00:18:06,230 --> 00:18:10,630
+go away because they
+don't depend on theta.
+
+312
+00:18:10,630 --> 00:18:14,970
+And then we get this final
+term when we plug it in.
+
+313
+00:18:14,970 --> 00:18:18,190
+
+314
+00:18:18,190 --> 00:18:19,530
+So this is the gradient.
+
+315
+00:18:19,530 --> 00:18:21,830
+When we run policy gradient,
+we'll collect data.
+
+316
+00:18:21,830 --> 00:18:25,070
+And then we'll
+evaluate this equation.
+
+317
+00:18:25,070 --> 00:18:28,270
+And then we'll use that
+to represent the gradient
+
+318
+00:18:28,270 --> 00:18:30,310
+of the weights of the policy.
+
+319
+00:18:30,310 --> 00:18:34,190
+And then run gradient descent,
+apply that to our policy,
+
+320
+00:18:34,190 --> 00:18:35,380
+and then repeat the process.
+
+321
+00:18:35,380 --> 00:18:41,030
+
+322
+00:18:41,030 --> 00:18:43,370
+So yeah, we also talked
+about this verbally.
+
+323
+00:18:43,370 --> 00:18:45,550
+But in order to estimate
+this gradient here,
+
+324
+00:18:45,550 --> 00:18:47,630
+we'll run the policy
+to collect some data.
+
+325
+00:18:47,630 --> 00:18:50,890
+We'll then improve the
+policy using that data.
+
+326
+00:18:50,890 --> 00:18:55,590
+In particular, you can
+think of the first summation
+
+327
+00:18:55,590 --> 00:18:59,410
+as collecting n samples
+for that expectation.
+
+328
+00:18:59,410 --> 00:19:01,895
+And ideally, n is larger
+because the higher n
+
+329
+00:19:01,895 --> 00:19:03,270
+is, the better an
+estimate you're
+
+330
+00:19:03,270 --> 00:19:07,990
+going to get of the
+expectation of the integral.
+
+331
+00:19:07,990 --> 00:19:10,150
+And then once we
+evaluate this gradient
+
+332
+00:19:10,150 --> 00:19:12,210
+that we're estimating
+with samples,
+
+333
+00:19:12,210 --> 00:19:15,370
+we'll then take a gradient
+step on our policy parameters.
+
+334
+00:19:15,370 --> 00:19:18,602
+
+335
+00:19:18,602 --> 00:19:20,310
+And so the full
+algorithm looks something
+
+336
+00:19:20,310 --> 00:19:23,630
+like sampling trajectories
+from our policy,
+
+337
+00:19:23,630 --> 00:19:30,230
+evaluating an estimate of the
+gradient using those samples,
+
+338
+00:19:30,230 --> 00:19:34,070
+applying that to the weights,
+and then repeating this process
+
+339
+00:19:34,070 --> 00:19:37,780
+to collect a new batch of
+data, recomputing the gradient,
+
+340
+00:19:37,780 --> 00:19:40,198
+and improving the policy.
+
+341
+00:19:40,198 --> 00:19:41,740
+So the question is,
+what does it look
+
+342
+00:19:41,740 --> 00:19:46,170
+like to use the data to
+estimate this gradient term--
+
+343
+00:19:46,170 --> 00:19:49,260
+the first term or
+the second term?
+
+344
+00:19:49,260 --> 00:19:50,560
+The first term.
+
+345
+00:19:50,560 --> 00:19:51,060
+Yeah.
+
+346
+00:19:51,060 --> 00:19:56,242
+So when we're using the data to
+compute this first term, what
+
+347
+00:19:56,242 --> 00:19:58,700
+we're doing is we're getting
+a bunch of states and actions,
+
+348
+00:19:58,700 --> 00:19:59,893
+a bunch of trajectories.
+
+349
+00:19:59,893 --> 00:20:02,060
+We're getting n trajectories
+at each-- in this case,
+
+350
+00:20:02,060 --> 00:20:04,140
+have length t time steps.
+
+351
+00:20:04,140 --> 00:20:06,820
+And we'll be taking
+the states and actions
+
+352
+00:20:06,820 --> 00:20:09,540
+in those trajectories,
+passing the state
+
+353
+00:20:09,540 --> 00:20:12,860
+through the policy
+as a forward pass
+
+354
+00:20:12,860 --> 00:20:14,740
+to get the probability
+of our actions.
+
+355
+00:20:14,740 --> 00:20:19,430
+We'll then evaluate the action
+in the data, the probability
+
+356
+00:20:19,430 --> 00:20:23,380
+of that action in the data under
+the distribution, the policy
+
+357
+00:20:23,380 --> 00:20:23,920
+output.
+
+358
+00:20:23,920 --> 00:20:26,888
+So it's like a
+categorical distribution.
+
+359
+00:20:26,888 --> 00:20:28,180
+We'll then get the probability.
+
+360
+00:20:28,180 --> 00:20:30,452
+We'll take the log
+of that probability.
+
+361
+00:20:30,452 --> 00:20:32,160
+And then we take the
+gradient right here,
+
+362
+00:20:32,160 --> 00:20:33,720
+which will just be
+a forward pass--
+
+363
+00:20:33,720 --> 00:20:36,900
+sorry, a backward pass
+through the network
+
+364
+00:20:36,900 --> 00:20:41,700
+after taking the log of the
+policy output for that action.
+
+365
+00:20:41,700 --> 00:20:44,500
+So this is called the REINFORCE
+algorithm or the vanilla policy
+
+366
+00:20:44,500 --> 00:20:46,672
+gradient algorithm.
+
+367
+00:20:46,672 --> 00:20:47,380
+So this came out.
+
+368
+00:20:47,380 --> 00:20:49,220
+This is just r of tau.
+
+369
+00:20:49,220 --> 00:20:52,940
+So I'm using r of tau
+as shorthand for this,
+
+370
+00:20:52,940 --> 00:20:57,460
+just because I didn't want to
+write the summation five times.
+
+371
+00:20:57,460 --> 00:21:00,777
+But yeah, this is
+exactly r of tau.
+
+372
+00:21:00,777 --> 00:21:01,360
+Yeah, exactly.
+
+373
+00:21:01,360 --> 00:21:03,068
+So this is an estimate
+because we're only
+
+374
+00:21:03,068 --> 00:21:05,840
+going to be taking n samples
+to estimate this expectation.
+
+375
+00:21:05,840 --> 00:21:11,205
+If you took infinite,
+then this would be exact.
+
+376
+00:21:11,205 --> 00:21:13,330
+Of course, taking infinite
+samples is not possible.
+
+377
+00:21:13,330 --> 00:21:14,120
+The gradient.
+
+378
+00:21:14,120 --> 00:21:14,620
+Yeah.
+
+379
+00:21:14,620 --> 00:21:16,328
+So the gradient right
+here, this is going
+
+380
+00:21:16,328 --> 00:21:18,500
+to depend on the architecture.
+
+381
+00:21:18,500 --> 00:21:21,700
+The question was, do we
+compute this by hand?
+
+382
+00:21:21,700 --> 00:21:24,200
+You can use automatic
+differentiation.
+
+383
+00:21:24,200 --> 00:21:26,158
+So whatever library,
+PyTorch or whatever,
+
+384
+00:21:26,158 --> 00:21:27,700
+that can compute
+that for you, so you
+
+385
+00:21:27,700 --> 00:21:30,220
+don't have to write it out.
+
+386
+00:21:30,220 --> 00:21:30,720
+Great.
+
+387
+00:21:30,720 --> 00:21:32,970
+So let's talk about some of
+the intuition behind this.
+
+388
+00:21:32,970 --> 00:21:34,330
+So there's the math.
+
+389
+00:21:34,330 --> 00:21:37,530
+But what does this
+gradient actually mean?
+
+390
+00:21:37,530 --> 00:21:39,970
+So if you look at
+this, maybe let's
+
+391
+00:21:39,970 --> 00:21:42,170
+start by looking
+at the first term.
+
+392
+00:21:42,170 --> 00:21:48,170
+The first term if we think
+back to imitation learning,
+
+393
+00:21:48,170 --> 00:21:50,770
+this first term is actually
+the same as the gradient
+
+394
+00:21:50,770 --> 00:21:52,270
+of the imitation
+learning objective.
+
+395
+00:21:52,270 --> 00:21:53,770
+So in imitation
+learning, we were
+
+396
+00:21:53,770 --> 00:21:57,730
+trying to mimic actions from
+some demonstration data set
+
+397
+00:21:57,730 --> 00:22:00,570
+by maximizing the
+log probability
+
+398
+00:22:00,570 --> 00:22:03,730
+or minimizing the
+negative log probability.
+
+399
+00:22:03,730 --> 00:22:05,390
+And if you take the
+gradient of that,
+
+400
+00:22:05,390 --> 00:22:10,568
+it's similarly going to be the
+gradient of the log probability.
+
+401
+00:22:10,568 --> 00:22:12,610
+So you can think about
+this first term as saying,
+
+402
+00:22:12,610 --> 00:22:15,810
+I'm going to basically
+try to increase
+
+403
+00:22:15,810 --> 00:22:21,290
+the likelihood of the
+actions in the online data.
+
+404
+00:22:21,290 --> 00:22:23,370
+But then for the
+second term, it's
+
+405
+00:22:23,370 --> 00:22:27,150
+weighting that by the
+reward of that trajectory.
+
+406
+00:22:27,150 --> 00:22:30,210
+How good was that trajectory?
+
+407
+00:22:30,210 --> 00:22:32,870
+And so you can think about
+this as the imitation gradient,
+
+408
+00:22:32,870 --> 00:22:38,010
+but weighted by the sum of
+rewards seen in the data.
+
+409
+00:22:38,010 --> 00:22:39,970
+And so essentially,
+you're going to increase
+
+410
+00:22:39,970 --> 00:22:43,090
+the likelihood of actions
+that had high reward
+
+411
+00:22:43,090 --> 00:22:46,250
+and decrease the
+likelihood of actions
+
+412
+00:22:46,250 --> 00:22:49,953
+that were taken in negative
+reward trajectories.
+
+413
+00:22:49,953 --> 00:22:51,370
+And so you're
+actually going to be
+
+414
+00:22:51,370 --> 00:22:53,490
+imitating your own
+data, the data that
+
+415
+00:22:53,490 --> 00:22:56,330
+was collected by the policy.
+
+416
+00:22:56,330 --> 00:23:02,626
+But depending on whether it's
+high reward or low reward,
+
+417
+00:23:02,626 --> 00:23:05,343
+you actually might have
+a negative gradient.
+
+418
+00:23:05,343 --> 00:23:07,010
+If it's negative
+reward, that's actually
+
+419
+00:23:07,010 --> 00:23:08,770
+going to push you away
+from the bad stuff
+
+420
+00:23:08,770 --> 00:23:10,760
+and push you towards
+the good stuff.
+
+421
+00:23:10,760 --> 00:23:11,970
+[INAUDIBLE]
+
+422
+00:23:11,970 --> 00:23:12,470
+Yeah.
+
+423
+00:23:12,470 --> 00:23:14,510
+So this is inside
+the first summation.
+
+424
+00:23:14,510 --> 00:23:16,503
+You can see the eye
+comes up right here.
+
+425
+00:23:16,503 --> 00:23:18,170
+So we're summing a
+bunch of directories,
+
+426
+00:23:18,170 --> 00:23:21,628
+and then, yeah, this is all
+within the summation over n.
+
+427
+00:23:21,628 --> 00:23:23,170
+So the question is,
+is the difference
+
+428
+00:23:23,170 --> 00:23:24,930
+between this and
+imitation learning where
+
+429
+00:23:24,930 --> 00:23:26,810
+imitation learning you're
+either right or wrong,
+
+430
+00:23:26,810 --> 00:23:28,518
+or here you're like,
+this amount of right
+
+431
+00:23:28,518 --> 00:23:31,360
+or this amount of wrong?
+
+432
+00:23:31,360 --> 00:23:34,120
+So you can apply this--
+
+433
+00:23:34,120 --> 00:23:36,640
+well, in principle, you
+can apply this in scenarios
+
+434
+00:23:36,640 --> 00:23:38,600
+where the reward is very sparse.
+
+435
+00:23:38,600 --> 00:23:40,560
+And so you can actually
+apply it in scenarios
+
+436
+00:23:40,560 --> 00:23:44,080
+where the reward is just 1 if
+you succeeded, and 0 otherwise.
+
+437
+00:23:44,080 --> 00:23:46,860
+Now, this algorithm may not do
+very well in those scenarios,
+
+438
+00:23:46,860 --> 00:23:48,517
+and we'll talk about that.
+
+439
+00:23:48,517 --> 00:23:50,600
+One of the key differences
+with imitation learning
+
+440
+00:23:50,600 --> 00:23:53,460
+is that you're actually doing
+this on your own rollouts.
+
+441
+00:23:53,460 --> 00:23:55,860
+Actually, the policy is
+collecting its own data
+
+442
+00:23:55,860 --> 00:23:59,440
+and then applying this
+objective to its own data.
+
+443
+00:23:59,440 --> 00:24:00,982
+And so that's one
+of the differences.
+
+444
+00:24:00,982 --> 00:24:02,357
+And then second
+is we're actually
+
+445
+00:24:02,357 --> 00:24:04,600
+using this reward, whereas
+in imitation learning,
+
+446
+00:24:04,600 --> 00:24:07,880
+you're just blindly imitating
+all the data without any notion
+
+447
+00:24:07,880 --> 00:24:09,420
+of how good the data is.
+
+448
+00:24:09,420 --> 00:24:11,740
+And it assumes that
+it's good data.
+
+449
+00:24:11,740 --> 00:24:12,240
+Yeah.
+
+450
+00:24:12,240 --> 00:24:16,940
+How do you sample the first
+state of the trajectory?
+
+451
+00:24:16,940 --> 00:24:18,400
+This is something
+that's typically
+
+452
+00:24:18,400 --> 00:24:20,780
+defined by the problem setting.
+
+453
+00:24:20,780 --> 00:24:23,400
+So in some problem
+settings, if you're
+
+454
+00:24:23,400 --> 00:24:27,782
+trying to train an agent to
+play pinball or something,
+
+455
+00:24:27,782 --> 00:24:30,490
+then the initial state will just
+be given by the pinball machine.
+
+456
+00:24:30,490 --> 00:24:33,200
+
+457
+00:24:33,200 --> 00:24:36,240
+In other cases, in
+language modeling,
+
+458
+00:24:36,240 --> 00:24:39,760
+the initial state or observation
+might be the first question
+
+459
+00:24:39,760 --> 00:24:41,480
+that the user asked.
+
+460
+00:24:41,480 --> 00:24:45,060
+So it's usually thought of as
+a property of the environment.
+
+461
+00:24:45,060 --> 00:24:46,560
+So the question is,
+can you use this
+
+462
+00:24:46,560 --> 00:24:48,920
+to improve imitation
+learning by weighting
+
+463
+00:24:48,920 --> 00:24:50,520
+the trajectories by reward?
+
+464
+00:24:50,520 --> 00:24:52,120
+Yeah, you could
+definitely do that.
+
+465
+00:24:52,120 --> 00:24:56,200
+We will also talk about some of
+the good things and bad things
+
+466
+00:24:56,200 --> 00:24:59,285
+about this objective
+in the coming slides.
+
+467
+00:24:59,285 --> 00:25:00,660
+So the question
+was, in practice,
+
+468
+00:25:00,660 --> 00:25:02,300
+does it make sense to start
+with imitation learning,
+
+469
+00:25:02,300 --> 00:25:03,925
+run that for some
+number of iterations,
+
+470
+00:25:03,925 --> 00:25:06,160
+and then switch to this?
+
+471
+00:25:06,160 --> 00:25:07,680
+That can definitely make sense.
+
+472
+00:25:07,680 --> 00:25:10,760
+If you start completely from
+a randomly initialized policy,
+
+473
+00:25:10,760 --> 00:25:12,600
+it will do random stuff.
+
+474
+00:25:12,600 --> 00:25:16,320
+And if you have a very dense
+reward signal, that can be OK.
+
+475
+00:25:16,320 --> 00:25:19,420
+But in other scenarios, if you
+have access to demonstrations,
+
+476
+00:25:19,420 --> 00:25:22,060
+then initializing it
+with demonstrations
+
+477
+00:25:22,060 --> 00:25:25,160
+can be a very good
+fit, and then it
+
+478
+00:25:25,160 --> 00:25:30,082
+will allow you to improve on
+top of your initial policy.
+
+479
+00:25:30,082 --> 00:25:32,790
+So the question is, if you don't
+have a good conception of what's
+
+480
+00:25:32,790 --> 00:25:35,910
+good and bad, what the
+reward function should be,
+
+481
+00:25:35,910 --> 00:25:37,950
+can you use imitation
+learning to get
+
+482
+00:25:37,950 --> 00:25:39,790
+an initial sense for that?
+
+483
+00:25:39,790 --> 00:25:42,990
+We'll talk about reward
+learning in a few lectures
+
+484
+00:25:42,990 --> 00:25:47,150
+and how you can potentially
+use expert data for that.
+
+485
+00:25:47,150 --> 00:25:52,190
+In practice, it's challenging.
+
+486
+00:25:52,190 --> 00:25:54,950
+So we talked about how
+this intuitively increasing
+
+487
+00:25:54,950 --> 00:25:57,990
+likelihood on high
+reward trajectories
+
+488
+00:25:57,990 --> 00:26:01,430
+and decreasing likelihood on
+negative reward trajectories.
+
+489
+00:26:01,430 --> 00:26:04,050
+If we actually look
+at this visually,
+
+490
+00:26:04,050 --> 00:26:06,050
+say that we took a
+few trajectories--
+
+491
+00:26:06,050 --> 00:26:08,530
+one of them had good reward,
+one of them had bad reward--
+
+492
+00:26:08,530 --> 00:26:12,310
+and this red is showing
+our initial distribution
+
+493
+00:26:12,310 --> 00:26:14,790
+over trajectories, what
+this gradient is going to do
+
+494
+00:26:14,790 --> 00:26:17,410
+is it's going to increase the
+likelihood on the green part.
+
+495
+00:26:17,410 --> 00:26:19,390
+So you'll get something
+that looks like this.
+
+496
+00:26:19,390 --> 00:26:21,490
+And then it'll decrease the
+likelihood on the red part,
+
+497
+00:26:21,490 --> 00:26:23,365
+so you'll get something
+that looks like this.
+
+498
+00:26:23,365 --> 00:26:25,910
+And it'll encourage
+the policy to take
+
+499
+00:26:25,910 --> 00:26:28,500
+actions that are more like
+the high-reward trajectory.
+
+500
+00:26:28,500 --> 00:26:32,270
+[INAUDIBLE]
+
+501
+00:26:32,270 --> 00:26:35,390
+In even more brief terms,
+you can think of this
+
+502
+00:26:35,390 --> 00:26:39,830
+as trying to do more of the good
+stuff and less of the bad stuff
+
+503
+00:26:39,830 --> 00:26:41,767
+that you observe.
+
+504
+00:26:41,767 --> 00:26:43,350
+And then you can
+also think about this
+
+505
+00:26:43,350 --> 00:26:46,410
+as a formalization
+of trial and error,
+
+506
+00:26:46,410 --> 00:26:50,170
+where you're actually going
+to try to do different things.
+
+507
+00:26:50,170 --> 00:26:52,690
+And if you see good
+stuff happening,
+
+508
+00:26:52,690 --> 00:26:54,170
+then you'll try to
+do more of that.
+
+509
+00:26:54,170 --> 00:26:58,110
+And if you make a mistake, then
+you'll try to stop doing that.
+
+510
+00:26:58,110 --> 00:26:59,290
+Cool.
+
+511
+00:26:59,290 --> 00:27:02,550
+So now I have a
+question for you.
+
+512
+00:27:02,550 --> 00:27:04,130
+So let's look at an example.
+
+513
+00:27:04,130 --> 00:27:05,910
+Say that we're trying
+to have a humanoid
+
+514
+00:27:05,910 --> 00:27:08,790
+learn how to walk in
+simulation, and we'll
+
+515
+00:27:08,790 --> 00:27:11,110
+define the reward function
+to be the forward velocity
+
+516
+00:27:11,110 --> 00:27:12,043
+of the robot.
+
+517
+00:27:12,043 --> 00:27:14,210
+This means that the reward
+function will be positive
+
+518
+00:27:14,210 --> 00:27:15,890
+if it's moving forward.
+
+519
+00:27:15,890 --> 00:27:18,870
+It may also be negative if
+the robot is moving backwards.
+
+520
+00:27:18,870 --> 00:27:23,350
+It might be 0 if the
+robot is not moving.
+
+521
+00:27:23,350 --> 00:27:25,820
+First, we'll sample
+from our policy.
+
+522
+00:27:25,820 --> 00:27:28,660
+Say we have a policy that's
+not very good at the beginning.
+
+523
+00:27:28,660 --> 00:27:31,380
+So in the first trajectory,
+maybe it falls backwards.
+
+524
+00:27:31,380 --> 00:27:33,620
+In the second
+trajectory, maybe it
+
+525
+00:27:33,620 --> 00:27:36,140
+falls forward, which will
+actually technically give it
+
+526
+00:27:36,140 --> 00:27:37,380
+positive reward.
+
+527
+00:27:37,380 --> 00:27:40,980
+So the sum of rewards
+will be positive.
+
+528
+00:27:40,980 --> 00:27:43,460
+Maybe another trajectory,
+it manages to stand still.
+
+529
+00:27:43,460 --> 00:27:46,460
+So the rewards
+would be 0 for that.
+
+530
+00:27:46,460 --> 00:27:49,900
+In another trajectory, maybe
+it takes one small step forward
+
+531
+00:27:49,900 --> 00:27:51,460
+and then falls backwards.
+
+532
+00:27:51,460 --> 00:27:55,420
+And so the initial reward at
+the beginning of the trajectory
+
+533
+00:27:55,420 --> 00:27:57,320
+would actually be
+getting positive rewards.
+
+534
+00:27:57,320 --> 00:27:59,653
+And then later on, it would
+be getting negative rewards,
+
+535
+00:27:59,653 --> 00:28:02,060
+and the sum of rewards
+would be negative.
+
+536
+00:28:02,060 --> 00:28:03,500
+And then maybe the
+last trajectory
+
+537
+00:28:03,500 --> 00:28:05,580
+is it takes one
+large step backwards,
+
+538
+00:28:05,580 --> 00:28:07,480
+and then a small step forwards.
+
+539
+00:28:07,480 --> 00:28:11,260
+And in this case, it would
+have negative rewards, and then
+
+540
+00:28:11,260 --> 00:28:13,540
+some positive rewards,
+but the sum of rewards
+
+541
+00:28:13,540 --> 00:28:16,500
+would still be negative.
+
+542
+00:28:16,500 --> 00:28:22,340
+Now my question for you is,
+what will the gradient that we
+
+543
+00:28:22,340 --> 00:28:24,900
+defined here, what will
+it encourage the policy
+
+544
+00:28:24,900 --> 00:28:28,380
+to do if this is your data
+set, if these are the five
+
+545
+00:28:28,380 --> 00:28:33,440
+trajectories that you sampled?
+
+546
+00:28:33,440 --> 00:28:35,440
+This is going to be one
+of our simpler examples,
+
+547
+00:28:35,440 --> 00:28:37,500
+and then we'll move to
+more complex examples
+
+548
+00:28:37,500 --> 00:28:39,220
+in a couple more slides.
+
+549
+00:28:39,220 --> 00:28:41,520
+So I'd encourage you to
+pair up for a minute,
+
+550
+00:28:41,520 --> 00:28:43,220
+discuss it briefly,
+and then we'll
+
+551
+00:28:43,220 --> 00:28:47,020
+come back and share
+in 1 or 2 minutes.
+
+552
+00:28:47,020 --> 00:28:49,420
+OK, let's come back.
+
+553
+00:28:49,420 --> 00:28:54,700
+If you want to share your
+answer, can you raise your hand?
+
+554
+00:28:54,700 --> 00:28:55,200
+OK.
+
+555
+00:28:55,200 --> 00:28:56,575
+So the gradient
+will encourage it
+
+556
+00:28:56,575 --> 00:29:00,940
+to fall forwards and
+potentially stand still.
+
+557
+00:29:00,940 --> 00:29:01,440
+Cool.
+
+558
+00:29:01,440 --> 00:29:03,580
+That's mostly correct.
+
+559
+00:29:03,580 --> 00:29:06,080
+So if we think through
+each of these trajectories,
+
+560
+00:29:06,080 --> 00:29:09,540
+the first one, the reward
+will be negative here.
+
+561
+00:29:09,540 --> 00:29:11,385
+It will also be negative.
+
+562
+00:29:11,385 --> 00:29:13,260
+The sum of rewards over
+the entire trajectory
+
+563
+00:29:13,260 --> 00:29:15,380
+will be negative
+for 1, 4, and 5.
+
+564
+00:29:15,380 --> 00:29:20,140
+It should be about 0 for
+3, and for 2, the sum
+
+565
+00:29:20,140 --> 00:29:21,250
+should be positive.
+
+566
+00:29:21,250 --> 00:29:24,410
+And so what this means is
+you'll get negative gradients
+
+567
+00:29:24,410 --> 00:29:27,830
+for any actions that were
+taken in 1, 4, and 5.
+
+568
+00:29:27,830 --> 00:29:30,690
+You'll get positive gradients
+for all the actions taken in 2.
+
+569
+00:29:30,690 --> 00:29:34,850
+And you'll get roughly 0
+gradients for all the actions
+
+570
+00:29:34,850 --> 00:29:37,210
+that are taken in trajectory 3.
+
+571
+00:29:37,210 --> 00:29:40,330
+And so this means that it will
+encourage it to fall forwards.
+
+572
+00:29:40,330 --> 00:29:43,090
+And it'll encourage it
+to not do the things that
+
+573
+00:29:43,090 --> 00:29:45,270
+were in 1, 4, and 5.
+
+574
+00:29:45,270 --> 00:29:47,490
+So it will discourage
+it from taking steps
+
+575
+00:29:47,490 --> 00:29:49,770
+backwards or forwards and
+will also discourage it
+
+576
+00:29:49,770 --> 00:29:51,810
+from falling backwards.
+
+577
+00:29:51,810 --> 00:29:52,930
+Cool.
+
+578
+00:29:52,930 --> 00:29:53,470
+So yeah.
+
+579
+00:29:53,470 --> 00:29:55,890
+So we encourage the policy
+to fall forwards and not
+
+580
+00:29:55,890 --> 00:29:57,050
+take steps.
+
+581
+00:29:57,050 --> 00:30:00,243
+This is distressing because
+we don't want our policy
+
+582
+00:30:00,243 --> 00:30:00,910
+to fall forward.
+
+583
+00:30:00,910 --> 00:30:03,530
+We want to take steps.
+
+584
+00:30:03,530 --> 00:30:05,050
+And so this is
+kind of an example
+
+585
+00:30:05,050 --> 00:30:09,430
+of how the gradient that we're
+getting is noisy, high variance.
+
+586
+00:30:09,430 --> 00:30:12,810
+It means that depending on
+what these trajectories are,
+
+587
+00:30:12,810 --> 00:30:14,728
+the gradient might
+vary drastically.
+
+588
+00:30:14,728 --> 00:30:16,770
+So if you do actually have
+some trajectories that
+
+589
+00:30:16,770 --> 00:30:19,250
+are walking forwards,
+you might actually
+
+590
+00:30:19,250 --> 00:30:21,250
+get a very different
+gradient estimate
+
+591
+00:30:21,250 --> 00:30:23,230
+from this set of trajectories.
+
+592
+00:30:23,230 --> 00:30:25,570
+And so that's the definition
+of having noise or having
+
+593
+00:30:25,570 --> 00:30:27,430
+high variance.
+
+594
+00:30:27,430 --> 00:30:29,930
+So the question is, why are we
+getting multiple trajectories
+
+595
+00:30:29,930 --> 00:30:30,830
+from the same policy?
+
+596
+00:30:30,830 --> 00:30:32,942
+Why not just get one?
+
+597
+00:30:32,942 --> 00:30:34,150
+There's two reasons for this.
+
+598
+00:30:34,150 --> 00:30:36,750
+One is that the policy
+is not deterministic.
+
+599
+00:30:36,750 --> 00:30:38,922
+And so if we want to explore
+different strategies,
+
+600
+00:30:38,922 --> 00:30:41,130
+we will get different samples
+of different strategies
+
+601
+00:30:41,130 --> 00:30:42,590
+because it's non-deterministic.
+
+602
+00:30:42,590 --> 00:30:44,090
+And the second reason
+is also the environment
+
+603
+00:30:44,090 --> 00:30:45,030
+might be stochastic.
+
+604
+00:30:45,030 --> 00:30:47,410
+And so even if you have
+a deterministic policy,
+
+605
+00:30:47,410 --> 00:30:48,990
+you might see
+different outcomes,
+
+606
+00:30:48,990 --> 00:30:53,970
+and this will help you learn
+about those different outcomes.
+
+607
+00:30:53,970 --> 00:30:58,130
+There's one thing that we can do
+about this that we can already
+
+608
+00:30:58,130 --> 00:31:01,810
+directly improve the gradient
+in a fairly simple way.
+
+609
+00:31:01,810 --> 00:31:04,850
+And in particular, one
+observation that we might make
+
+610
+00:31:04,850 --> 00:31:07,490
+is that if you're in the
+middle of a trajectory
+
+611
+00:31:07,490 --> 00:31:10,930
+and you take an
+action, that action
+
+612
+00:31:10,930 --> 00:31:14,650
+has no influence
+on previous states.
+
+613
+00:31:14,650 --> 00:31:17,970
+And right now, the gradient
+that is using the rewards at all
+
+614
+00:31:17,970 --> 00:31:21,130
+states in the trajectory--
+
+615
+00:31:21,130 --> 00:31:22,930
+in the gradient
+update, and it's even
+
+616
+00:31:22,930 --> 00:31:26,490
+telling us to take actions
+later in the trajectory
+
+617
+00:31:26,490 --> 00:31:31,050
+if the reward earlier in the
+trajectory was good or bad.
+
+618
+00:31:31,050 --> 00:31:33,490
+And so one of the
+things that we can do
+
+619
+00:31:33,490 --> 00:31:35,530
+is if one of our
+trajectories was
+
+620
+00:31:35,530 --> 00:31:38,530
+to take a large step backwards
+and then a small step forwards,
+
+621
+00:31:38,530 --> 00:31:41,130
+then we should actually be able
+to learn from this trajectory
+
+622
+00:31:41,130 --> 00:31:44,850
+that taking a small
+step forward is good.
+
+623
+00:31:44,850 --> 00:31:51,450
+And the way that we can do
+that is instead of having this
+
+624
+00:31:51,450 --> 00:31:58,770
+be a sum from t equals 1 to
+T, what we can instead do
+
+625
+00:31:58,770 --> 00:32:03,730
+is we can actually have
+this summation start at t.
+
+626
+00:32:03,730 --> 00:32:07,930
+And so we can have
+this essentially be--
+
+627
+00:32:07,930 --> 00:32:13,790
+let's use a different letter.
+
+628
+00:32:13,790 --> 00:32:17,800
+So we'll have t prime
+that is starting at t
+
+629
+00:32:17,800 --> 00:32:23,680
+and going to capital T. And
+now this is reward of St prime,
+
+630
+00:32:23,680 --> 00:32:25,000
+at prime.
+
+631
+00:32:25,000 --> 00:32:30,720
+And by having it only
+look at future rewards,
+
+632
+00:32:30,720 --> 00:32:32,960
+this means that we're now
+incorporating the fact
+
+633
+00:32:32,960 --> 00:32:36,740
+that current actions can
+only affect the future,
+
+634
+00:32:36,740 --> 00:32:37,770
+and not affect the past.
+
+635
+00:32:37,770 --> 00:32:38,920
+[INAUDIBLE]
+
+636
+00:32:38,920 --> 00:32:39,500
+Oh, yes.
+
+637
+00:32:39,500 --> 00:32:39,720
+Sorry.
+
+638
+00:32:39,720 --> 00:32:41,470
+One other thing that
+you have to do here--
+
+639
+00:32:41,470 --> 00:32:45,800
+yes, good point-- is to
+actually move this summation
+
+640
+00:32:45,800 --> 00:32:48,420
+inside this summation here.
+
+641
+00:32:48,420 --> 00:32:48,940
+[INAUDIBLE]
+
+642
+00:32:48,940 --> 00:32:49,440
+Yeah.
+
+643
+00:32:49,440 --> 00:32:50,800
+Why can we do this?
+
+644
+00:32:50,800 --> 00:32:56,240
+So the reason is that we
+know that our action at--
+
+645
+00:32:56,240 --> 00:33:00,580
+let's say our action
+at time equals 100.
+
+646
+00:33:00,580 --> 00:33:07,680
+So let's say if t equals 100,
+so we're looking at a100.
+
+647
+00:33:07,680 --> 00:33:13,280
+We know that this 100 is only
+going to influence rewards
+
+648
+00:33:13,280 --> 00:33:14,480
+in the future.
+
+649
+00:33:14,480 --> 00:33:19,900
+And this isn't going to have any
+impact on states in the past.
+
+650
+00:33:19,900 --> 00:33:26,360
+So this is going to be
+completely independent of St50--
+
+651
+00:33:26,360 --> 00:33:27,520
+or sorry, S50.
+
+652
+00:33:27,520 --> 00:33:34,680
+So this doesn't affect
+S50 or S51 or S99.
+
+653
+00:33:34,680 --> 00:33:36,600
+And this means that the--
+
+654
+00:33:36,600 --> 00:33:38,160
+yeah, because of
+that independence,
+
+655
+00:33:38,160 --> 00:33:43,240
+we can then drop the rewards.
+
+656
+00:33:43,240 --> 00:33:45,980
+We can drop that from
+the equation and--
+
+657
+00:33:45,980 --> 00:33:48,300
+[INAUDIBLE]
+
+658
+00:33:48,300 --> 00:33:48,800
+Yeah.
+
+659
+00:33:48,800 --> 00:33:50,666
+And only look at--
+
+660
+00:33:50,666 --> 00:33:54,040
+when looking at increasing the
+likelihood of an action at time
+
+661
+00:33:54,040 --> 00:33:59,477
+t, only use the future
+rewards in that influence.
+
+662
+00:33:59,477 --> 00:34:01,560
+It's a little bit hard to
+write out mathematically
+
+663
+00:34:01,560 --> 00:34:03,960
+why you can do that.
+
+664
+00:34:03,960 --> 00:34:06,360
+I can maybe think
+about whether there's
+
+665
+00:34:06,360 --> 00:34:09,199
+a nice mathematical
+expression for that,
+
+666
+00:34:09,199 --> 00:34:14,159
+but it's really just about
+causality in the world.
+
+667
+00:34:14,159 --> 00:34:16,230
+And so basically, policy
+behavior at time t
+
+668
+00:34:16,230 --> 00:34:20,350
+is not going to influence
+rewards at earlier time steps.
+
+669
+00:34:20,350 --> 00:34:21,270
+Cool.
+
+670
+00:34:21,270 --> 00:34:22,989
+I think that this equation--
+
+671
+00:34:22,989 --> 00:34:24,110
+OK.
+
+672
+00:34:24,110 --> 00:34:26,409
+I don't have the typo in
+this equation, so, yeah.
+
+673
+00:34:26,409 --> 00:34:30,150
+We're bringing this summation
+inside the other one.
+
+674
+00:34:30,150 --> 00:34:34,350
+And it's only going to be a
+factor of the future time steps.
+
+675
+00:34:34,350 --> 00:34:37,190
+And this means that for
+this example right here,
+
+676
+00:34:37,190 --> 00:34:41,310
+we will be decreasing
+the likelihood of actions
+
+677
+00:34:41,310 --> 00:34:42,949
+at the beginning
+of the trajectory.
+
+678
+00:34:42,949 --> 00:34:47,070
+And then the future summations
+will become positive
+
+679
+00:34:47,070 --> 00:34:50,613
+because you took a step forward.
+
+680
+00:34:50,613 --> 00:34:53,030
+Then you'll actually start to
+be increasing the likelihood
+
+681
+00:34:53,030 --> 00:34:54,519
+of taking a small step forward.
+
+682
+00:34:54,519 --> 00:34:55,570
+[INAUDIBLE]
+
+683
+00:34:55,570 --> 00:34:56,070
+Yeah.
+
+684
+00:34:56,070 --> 00:34:57,487
+So a very good
+point is this still
+
+685
+00:34:57,487 --> 00:34:59,590
+doesn't help if you
+take a step forward
+
+686
+00:34:59,590 --> 00:35:01,350
+and then you take
+a step backwards.
+
+687
+00:35:01,350 --> 00:35:03,625
+And the reason why it doesn't--
+
+688
+00:35:03,625 --> 00:35:06,250
+the reason why that's actually
+a little bit difficult to handle
+
+689
+00:35:06,250 --> 00:35:08,830
+is that it's possible that
+the step forwards actually
+
+690
+00:35:08,830 --> 00:35:11,190
+cause you to fall
+backwards, or cause
+
+691
+00:35:11,190 --> 00:35:14,374
+you to take a step backwards.
+
+692
+00:35:14,374 --> 00:35:16,750
+A big part of
+reinforcement learning
+
+693
+00:35:16,750 --> 00:35:21,770
+is thinking about what influence
+does actions have on the future.
+
+694
+00:35:21,770 --> 00:35:23,710
+And you need to learn
+that from experience.
+
+695
+00:35:23,710 --> 00:35:28,392
+And if you take a step forward,
+it means that it could--
+
+696
+00:35:28,392 --> 00:35:29,850
+from the algorithm's
+point of view,
+
+697
+00:35:29,850 --> 00:35:32,910
+actually, have caused something
+bad to happen in the future,
+
+698
+00:35:32,910 --> 00:35:39,310
+and so we can't
+drop those rewards.
+
+699
+00:35:39,310 --> 00:35:42,190
+So the question was,
+if you say that you
+
+700
+00:35:42,190 --> 00:35:44,110
+had a lot of really bad
+stuff at the beginning
+
+701
+00:35:44,110 --> 00:35:46,650
+and then you took a good action
+later on in the trajectory,
+
+702
+00:35:46,650 --> 00:35:50,190
+would you have enough
+time to accumulate that?
+
+703
+00:35:50,190 --> 00:35:53,830
+So in your particular
+example, you started getting--
+
+704
+00:35:53,830 --> 00:35:57,110
+capital T was equal to 10,
+and you started seeing--
+
+705
+00:35:57,110 --> 00:35:59,790
+you did something really
+good at time step 6.
+
+706
+00:35:59,790 --> 00:36:02,670
+Now, at time step 6, what
+this will look like is
+
+707
+00:36:02,670 --> 00:36:10,510
+you'll have grad
+log a6 given S6.
+
+708
+00:36:10,510 --> 00:36:16,820
+And then you'll have a summation
+from t prime equals 6 to 10
+
+709
+00:36:16,820 --> 00:36:20,220
+of our St prime, at prime.
+
+710
+00:36:20,220 --> 00:36:23,260
+And so if you did get a high
+reward from that action,
+
+711
+00:36:23,260 --> 00:36:25,900
+immediately or in the
+next four time steps,
+
+712
+00:36:25,900 --> 00:36:29,860
+then you would actually increase
+the likelihood on that action.
+
+713
+00:36:29,860 --> 00:36:33,820
+Now, it's really going to depend
+a lot on the reward function.
+
+714
+00:36:33,820 --> 00:36:37,155
+So you're saying that for
+fixed horizon problems,
+
+715
+00:36:37,155 --> 00:36:38,780
+you're actually going
+to be giving it--
+
+716
+00:36:38,780 --> 00:36:42,100
+the gradient will be different
+if you're summing over 10
+
+717
+00:36:42,100 --> 00:36:44,740
+rewards versus over 4 rewards.
+
+718
+00:36:44,740 --> 00:36:46,460
+So one of the things
+that's important
+
+719
+00:36:46,460 --> 00:36:50,740
+if you have a fixed
+time horizon T is
+
+720
+00:36:50,740 --> 00:36:52,980
+for this to be a proper state--
+
+721
+00:36:52,980 --> 00:36:55,340
+and actually to be
+truly Markovian-- you
+
+722
+00:36:55,340 --> 00:37:04,100
+need it to contain information
+about the future dynamics.
+
+723
+00:37:04,100 --> 00:37:08,620
+And if it's fixed
+at 10 and the policy
+
+724
+00:37:08,620 --> 00:37:11,320
+doesn't know if the
+horizon is about to finish,
+
+725
+00:37:11,320 --> 00:37:13,360
+then it's actually not
+a truly Markovian state.
+
+726
+00:37:13,360 --> 00:37:15,860
+You need to actually give it
+information about how many time
+
+727
+00:37:15,860 --> 00:37:17,660
+steps it has left to
+succeed, and then you
+
+728
+00:37:17,660 --> 00:37:19,182
+can incorporate
+that into the state.
+
+729
+00:37:19,182 --> 00:37:21,140
+And so you would actually
+have different states
+
+730
+00:37:21,140 --> 00:37:24,140
+in those different
+circumstances.
+
+731
+00:37:24,140 --> 00:37:25,280
+OK.
+
+732
+00:37:25,280 --> 00:37:28,227
+So now another example for you.
+
+733
+00:37:28,227 --> 00:37:30,060
+And this actually comes
+back to the question
+
+734
+00:37:30,060 --> 00:37:32,700
+that came up earlier,
+although it's actually
+
+735
+00:37:32,700 --> 00:37:33,560
+slightly different.
+
+736
+00:37:33,560 --> 00:37:36,100
+So say that the robot--
+
+737
+00:37:36,100 --> 00:37:38,580
+we now have a
+version that is only
+
+738
+00:37:38,580 --> 00:37:40,340
+depending on future rewards.
+
+739
+00:37:40,340 --> 00:37:42,360
+We have the same
+version of the problem,
+
+740
+00:37:42,360 --> 00:37:44,500
+but now our policy is
+a little bit better.
+
+741
+00:37:44,500 --> 00:37:46,200
+One of the trajectories
+falls forward.
+
+742
+00:37:46,200 --> 00:37:48,922
+One of the trajectories
+slowly stumbles forward.
+
+743
+00:37:48,922 --> 00:37:50,880
+One of the trajectories
+steadily walks forward.
+
+744
+00:37:50,880 --> 00:37:52,588
+And one of the
+trajectories runs forward.
+
+745
+00:37:52,588 --> 00:37:55,460
+
+746
+00:37:55,460 --> 00:37:58,180
+My question for you is, what
+will the gradient encourage
+
+747
+00:37:58,180 --> 00:38:01,780
+the policy to do in this case?
+
+748
+00:38:01,780 --> 00:38:07,430
+And we can use this version,
+the updated version.
+
+749
+00:38:07,430 --> 00:38:09,970
+
+750
+00:38:09,970 --> 00:38:13,350
+And so I'll encourage you to
+pair up again and discuss this,
+
+751
+00:38:13,350 --> 00:38:15,555
+and then we'll come
+back in 2 minutes.
+
+752
+00:38:15,555 --> 00:38:18,950
+[INTERPOSING VOICES]
+
+753
+00:38:18,950 --> 00:38:20,310
+
+754
+00:38:20,310 --> 00:38:20,810
+OK.
+
+755
+00:38:20,810 --> 00:38:22,770
+Let's come back.
+
+756
+00:38:22,770 --> 00:38:28,510
+Please raise your hand if you
+want to share your answer.
+
+757
+00:38:28,510 --> 00:38:29,010
+OK?
+
+758
+00:38:29,010 --> 00:38:29,510
+Yeah.
+
+759
+00:38:29,510 --> 00:38:31,850
+So the first answer
+was that it's
+
+760
+00:38:31,850 --> 00:38:34,545
+going to get the highest reward
+for the stuff that is moving
+
+761
+00:38:34,545 --> 00:38:35,670
+forward at higher velocity.
+
+762
+00:38:35,670 --> 00:38:38,050
+So it's going to encourage
+it to do that, the highest
+
+763
+00:38:38,050 --> 00:38:39,155
+velocity stuff the most.
+
+764
+00:38:39,155 --> 00:38:40,530
+And you're saying
+that even if it
+
+765
+00:38:40,530 --> 00:38:42,000
+makes any sort of
+forward progress,
+
+766
+00:38:42,000 --> 00:38:44,890
+it will still encourage
+it to do that.
+
+767
+00:38:44,890 --> 00:38:46,858
+So another hypothesis
+was that if you go back
+
+768
+00:38:46,858 --> 00:38:48,650
+to the previous example,
+it might encourage
+
+769
+00:38:48,650 --> 00:38:50,930
+it to fall forward and then
+get back up again and then
+
+770
+00:38:50,930 --> 00:38:52,847
+fall forward and get
+back up again, especially
+
+771
+00:38:52,847 --> 00:38:55,155
+if it's easy to fall forward.
+
+772
+00:38:55,155 --> 00:38:56,530
+Now, getting up
+again is actually
+
+773
+00:38:56,530 --> 00:38:58,572
+a little bit more challenging,
+so that might also
+
+774
+00:38:58,572 --> 00:39:00,410
+be a little tricky.
+
+775
+00:39:00,410 --> 00:39:02,550
+And so the thoughts there
+was that the fourth one,
+
+776
+00:39:02,550 --> 00:39:04,040
+if the reward is--
+
+777
+00:39:04,040 --> 00:39:06,290
+it might dominate if that
+one has a much higher reward
+
+778
+00:39:06,290 --> 00:39:07,810
+than the others.
+
+779
+00:39:07,810 --> 00:39:11,490
+If they're more even in terms
+of velocity and it's just move
+
+780
+00:39:11,490 --> 00:39:13,730
+forward, then it won't
+necessarily dominate,
+
+781
+00:39:13,730 --> 00:39:15,970
+and you'll do all four.
+
+782
+00:39:15,970 --> 00:39:20,697
+So all of the rewards in these
+cases will all be positive.
+
+783
+00:39:20,697 --> 00:39:22,530
+I think what a lot of
+people were getting at
+
+784
+00:39:22,530 --> 00:39:25,990
+is that the reward of this
+last one will be the highest,
+
+785
+00:39:25,990 --> 00:39:27,950
+and so we'll be
+encouraged to do this.
+
+786
+00:39:27,950 --> 00:39:30,730
+But because all of
+these 1, 2, and 3
+
+787
+00:39:30,730 --> 00:39:32,713
+also have positive
+rewards, the policy
+
+788
+00:39:32,713 --> 00:39:34,130
+is actually also
+still going to be
+
+789
+00:39:34,130 --> 00:39:36,250
+encouraged to do those things.
+
+790
+00:39:36,250 --> 00:39:42,927
+So basically, when this term is
+nonnegative, when it's positive,
+
+791
+00:39:42,927 --> 00:39:45,010
+you're still going to be
+increasing the likelihood
+
+792
+00:39:45,010 --> 00:39:48,050
+on the actions in
+these trajectories.
+
+793
+00:39:48,050 --> 00:39:50,510
+Now it won't do it as
+frequently as running forward,
+
+794
+00:39:50,510 --> 00:39:53,730
+but it will still be
+encouraged to do that.
+
+795
+00:39:53,730 --> 00:39:55,610
+And that might be a
+little bit concerning
+
+796
+00:39:55,610 --> 00:39:58,168
+because some of the
+time, it will actually
+
+797
+00:39:58,168 --> 00:39:59,710
+be encouraging it
+to stumble forward.
+
+798
+00:39:59,710 --> 00:40:02,150
+And ideally, we would
+actually, in this case,
+
+799
+00:40:02,150 --> 00:40:06,130
+want a policy that can
+actually have the policy run
+
+800
+00:40:06,130 --> 00:40:08,400
+as fast as possible.
+
+801
+00:40:08,400 --> 00:40:10,720
+So the question was, is this
+because of local minimum?
+
+802
+00:40:10,720 --> 00:40:13,480
+It seems like with
+this reward function,
+
+803
+00:40:13,480 --> 00:40:15,140
+the best outcome
+is to run forward,
+
+804
+00:40:15,140 --> 00:40:19,640
+and so why are we getting
+this kind of objective?
+
+805
+00:40:19,640 --> 00:40:23,140
+The reason for this is
+because the gradient is noisy.
+
+806
+00:40:23,140 --> 00:40:25,200
+It comes down to variance.
+
+807
+00:40:25,200 --> 00:40:28,540
+And if you do have a
+policy that runs forward,
+
+808
+00:40:28,540 --> 00:40:31,360
+it will encourage it to
+keep on running forward.
+
+809
+00:40:31,360 --> 00:40:34,180
+But when you have
+other data in there,
+
+810
+00:40:34,180 --> 00:40:36,180
+that other data will
+influence it in some ways.
+
+811
+00:40:36,180 --> 00:40:38,613
+And so it won't necessarily
+converge to a local optimum,
+
+812
+00:40:38,613 --> 00:40:40,280
+because at this point,
+it will encourage
+
+813
+00:40:40,280 --> 00:40:41,650
+it to run forward more.
+
+814
+00:40:41,650 --> 00:40:43,900
+And then the next batch of
+data will run forward more,
+
+815
+00:40:43,900 --> 00:40:45,900
+and it'll encourage it
+to run forward even more.
+
+816
+00:40:45,900 --> 00:40:48,960
+So eventually, it will
+converge to the global optimum,
+
+817
+00:40:48,960 --> 00:40:55,280
+but it will get there more
+slowly because the gradient has
+
+818
+00:40:55,280 --> 00:41:00,000
+a lot of variance, depending
+on the samples that you select.
+
+819
+00:41:00,000 --> 00:41:03,920
+Will this encourage the
+robot to roll forward?
+
+820
+00:41:03,920 --> 00:41:06,360
+With this data, it
+will not encourage
+
+821
+00:41:06,360 --> 00:41:09,880
+it to roll forward unless some
+weird combination of gradients
+
+822
+00:41:09,880 --> 00:41:11,440
+causes that.
+
+823
+00:41:11,440 --> 00:41:13,520
+But yeah, generally,
+it will not.
+
+824
+00:41:13,520 --> 00:41:15,320
+If you had data of
+rolling forward,
+
+825
+00:41:15,320 --> 00:41:17,665
+then it would encourage
+it to roll forward.
+
+826
+00:41:17,665 --> 00:41:19,040
+So the question
+is, can the agent
+
+827
+00:41:19,040 --> 00:41:20,748
+learn from a subset
+of characters instead
+
+828
+00:41:20,748 --> 00:41:22,640
+of the whole trajectory?
+
+829
+00:41:22,640 --> 00:41:24,840
+In this case, it will
+learn from all future steps
+
+830
+00:41:24,840 --> 00:41:25,660
+in the trajectory.
+
+831
+00:41:25,660 --> 00:41:28,600
+So that is a subset,
+but it might not be--
+
+832
+00:41:28,600 --> 00:41:30,220
+and I guess-- in
+the next lecture,
+
+833
+00:41:30,220 --> 00:41:35,080
+we'll talk about more
+sophisticated ways to estimate
+
+834
+00:41:35,080 --> 00:41:36,720
+this--
+
+835
+00:41:36,720 --> 00:41:39,860
+are smarter basically.
+
+836
+00:41:39,860 --> 00:41:40,360
+Cool.
+
+837
+00:41:40,360 --> 00:41:42,193
+So the thing that we
+saw here is that things
+
+838
+00:41:42,193 --> 00:41:44,377
+are sensitive to the scaling
+of the reward function.
+
+839
+00:41:44,377 --> 00:41:46,460
+And on the flip side, if
+everything was negative--
+
+840
+00:41:46,460 --> 00:41:48,320
+it came up in the
+question before--
+
+841
+00:41:48,320 --> 00:41:50,880
+we would actually only be
+getting negative gradients
+
+842
+00:41:50,880 --> 00:41:53,640
+to our policy and no
+actual positive gradients.
+
+843
+00:41:53,640 --> 00:41:56,550
+And that's actually
+a big problem
+
+844
+00:41:56,550 --> 00:41:59,600
+with this kind of approach
+is that it depends
+
+845
+00:41:59,600 --> 00:42:01,853
+on the scale of the reward.
+
+846
+00:42:01,853 --> 00:42:03,520
+And there's actually
+a very simple thing
+
+847
+00:42:03,520 --> 00:42:06,470
+that we can do to fix this.
+
+848
+00:42:06,470 --> 00:42:09,550
+And so in particular,
+what we can do
+
+849
+00:42:09,550 --> 00:42:13,550
+is when we are using
+this gradient, which is
+
+850
+00:42:13,550 --> 00:42:20,350
+the expectation of p of tau--
+
+851
+00:42:20,350 --> 00:42:24,710
+I'll maybe do the first version
+just to make it a bit shorter,
+
+852
+00:42:24,710 --> 00:42:32,350
+but we get the gradient of
+log p of tau times r of tau.
+
+853
+00:42:32,350 --> 00:42:35,790
+And what we can do is instead
+of having this be r of tau,
+
+854
+00:42:35,790 --> 00:42:40,230
+we can actually
+subtract a constant,
+
+855
+00:42:40,230 --> 00:42:45,980
+where that constant could be
+equal to the average reward.
+
+856
+00:42:45,980 --> 00:42:50,670
+
+857
+00:42:50,670 --> 00:42:53,562
+And if we subtract the
+average reward from this,
+
+858
+00:42:53,562 --> 00:42:58,510
+this means that things that
+are better than average
+
+859
+00:42:58,510 --> 00:43:00,190
+will increase the
+likelihood, and things
+
+860
+00:43:00,190 --> 00:43:03,550
+that are below
+average will actually
+
+861
+00:43:03,550 --> 00:43:05,390
+lead us to decrease likelihood.
+
+862
+00:43:05,390 --> 00:43:08,030
+So this will be negative.
+
+863
+00:43:08,030 --> 00:43:13,310
+Now, you might be wondering,
+can we just add this b here?
+
+864
+00:43:13,310 --> 00:43:16,150
+Did I just make that up?
+
+865
+00:43:16,150 --> 00:43:17,070
+Why can we do that?
+
+866
+00:43:17,070 --> 00:43:18,320
+Why are we allowed to do that?
+
+867
+00:43:18,320 --> 00:43:23,470
+
+868
+00:43:23,470 --> 00:43:27,870
+We can see what the effect
+that this has on the gradient.
+
+869
+00:43:27,870 --> 00:43:30,790
+And what we can show
+is we can actually
+
+870
+00:43:30,790 --> 00:43:35,470
+show that if you subtract
+a constant in expectation,
+
+871
+00:43:35,470 --> 00:43:38,470
+this has zero effect
+on the gradient.
+
+872
+00:43:38,470 --> 00:43:45,950
+And in particular-- so
+this is the gradient of J.
+
+873
+00:43:45,950 --> 00:43:49,750
+And if we look at what effect
+this has on the gradient
+
+874
+00:43:49,750 --> 00:43:54,710
+and expectation, we can look
+at essentially the expectation
+
+875
+00:43:54,710 --> 00:44:03,960
+of grad log p times b.
+
+876
+00:44:03,960 --> 00:44:07,540
+
+877
+00:44:07,540 --> 00:44:11,900
+And it's possible to show
+that this in expectation
+
+878
+00:44:11,900 --> 00:44:14,380
+is actually equal to zero.
+
+879
+00:44:14,380 --> 00:44:23,100
+And in particular, if we write
+this out as the gradient of--
+
+880
+00:44:23,100 --> 00:44:26,180
+or sorry, the expectation
+is the integral
+
+881
+00:44:26,180 --> 00:44:39,460
+of p of tau times grad
+log p of tau times bd tau.
+
+882
+00:44:39,460 --> 00:44:43,340
+We can then use the
+same trick that we
+
+883
+00:44:43,340 --> 00:44:45,500
+used before, but in reverse.
+
+884
+00:44:45,500 --> 00:44:59,140
+This is equal to the integral
+of grad p-theta of tau times bd
+
+885
+00:44:59,140 --> 00:45:01,700
+tau.
+
+886
+00:45:01,700 --> 00:45:05,180
+I'm a little bit out of
+space, but the gradient
+
+887
+00:45:05,180 --> 00:45:09,404
+can be moved to the
+outside of the integral
+
+888
+00:45:09,404 --> 00:45:13,300
+because this is a
+linear operation.
+
+889
+00:45:13,300 --> 00:45:16,100
+We can also move b
+outside the integral
+
+890
+00:45:16,100 --> 00:45:17,940
+because it's a constant.
+
+891
+00:45:17,940 --> 00:45:29,140
+And so this is equal
+to the gradient
+
+892
+00:45:29,140 --> 00:45:39,660
+b times the gradient of the
+integral of p-theta of tau d
+
+893
+00:45:39,660 --> 00:45:41,100
+tau.
+
+894
+00:45:41,100 --> 00:45:45,860
+Now this integral is just equal
+to 1, and the gradient of 1
+
+895
+00:45:45,860 --> 00:45:47,540
+is 0.
+
+896
+00:45:47,540 --> 00:45:57,180
+So this is 1, this is
+0, and b times 0 is 0.
+
+897
+00:45:57,180 --> 00:46:01,290
+And so this means that
+the expectation, this
+
+898
+00:46:01,290 --> 00:46:05,570
+is going to have 0
+effect on the gradient.
+
+899
+00:46:05,570 --> 00:46:11,490
+And so just to maybe write that
+out a little bit more cleanly,
+
+900
+00:46:11,490 --> 00:46:15,495
+the expectation of the
+gradient of log p times
+
+901
+00:46:15,495 --> 00:46:17,370
+b-- so basically, the
+fact that this baseline
+
+902
+00:46:17,370 --> 00:46:19,690
+is having on this gradient.
+
+903
+00:46:19,690 --> 00:46:22,170
+We can write that
+as the integral.
+
+904
+00:46:22,170 --> 00:46:25,170
+We can then use the
+log trick in reverse.
+
+905
+00:46:25,170 --> 00:46:27,900
+We can move b and the gradient
+outside of the integral.
+
+906
+00:46:27,900 --> 00:46:30,450
+
+907
+00:46:30,450 --> 00:46:33,890
+This integral is equal to
+1, the gradient of 1 is 0,
+
+908
+00:46:33,890 --> 00:46:35,650
+and then we get 0.
+
+909
+00:46:35,650 --> 00:46:38,410
+So this means that we
+can add this baseline.
+
+910
+00:46:38,410 --> 00:46:40,650
+So the reason why this
+constant term-- the question
+
+911
+00:46:40,650 --> 00:46:43,930
+was this constant term wouldn't
+be helpful if we could actually
+
+912
+00:46:43,930 --> 00:46:45,868
+truly evaluate the expectation.
+
+913
+00:46:45,868 --> 00:46:46,910
+And yeah, that's correct.
+
+914
+00:46:46,910 --> 00:46:50,410
+So if we had this expectation
+and could measure this exactly,
+
+915
+00:46:50,410 --> 00:46:51,577
+then we wouldn't need this.
+
+916
+00:46:51,577 --> 00:46:53,410
+The reason why this is
+helpful is because we
+
+917
+00:46:53,410 --> 00:46:56,610
+have this expectation.
+
+918
+00:46:56,610 --> 00:46:58,910
+Basically, you can think
+of it as reducing--
+
+919
+00:46:58,910 --> 00:47:01,490
+it's a way to reduce the
+variance of your estimate
+
+920
+00:47:01,490 --> 00:47:06,090
+of this expectation, and it's
+an unbiased way to do that.
+
+921
+00:47:06,090 --> 00:47:11,970
+So in particular, as long as
+the baseline is a constant,
+
+922
+00:47:11,970 --> 00:47:13,450
+then it won't
+change the behavior
+
+923
+00:47:13,450 --> 00:47:14,742
+of the gradient in expectation.
+
+924
+00:47:14,742 --> 00:47:16,270
+This means that it's unbiased.
+
+925
+00:47:16,270 --> 00:47:20,170
+This is a term from statistics,
+talking about effect
+
+926
+00:47:20,170 --> 00:47:21,470
+on random variables.
+
+927
+00:47:21,470 --> 00:47:24,690
+And you can show that it reduces
+the variance of your estimate
+
+928
+00:47:24,690 --> 00:47:26,220
+of the gradient.
+
+929
+00:47:26,220 --> 00:47:27,970
+So the question is,
+is b really a constant
+
+930
+00:47:27,970 --> 00:47:30,890
+and seems to depend
+on the trajectories?
+
+931
+00:47:30,890 --> 00:47:36,970
+We'll use the same value
+of b for an entire batch,
+
+932
+00:47:36,970 --> 00:47:38,830
+for all of the examples.
+
+933
+00:47:38,830 --> 00:47:43,010
+And so we'll collect a batch of
+data, then we will compute b,
+
+934
+00:47:43,010 --> 00:47:47,770
+and we'll then use b
+for all of the updates
+
+935
+00:47:47,770 --> 00:47:49,810
+on that batch of data.
+
+936
+00:47:49,810 --> 00:47:53,210
+So how does it reduce the
+variance of the gradient?
+
+937
+00:47:53,210 --> 00:47:54,710
+You can write down--
+
+938
+00:47:54,710 --> 00:47:56,820
+so this is the expectation
+of the gradient.
+
+939
+00:47:56,820 --> 00:47:58,680
+You can write down the
+variance analytically
+
+940
+00:47:58,680 --> 00:48:03,546
+and show that it
+reduces the variance.
+
+941
+00:48:03,546 --> 00:48:05,520
+I don't want to go
+through the math
+
+942
+00:48:05,520 --> 00:48:07,560
+because we have some other
+stuff to get through.
+
+943
+00:48:07,560 --> 00:48:09,320
+But intuitively, you
+can think about it
+
+944
+00:48:09,320 --> 00:48:14,000
+in terms of this example of--
+
+945
+00:48:14,000 --> 00:48:17,890
+it will encourage it to do
+more of the above-average stuff
+
+946
+00:48:17,890 --> 00:48:19,390
+and less of the
+below-average stuff.
+
+947
+00:48:19,390 --> 00:48:21,906
+
+948
+00:48:21,906 --> 00:48:24,280
+I could also mention that
+average reward is actually
+
+949
+00:48:24,280 --> 00:48:26,000
+not the optimal baseline.
+
+950
+00:48:26,000 --> 00:48:29,520
+You can actually
+derive the variance,
+
+951
+00:48:29,520 --> 00:48:34,360
+and then take the derivative
+of the variance side equal to 0
+
+952
+00:48:34,360 --> 00:48:36,840
+to find the optimal baseline.
+
+953
+00:48:36,840 --> 00:48:38,600
+But average reward
+is pretty good.
+
+954
+00:48:38,600 --> 00:48:41,380
+The optimal baseline
+is something--
+
+955
+00:48:41,380 --> 00:48:42,860
+it's very close
+to average reward,
+
+956
+00:48:42,860 --> 00:48:44,693
+but there's some
+additional weighting terms.
+
+957
+00:48:44,693 --> 00:48:47,160
+
+958
+00:48:47,160 --> 00:48:48,120
+Cool.
+
+959
+00:48:48,120 --> 00:48:52,360
+So we have one more episode
+of what does the gradient do.
+
+960
+00:48:52,360 --> 00:48:55,280
+And we're going to look
+at a different example.
+
+961
+00:48:55,280 --> 00:48:59,040
+In this case, the robot
+is folding a jacket.
+
+962
+00:48:59,040 --> 00:49:01,880
+And the reward is 1
+if it's neatly folded,
+
+963
+00:49:01,880 --> 00:49:04,300
+0.5 if it's folded
+with some wrinkles,
+
+964
+00:49:04,300 --> 00:49:07,200
+and 0 if it's not folded.
+
+965
+00:49:07,200 --> 00:49:09,600
+We're going to again
+sample from our policy.
+
+966
+00:49:09,600 --> 00:49:12,020
+We have some samples of
+not touching the jacket,
+
+967
+00:49:12,020 --> 00:49:15,080
+folding only the sleeves but
+not folding the full thing,
+
+968
+00:49:15,080 --> 00:49:17,140
+flattening the jacket
+but not folding it,
+
+969
+00:49:17,140 --> 00:49:20,440
+and one trajectory where
+it does fold the jacket.
+
+970
+00:49:20,440 --> 00:49:24,480
+And my question is, with the
+baseline in here this time,
+
+971
+00:49:24,480 --> 00:49:26,880
+what does the
+gradient look like?
+
+972
+00:49:26,880 --> 00:49:32,960
+The rewards for 1, 2, and 3
+will be 0, and the reward for 4
+
+973
+00:49:32,960 --> 00:49:34,340
+will be positive.
+
+974
+00:49:34,340 --> 00:49:36,300
+And so this means that
+because of our baseline,
+
+975
+00:49:36,300 --> 00:49:38,320
+the gradient for
+4 will be positive
+
+976
+00:49:38,320 --> 00:49:39,900
+and will encourage
+this behavior.
+
+977
+00:49:39,900 --> 00:49:43,040
+And then we'll discourage all
+the behavior for 1, 2, and 3.
+
+978
+00:49:43,040 --> 00:49:45,040
+Now, in some ways,
+this is good because it
+
+979
+00:49:45,040 --> 00:49:47,982
+means that we are encouraging
+the good behavior.
+
+980
+00:49:47,982 --> 00:49:49,440
+But there are also
+some things that
+
+981
+00:49:49,440 --> 00:49:51,920
+are a little bit
+dissatisfying about this.
+
+982
+00:49:51,920 --> 00:49:55,630
+The first is that the
+gradient for 1, 2, and 3
+
+983
+00:49:55,630 --> 00:49:57,830
+is going to be identical
+for all of them.
+
+984
+00:49:57,830 --> 00:50:01,190
+There isn't any
+differentiation between them.
+
+985
+00:50:01,190 --> 00:50:03,690
+And some of these are
+actually better than others.
+
+986
+00:50:03,690 --> 00:50:07,150
+And this is, in some ways, a
+result of the reward function
+
+987
+00:50:07,150 --> 00:50:11,040
+that we're using, which is
+more sparse than it could be.
+
+988
+00:50:11,040 --> 00:50:12,790
+And the other thing
+is that we'll actually
+
+989
+00:50:12,790 --> 00:50:17,110
+see some techniques in Friday's
+lecture that would actually
+
+990
+00:50:17,110 --> 00:50:18,990
+be able to leverage
+some of the good parts
+
+991
+00:50:18,990 --> 00:50:20,110
+of these trajectories,
+because there
+
+992
+00:50:20,110 --> 00:50:21,860
+is a good thing about
+folding the sleeves,
+
+993
+00:50:21,860 --> 00:50:24,030
+and it would be nice to
+be able to use that data
+
+994
+00:50:24,030 --> 00:50:25,610
+to encourage the policy.
+
+995
+00:50:25,610 --> 00:50:27,950
+And right now, it will
+actually be discouraged
+
+996
+00:50:27,950 --> 00:50:30,990
+and have negative gradients
+for this trajectory.
+
+997
+00:50:30,990 --> 00:50:32,670
+So in some ways, this is good.
+
+998
+00:50:32,670 --> 00:50:34,790
+So it will encourage
+folding, but the gradient
+
+999
+00:50:34,790 --> 00:50:38,230
+is constant for
+trajectories 1, 2, and 3.
+
+1000
+00:50:38,230 --> 00:50:44,470
+And on Friday, we'll see ways to
+make this a little bit better.
+
+1001
+00:50:44,470 --> 00:50:46,910
+And one of the takeaways
+here is that policy gradient
+
+1002
+00:50:46,910 --> 00:50:49,910
+is still noisy and is
+still high variance.
+
+1003
+00:50:49,910 --> 00:50:51,390
+And it really is
+going to work best
+
+1004
+00:50:51,390 --> 00:50:54,960
+if you have dense rewards rather
+than rewards that are sparse.
+
+1005
+00:50:54,960 --> 00:50:57,210
+And it'll work best if you
+have large batches of data,
+
+1006
+00:50:57,210 --> 00:50:59,750
+because if you didn't actually
+sample this fourth trajectory
+
+1007
+00:50:59,750 --> 00:51:05,990
+and you only sampled failures,
+then you would have 0 gradient.
+
+1008
+00:51:05,990 --> 00:51:09,110
+And you wouldn't actually
+be able to improve.
+
+1009
+00:51:09,110 --> 00:51:13,250
+So the question was, can we just
+improve the reward function?
+
+1010
+00:51:13,250 --> 00:51:13,750
+Yes.
+
+1011
+00:51:13,750 --> 00:51:17,270
+So if we had a more
+dense reward function,
+
+1012
+00:51:17,270 --> 00:51:20,030
+that would definitely
+help in these cases.
+
+1013
+00:51:20,030 --> 00:51:26,430
+There are actually scenarios
+still where we could do better.
+
+1014
+00:51:26,430 --> 00:51:28,770
+Especially if you, for
+example, folded the sleeves,
+
+1015
+00:51:28,770 --> 00:51:30,350
+you got positive
+reward for this,
+
+1016
+00:51:30,350 --> 00:51:32,470
+and then dropped it on
+the ground or something
+
+1017
+00:51:32,470 --> 00:51:34,510
+after that, then that's
+still dissatisfying
+
+1018
+00:51:34,510 --> 00:51:36,910
+because we wouldn't use the
+first part successfully.
+
+1019
+00:51:36,910 --> 00:51:39,930
+And we'll actually
+see how to get
+
+1020
+00:51:39,930 --> 00:51:42,285
+a good gradient for that first
+part on Friday, but yeah.
+
+1021
+00:51:42,285 --> 00:51:43,910
+If you had a more
+dense reward function
+
+1022
+00:51:43,910 --> 00:51:45,610
+for this particular
+set of trajectories,
+
+1023
+00:51:45,610 --> 00:51:48,122
+that would work a lot better.
+
+1024
+00:51:48,122 --> 00:51:50,330
+Oh, so the question here
+is, when we do the baseline,
+
+1025
+00:51:50,330 --> 00:51:54,020
+are we also using this trick
+to only use future rewards?
+
+1026
+00:51:54,020 --> 00:51:55,900
+You can combine them.
+
+1027
+00:51:55,900 --> 00:51:57,982
+You need to be a little bit--
+
+1028
+00:51:57,982 --> 00:51:59,940
+you need to think a little
+bit potentially more
+
+1029
+00:51:59,940 --> 00:52:02,660
+carefully about what
+the baseline will be,
+
+1030
+00:52:02,660 --> 00:52:06,115
+because some of the rewards--
+
+1031
+00:52:06,115 --> 00:52:08,240
+you'll be summing over
+fewer things or more things,
+
+1032
+00:52:08,240 --> 00:52:10,180
+depending on where you
+are in the trajectory,
+
+1033
+00:52:10,180 --> 00:52:12,577
+but you can definitely
+combine them.
+
+1034
+00:52:12,577 --> 00:52:14,660
+So the question was, if
+we're using average reward
+
+1035
+00:52:14,660 --> 00:52:17,440
+as the baseline, do we need
+to keep updating the term?
+
+1036
+00:52:17,440 --> 00:52:20,030
+Do we need to use
+data from the policy?
+
+1037
+00:52:20,030 --> 00:52:21,780
+So yes, you'll want
+to keep on updating it
+
+1038
+00:52:21,780 --> 00:52:24,980
+because as the policy
+gets better, above average
+
+1039
+00:52:24,980 --> 00:52:26,660
+and below average will change.
+
+1040
+00:52:26,660 --> 00:52:30,450
+And you'll want to recompute it
+on your latest batch of data.
+
+1041
+00:52:30,450 --> 00:52:33,860
+
+1042
+00:52:33,860 --> 00:52:35,340
+Cool.
+
+1043
+00:52:35,340 --> 00:52:37,680
+So one more thing on this
+version of the algorithm,
+
+1044
+00:52:37,680 --> 00:52:40,882
+and then we'll move on
+to one last version,
+
+1045
+00:52:40,882 --> 00:52:42,340
+in terms of how to
+implement it, we
+
+1046
+00:52:42,340 --> 00:52:47,060
+talked about-- we derived
+the gradient like this.
+
+1047
+00:52:47,060 --> 00:52:50,900
+And to actually implement
+this in practice,
+
+1048
+00:52:50,900 --> 00:52:53,100
+you could, in
+principle, actually
+
+1049
+00:52:53,100 --> 00:52:56,740
+just run a backward pass for
+all of these different terms.
+
+1050
+00:52:56,740 --> 00:52:58,720
+But if you computed all
+of these individually,
+
+1051
+00:52:58,720 --> 00:53:01,740
+then you'd have to do n
+times t backward passes,
+
+1052
+00:53:01,740 --> 00:53:04,940
+and this would be
+rather inefficient.
+
+1053
+00:53:04,940 --> 00:53:08,100
+And it'd be nice if we
+could just actually do
+
+1054
+00:53:08,100 --> 00:53:10,300
+automatic differentiation
+on the full objective
+
+1055
+00:53:10,300 --> 00:53:14,260
+and only do one forward
+pass and one backward pass.
+
+1056
+00:53:14,260 --> 00:53:15,880
+And we can do that.
+
+1057
+00:53:15,880 --> 00:53:17,900
+So it's possible to
+implement essentially
+
+1058
+00:53:17,900 --> 00:53:20,100
+a surrogate objective
+whose gradient
+
+1059
+00:53:20,100 --> 00:53:22,952
+is the same as this objective.
+
+1060
+00:53:22,952 --> 00:53:24,660
+I'm calling it surrogate
+because it's not
+
+1061
+00:53:24,660 --> 00:53:27,820
+the same as the very first
+objective of maximizing expected
+
+1062
+00:53:27,820 --> 00:53:30,027
+rewards.
+
+1063
+00:53:30,027 --> 00:53:31,860
+But you can write down
+a surrogate objective
+
+1064
+00:53:31,860 --> 00:53:33,540
+for this particular example.
+
+1065
+00:53:33,540 --> 00:53:35,740
+This is what the surrogate
+objective looks like.
+
+1066
+00:53:35,740 --> 00:53:40,660
+Note that I actually do have a
+typo on these equations, where
+
+1067
+00:53:40,660 --> 00:53:42,840
+this second sum should
+be inside the first sum.
+
+1068
+00:53:42,840 --> 00:53:43,960
+That's maybe a small note.
+
+1069
+00:53:43,960 --> 00:53:46,140
+I'll see if I can fix that.
+
+1070
+00:53:46,140 --> 00:53:48,750
+But, yeah, you can implement
+a surrogate objective,
+
+1071
+00:53:48,750 --> 00:53:52,130
+and then use backprop
+and autodiff software
+
+1072
+00:53:52,130 --> 00:53:54,430
+to just do one backward pass.
+
+1073
+00:53:54,430 --> 00:53:58,255
+
+1074
+00:53:58,255 --> 00:54:00,130
+And what this actually
+looks like in practice
+
+1075
+00:54:00,130 --> 00:54:02,338
+is this would actually look
+like a cross-entropy loss
+
+1076
+00:54:02,338 --> 00:54:04,930
+for a discrete action policy,
+or something like squared error
+
+1077
+00:54:04,930 --> 00:54:06,730
+for our Gaussian policy.
+
+1078
+00:54:06,730 --> 00:54:09,250
+You could also use more
+sophisticated policies,
+
+1079
+00:54:09,250 --> 00:54:12,990
+like diffusion or something
+like that as well.
+
+1080
+00:54:12,990 --> 00:54:13,490
+OK.
+
+1081
+00:54:13,490 --> 00:54:17,970
+So summary so far, we
+showed how to estimate
+
+1082
+00:54:17,970 --> 00:54:21,810
+the gradient of the RL objective
+using this log gradient trick.
+
+1083
+00:54:21,810 --> 00:54:24,810
+This corresponds to weighing
+the policy likelihood
+
+1084
+00:54:24,810 --> 00:54:26,410
+by future rewards.
+
+1085
+00:54:26,410 --> 00:54:30,330
+And we found that subtracting a
+baseline, like average reward,
+
+1086
+00:54:30,330 --> 00:54:34,290
+will also further
+improve the gradient.
+
+1087
+00:54:34,290 --> 00:54:37,490
+Even with these two things,
+the gradient is still noisy,
+
+1088
+00:54:37,490 --> 00:54:40,730
+and so it's best with large
+batches and dense rewards.
+
+1089
+00:54:40,730 --> 00:54:42,730
+This is also our first
+online reinforcement
+
+1090
+00:54:42,730 --> 00:54:44,230
+learning algorithm,
+where we iterate
+
+1091
+00:54:44,230 --> 00:54:47,490
+between collecting a batch
+of data with our policy
+
+1092
+00:54:47,490 --> 00:54:49,030
+and improve our policy.
+
+1093
+00:54:49,030 --> 00:54:53,130
+And it formalizes this
+trial-and-error learning
+
+1094
+00:54:53,130 --> 00:54:55,047
+process.
+
+1095
+00:54:55,047 --> 00:54:57,130
+And the intuition for
+everything we've done so far
+
+1096
+00:54:57,130 --> 00:54:58,850
+is do more of the
+high-reward stuff
+
+1097
+00:54:58,850 --> 00:55:01,810
+and less of the
+low-reward stuff.
+
+1098
+00:55:01,810 --> 00:55:02,310
+OK.
+
+1099
+00:55:02,310 --> 00:55:04,450
+Now, the last thing
+we'll talk about today
+
+1100
+00:55:04,450 --> 00:55:08,490
+is what else is troublesome
+about policy gradients?
+
+1101
+00:55:08,490 --> 00:55:11,730
+And one thing that we haven't
+really talked about that much
+
+1102
+00:55:11,730 --> 00:55:14,250
+is the details of
+the sampling process.
+
+1103
+00:55:14,250 --> 00:55:18,050
+And this is what our gradient
+and our algorithm looks like.
+
+1104
+00:55:18,050 --> 00:55:22,450
+And note that in
+this gradient, this
+
+1105
+00:55:22,450 --> 00:55:25,410
+assumes that we're
+sampling from pi-theta.
+
+1106
+00:55:25,410 --> 00:55:30,650
+And we change theta in step 3.
+
+1107
+00:55:30,650 --> 00:55:34,970
+And this means that every single
+time we take a single gradient
+
+1108
+00:55:34,970 --> 00:55:41,060
+step, we need to recollect
+data to estimate our gradient.
+
+1109
+00:55:41,060 --> 00:55:42,810
+And this is kind of
+sad because usually we
+
+1110
+00:55:42,810 --> 00:55:45,210
+do thousands and thousands
+of gradient steps
+
+1111
+00:55:45,210 --> 00:55:46,030
+on neural networks.
+
+1112
+00:55:46,030 --> 00:55:49,320
+
+1113
+00:55:49,320 --> 00:55:53,080
+So yeah, that seems
+like a problem.
+
+1114
+00:55:53,080 --> 00:55:55,660
+And what this is called
+is it's called on-policy.
+
+1115
+00:55:55,660 --> 00:55:59,040
+It means that the gradient
+that we are measuring
+
+1116
+00:55:59,040 --> 00:56:03,120
+requires data using
+our exact policy.
+
+1117
+00:56:03,120 --> 00:56:04,800
+And we can think about--
+
+1118
+00:56:04,800 --> 00:56:07,480
+this is an attribute of an
+online RL algorithm, where
+
+1119
+00:56:07,480 --> 00:56:10,960
+on-policy only uses data
+from the current policy,
+
+1120
+00:56:10,960 --> 00:56:13,000
+and off-policy means
+that you can reuse data
+
+1121
+00:56:13,000 --> 00:56:14,970
+from other past policies.
+
+1122
+00:56:14,970 --> 00:56:17,840
+
+1123
+00:56:17,840 --> 00:56:22,220
+So can we derive an off-policy
+version of the policy gradient?
+
+1124
+00:56:22,220 --> 00:56:24,480
+And it's only going to
+be a little off-policy.
+
+1125
+00:56:24,480 --> 00:56:25,600
+And by that, I mean,
+we're just going
+
+1126
+00:56:25,600 --> 00:56:27,600
+to try to be able to take
+more than one gradient
+
+1127
+00:56:27,600 --> 00:56:31,520
+step on a single batch of data.
+
+1128
+00:56:31,520 --> 00:56:34,782
+And to do this, we can
+use importance sampling.
+
+1129
+00:56:34,782 --> 00:56:37,240
+And importance sampling is
+actually a really cool technique
+
+1130
+00:56:37,240 --> 00:56:41,640
+that's useful outside of
+reinforcement learning as well.
+
+1131
+00:56:41,640 --> 00:56:45,520
+And it's thinking
+about this scenario
+
+1132
+00:56:45,520 --> 00:56:50,560
+where you want to estimate
+a quantity, an expectation,
+
+1133
+00:56:50,560 --> 00:56:52,900
+without actually sampling
+from that distribution.
+
+1134
+00:56:52,900 --> 00:57:00,760
+So say you have some expectation
+using samples from p of x,
+
+1135
+00:57:00,760 --> 00:57:04,560
+and you want to
+estimate some function
+
+1136
+00:57:04,560 --> 00:57:07,440
+f of x using those
+samples, but say
+
+1137
+00:57:07,440 --> 00:57:13,000
+that you only have access to the
+ability to sample from q of x.
+
+1138
+00:57:13,000 --> 00:57:15,800
+So this is usually called your
+proposal distribution that's
+
+1139
+00:57:15,800 --> 00:57:19,960
+able to propose samples to use.
+
+1140
+00:57:19,960 --> 00:57:21,260
+This is your old policy.
+
+1141
+00:57:21,260 --> 00:57:23,100
+We have samples
+from our old policy,
+
+1142
+00:57:23,100 --> 00:57:26,640
+but we want to be able to
+estimate a function of samples
+
+1143
+00:57:26,640 --> 00:57:30,840
+of our new policy after
+we've taken a gradient step.
+
+1144
+00:57:30,840 --> 00:57:34,080
+So what you can do in
+this case if we write down
+
+1145
+00:57:34,080 --> 00:57:40,640
+this expectation as an integral,
+it looks something like this.
+
+1146
+00:57:40,640 --> 00:57:46,950
+And as long as q of x
+has reasonable support,
+
+1147
+00:57:46,950 --> 00:57:48,870
+we can write this as--
+
+1148
+00:57:48,870 --> 00:57:57,700
+we can add in this term that
+equals 1 into our equation.
+
+1149
+00:57:57,700 --> 00:58:00,350
+
+1150
+00:58:00,350 --> 00:58:03,110
+And then we can now actually
+write this as an expectation
+
+1151
+00:58:03,110 --> 00:58:05,350
+with respect to q.
+
+1152
+00:58:05,350 --> 00:58:13,030
+So this is equal to an
+expectation with respect
+
+1153
+00:58:13,030 --> 00:58:24,950
+to q of p of x divided
+by q of x times f of x.
+
+1154
+00:58:24,950 --> 00:58:27,710
+And so this means that we
+can actually estimate--
+
+1155
+00:58:27,710 --> 00:58:33,310
+we can get this expectation
+by sampling from q
+
+1156
+00:58:33,310 --> 00:58:36,770
+and then weighting
+the quantity by p/q.
+
+1157
+00:58:36,770 --> 00:58:38,950
+[INAUDIBLE]
+
+1158
+00:58:38,950 --> 00:58:40,150
+So that's pretty cool.
+
+1159
+00:58:40,150 --> 00:58:42,830
+This means that we can
+use principal samples
+
+1160
+00:58:42,830 --> 00:58:47,710
+from our old policy
+q, weight them
+
+1161
+00:58:47,710 --> 00:58:50,870
+by the probability of the sample
+under our new policy divided
+
+1162
+00:58:50,870 --> 00:58:57,070
+by the probability under the
+old policy times the quantity.
+
+1163
+00:58:57,070 --> 00:59:00,230
+So we showed for
+this simple case
+
+1164
+00:59:00,230 --> 00:59:04,870
+of p of x and q of x in terms
+of actually applying this
+
+1165
+00:59:04,870 --> 00:59:08,670
+to our policy.
+
+1166
+00:59:08,670 --> 00:59:12,930
+We can take our expected rewards
+with regard to p of theta
+
+1167
+00:59:12,930 --> 00:59:15,190
+if we instead have some
+previous policy that we've
+
+1168
+00:59:15,190 --> 00:59:16,550
+collected samples from.
+
+1169
+00:59:16,550 --> 00:59:18,950
+We can then measure
+our objective
+
+1170
+00:59:18,950 --> 00:59:21,670
+in terms of the samples
+from that policy, where
+
+1171
+00:59:21,670 --> 00:59:26,150
+we weight the reward by the new
+policy divided by the old policy
+
+1172
+00:59:26,150 --> 00:59:27,950
+probability.
+
+1173
+00:59:27,950 --> 00:59:32,510
+Now, note that this requires
+your proposal distribution
+
+1174
+00:59:32,510 --> 00:59:38,412
+to have nonzero
+support in scenarios
+
+1175
+00:59:38,412 --> 00:59:41,460
+where your new policy
+has probability.
+
+1176
+00:59:41,460 --> 00:59:44,060
+This is actually very important
+for it to work if q of x is 0.
+
+1177
+00:59:44,060 --> 00:59:47,580
+This is not poorly defined.
+
+1178
+00:59:47,580 --> 00:59:49,700
+But that's really
+the only catch here.
+
+1179
+00:59:49,700 --> 00:59:51,820
+And in general, this
+importance sampling technique
+
+1180
+00:59:51,820 --> 00:59:54,345
+is really going to work
+best when p and q--
+
+1181
+00:59:54,345 --> 00:59:56,220
+or when your old policy
+and your new policy--
+
+1182
+00:59:56,220 --> 00:59:57,680
+are very similar to each other.
+
+1183
+00:59:57,680 --> 01:00:00,980
+
+1184
+01:00:00,980 --> 01:00:02,480
+Now there's some details--
+
+1185
+01:00:02,480 --> 01:00:04,160
+we've shown this in
+terms of p of tau,
+
+1186
+01:00:04,160 --> 01:00:07,980
+now how do we actually do this
+in terms of pi of a given S?
+
+1187
+01:00:07,980 --> 01:00:10,780
+That actually gets a
+little bit trickier.
+
+1188
+01:00:10,780 --> 01:00:15,780
+We can write down p
+of tau and this ratio
+
+1189
+01:00:15,780 --> 01:00:19,580
+as the product of these
+different probabilities.
+
+1190
+01:00:19,580 --> 01:00:23,180
+Unfortunately, some of the
+probabilities cancel out.
+
+1191
+01:00:23,180 --> 01:00:29,552
+But when we then try to
+put these probabilities
+
+1192
+01:00:29,552 --> 01:00:32,220
+into our update, we're
+going to get something
+
+1193
+01:00:32,220 --> 01:00:37,140
+like this, where we
+then have this product
+
+1194
+01:00:37,140 --> 01:00:41,140
+of these probability ratios.
+
+1195
+01:00:41,140 --> 01:00:43,420
+And now, unfortunately,
+this product
+
+1196
+01:00:43,420 --> 01:00:46,460
+can actually become
+very small or very large
+
+1197
+01:00:46,460 --> 01:00:49,820
+if the length of your
+trajectory is very large,
+
+1198
+01:00:49,820 --> 01:00:51,940
+because you're going
+to be multiplying
+
+1199
+01:00:51,940 --> 01:00:53,460
+many, many numbers together.
+
+1200
+01:00:53,460 --> 01:00:55,860
+If you have 100 numbers that
+you're multiplying together,
+
+1201
+01:00:55,860 --> 01:00:58,800
+if they're above 1, that
+might start to get very large.
+
+1202
+01:00:58,800 --> 01:01:02,140
+If they're below 1, that
+might get to 0 very quickly.
+
+1203
+01:01:02,140 --> 01:01:06,100
+And so in practice, we often
+will consider the expectations
+
+1204
+01:01:06,100 --> 01:01:09,260
+over time steps instead
+of trajectories.
+
+1205
+01:01:09,260 --> 01:01:12,300
+And that also has a little
+bit of a hitch, which
+
+1206
+01:01:12,300 --> 01:01:16,500
+is that this needs to be
+over state action pairs
+
+1207
+01:01:16,500 --> 01:01:19,660
+rather than actions
+given states.
+
+1208
+01:01:19,660 --> 01:01:22,420
+But often in practice,
+we can approximate
+
+1209
+01:01:22,420 --> 01:01:24,440
+this ratio as equal to 1.
+
+1210
+01:01:24,440 --> 01:01:27,720
+This is incorrect, but it's
+the best that we can do.
+
+1211
+01:01:27,720 --> 01:01:29,420
+And then we can
+get some final form
+
+1212
+01:01:29,420 --> 01:01:34,370
+where we get this ratio of
+new policy over old policy.
+
+1213
+01:01:34,370 --> 01:01:37,970
+
+1214
+01:01:37,970 --> 01:01:40,330
+Cool.
+
+1215
+01:01:40,330 --> 01:01:41,903
+The full algorithm
+looks the same,
+
+1216
+01:01:41,903 --> 01:01:43,570
+except now we can
+take multiple gradient
+
+1217
+01:01:43,570 --> 01:01:45,410
+steps on the same batch.
+
+1218
+01:01:45,410 --> 01:01:46,110
+This is good.
+
+1219
+01:01:46,110 --> 01:01:50,320
+And then we have this new
+form for our gradient.
+
+1220
+01:01:50,320 --> 01:01:53,130
+
+1221
+01:01:53,130 --> 01:01:54,600
+OK.
+
+1222
+01:01:54,600 --> 01:01:57,710
+We'll talk a little
+bit about some tricks.
+
+1223
+01:01:57,710 --> 01:02:01,170
+We don't have time to
+cover KL constraints today,
+
+1224
+01:02:01,170 --> 01:02:03,930
+but to review things, we
+talked about online RL.
+
+1225
+01:02:03,930 --> 01:02:05,590
+It's an on-policy algorithm.
+
+1226
+01:02:05,590 --> 01:02:07,830
+We talked about baselines
+for reducing variance.
+
+1227
+01:02:07,830 --> 01:02:10,550
+And we also just derived this
+off-policy policy gradient,
+
+1228
+01:02:10,550 --> 01:02:13,090
+which uses importance
+sampling and allows
+
+1229
+01:02:13,090 --> 01:02:14,720
+us to apply multiple
+gradient steps.
+
+1230
+01:02:14,720 --> 01:02:16,970
+The intuition is to do more
+high-reward stuff and less
+
+1231
+01:02:16,970 --> 01:02:18,110
+low-reward stuff.
+
+1232
+01:02:18,110 --> 01:02:20,250
+And the gradient is
+still very noisy and best
+
+1233
+01:02:20,250 --> 01:02:24,610
+with large batches
+and dense rewards.
+
+1234
+01:02:24,610 --> 01:02:25,350
+Cool.
+
+1235
+01:02:25,350 --> 01:02:26,350
+And that's it for today.
+
+1236
+01:02:26,350 --> 01:02:28,642
+Next time, we'll talk about
+actor-critic methods, which
+
+1237
+01:02:28,642 --> 01:02:30,910
+we'll build closely on
+what we talked about today,
+
+1238
+01:02:30,910 --> 01:02:32,840
+including PPO.
+
+1239
+01:02:32,840 --> 01:02:37,000
+

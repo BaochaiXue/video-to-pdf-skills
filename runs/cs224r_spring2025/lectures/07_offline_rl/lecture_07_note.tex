@@ -1,0 +1,271 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS224R Lecture 7：离线强化学习}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{2025-04-23}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-12-08（YouTube 上传）}
+\newcommand{\videoduration}{1:07:50}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=lRDaXnPIzks}
+\newcommand{\videocoverpath}{../../raw/07_lRDaXnPIzks/07_lRDaXnPIzks.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{问题设定与动机}
+
+\subsection{从在线 RL 过渡到离线 RL}
+这节课首先回顾了前面已经见过的在线强化学习范式。无论是 policy gradient、actor-critic 还是 off-policy Q-learning，它们都依赖一个共同循环：先由当前策略与环境交互收集数据，再利用这些新数据更新价值函数和策略。只要还能持续在线采样，这个循环就允许算法不断修正自己对价值的估计。
+
+离线强化学习（offline RL）把这个前提拿掉了。我们不再拥有“边训练边采样”的权限，而是只拿到一个已经固定的数据集 $D$，它可能来自人工操作、旧版本策略、历史系统日志，或者此前实验中累积下来的经验。训练目标仍然是学习一个高回报策略 $\pi_\theta$，但所有更新都必须在这份静态数据上完成。
+
+\begin{knowledgebox}{离线 RL 的基本对象}
+设离线数据集为
+\[
+D=\{(s,a,r,s')\},
+\]
+它由未知行为策略 $\pi_\beta$ 采集。离线 RL 的目标不是重建 $\pi_\beta$，而是在不新增交互的前提下，学习性能更好的 $\pi_\theta$。
+\end{knowledgebox}
+
+\subsection{为什么要做离线 RL}
+课程里给出三个非常现实的动机。第一，很多场景已经天然拥有海量历史数据，例如自动驾驶的人类驾驶记录、医疗处置日志、机器人历史轨迹、产品推荐系统日志。第二，在线试错往往昂贵、危险，甚至根本不允许；如果一开始策略就很差，直接部署采样可能造成严重风险。第三，哪怕在线训练可行，重新采样也非常浪费，因为每次改动算法都要重新与环境交互，硬件与时间成本都很高。
+
+因此，离线 RL 的价值并不是“它比在线 RL 更强”，而是“它在不能安全探索、但又有历史数据时，提供了继续改进策略的可能性”。
+
+\subsection{本章小结}
+离线 RL 的核心变化不是目标函数变了，而是数据获取方式变了。训练者失去了在线纠错能力，因此任何估计偏差都更难通过后续采样修复，这也直接引出了后面的核心难点。
+
+\section{离线 RL 的核心困难：分布偏移与过估计}
+
+\subsection{为什么直接套用 off-policy 方法会出问题}
+如果把前面课程中的 off-policy actor-critic 或 Q-learning 直接搬到离线场景，一个直观想法是：数据本来就不是当前策略采的，off-policy 方法不就是为这种情况设计的吗？本讲的回答是否定的，因为离线场景里的分布偏移比普通 replay buffer 更严重。
+
+在普通 off-policy 学习中，虽然数据来自旧策略，但训练过程中仍然在不断收集新数据，因此策略偏移太远时，系统还有机会把新的状态-动作对补回 buffer。离线 RL 没有这个补救步骤。一旦当前策略倾向于选择数据支持之外（out-of-distribution, OOD）的动作，Q 函数就会在没有监督的区域上被查询，而这些区域往往恰好容易出现虚高估计。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{pdf_pages/page-25.png}
+\caption{离线 RL 中的核心风险：策略会去追逐数据支持外、但被 Q 函数高估的动作。}
+\end{figure}
+
+\subsection{过估计是如何形成的}
+可以把问题想成一条动作轴上的函数逼近。对于某个状态 $s'$，数据只覆盖一小段动作区间，但随机初始化的 $Q(s',a')$ 在整个动作空间上都有数值。当策略更新时，它会倾向于选择当前看起来 Q 值最大的动作；如果这个动作恰好落在未覆盖区域，那么 critic 就会用一个没有真实标签约束的位置来驱动 actor 更新。
+
+形式上，标准 off-policy critic 往往使用类似
+\[
+\min_Q \ \mathbb{E}_{(s,a,s')\sim D}\Bigl[
+\bigl(Q(s,a)- (r(s,a)+\gamma \mathbb{E}_{a'\sim \pi(\cdot|s')}Q(s',a'))\bigr)^2
+\Bigr].
+\]
+问题在于上式中的 $a'\sim\pi(\cdot|s')$ 可能来自当前学习策略，而这个动作不一定出现于数据中。于是 bootstrapping 会把“未验证的高值”递归写进目标，最终放大误差。
+
+\begin{warningbox}{离线 RL 最怕什么}
+在在线 RL 里，错误的高估值还能通过继续交互被纠正；在离线 RL 里，策略一旦离开数据支持，训练过程就没有新证据来纠错，误差会被 Bellman backup 反复放大。
+\end{warningbox}
+
+\subsection{为什么这和模仿学习不同}
+模仿学习只在数据里的动作上做监督学习，因此它通常不会主动走到 OOD 动作上。但它的代价也很明显：如果数据里混有好坏不同的行为，纯粹做行为克隆只能复制平均表现，难以利用回报信号去“拼接”更优策略。离线 RL 的难点恰恰就在这里：既想超过行为策略，又不能为此跑出数据支持。
+
+\subsection{本章小结}
+离线 RL 不是单纯的“没有在线采样的 off-policy RL”，而是一个受限更强的问题。限制的本质是：一旦策略查询了数据外动作，Q 函数就会在无监督区域产生过估计，而这恰好是策略更新最敏感的信号。
+
+\section{从加权模仿到隐式策略约束}
+
+\subsection{先从模仿学习出发}
+课程接着提出一个更保守的问题：如果完全不查询数据外动作，能不能仍然利用奖励信息做得比普通行为克隆更好？答案是肯定的。一个自然思路是仍然在数据里的动作上训练策略，但让“更好的动作”获得更高权重。
+
+这种思想可以写成 advantage-weighted regression（AWR）：
+\[
+\theta \leftarrow \arg\max_\theta \ \mathbb{E}_{(s,a)\sim D}
+\bigl[\log \pi_\theta(a|s)\exp(A(s,a))\bigr].
+\]
+其中 $\log \pi_\theta(a|s)$ 像标准模仿学习一样鼓励复现数据动作，而 $\exp(A(s,a))$ 则把动作优劣显式编码进权重。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{pdf_pages/page-18.png}
+\caption{AWR：在模仿学习的 log-likelihood 上加入 advantage 权重，只偏向数据中更优的动作。}
+\end{figure}
+
+\subsection{AWR 的关键瓶颈：优势函数从哪来}
+AWR 看起来很合理，但真正困难的是如何估计 $A(s,a)$。如果直接用 Monte Carlo return 去拟合价值，再用
+\[
+\hat A(s_t,a_t)=\sum_{t'=t}^{T} r(s_{t'},a_{t'})-\hat V(s_t),
+\]
+就会遇到两个限制。第一，Monte Carlo 估计方差高；第二，如果行为策略是确定性的或者数据覆盖不足，很多状态下实际上只观测到一种动作，这时“相对更优的动作”很难从数据中读出来。
+
+\subsection{IQL：只在数据动作上学习，但把价值学得更乐观}
+Implicit Q-Learning（IQL）的关键观察是：不必直接对数据外动作做 maximization，也可以通过“价值回归方式”的改变，隐式地偏向更好的动作。它仍然只使用数据里的 $(s,a)$ 更新 $Q$ 与 $V$，但在学习状态价值 $V$ 时，不再回归平均 Q，而是回归一个较高 expectile，对应“在该状态下，行为策略中表现较好的那部分动作”。
+
+expectile regression 的损失写作
+\[
+\ell_2^\lambda(x)=
+\begin{cases}
+(1-\lambda)x^2, & x<0,\\
+\lambda x^2, & x\ge 0.
+\end{cases}
+\]
+当 $\lambda>0.5$ 时，损失会更偏向拟合高于当前估计的样本，从而把状态价值拉向较优动作对应的 Q 值。随后再通过 advantage-weighted 的方式抽出策略，整个过程都不需要显式查询 OOD 动作。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-22.png}
+\caption{Expectile regression：用不对称二次损失把状态价值往较高回报的动作分位上拉。}
+\end{figure}
+
+\subsection{为什么 IQL 的不对称损失用在 V 而不是 Q}
+讲者特别强调了一个容易混淆的点：对 $V$ 用不对称损失，是在同一状态下偏向更好的动作；对 $Q$ 也这么做则会把环境随机性里的“运气好”也当成策略应该追求的目标。换句话说，价值函数的不对称回归应该发生在“动作选择”这一层，而不是发生在“状态转移噪声”这一层。
+
+\begin{importantbox}{IQL 的哲学}
+IQL 的目标不是大胆外推，而是在严格待在数据支持内的前提下，利用价值函数的回归方式把“更优动作”从行为数据里分离出来。
+\end{importantbox}
+
+\subsection{本章小结}
+这一节给出的主线是：想在离线数据上超过行为克隆，可以先不碰 OOD 动作，而是通过加权模仿、优势估计与 expectile 价值学习，在数据支持内完成策略改进。IQL 是这一思路的代表。
+
+\section{保守方法：Conservative Q-Learning}
+
+\subsection{保守思想：主动压低数据外动作的价值}
+另一条路线并不回避 OOD 动作，而是承认策略更新过程中会考虑它们，然后显式把这些动作的 Q 值往下压。CQL（Conservative Q-Learning）的直觉非常直接：如果数据外区域的 Q 无法被准确监督，不如在这些地方系统性悲观一些。
+
+课程先给出原型目标：在标准 critic loss 之外，再加入一项，对某个辅助分布 $\mu(\cdot|s)$ 下采到的动作施加惩罚，使高 Q 动作被压低；与此同时，再对数据中的 $(s,a)$ 加一个“抬高”项，避免把数据支持内的 Q 一起压扁。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.94\textwidth]{pdf_pages/page-26.png}
+\caption{CQL 的核心目标：压低高估的 OOD Q 值，同时保留数据支持内动作的相对高值。}
+\end{figure}
+
+\subsection{CQL 的目标函数怎样理解}
+概念上可以写成
+\[
+\mathcal{L}_{\mathrm{CQL}}
+=
+\mathcal{L}_{\mathrm{critic}}
++
+\alpha \Bigl(
+\mathbb{E}_{s\sim D, a\sim \mu(\cdot|s)}[Q(s,a)]
+-
+\mathbb{E}_{(s,a)\sim D}[Q(s,a)]
+\Bigr).
+\]
+这里第一项是普通 TD 训练；第二项则体现“悲观性”。如果某个动作不在数据支持中、却被 Q 函数赋了很高分，那么它会在第一项里缺乏监督，在第二项里却被主动压低。这样训练出来的 critic 不是追求全局精确，而是追求对训练分布附近更可靠、对分布外更保守。
+
+讲者还提到，若进一步给 $\mu$ 加熵正则，可以得到一个与 $\log\sum\exp Q(s,a)$ 有关的闭式形式，于是实践里并不一定要显式维护一个辅助策略 $\mu$。
+
+\subsection{CQL 与 IQL 的分工}
+从这节课的结尾建议看，IQL 和 CQL 更像是两种偏好不同的设计点。IQL 更强调完全不查询数据外动作，因此天然与“离线预训练再上线微调”的流程兼容。CQL 则在 critic 级别构造保守下界，超参数相对少，概念也更统一，适合希望直接做离线策略学习的情形。
+
+\subsection{本章小结}
+CQL 的关键不是“让策略更胆小”，而是承认数据外估计不可置信，因此在目标函数里显式植入悲观性。它用较小的估计偏差换取更可靠的策略改进。
+
+\section{应用案例与实践选择}
+
+\subsection{LinkedIn 通知优化案例}
+这节课给了一个很好的工业例子：用离线 RL 学习“什么时候给用户发送通知”。这个任务和机器人控制不一样，但结构几乎完全一致。系统需要在多目标之间折中：希望通知被点击、希望用户活跃，但又不想发送太多通知而造成打扰。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{pdf_pages/page-31.png}
+\caption{LinkedIn 通知投放的离线 RL 应用：策略学习、批量训练与线上 A/B 测试结合。}
+\end{figure}
+
+课上的结论是，把 CQL 项加到 DDQN 之类的离线训练流程中，能够在真实线上实验中提升点击率，同时减少总通知量，并略微提高周活用户。这说明“保守外推”并不只是一种理论修补，而是真能在高风险业务里提供可用收益。
+
+\subsection{算法选型建议}
+讲者最后给了一个很实用的经验总结：
+
+\begin{itemize}
+\item 如果只是想先安全地利用离线数据，一个简单起点是 filtered behavior cloning。
+\item 如果希望在纯离线 setting 中利用回报、又不显式跑出数据支持，IQL 是很强的默认选择。
+\item 如果希望通过 critic 直接控制 OOD 过估计，且能接受悲观正则带来的偏差，CQL 是更自然的方案。
+\item 如果最终目标是“离线预训练 + 在线微调”，IQL 往往更有吸引力，因为它能在离线阶段学到较稳健的初始化。
+\end{itemize}
+
+\subsection{本章小结}
+实践上没有万能算法，只有与你的数据质量、动作空间、是否允许后续在线微调相匹配的设计。课程最后传达的信息很清楚：离线 RL 仍然是活跃研究方向，但 IQL 与 CQL 已经构成了非常强的现代基线。
+
+\section{总结与延伸}
+这讲围绕一个核心矛盾展开：我们希望仅凭历史数据学出比历史行为更好的策略，但一旦离开数据支持，价值估计就会失真。为此，课程给出了两类主流解法。
+
+第一类方法尽量不去碰数据外动作，把离线 RL 重写为“加权模仿 + 价值筛选”的问题。AWR 和 IQL 属于这一类，它们依靠 advantage 或 expectile，把数据中更优的行为提炼出来。第二类方法则承认策略会看向数据外动作，因此用 CQL 之类的悲观目标主动压低 OOD Q 值，避免策略追逐幻觉高分。
+
+从教学线索上看，这节课真正想让学生掌握的并不是某个公式，而是一个判断标准：在不能继续采样时，所有泛化都必须尊重数据支持。谁能在“利用奖励”与“约束外推”之间处理好平衡，谁就更适合离线强化学习。进一步阅读时，可以把 IQL、CQL 以及后续结合 diffusion policy 的 IDQL 一并对照来看，重点关注它们究竟如何处理“只靠静态数据还能改进多少”这个问题。
+
+\end{document}

@@ -1,0 +1,6226 @@
+1
+00:00:00,000 --> 00:00:05,480
+
+2
+00:00:05,480 --> 00:00:07,960
+Today I'm going to cover
+primarily preference
+
+3
+00:00:07,960 --> 00:00:09,100
+optimization.
+
+4
+00:00:09,100 --> 00:00:12,440
+And I think Alvaro is going
+to cover some things related
+
+5
+00:00:12,440 --> 00:00:13,960
+to reasoning.
+
+6
+00:00:13,960 --> 00:00:15,070
+So let's get started.
+
+7
+00:00:15,070 --> 00:00:19,840
+
+8
+00:00:19,840 --> 00:00:24,297
+I guess the one clear trend
+in the last 5 to 10 years
+
+9
+00:00:24,297 --> 00:00:25,880
+has been that we've
+been like building
+
+10
+00:00:25,880 --> 00:00:28,920
+larger and larger
+models, and we've
+
+11
+00:00:28,920 --> 00:00:31,380
+been putting far more
+compute into them.
+
+12
+00:00:31,380 --> 00:00:34,680
+This is like an ever
+very consistent trend.
+
+13
+00:00:34,680 --> 00:00:39,000
+And if you're familiar with-- or
+if you've-- some people are even
+
+14
+00:00:39,000 --> 00:00:41,778
+making predictions
+about AGI 2027,
+
+15
+00:00:41,778 --> 00:00:44,320
+and they are predicting that
+we're going to keep putting more
+
+16
+00:00:44,320 --> 00:00:49,040
+and more floating-point
+operations into these models.
+
+17
+00:00:49,040 --> 00:00:52,120
+But the question today
+we're going to try to answer
+
+18
+00:00:52,120 --> 00:00:55,720
+is, how do we get from these
+large language models, which
+
+19
+00:00:55,720 --> 00:00:58,760
+are pretrained to
+predict text and get
+
+20
+00:00:58,760 --> 00:01:01,090
+these really nice
+chatbots that some of them
+
+21
+00:01:01,090 --> 00:01:02,970
+you might have used.
+
+22
+00:01:02,970 --> 00:01:06,210
+So I'm going to very
+briefly talk about--
+
+23
+00:01:06,210 --> 00:01:08,570
+this is not an NLP course,
+and you should probably
+
+24
+00:01:08,570 --> 00:01:10,610
+take one if you're
+interested in learning more
+
+25
+00:01:10,610 --> 00:01:11,430
+about pre-training.
+
+26
+00:01:11,430 --> 00:01:13,050
+It's a very, very deep topic.
+
+27
+00:01:13,050 --> 00:01:15,170
+But I'm going to
+quickly touch upon what
+
+28
+00:01:15,170 --> 00:01:19,250
+we learn in pre-training and
+why that doesn't necessarily
+
+29
+00:01:19,250 --> 00:01:23,330
+translate into the kind
+of chatbots we use.
+
+30
+00:01:23,330 --> 00:01:27,030
+So in pretraining
+large language models,
+
+31
+00:01:27,030 --> 00:01:28,770
+they're trained on
+these gigantic corpus
+
+32
+00:01:28,770 --> 00:01:30,250
+of internet texts.
+
+33
+00:01:30,250 --> 00:01:32,850
+And the way they're
+trained is roughly
+
+34
+00:01:32,850 --> 00:01:36,130
+predicting what the next word or
+the next token in the sentence
+
+35
+00:01:36,130 --> 00:01:37,330
+is going to be.
+
+36
+00:01:37,330 --> 00:01:40,590
+So, for example, if
+you have a sentence,
+
+37
+00:01:40,590 --> 00:01:44,330
+Stanford University is
+located in blank, California.
+
+38
+00:01:44,330 --> 00:01:47,690
+So the model will learn to
+predict what this text is.
+
+39
+00:01:47,690 --> 00:01:48,570
+And you can imagine.
+
+40
+00:01:48,570 --> 00:01:51,490
+Then you're learning
+to predict this text.
+
+41
+00:01:51,490 --> 00:01:52,790
+You're learning a lot of facts.
+
+42
+00:01:52,790 --> 00:01:54,110
+You're learning a lot of trivia.
+
+43
+00:01:54,110 --> 00:01:55,902
+But you're also starting
+to learn something
+
+44
+00:01:55,902 --> 00:02:00,450
+about the syntax of
+how language operates.
+
+45
+00:02:00,450 --> 00:02:03,710
+And we can look at many
+different examples here.
+
+46
+00:02:03,710 --> 00:02:05,590
+I went to the kitchen
+to make some tea.
+
+47
+00:02:05,590 --> 00:02:08,150
+Standing next to Iroh,
+Zuko pondered his destiny.
+
+48
+00:02:08,150 --> 00:02:10,330
+Zuko left the-- so yeah.
+
+49
+00:02:10,330 --> 00:02:13,730
+The model will learn to predict
+the next token, which implicitly
+
+50
+00:02:13,730 --> 00:02:17,250
+requires it to know some facts,
+know syntax, and also maybe
+
+51
+00:02:17,250 --> 00:02:21,130
+even reason about what
+word should come next.
+
+52
+00:02:21,130 --> 00:02:24,270
+While this may like predicting
+next token, you learn language,
+
+53
+00:02:24,270 --> 00:02:28,390
+but predicting next token
+ends up learning a lot more.
+
+54
+00:02:28,390 --> 00:02:30,170
+And there's some
+evidence that it ends up
+
+55
+00:02:30,170 --> 00:02:33,290
+learning some notion of
+how the world operates.
+
+56
+00:02:33,290 --> 00:02:36,770
+So this is a very
+nice example where
+
+57
+00:02:36,770 --> 00:02:41,070
+we ask the model to predict
+the next set of tokens.
+
+58
+00:02:41,070 --> 00:02:44,393
+And here, the example is,
+Pat watches a demonstration
+
+59
+00:02:44,393 --> 00:02:45,810
+of a bowling ball
+and a leaf being
+
+60
+00:02:45,810 --> 00:02:48,690
+dropped at the same time
+in a vacuum chamber.
+
+61
+00:02:48,690 --> 00:02:50,370
+Pat, who is a
+physicist, predicts
+
+62
+00:02:50,370 --> 00:02:54,010
+that another model is asked to
+predict the next set of tokens
+
+63
+00:02:54,010 --> 00:02:55,710
+or the next set of words here.
+
+64
+00:02:55,710 --> 00:02:57,630
+And to predict these
+next set of words,
+
+65
+00:02:57,630 --> 00:03:00,720
+you implicitly have to
+understand what the text was.
+
+66
+00:03:00,720 --> 00:03:02,860
+And in some way, you
+have to understand
+
+67
+00:03:02,860 --> 00:03:06,020
+how the world operates as
+well to be able to answer.
+
+68
+00:03:06,020 --> 00:03:08,038
+And it's very interesting.
+
+69
+00:03:08,038 --> 00:03:10,580
+If you change the prompt, you'll
+get a different behavior out
+
+70
+00:03:10,580 --> 00:03:12,180
+of the model as well.
+
+71
+00:03:12,180 --> 00:03:14,900
+The point here being that
+language models don't just
+
+72
+00:03:14,900 --> 00:03:16,920
+learn syntax, don't
+just learn words,
+
+73
+00:03:16,920 --> 00:03:20,620
+but they learn a lot more about
+how the world operates as well.
+
+74
+00:03:20,620 --> 00:03:24,100
+And similarly, we can ask
+them to do math questions.
+
+75
+00:03:24,100 --> 00:03:26,980
+We can ask them
+to generate code.
+
+76
+00:03:26,980 --> 00:03:29,580
+We can ask them-- they
+have fairly reasonable
+
+77
+00:03:29,580 --> 00:03:31,580
+medical understanding as well.
+
+78
+00:03:31,580 --> 00:03:35,740
+And more importantly, we can
+start transforming these models
+
+79
+00:03:35,740 --> 00:03:37,160
+into assistants now.
+
+80
+00:03:37,160 --> 00:03:39,700
+
+81
+00:03:39,700 --> 00:03:43,140
+So the question now we'll
+get back to is like,
+
+82
+00:03:43,140 --> 00:03:44,960
+OK, pre-training
+gave us all that.
+
+83
+00:03:44,960 --> 00:03:49,300
+So how do we actually
+make this into assistants?
+
+84
+00:03:49,300 --> 00:03:54,100
+So today's lecture, we'll try to
+cover roughly two or three kinds
+
+85
+00:03:54,100 --> 00:03:55,700
+of techniques to do so.
+
+86
+00:03:55,700 --> 00:03:57,670
+First is instruction
+fine tuning.
+
+87
+00:03:57,670 --> 00:03:59,350
+Second is RLHF.
+
+88
+00:03:59,350 --> 00:04:00,640
+And third is DPO.
+
+89
+00:04:00,640 --> 00:04:02,390
+And then we'll talk
+about some limitations
+
+90
+00:04:02,390 --> 00:04:07,790
+about what is missing, where
+are we going wrong, and so on.
+
+91
+00:04:07,790 --> 00:04:09,110
+All right.
+
+92
+00:04:09,110 --> 00:04:12,590
+So the first thing to understand
+is when we pretrain models,
+
+93
+00:04:12,590 --> 00:04:14,050
+we're modeling language.
+
+94
+00:04:14,050 --> 00:04:16,089
+And yes, that learns
+more than language.
+
+95
+00:04:16,089 --> 00:04:17,930
+It learns something
+about the world.
+
+96
+00:04:17,930 --> 00:04:20,529
+But that's still not
+equivalent to assisting users.
+
+97
+00:04:20,529 --> 00:04:25,450
+So this is an example from
+GPT-3, where the prompt says,
+
+98
+00:04:25,450 --> 00:04:28,570
+explain the moon landing to a
+six-year-old in a few sentences.
+
+99
+00:04:28,570 --> 00:04:30,710
+And the model
+completes it with what
+
+100
+00:04:30,710 --> 00:04:32,590
+it thinks should be
+the next set of tokens
+
+101
+00:04:32,590 --> 00:04:35,992
+according to the distribution of
+text it has seen in its corpus.
+
+102
+00:04:35,992 --> 00:04:37,950
+So it starts off, explain
+the theory of gravity
+
+103
+00:04:37,950 --> 00:04:39,067
+to a six-year-old.
+
+104
+00:04:39,067 --> 00:04:41,150
+Explain the theory of
+relativity to a six-year-old
+
+105
+00:04:41,150 --> 00:04:42,530
+in a few sentences.
+
+106
+00:04:42,530 --> 00:04:44,550
+And this isn't like--
+
+107
+00:04:44,550 --> 00:04:46,450
+this is not what I expect
+my assistant to do.
+
+108
+00:04:46,450 --> 00:04:50,910
+It's just a language model
+predicting the next token.
+
+109
+00:04:50,910 --> 00:04:53,150
+What we do want it
+to do is actually
+
+110
+00:04:53,150 --> 00:04:56,448
+give an explanation or
+a story where it like,
+
+111
+00:04:56,448 --> 00:04:58,990
+a giant rocket ship blasted off
+the Earth carrying astronauts
+
+112
+00:04:58,990 --> 00:04:59,570
+to the moon.
+
+113
+00:04:59,570 --> 00:05:01,630
+So some kind of an
+explanation, which
+
+114
+00:05:01,630 --> 00:05:04,210
+was the original
+intent of the question,
+
+115
+00:05:04,210 --> 00:05:06,870
+and not just the text that
+has seen on the internet.
+
+116
+00:05:06,870 --> 00:05:10,230
+And that's where the discrepancy
+arises between language modeling
+
+117
+00:05:10,230 --> 00:05:12,950
+and assisting users.
+
+118
+00:05:12,950 --> 00:05:15,430
+The first set of techniques
+that were developed for this
+
+119
+00:05:15,430 --> 00:05:16,670
+was fine-tuning.
+
+120
+00:05:16,670 --> 00:05:19,230
+And we're going to talk
+a little bit about this.
+
+121
+00:05:19,230 --> 00:05:23,970
+So the general paradigm,
+even to this date,
+
+122
+00:05:23,970 --> 00:05:26,270
+has been to first
+pretrain a language model
+
+123
+00:05:26,270 --> 00:05:28,910
+on a large corpus of
+text and then fine-tune
+
+124
+00:05:28,910 --> 00:05:31,690
+for your specific task.
+
+125
+00:05:31,690 --> 00:05:33,530
+So how does fine-tuning work?
+
+126
+00:05:33,530 --> 00:05:36,970
+You collect a set of inputs, and
+you have some target outputs.
+
+127
+00:05:36,970 --> 00:05:39,310
+And then you improve
+the log likelihood
+
+128
+00:05:39,310 --> 00:05:41,190
+of these target outputs.
+
+129
+00:05:41,190 --> 00:05:45,810
+So in this step two,
+you have this input
+
+130
+00:05:45,810 --> 00:05:48,470
+which was, the movie was
+something, something.
+
+131
+00:05:48,470 --> 00:05:52,050
+And then you have some target
+output, which is good or bad.
+
+132
+00:05:52,050 --> 00:05:54,880
+And the model learns to
+predict whether the output was
+
+133
+00:05:54,880 --> 00:05:56,000
+good or bad.
+
+134
+00:05:56,000 --> 00:06:00,640
+And that's really the main
+difference between fine-tuning
+
+135
+00:06:00,640 --> 00:06:04,000
+and pre-training.
+
+136
+00:06:04,000 --> 00:06:05,280
+As we realize--
+
+137
+00:06:05,280 --> 00:06:08,860
+I mean, these pre-trained models
+are good for many more things.
+
+138
+00:06:08,860 --> 00:06:12,580
+We started scaling up the number
+of tasks we can fine-tune on.
+
+139
+00:06:12,580 --> 00:06:14,760
+So the previous
+example was maybe
+
+140
+00:06:14,760 --> 00:06:16,650
+something like
+sentiment prediction.
+
+141
+00:06:16,650 --> 00:06:18,400
+But really, these
+models can be fine-tuned
+
+142
+00:06:18,400 --> 00:06:20,750
+for many, many different
+tasks at the same time.
+
+143
+00:06:20,750 --> 00:06:23,600
+
+144
+00:06:23,600 --> 00:06:29,800
+So broadly, this can be seen as
+collecting a set of instruction
+
+145
+00:06:29,800 --> 00:06:31,205
+and output pairs.
+
+146
+00:06:31,205 --> 00:06:33,080
+So for example, if the
+instruction is, please
+
+147
+00:06:33,080 --> 00:06:34,420
+answer the following question.
+
+148
+00:06:34,420 --> 00:06:36,920
+What is the boiling
+point of nitrogen?
+
+149
+00:06:36,920 --> 00:06:39,760
+we'll have some answer
+like minus 320.4.
+
+150
+00:06:39,760 --> 00:06:42,200
+And we want to be able to
+predict this answer conditioned
+
+151
+00:06:42,200 --> 00:06:44,160
+on the input.
+
+152
+00:06:44,160 --> 00:06:48,680
+And once we collect a corpus of
+such instruction output pairs,
+
+153
+00:06:48,680 --> 00:06:52,865
+we can then evaluate them
+on many, many unseen tasks.
+
+154
+00:06:52,865 --> 00:06:54,490
+Can Geoffrey Hinton
+have a conversation
+
+155
+00:06:54,490 --> 00:06:55,790
+with George Washington?
+
+156
+00:06:55,790 --> 00:06:57,570
+Give the rationale
+before answering.
+
+157
+00:06:57,570 --> 00:07:00,110
+And the model will produce
+a reasonable output here.
+
+158
+00:07:00,110 --> 00:07:03,770
+
+159
+00:07:03,770 --> 00:07:09,530
+So what if we fine-tune
+different scale language models
+
+160
+00:07:09,530 --> 00:07:11,810
+on the same kind of corpus?
+
+161
+00:07:11,810 --> 00:07:15,530
+So one thing that was observed
+in a lot of prior work
+
+162
+00:07:15,530 --> 00:07:18,690
+is that as you increase
+the model parameter size,
+
+163
+00:07:18,690 --> 00:07:20,910
+they actually start
+generalizing a lot better.
+
+164
+00:07:20,910 --> 00:07:24,290
+So even taking a very small
+corpus of such instruction
+
+165
+00:07:24,290 --> 00:07:26,810
+output data sets,
+you start seeing
+
+166
+00:07:26,810 --> 00:07:28,350
+a lot more generalization.
+
+167
+00:07:28,350 --> 00:07:30,970
+So to explain the
+table a little bit,
+
+168
+00:07:30,970 --> 00:07:35,330
+the BIG-bench and MMLU are
+like question-answer pairs
+
+169
+00:07:35,330 --> 00:07:37,930
+of the kind you just saw
+in the previous slide.
+
+170
+00:07:37,930 --> 00:07:43,610
+And one thing to note here is
+that the bigger the parameters
+
+171
+00:07:43,610 --> 00:07:46,970
+or larger the model is,
+the larger the gain is
+
+172
+00:07:46,970 --> 00:07:50,090
+after instruction fine-tuning.
+
+173
+00:07:50,090 --> 00:07:56,130
+So what this suggest to us is
+that the models start responding
+
+174
+00:07:56,130 --> 00:07:59,050
+and generalizing to questions,
+even with very small corpus
+
+175
+00:07:59,050 --> 00:08:01,090
+of data as well.
+
+176
+00:08:01,090 --> 00:08:04,450
+So to give an example of what
+the models look before and after
+
+177
+00:08:04,450 --> 00:08:06,220
+instruction fine-tuning--
+
+178
+00:08:06,220 --> 00:08:07,470
+it's a fairly simple question.
+
+179
+00:08:07,470 --> 00:08:10,170
+In the following sentences,
+explain the antecedent
+
+180
+00:08:10,170 --> 00:08:12,270
+to the pronoun and state
+that it is ambiguous.
+
+181
+00:08:12,270 --> 00:08:15,330
+So you get something
+which represents more
+
+182
+00:08:15,330 --> 00:08:19,210
+like the raw language model,
+which will start generating
+
+183
+00:08:19,210 --> 00:08:20,710
+text on the right side.
+
+184
+00:08:20,710 --> 00:08:23,210
+The reporter and the chef will
+discuss their favorite dishes
+
+185
+00:08:23,210 --> 00:08:23,890
+and so on.
+
+186
+00:08:23,890 --> 00:08:26,110
+But after instruction
+fine-tuning,
+
+187
+00:08:26,110 --> 00:08:28,730
+it will give us what
+the user perhaps
+
+188
+00:08:28,730 --> 00:08:32,010
+intended from the
+question, which
+
+189
+00:08:32,010 --> 00:08:34,220
+is to give the correct answer.
+
+190
+00:08:34,220 --> 00:08:37,090
+
+191
+00:08:37,090 --> 00:08:38,530
+Cool.
+
+192
+00:08:38,530 --> 00:08:42,409
+So instruction fine-tuning
+is fairly simple.
+
+193
+00:08:42,409 --> 00:08:47,650
+There is nothing very
+complicated going on here.
+
+194
+00:08:47,650 --> 00:08:49,890
+So I'll take a second.
+
+195
+00:08:49,890 --> 00:08:51,220
+Do you see--
+
+196
+00:08:51,220 --> 00:08:52,440
+just reflect for yourself.
+
+197
+00:08:52,440 --> 00:08:56,340
+Do you see some limitations
+to something like this?
+
+198
+00:08:56,340 --> 00:08:58,780
+One limitation that
+obviously comes up
+
+199
+00:08:58,780 --> 00:09:01,120
+is that it's expensive
+to collect such data.
+
+200
+00:09:01,120 --> 00:09:04,700
+You have to collect
+questions and the labels
+
+201
+00:09:04,700 --> 00:09:06,900
+for those questions.
+
+202
+00:09:06,900 --> 00:09:08,000
+And that's hard.
+
+203
+00:09:08,000 --> 00:09:10,280
+As you start increasing the
+hardness of the questions,
+
+204
+00:09:10,280 --> 00:09:13,300
+there's very few people who
+can answer those questions.
+
+205
+00:09:13,300 --> 00:09:16,940
+So it's expensive to scale
+such data collections where
+
+206
+00:09:16,940 --> 00:09:18,940
+the humans have to sit
+down and write down
+
+207
+00:09:18,940 --> 00:09:22,020
+the answer to every question.
+
+208
+00:09:22,020 --> 00:09:24,720
+But then if you
+look beyond that,
+
+209
+00:09:24,720 --> 00:09:28,260
+there are certain tasks which
+don't even have a right answer.
+
+210
+00:09:28,260 --> 00:09:31,580
+So if I-- and this
+is a lot of the use
+
+211
+00:09:31,580 --> 00:09:32,760
+cases of language models.
+
+212
+00:09:32,760 --> 00:09:35,500
+A lot of the use cases of
+language models are creative.
+
+213
+00:09:35,500 --> 00:09:37,860
+So if I ask a language
+model to write a story
+
+214
+00:09:37,860 --> 00:09:40,920
+about a dog and her
+pet grasshopper,
+
+215
+00:09:40,920 --> 00:09:42,600
+there's no right
+answer for this.
+
+216
+00:09:42,600 --> 00:09:45,420
+I cannot sit down and say, oh,
+this is the exact story I want
+
+217
+00:09:45,420 --> 00:09:48,910
+to hear every single time a
+person asks this question.
+
+218
+00:09:48,910 --> 00:09:52,110
+
+219
+00:09:52,110 --> 00:09:54,330
+The second point
+is a little subtle,
+
+220
+00:09:54,330 --> 00:10:00,210
+but in instruction fine-tuning,
+we have a predefined answer.
+
+221
+00:10:00,210 --> 00:10:04,130
+So the mistakes are
+penalized equally.
+
+222
+00:10:04,130 --> 00:10:06,350
+So there's no good
+or right answer.
+
+223
+00:10:06,350 --> 00:10:10,070
+We're not necessarily saying
+that this was the mistake.
+
+224
+00:10:10,070 --> 00:10:12,870
+We are basically saying
+your entire answer is wrong
+
+225
+00:10:12,870 --> 00:10:15,290
+or your entire
+answer is correct,
+
+226
+00:10:15,290 --> 00:10:21,470
+which is often not necessarily
+true for a specific question.
+
+227
+00:10:21,470 --> 00:10:23,750
+So this is an example of this.
+
+228
+00:10:23,750 --> 00:10:28,150
+If we have a statement like,
+Avatar is a fantasy TV show,
+
+229
+00:10:28,150 --> 00:10:30,150
+it's not that the
+sentence entirely
+
+230
+00:10:30,150 --> 00:10:33,230
+is correct or incorrect, but
+it would have been better
+
+231
+00:10:33,230 --> 00:10:36,510
+to describe the Avatar
+as an adventure TV show
+
+232
+00:10:36,510 --> 00:10:39,270
+rather than a fantasy TV show.
+
+233
+00:10:39,270 --> 00:10:41,810
+I think this is like a problem
+that has emerged recently,
+
+234
+00:10:41,810 --> 00:10:45,270
+is that the language models
+truly are better at generating
+
+235
+00:10:45,270 --> 00:10:47,470
+answers than humans.
+
+236
+00:10:47,470 --> 00:10:50,310
+So if we rely on humans
+to generate the answers
+
+237
+00:10:50,310 --> 00:10:52,290
+and generate the labels
+for our questions,
+
+238
+00:10:52,290 --> 00:10:55,590
+we are going to be limited
+by how good the humans can
+
+239
+00:10:55,590 --> 00:10:58,150
+answer the question.
+
+240
+00:10:58,150 --> 00:11:04,470
+And finally, one big mismatch
+is that LLM objectives--
+
+241
+00:11:04,470 --> 00:11:07,310
+there's a bit of a
+misalignment between what
+
+242
+00:11:07,310 --> 00:11:09,950
+we want our models to do,
+which is to engage well
+
+243
+00:11:09,950 --> 00:11:12,923
+with humans, which is to--
+
+244
+00:11:12,923 --> 00:11:16,550
+and which is to
+follow their intent.
+
+245
+00:11:16,550 --> 00:11:20,190
+Whereas our fine-tuning
+objective basically says
+
+246
+00:11:20,190 --> 00:11:22,330
+predict this answer really well.
+
+247
+00:11:22,330 --> 00:11:24,870
+So there's a little bit of
+a mismatch in our training
+
+248
+00:11:24,870 --> 00:11:28,790
+objective when we are doing
+instruction fine-tuning.
+
+249
+00:11:28,790 --> 00:11:31,350
+Cool.
+
+250
+00:11:31,350 --> 00:11:35,910
+So this leads us to the paradigm
+of reinforcement learning
+
+251
+00:11:35,910 --> 00:11:38,430
+from human preferences.
+
+252
+00:11:38,430 --> 00:11:43,173
+So the question is that,
+how much of the improvement
+
+253
+00:11:43,173 --> 00:11:45,590
+from instruction fine-tuning
+comes from following a format
+
+254
+00:11:45,590 --> 00:11:48,240
+or actually teaching
+some new knowledge?
+
+255
+00:11:48,240 --> 00:11:52,000
+I think most of the work
+suggests that it actually
+
+256
+00:11:52,000 --> 00:11:54,663
+is teaching largely formatting.
+
+257
+00:11:54,663 --> 00:11:56,080
+And most of the
+knowledge actually
+
+258
+00:11:56,080 --> 00:11:58,180
+comes from the base
+language model itself.
+
+259
+00:11:58,180 --> 00:12:01,040
+And there's a very
+clear way to do this.
+
+260
+00:12:01,040 --> 00:12:03,680
+You can experiment
+this by just training
+
+261
+00:12:03,680 --> 00:12:05,720
+the model wrong answers.
+
+262
+00:12:05,720 --> 00:12:09,785
+And it still does quite well
+on the downstream tasks.
+
+263
+00:12:09,785 --> 00:12:11,160
+So it tells us
+that it's actually
+
+264
+00:12:11,160 --> 00:12:15,000
+teaching formatting more
+than the knowledge itself.
+
+265
+00:12:15,000 --> 00:12:19,840
+The question was, are
+the corpuses always
+
+266
+00:12:19,840 --> 00:12:21,100
+question-answer format?
+
+267
+00:12:21,100 --> 00:12:23,720
+Because that's what we
+want out of chatbots.
+
+268
+00:12:23,720 --> 00:12:24,740
+Not anymore.
+
+269
+00:12:24,740 --> 00:12:28,020
+I think this was very early
+days of LLM fine-tuning,
+
+270
+00:12:28,020 --> 00:12:30,400
+and we were focused more
+on question answering.
+
+271
+00:12:30,400 --> 00:12:34,000
+But the corpus for
+instruction fine-tuning
+
+272
+00:12:34,000 --> 00:12:36,560
+are very, very diverse now.
+
+273
+00:12:36,560 --> 00:12:40,320
+These LLMs are used for a wide
+variety of tasks, function
+
+274
+00:12:40,320 --> 00:12:41,780
+calling tools.
+
+275
+00:12:41,780 --> 00:12:43,840
+And it's not just assist--
+
+276
+00:12:43,840 --> 00:12:46,580
+assistance means many
+different things.
+
+277
+00:12:46,580 --> 00:12:48,030
+It's not question-answers.
+
+278
+00:12:48,030 --> 00:12:50,350
+It could be just anything.
+
+279
+00:12:50,350 --> 00:12:50,850
+Great.
+
+280
+00:12:50,850 --> 00:12:53,090
+So now we'll get into
+reinforcement learning
+
+281
+00:12:53,090 --> 00:12:55,170
+from human preferences,
+which addresses
+
+282
+00:12:55,170 --> 00:13:00,170
+some of the limitations
+which we discussed here.
+
+283
+00:13:00,170 --> 00:13:03,530
+So throughout this
+section, we'll
+
+284
+00:13:03,530 --> 00:13:07,010
+use summarization as an example,
+because there's not necessarily
+
+285
+00:13:07,010 --> 00:13:09,450
+a good summary that
+we can often train on.
+
+286
+00:13:09,450 --> 00:13:13,730
+And for notation,
+we'll assume that we
+
+287
+00:13:13,730 --> 00:13:17,450
+are given an instruction
+x and the language model
+
+288
+00:13:17,450 --> 00:13:19,490
+will generate some sample y.
+
+289
+00:13:19,490 --> 00:13:23,890
+And we'll pretend that
+we have a way for a human
+
+290
+00:13:23,890 --> 00:13:26,850
+to give us some kind of a
+reward score for a given
+
+291
+00:13:26,850 --> 00:13:30,890
+summary conditioned on
+some input x and summary y.
+
+292
+00:13:30,890 --> 00:13:33,290
+So we have some
+news article which
+
+293
+00:13:33,290 --> 00:13:34,730
+is San Francisco, California.
+
+294
+00:13:34,730 --> 00:13:37,770
+Magnitude of 4.2 earthquake
+shook the San Francisco
+
+295
+00:13:37,770 --> 00:13:39,090
+blah, blah, blah.
+
+296
+00:13:39,090 --> 00:13:41,650
+And we have one
+summary, which is,
+
+297
+00:13:41,650 --> 00:13:43,030
+earthquake hit San Francisco.
+
+298
+00:13:43,030 --> 00:13:45,890
+There was a minor property
+damage but no injuries.
+
+299
+00:13:45,890 --> 00:13:50,590
+And we have another one, which
+is, Bay Area has good weather,
+
+300
+00:13:50,590 --> 00:13:52,843
+but it is prone to
+earthquakes and wildfires.
+
+301
+00:13:52,843 --> 00:13:55,510
+Clearly, one of the summaries is
+a little better than the other.
+
+302
+00:13:55,510 --> 00:13:57,970
+So let's say like our
+reward function gives us
+
+303
+00:13:57,970 --> 00:14:02,130
+a score of 8.0, and the other
+summary gets a score of 1.2.
+
+304
+00:14:02,130 --> 00:14:04,810
+Roughly speaking, you want
+to set up the objective such
+
+305
+00:14:04,810 --> 00:14:09,030
+that we want to maximize
+the expected reward.
+
+306
+00:14:09,030 --> 00:14:12,370
+So conditioned on some
+input instruction x,
+
+307
+00:14:12,370 --> 00:14:15,850
+we want our language model
+to generate summaries y such
+
+308
+00:14:15,850 --> 00:14:18,410
+that the expected
+reward will be high.
+
+309
+00:14:18,410 --> 00:14:20,810
+Fairly simple standard RL
+objective that you've probably
+
+310
+00:14:20,810 --> 00:14:23,650
+seen in the class before.
+
+311
+00:14:23,650 --> 00:14:27,670
+And this is like the core
+of how chatbots are trained.
+
+312
+00:14:27,670 --> 00:14:31,330
+And the rough pipeline looks
+as the following, which
+
+313
+00:14:31,330 --> 00:14:33,170
+is from the
+InstructGPT paper, is
+
+314
+00:14:33,170 --> 00:14:36,650
+that we'll first do some
+instruction fine-tuning.
+
+315
+00:14:36,650 --> 00:14:38,970
+This is we collect some
+demonstration data to condition
+
+316
+00:14:38,970 --> 00:14:42,890
+like just to get the formatting
+right as we discussed earlier.
+
+317
+00:14:42,890 --> 00:14:47,080
+Second step and the third step,
+which will go a lot more into,
+
+318
+00:14:47,080 --> 00:14:52,500
+is to set up how to first get
+a reward model, which allows
+
+319
+00:14:52,500 --> 00:14:54,120
+us to align with human intent.
+
+320
+00:14:54,120 --> 00:14:56,940
+And then we maximize
+the reward model.
+
+321
+00:14:56,940 --> 00:15:00,860
+So these are the three
+steps we typically follow.
+
+322
+00:15:00,860 --> 00:15:02,140
+Great.
+
+323
+00:15:02,140 --> 00:15:07,020
+So let's just pretend for now
+that we have a reward model
+
+324
+00:15:07,020 --> 00:15:08,940
+where we want to maximize this.
+
+325
+00:15:08,940 --> 00:15:13,300
+And yeah, I'm
+presuming you all are
+
+326
+00:15:13,300 --> 00:15:16,260
+familiar with this
+gradient descent idea.
+
+327
+00:15:16,260 --> 00:15:19,900
+So, yeah, the way we would
+change the LLM parameters
+
+328
+00:15:19,900 --> 00:15:22,420
+to maximize this
+is something you've
+
+329
+00:15:22,420 --> 00:15:24,560
+seen before, like some
+form of gradient descent.
+
+330
+00:15:24,560 --> 00:15:26,960
+Usually, there's more
+complicated optimizers,
+
+331
+00:15:26,960 --> 00:15:31,140
+but we can pretend that
+is not required right now.
+
+332
+00:15:31,140 --> 00:15:33,980
+For now, we'll just assume
+like a generic RL formulation
+
+333
+00:15:33,980 --> 00:15:37,620
+where we are generating
+some sample S hat.
+
+334
+00:15:37,620 --> 00:15:40,260
+So for some
+distribution p theta S,
+
+335
+00:15:40,260 --> 00:15:43,430
+we want to change the
+parameter's theta such
+
+336
+00:15:43,430 --> 00:15:46,910
+that the sample's S hat are high
+reward under the reward function
+
+337
+00:15:46,910 --> 00:15:47,410
+r.
+
+338
+00:15:47,410 --> 00:15:50,190
+
+339
+00:15:50,190 --> 00:15:54,310
+So the main issue is--
+and this is why we do RL,
+
+340
+00:15:54,310 --> 00:15:57,210
+is our reward functions are
+often nondifferentiable.
+
+341
+00:15:57,210 --> 00:15:58,630
+So if you ask me
+to give a number,
+
+342
+00:15:58,630 --> 00:16:00,930
+my human mind is
+nondifferentiable.
+
+343
+00:16:00,930 --> 00:16:02,690
+So we cannot backpropagate
+through them.
+
+344
+00:16:02,690 --> 00:16:06,310
+So this is why we resort to RL.
+
+345
+00:16:06,310 --> 00:16:08,230
+So this is where
+policy gradient methods
+
+346
+00:16:08,230 --> 00:16:11,390
+that I think Chelsea has covered
+very early in the course come
+
+347
+00:16:11,390 --> 00:16:13,190
+in, is that they
+allow us to maximize
+
+348
+00:16:13,190 --> 00:16:15,310
+nondifferentiable
+reward functions.
+
+349
+00:16:15,310 --> 00:16:18,830
+And we can estimate and
+optimize this objective.
+
+350
+00:16:18,830 --> 00:16:22,410
+And I'll do a brief recap
+here because it's important.
+
+351
+00:16:22,410 --> 00:16:25,450
+And we'll slowly lead into
+the RLHF pipeline as well.
+
+352
+00:16:25,450 --> 00:16:29,750
+But I presume you
+have seen this before.
+
+353
+00:16:29,750 --> 00:16:31,130
+Great.
+
+354
+00:16:31,130 --> 00:16:35,070
+So in this generic objective
+when we want to estimate,
+
+355
+00:16:35,070 --> 00:16:39,950
+the quantity that we want is the
+gradient of the expected reward,
+
+356
+00:16:39,950 --> 00:16:44,670
+where we want the sample's S hat
+to have a high reward under R.
+
+357
+00:16:44,670 --> 00:16:47,510
+So this can be written down.
+
+358
+00:16:47,510 --> 00:16:51,110
+This is just algebra at this
+point, where the expectation can
+
+359
+00:16:51,110 --> 00:16:56,470
+be written down as the summation
+of R(s) multiplied by p theta S.
+
+360
+00:16:56,470 --> 00:16:59,790
+And we have the gradient here.
+
+361
+00:16:59,790 --> 00:17:02,350
+So this is just a
+definition of expectation.
+
+362
+00:17:02,350 --> 00:17:06,652
+And now we're going to propagate
+the gradient forward simply
+
+363
+00:17:06,652 --> 00:17:07,860
+by linearity of the gradient.
+
+364
+00:17:07,860 --> 00:17:12,869
+
+365
+00:17:12,869 --> 00:17:15,490
+I assume you have seen this,
+but I'm going to go over this.
+
+366
+00:17:15,490 --> 00:17:17,329
+But this is a log
+derivative trick,
+
+367
+00:17:17,329 --> 00:17:20,829
+which is we can rewrite
+the gradient of p theta
+
+368
+00:17:20,829 --> 00:17:25,390
+as p theta times
+gradient of log p theta.
+
+369
+00:17:25,390 --> 00:17:29,070
+So to see that, this is
+simply from the chain rule,
+
+370
+00:17:29,070 --> 00:17:32,670
+is that the gradient
+of log p theta
+
+371
+00:17:32,670 --> 00:17:35,510
+simply can be written as 1 by
+p theta and gradient multiplied
+
+372
+00:17:35,510 --> 00:17:38,630
+by gradient of p theta.
+
+373
+00:17:38,630 --> 00:17:39,670
+Cool.
+
+374
+00:17:39,670 --> 00:17:42,760
+So we can rewrite this to
+get this identity, where
+
+375
+00:17:42,760 --> 00:17:45,240
+the gradient of p theta
+can be rewritten as p
+
+376
+00:17:45,240 --> 00:17:46,660
+theta gradient log p theta.
+
+377
+00:17:46,660 --> 00:17:49,480
+
+378
+00:17:49,480 --> 00:17:51,520
+Cool.
+
+379
+00:17:51,520 --> 00:17:57,560
+So the quantities in yellow is
+what we want to substitute back.
+
+380
+00:17:57,560 --> 00:18:00,280
+And if we plug this
+back in, we get
+
+381
+00:18:00,280 --> 00:18:04,840
+the following equation, which
+is reward of gradient of p theta
+
+382
+00:18:04,840 --> 00:18:07,920
+is the same as
+expectation under p theta
+
+383
+00:18:07,920 --> 00:18:09,470
+R gradient of log p theta.
+
+384
+00:18:09,470 --> 00:18:12,840
+
+385
+00:18:12,840 --> 00:18:13,920
+All right.
+
+386
+00:18:13,920 --> 00:18:17,720
+So why did we do all this?
+
+387
+00:18:17,720 --> 00:18:21,080
+Typically, when we're computing
+expectation over sentences,
+
+388
+00:18:21,080 --> 00:18:23,400
+it's really not
+possible to enumerate
+
+389
+00:18:23,400 --> 00:18:26,440
+every single sentence possible.
+
+390
+00:18:26,440 --> 00:18:29,540
+It's just simply intractable
+to even try to do that.
+
+391
+00:18:29,540 --> 00:18:32,960
+So you want to be able to
+estimate the gradient somehow.
+
+392
+00:18:32,960 --> 00:18:34,960
+And we want to be able
+to create some kind
+
+393
+00:18:34,960 --> 00:18:37,440
+of a stochastic
+estimator so that we
+
+394
+00:18:37,440 --> 00:18:39,060
+can get the gradient out.
+
+395
+00:18:39,060 --> 00:18:41,250
+So this log derivative
+trick is what
+
+396
+00:18:41,250 --> 00:18:44,290
+allows us to take this
+gradient and convert it
+
+397
+00:18:44,290 --> 00:18:48,330
+into an expectation, which we
+can sample and then approximate.
+
+398
+00:18:48,330 --> 00:18:52,290
+And this is what we get as a
+final result, is that it's again
+
+399
+00:18:52,290 --> 00:18:54,130
+an expectation of
+a reward multiplied
+
+400
+00:18:54,130 --> 00:18:57,450
+by gradient of log p theta.
+
+401
+00:18:57,450 --> 00:19:00,810
+So the question is, do we take
+this gradient because we cannot
+
+402
+00:19:00,810 --> 00:19:02,190
+backpropagate correctly?
+
+403
+00:19:02,190 --> 00:19:03,850
+There's two reasons, really.
+
+404
+00:19:03,850 --> 00:19:06,610
+First is we cannot set up an
+objective where the reward--
+
+405
+00:19:06,610 --> 00:19:09,210
+we cannot assume the
+reward is differentiable.
+
+406
+00:19:09,210 --> 00:19:12,330
+Second, which is the more
+precise mathematical answer,
+
+407
+00:19:12,330 --> 00:19:13,410
+is that we are--
+
+408
+00:19:13,410 --> 00:19:16,810
+our parameters are
+in the expectation.
+
+409
+00:19:16,810 --> 00:19:21,250
+So we do need to figure out a
+way to take the gradients back
+
+410
+00:19:21,250 --> 00:19:24,930
+to the parameters in
+the expectation as well.
+
+411
+00:19:24,930 --> 00:19:25,690
+Yeah.
+
+412
+00:19:25,690 --> 00:19:28,170
+But if our rewards
+were differentiable,
+
+413
+00:19:28,170 --> 00:19:30,690
+we don't necessarily need to
+set our optimization objective
+
+414
+00:19:30,690 --> 00:19:31,190
+like this.
+
+415
+00:19:31,190 --> 00:19:33,130
+We could imagine other
+optimization objectives
+
+416
+00:19:33,130 --> 00:19:35,430
+where we directly
+backpropagate end to end.
+
+417
+00:19:35,430 --> 00:19:38,998
+
+418
+00:19:38,998 --> 00:19:42,670
+OK, so, yeah.
+
+419
+00:19:42,670 --> 00:19:44,530
+So we went through
+all the math just
+
+420
+00:19:44,530 --> 00:19:46,410
+to show that we can
+rewrite the gradient
+
+421
+00:19:46,410 --> 00:19:48,210
+of our original objective.
+
+422
+00:19:48,210 --> 00:19:50,330
+And we can rewrite
+it as an expectation
+
+423
+00:19:50,330 --> 00:19:53,170
+again, which we can now
+approximate using Monte Carlo
+
+424
+00:19:53,170 --> 00:19:56,010
+estimates, which is the
+equation on the end.
+
+425
+00:19:56,010 --> 00:19:58,530
+And we can take this
+approximate gradient
+
+426
+00:19:58,530 --> 00:20:01,210
+and plug it into our
+favorite optimizer which uses
+
+427
+00:20:01,210 --> 00:20:04,370
+gradient descent or ascent.
+
+428
+00:20:04,370 --> 00:20:05,890
+And that's really like--
+
+429
+00:20:05,890 --> 00:20:10,490
+this is just supposed to
+be a brief recap, so yeah.
+
+430
+00:20:10,490 --> 00:20:12,750
+And it's a very intuitive
+objective as well.
+
+431
+00:20:12,750 --> 00:20:18,170
+So really, all it's saying is
+that if for a certain sample
+
+432
+00:20:18,170 --> 00:20:21,890
+the reward is high, we should
+increase the log likelihood.
+
+433
+00:20:21,890 --> 00:20:26,490
+So the parameters are
+taking the gradient
+
+434
+00:20:26,490 --> 00:20:32,050
+in the direction of samples
+which score high on the reward.
+
+435
+00:20:32,050 --> 00:20:34,550
+And that's really all
+this objective says.
+
+436
+00:20:34,550 --> 00:20:36,730
+And if it's bad,
+you take directions
+
+437
+00:20:36,730 --> 00:20:40,100
+opposite to those samples.
+
+438
+00:20:40,100 --> 00:20:41,100
+Cool.
+
+439
+00:20:41,100 --> 00:20:43,220
+And yeah, this is why
+we call it reinforcement
+
+440
+00:20:43,220 --> 00:20:46,140
+learning because we're
+doing good actions go there.
+
+441
+00:20:46,140 --> 00:20:48,580
+Bad actions don't go there.
+
+442
+00:20:48,580 --> 00:20:52,100
+The question is, am I drawing
+full sentences or tokens?
+
+443
+00:20:52,100 --> 00:20:55,340
+In this context, we'll be
+drawing full sentences.
+
+444
+00:20:55,340 --> 00:20:56,260
+Yeah.
+
+445
+00:20:56,260 --> 00:20:57,840
+The notation was
+set up generally,
+
+446
+00:20:57,840 --> 00:21:00,220
+so we'll go back to
+the xy notation again.
+
+447
+00:21:00,220 --> 00:21:03,500
+But that was just supposed to
+be a brief primer on policy
+
+448
+00:21:03,500 --> 00:21:06,380
+gradients.
+
+449
+00:21:06,380 --> 00:21:07,580
+Cool.
+
+450
+00:21:07,580 --> 00:21:12,900
+So first problem is
+that we have so far
+
+451
+00:21:12,900 --> 00:21:15,180
+assumed that we have some
+kind of a reward function
+
+452
+00:21:15,180 --> 00:21:18,360
+which will tell us like,
+hey, the summary is 10.0.
+
+453
+00:21:18,360 --> 00:21:21,660
+The other is 5.0.
+
+454
+00:21:21,660 --> 00:21:23,000
+That usually is not possible.
+
+455
+00:21:23,000 --> 00:21:24,940
+Let's say you're
+training like the biggest
+
+456
+00:21:24,940 --> 00:21:26,448
+and the greatest LLM possible.
+
+457
+00:21:26,448 --> 00:21:28,240
+And it needs like
+millions of such queries.
+
+458
+00:21:28,240 --> 00:21:30,420
+And you're not going to
+have a human army sit there
+
+459
+00:21:30,420 --> 00:21:32,380
+and label every answer.
+
+460
+00:21:32,380 --> 00:21:35,900
+So it's not very scalable
+to ask humans directly.
+
+461
+00:21:35,900 --> 00:21:39,310
+So the general solution
+towards this end
+
+462
+00:21:39,310 --> 00:21:44,110
+has been to make preference
+learning a separate optimization
+
+463
+00:21:44,110 --> 00:21:46,470
+problem, where we try to
+figure out a human reward
+
+464
+00:21:46,470 --> 00:21:50,470
+model before starting
+our RL optimization.
+
+465
+00:21:50,470 --> 00:21:52,890
+So, yeah.
+
+466
+00:21:52,890 --> 00:21:54,390
+So we had two summaries.
+
+467
+00:21:54,390 --> 00:21:55,910
+And we presented.
+
+468
+00:21:55,910 --> 00:21:57,930
+The score was 8.0 and 1.2.
+
+469
+00:21:57,930 --> 00:22:00,670
+And we'll try to train
+on some kind of data
+
+470
+00:22:00,670 --> 00:22:02,670
+where we try to predict
+the score so that we
+
+471
+00:22:02,670 --> 00:22:05,430
+have a learned reward
+function, which we can later
+
+472
+00:22:05,430 --> 00:22:08,116
+use in the RL.
+
+473
+00:22:08,116 --> 00:22:08,616
+OK.
+
+474
+00:22:08,616 --> 00:22:12,210
+So we talked about we want
+to learn this reward model.
+
+475
+00:22:12,210 --> 00:22:15,910
+And we have some
+summaries where we
+
+476
+00:22:15,910 --> 00:22:17,670
+want to be able to
+predict their score.
+
+477
+00:22:17,670 --> 00:22:20,970
+So how do we get these scores?
+
+478
+00:22:20,970 --> 00:22:23,470
+So we need some kind of
+an annotated data set.
+
+479
+00:22:23,470 --> 00:22:28,030
+Now the issue is that if we
+ask humans for scores directly,
+
+480
+00:22:28,030 --> 00:22:29,950
+two different humans
+have completely different
+
+481
+00:22:29,950 --> 00:22:31,190
+calibration.
+
+482
+00:22:31,190 --> 00:22:34,350
+So for a summary
+that has a score of 7
+
+483
+00:22:34,350 --> 00:22:37,090
+would mean something completely
+differently to two humans.
+
+484
+00:22:37,090 --> 00:22:39,410
+So there's not really an
+easy way to aggregate.
+
+485
+00:22:39,410 --> 00:22:41,830
+And even for the
+same human, they
+
+486
+00:22:41,830 --> 00:22:43,918
+would probably score the
+same summary differently
+
+487
+00:22:43,918 --> 00:22:45,710
+at different points,
+depending on what they
+
+488
+00:22:45,710 --> 00:22:47,390
+ate for lunch or something.
+
+489
+00:22:47,390 --> 00:22:52,510
+So it's not really easy to get
+a score directly from humans.
+
+490
+00:22:52,510 --> 00:22:56,412
+And if you ask them directly,
+it doesn't work out very well.
+
+491
+00:22:56,412 --> 00:22:57,870
+The reward models
+you learn are not
+
+492
+00:22:57,870 --> 00:23:01,470
+very useful for training
+such language models.
+
+493
+00:23:01,470 --> 00:23:05,990
+So the solution to this is
+to not actually ask them
+
+494
+00:23:05,990 --> 00:23:09,710
+for a score, but to actually
+ask them for preferences.
+
+495
+00:23:09,710 --> 00:23:14,650
+So we give them few summaries,
+and we just ask them, hey,
+
+496
+00:23:14,650 --> 00:23:17,530
+do you prefer this summary
+over this summary or not?
+
+497
+00:23:17,530 --> 00:23:19,710
+And this is the kind of
+annotated data set we should
+
+498
+00:23:19,710 --> 00:23:23,310
+expect to collect for humans.
+
+499
+00:23:23,310 --> 00:23:26,870
+So now going a little
+bit deeper into this,
+
+500
+00:23:26,870 --> 00:23:30,150
+so we are going to collect a
+data set of the form where we're
+
+501
+00:23:30,150 --> 00:23:31,890
+given, some kind of an input x.
+
+502
+00:23:31,890 --> 00:23:35,080
+And we're going to be given some
+kind of a winning summary, which
+
+503
+00:23:35,080 --> 00:23:36,160
+is yw.
+
+504
+00:23:36,160 --> 00:23:39,440
+And we're going to be given some
+kind of a losing summary, y L.
+
+505
+00:23:39,440 --> 00:23:42,480
+And we're going to have
+some data set D for this.
+
+506
+00:23:42,480 --> 00:23:46,080
+And what we want to do
+is train a reward model
+
+507
+00:23:46,080 --> 00:23:49,840
+which assigns a higher score
+to the winning summaries
+
+508
+00:23:49,840 --> 00:23:53,640
+and assigns a lower score
+to the losing summaries.
+
+509
+00:23:53,640 --> 00:23:56,320
+So the optimization
+objective, which
+
+510
+00:23:56,320 --> 00:23:58,480
+is called the
+Bradley-Terry objective,
+
+511
+00:23:58,480 --> 00:24:01,640
+is a way of going from such
+data set of preferences
+
+512
+00:24:01,640 --> 00:24:04,320
+to an implicit reward
+score, which would
+
+513
+00:24:04,320 --> 00:24:06,720
+align with the preferences.
+
+514
+00:24:06,720 --> 00:24:11,800
+And the way we train this is
+we minimize this log sigmoid.
+
+515
+00:24:11,800 --> 00:24:15,400
+And the difference of reward
+is assigned to the winning
+
+516
+00:24:15,400 --> 00:24:17,080
+and the losing summary.
+
+517
+00:24:17,080 --> 00:24:22,160
+So, yeah, all this
+objective is saying
+
+518
+00:24:22,160 --> 00:24:24,760
+is that a reward
+model should make
+
+519
+00:24:24,760 --> 00:24:27,520
+sure the reward for
+the correct summary
+
+520
+00:24:27,520 --> 00:24:31,920
+is higher than the reward
+of the losing summary.
+
+521
+00:24:31,920 --> 00:24:33,690
+So the question is
+like, is it unbounded,
+
+522
+00:24:33,690 --> 00:24:37,050
+or do you normalize this?
+
+523
+00:24:37,050 --> 00:24:39,343
+The actual issue that
+arises, which is-- this
+
+524
+00:24:39,343 --> 00:24:41,010
+is actually a very
+important observation
+
+525
+00:24:41,010 --> 00:24:45,130
+that we'll actually use
+to develop DPO as well.
+
+526
+00:24:45,130 --> 00:24:48,930
+The objective just asks
+the difference to be high.
+
+527
+00:24:48,930 --> 00:24:52,050
+So the difference will be high
+even if you assign a reward
+
+528
+00:24:52,050 --> 00:24:53,950
+of 1,000 and 10,000.
+
+529
+00:24:53,950 --> 00:24:56,290
+Or it'll be high even if
+you assign a difference
+
+530
+00:24:56,290 --> 00:24:58,290
+from 1 to 999.
+
+531
+00:24:58,290 --> 00:25:02,210
+There's no real scaling
+here which allows that.
+
+532
+00:25:02,210 --> 00:25:03,970
+So, yeah, typically,
+you have to do
+
+533
+00:25:03,970 --> 00:25:05,530
+some kind of post
+hoc normalization
+
+534
+00:25:05,530 --> 00:25:08,690
+to make sure that different
+prompts get rewards
+
+535
+00:25:08,690 --> 00:25:10,490
+at the same scale.
+
+536
+00:25:10,490 --> 00:25:12,490
+Otherwise, the
+optimization objective
+
+537
+00:25:12,490 --> 00:25:13,460
+can get a little wonky.
+
+538
+00:25:13,460 --> 00:25:16,330
+
+539
+00:25:16,330 --> 00:25:19,030
+But yeah, this is the
+Bradley-Terry objective,
+
+540
+00:25:19,030 --> 00:25:21,770
+which allows us to go from
+a data set of preferences
+
+541
+00:25:21,770 --> 00:25:25,530
+to a reward model which
+we'll use in our lecture.
+
+542
+00:25:25,530 --> 00:25:28,650
+Yeah, the question is, is
+that why we take the sigmoid?
+
+543
+00:25:28,650 --> 00:25:29,350
+Not really.
+
+544
+00:25:29,350 --> 00:25:33,770
+There's a few different
+functions you can set up.
+
+545
+00:25:33,770 --> 00:25:37,190
+Sigmoid just maps
+naturally to like, oh,
+
+546
+00:25:37,190 --> 00:25:40,690
+the probability of this sample
+winning over this sample.
+
+547
+00:25:40,690 --> 00:25:44,470
+So, yeah, that's why it's
+typically used as a sigmoid.
+
+548
+00:25:44,470 --> 00:25:46,090
+But really, all we
+want to encourage
+
+549
+00:25:46,090 --> 00:25:47,730
+is that the reward
+model should--
+
+550
+00:25:47,730 --> 00:25:51,490
+the difference should be high.
+
+551
+00:25:51,490 --> 00:25:53,090
+All right.
+
+552
+00:25:53,090 --> 00:25:54,950
+So now we get back
+to our RL loop.
+
+553
+00:25:54,950 --> 00:25:56,590
+And what do we have?
+
+554
+00:25:56,590 --> 00:25:59,370
+We have some kind of an
+instruction fine-tuned model,
+
+555
+00:25:59,370 --> 00:26:00,690
+let's say, p PT.
+
+556
+00:26:00,690 --> 00:26:03,410
+We have learned some kind
+of a reward model using
+
+557
+00:26:03,410 --> 00:26:06,790
+the Bradley-Terry objective,
+which gives us a scalar output.
+
+558
+00:26:06,790 --> 00:26:09,970
+So it takes an input,
+x, gives us a summary,
+
+559
+00:26:09,970 --> 00:26:13,630
+and then gives us a scalar
+output, RM phi x comma y.
+
+560
+00:26:13,630 --> 00:26:16,650
+
+561
+00:26:16,650 --> 00:26:18,370
+OK, so this is the simple part.
+
+562
+00:26:18,370 --> 00:26:20,950
+In some ways, we're going
+to do the RLHF loop here.
+
+563
+00:26:20,950 --> 00:26:22,770
+And the way we're
+going to do this is we
+
+564
+00:26:22,770 --> 00:26:26,290
+want to optimize the expected
+reward as we started with,
+
+565
+00:26:26,290 --> 00:26:28,690
+where we're going to plug
+in our LLM parameters
+
+566
+00:26:28,690 --> 00:26:31,660
+in the expectation for p theta.
+
+567
+00:26:31,660 --> 00:26:34,420
+So it will produce some kind of
+a summary, y hat, conditioned
+
+568
+00:26:34,420 --> 00:26:35,900
+on some input, x.
+
+569
+00:26:35,900 --> 00:26:38,540
+And our reward model is going
+to be the learned reward
+
+570
+00:26:38,540 --> 00:26:40,820
+model from preferences.
+
+571
+00:26:40,820 --> 00:26:45,420
+Before I move on, I have a
+question which is slightly hard.
+
+572
+00:26:45,420 --> 00:26:48,340
+I started off saying that
+the reward functions are not
+
+573
+00:26:48,340 --> 00:26:49,700
+differentiable.
+
+574
+00:26:49,700 --> 00:26:52,420
+And that's part of
+why we want to do RL.
+
+575
+00:26:52,420 --> 00:26:55,260
+But we just learned
+a reward model.
+
+576
+00:26:55,260 --> 00:26:57,240
+And we know--
+
+577
+00:26:57,240 --> 00:26:58,940
+we typically learn
+a reward model using
+
+578
+00:26:58,940 --> 00:27:00,320
+neural networks themselves.
+
+579
+00:27:00,320 --> 00:27:02,360
+And they are very
+much differentiable.
+
+580
+00:27:02,360 --> 00:27:04,380
+We can do backpropagate
+through them.
+
+581
+00:27:04,380 --> 00:27:05,490
+So why are we doing RL?
+
+582
+00:27:05,490 --> 00:27:06,620
+[INAUDIBLE]
+
+583
+00:27:06,620 --> 00:27:08,020
+That's the right answer.
+
+584
+00:27:08,020 --> 00:27:12,940
+So the token-- like we're
+outputting discrete tokens.
+
+585
+00:27:12,940 --> 00:27:15,860
+And when we assume we
+can backpropagate things,
+
+586
+00:27:15,860 --> 00:27:19,700
+we cannot actually backpropagate
+through the discrete language
+
+587
+00:27:19,700 --> 00:27:21,420
+tokens.
+
+588
+00:27:21,420 --> 00:27:24,780
+So even if we have a reward
+model that is differentiable,
+
+589
+00:27:24,780 --> 00:27:26,160
+we generate some output.
+
+590
+00:27:26,160 --> 00:27:27,680
+We plug it into
+our reward model.
+
+591
+00:27:27,680 --> 00:27:29,180
+And then we want
+to go back directly
+
+592
+00:27:29,180 --> 00:27:32,510
+to the parameters of
+the language model.
+
+593
+00:27:32,510 --> 00:27:35,670
+But we get this discrete
+bottleneck in the middle,
+
+594
+00:27:35,670 --> 00:27:38,870
+where we cannot backpropagate
+our gradients from the reward
+
+595
+00:27:38,870 --> 00:27:42,270
+model to the language model.
+
+596
+00:27:42,270 --> 00:27:44,970
+And that's the reason why we
+again have to resort to RL,
+
+597
+00:27:44,970 --> 00:27:48,150
+even though we have a
+differentiable non-black box
+
+598
+00:27:48,150 --> 00:27:49,790
+reward model here.
+
+599
+00:27:49,790 --> 00:27:51,270
+But yeah, good
+attempts, everyone.
+
+600
+00:27:51,270 --> 00:27:53,110
+These are close.
+
+601
+00:27:53,110 --> 00:27:54,580
+Yeah.
+
+602
+00:27:54,580 --> 00:27:56,870
+So let's say like
+we have a reward
+
+603
+00:27:56,870 --> 00:28:01,230
+model, RM phi x comma y hat.
+
+604
+00:28:01,230 --> 00:28:04,602
+Let's assume like y is
+a continuous variable.
+
+605
+00:28:04,602 --> 00:28:06,810
+So typically, we'll
+take some input.
+
+606
+00:28:06,810 --> 00:28:08,090
+We'll generate some output.
+
+607
+00:28:08,090 --> 00:28:11,230
+We'll plug it into our
+learn reward model.
+
+608
+00:28:11,230 --> 00:28:14,990
+And if everything is a
+continuous function here,
+
+609
+00:28:14,990 --> 00:28:20,470
+you can rely on backpropagation
+to take the gradients
+
+610
+00:28:20,470 --> 00:28:24,110
+and update the model parameters
+such that the reward model
+
+611
+00:28:24,110 --> 00:28:25,750
+score keeps going up.
+
+612
+00:28:25,750 --> 00:28:27,570
+So you don't actually
+need to do RL.
+
+613
+00:28:27,570 --> 00:28:29,470
+And not doing RL
+is often very good
+
+614
+00:28:29,470 --> 00:28:33,150
+because it's expensive to
+do because of the sampling.
+
+615
+00:28:33,150 --> 00:28:37,530
+But the issue is that our y
+hat here are discrete tokens.
+
+616
+00:28:37,530 --> 00:28:40,590
+So they're sampled from some
+underlying distribution.
+
+617
+00:28:40,590 --> 00:28:45,310
+And once you include
+the sampling operation,
+
+618
+00:28:45,310 --> 00:28:46,656
+it's very hard to--
+
+619
+00:28:46,656 --> 00:28:50,070
+there are tricks to do that,
+but they're not very stable.
+
+620
+00:28:50,070 --> 00:28:53,230
+But it's hard to
+backpropagate through that.
+
+621
+00:28:53,230 --> 00:28:53,790
+Yes.
+
+622
+00:28:53,790 --> 00:28:56,270
+So I didn't want to
+assume like Gumbel-SoftMax
+
+623
+00:28:56,270 --> 00:28:58,910
+is known to people here,
+but Gumbel-SoftMax,
+
+624
+00:28:58,910 --> 00:29:03,430
+unfortunately, so far hasn't
+scaled super well, especially
+
+625
+00:29:03,430 --> 00:29:05,890
+now the language-- so
+to contextualize this,
+
+626
+00:29:05,890 --> 00:29:08,590
+y hat is a sentence
+which could be thousands
+
+627
+00:29:08,590 --> 00:29:10,050
+and thousands of tokens.
+
+628
+00:29:10,050 --> 00:29:12,630
+And each token
+vocabulary sizes are
+
+629
+00:29:12,630 --> 00:29:16,090
+on the order of hundreds
+of thousands of tokens.
+
+630
+00:29:16,090 --> 00:29:20,790
+So yeah, the entire sentence is
+a combinatorial space of like
+
+631
+00:29:20,790 --> 00:29:24,910
+100,000 tokens multiplied
+by the sequence length.
+
+632
+00:29:24,910 --> 00:29:28,240
+Gumbel-SoftMax usually doesn't
+scale beyond thousand dimensions
+
+633
+00:29:28,240 --> 00:29:29,480
+or so on.
+
+634
+00:29:29,480 --> 00:29:31,760
+Yeah.
+
+635
+00:29:31,760 --> 00:29:32,480
+Cool.
+
+636
+00:29:32,480 --> 00:29:34,800
+This is a hard
+question, so I wanted
+
+637
+00:29:34,800 --> 00:29:38,200
+to touch upon this
+because you should never
+
+638
+00:29:38,200 --> 00:29:41,840
+assume that you need to do RL.
+
+639
+00:29:41,840 --> 00:29:42,540
+So yeah.
+
+640
+00:29:42,540 --> 00:29:45,160
+
+641
+00:29:45,160 --> 00:29:45,700
+All right.
+
+642
+00:29:45,700 --> 00:29:51,440
+So one issue, even when
+we set up this objective,
+
+643
+00:29:51,440 --> 00:29:53,620
+is that-- and somebody
+alluded to this,
+
+644
+00:29:53,620 --> 00:29:56,100
+was that our reward
+models are never perfect.
+
+645
+00:29:56,100 --> 00:30:00,343
+So we don't want to assume that
+they'll give us a perfect score.
+
+646
+00:30:00,343 --> 00:30:01,760
+After all, they
+have been like fit
+
+647
+00:30:01,760 --> 00:30:04,140
+to human preferences on
+a certain distribution.
+
+648
+00:30:04,140 --> 00:30:05,640
+We don't want to
+assume that they'll
+
+649
+00:30:05,640 --> 00:30:10,090
+give us a good score for
+every single input and output.
+
+650
+00:30:10,090 --> 00:30:13,920
+And if you do Naive optimization
+like we described so far,
+
+651
+00:30:13,920 --> 00:30:16,820
+you will get models which
+have the reward model.
+
+652
+00:30:16,820 --> 00:30:19,560
+And you'll see some plots
+for that later as well.
+
+653
+00:30:19,560 --> 00:30:22,000
+So one another thing
+we add is something
+
+654
+00:30:22,000 --> 00:30:26,410
+called the KL penalty or the
+Kullback-Leibler divergence.
+
+655
+00:30:26,410 --> 00:30:32,010
+And what the KL penalty
+basically says is--
+
+656
+00:30:32,010 --> 00:30:37,410
+so it's added to the reward,
+where we have beta log p
+
+657
+00:30:37,410 --> 00:30:39,830
+theta by p pre-trained.
+
+658
+00:30:39,830 --> 00:30:43,830
+So p theta is the quantity
+we are optimizing right now.
+
+659
+00:30:43,830 --> 00:30:45,370
+This is the language
+model, which
+
+660
+00:30:45,370 --> 00:30:49,210
+is currently assigning the
+probabilities to token y hat.
+
+661
+00:30:49,210 --> 00:30:51,727
+And p pre-trained is the
+model we started with.
+
+662
+00:30:51,727 --> 00:30:53,310
+So it could be
+instruction fine-tuned.
+
+663
+00:30:53,310 --> 00:30:55,850
+And these are the probabilities
+under those model.
+
+664
+00:30:55,850 --> 00:31:00,810
+And roughly speaking, whenever
+a probability distribution
+
+665
+00:31:00,810 --> 00:31:04,570
+deviates from the pre-trained
+distribution, we get a penalty.
+
+666
+00:31:04,570 --> 00:31:07,850
+So we get a lower score if
+we are deviating too much
+
+667
+00:31:07,850 --> 00:31:09,080
+from the pre-trained model.
+
+668
+00:31:09,080 --> 00:31:11,890
+
+669
+00:31:11,890 --> 00:31:15,010
+And if you work out
+the math, this thing
+
+670
+00:31:15,010 --> 00:31:19,930
+is exactly the KL divergence
+between our distribution
+
+671
+00:31:19,930 --> 00:31:22,790
+or our language model that
+we are optimizing right now,
+
+672
+00:31:22,790 --> 00:31:26,620
+and the language
+model we started with.
+
+673
+00:31:26,620 --> 00:31:32,800
+And the reason why we want to
+do this is that, as I said,
+
+674
+00:31:32,800 --> 00:31:35,180
+the reward model is imperfect.
+
+675
+00:31:35,180 --> 00:31:38,340
+We know it's more accurate on
+a distribution of preferences
+
+676
+00:31:38,340 --> 00:31:40,300
+that we trained on,
+and we want to make
+
+677
+00:31:40,300 --> 00:31:45,340
+sure the model stays close
+to where it started off from.
+
+678
+00:31:45,340 --> 00:31:48,920
+So this is one of the
+first examples of RLHF
+
+679
+00:31:48,920 --> 00:31:52,520
+where it worked quite well.
+
+680
+00:31:52,520 --> 00:31:54,980
+So this is a
+summarization task itself.
+
+681
+00:31:54,980 --> 00:31:57,980
+And the curve basically--
+
+682
+00:31:57,980 --> 00:32:00,460
+the x-axis is the model size.
+
+683
+00:32:00,460 --> 00:32:03,940
+And the y-axis is, how
+often is the summary
+
+684
+00:32:03,940 --> 00:32:09,980
+preferred over some ground truth
+summary for some news articles.
+
+685
+00:32:09,980 --> 00:32:11,520
+And if you look
+at the blue curve,
+
+686
+00:32:11,520 --> 00:32:13,460
+it's the pre-training
+curve, which
+
+687
+00:32:13,460 --> 00:32:16,740
+as the model size increases,
+the fraction of summaries
+
+688
+00:32:16,740 --> 00:32:19,500
+preferred over the
+baseline increases.
+
+689
+00:32:19,500 --> 00:32:22,480
+And then you have SFT or
+instruction fine-tuning,
+
+690
+00:32:22,480 --> 00:32:26,520
+which gives an improvement
+over the pre-trained model.
+
+691
+00:32:26,520 --> 00:32:28,520
+But when you look
+at the RL curve,
+
+692
+00:32:28,520 --> 00:32:31,260
+this is the first model
+which actually exceeds
+
+693
+00:32:31,260 --> 00:32:34,660
+the human written summaries.
+
+694
+00:32:34,660 --> 00:32:36,620
+So now we are generating
+summaries even
+
+695
+00:32:36,620 --> 00:32:41,100
+at a small size, which are
+preferred over human summaries.
+
+696
+00:32:41,100 --> 00:32:43,700
+And this is one of the
+earlier results in RLHF
+
+697
+00:32:43,700 --> 00:32:46,260
+which shows the
+power of optimizing
+
+698
+00:32:46,260 --> 00:32:49,032
+for preferences directly.
+
+699
+00:32:49,032 --> 00:32:50,740
+So the question is
+like, are there models
+
+700
+00:32:50,740 --> 00:32:53,420
+for human preferences
+which are not just binary
+
+701
+00:32:53,420 --> 00:32:55,760
+and account for fuzzy?
+
+702
+00:32:55,760 --> 00:33:01,540
+I think this is a very hard
+question, which goes into--
+
+703
+00:33:01,540 --> 00:33:04,660
+so it is known that human
+preferences can often
+
+704
+00:33:04,660 --> 00:33:06,260
+be intransitive.
+
+705
+00:33:06,260 --> 00:33:08,100
+So what do I mean by that?
+
+706
+00:33:08,100 --> 00:33:12,820
+Let's say we prefer A over
+B. Then we prefer B over C.
+
+707
+00:33:12,820 --> 00:33:17,900
+And then we prefer C over A.
+This doesn't make any sense,
+
+708
+00:33:17,900 --> 00:33:20,520
+because ideally, if you
+prefer A over B and B over C,
+
+709
+00:33:20,520 --> 00:33:22,420
+you should prefer
+A over C. But we
+
+710
+00:33:22,420 --> 00:33:26,990
+get lots of scenarios where
+humans prefer A over C as well.
+
+711
+00:33:26,990 --> 00:33:31,710
+And you will, unfortunately,
+observe some noise in the data
+
+712
+00:33:31,710 --> 00:33:34,110
+like that where the
+preference is-- in fact,
+
+713
+00:33:34,110 --> 00:33:39,830
+the preferences we observe in
+real life are very, very noisy.
+
+714
+00:33:39,830 --> 00:33:43,430
+And I don't think we have
+a great solution for this.
+
+715
+00:33:43,430 --> 00:33:46,470
+To even ground this,
+preference learning
+
+716
+00:33:46,470 --> 00:33:48,250
+is a binary classification task.
+
+717
+00:33:48,250 --> 00:33:51,590
+We're just trying to predict
+which sample is winning.
+
+718
+00:33:51,590 --> 00:33:53,490
+So it's a binary
+classification task.
+
+719
+00:33:53,490 --> 00:33:55,390
+So most binary
+classification, you
+
+720
+00:33:55,390 --> 00:33:58,230
+can reach an accuracy
+of like 90%, 95%.
+
+721
+00:33:58,230 --> 00:34:00,610
+But for most of our language
+model and reward models,
+
+722
+00:34:00,610 --> 00:34:03,350
+we reach an accuracy
+of like 65% to 70%.
+
+723
+00:34:03,350 --> 00:34:07,070
+So we're barely doing
+better than chance.
+
+724
+00:34:07,070 --> 00:34:09,630
+But even that is
+still like enough
+
+725
+00:34:09,630 --> 00:34:13,333
+to give us pretty large
+improvements in performance.
+
+726
+00:34:13,333 --> 00:34:14,750
+The question is
+like, what changed
+
+727
+00:34:14,750 --> 00:34:16,510
+to make this differentiable?
+
+728
+00:34:16,510 --> 00:34:19,030
+We did not make
+anything differentiable.
+
+729
+00:34:19,030 --> 00:34:21,110
+That's the reason why
+we started doing RL,
+
+730
+00:34:21,110 --> 00:34:25,440
+is to be able to take
+the policy gradient.
+
+731
+00:34:25,440 --> 00:34:29,800
+This estimator, this does not
+require us to be able to--
+
+732
+00:34:29,800 --> 00:34:30,840
+yeah.
+
+733
+00:34:30,840 --> 00:34:32,480
+So that just
+requires the gradient
+
+734
+00:34:32,480 --> 00:34:35,520
+to be like with the log
+probabilities of the model.
+
+735
+00:34:35,520 --> 00:34:39,760
+It does not backpropagate
+into the reward at all.
+
+736
+00:34:39,760 --> 00:34:41,800
+So the question is like,
+what if the p theta
+
+737
+00:34:41,800 --> 00:34:45,020
+RL is less than p theta PD?
+
+738
+00:34:45,020 --> 00:34:48,639
+And wouldn't that encourage the
+model to go in those directions?
+
+739
+00:34:48,639 --> 00:34:49,659
+It's good to know.
+
+740
+00:34:49,659 --> 00:34:52,199
+So this is like-- the
+expectation is broken down here
+
+741
+00:34:52,199 --> 00:34:53,560
+into more explicitly.
+
+742
+00:34:53,560 --> 00:34:55,840
+But it's good to know a
+property about KL divergence
+
+743
+00:34:55,840 --> 00:34:58,720
+that it's always greater
+than or equal to 0.
+
+744
+00:34:58,720 --> 00:35:01,653
+I'll leave that as an exercise
+for you to prove that.
+
+745
+00:35:01,653 --> 00:35:05,400
+So the penalty is
+always positive.
+
+746
+00:35:05,400 --> 00:35:08,440
+So the question is, are
+there intelligent ways
+
+747
+00:35:08,440 --> 00:35:13,360
+to choose prompts such that
+we get preferences over things
+
+748
+00:35:13,360 --> 00:35:15,460
+that the model is bad at?
+
+749
+00:35:15,460 --> 00:35:16,460
+That's a great question.
+
+750
+00:35:16,460 --> 00:35:16,960
+Yeah.
+
+751
+00:35:16,960 --> 00:35:21,640
+So there are works which
+try to look into it.
+
+752
+00:35:21,640 --> 00:35:23,860
+This like touches upon
+active exploration.
+
+753
+00:35:23,860 --> 00:35:26,720
+You want to get preference
+signal explicitly
+
+754
+00:35:26,720 --> 00:35:29,160
+where the model is confused.
+
+755
+00:35:29,160 --> 00:35:32,080
+So I think there's
+things which touch
+
+756
+00:35:32,080 --> 00:35:34,960
+upon we want to maximize
+information gain such
+
+757
+00:35:34,960 --> 00:35:38,440
+that the model will
+learn the best.
+
+758
+00:35:38,440 --> 00:35:40,832
+Is there a
+well-established standard?
+
+759
+00:35:40,832 --> 00:35:41,540
+I don't think so.
+
+760
+00:35:41,540 --> 00:35:44,480
+But this is a good
+problem to look into.
+
+761
+00:35:44,480 --> 00:35:47,700
+OK, I will start with direct
+preference optimization next.
+
+762
+00:35:47,700 --> 00:35:52,640
+So there will be a little bit
+more math, but it's very fun.
+
+763
+00:35:52,640 --> 00:35:55,640
+So we're going to talk a little
+bit about direct preference
+
+764
+00:35:55,640 --> 00:35:57,855
+optimization.
+
+765
+00:35:57,855 --> 00:36:00,720
+So the RLHF pipeline
+I described,
+
+766
+00:36:00,720 --> 00:36:03,200
+some of you might find it
+complex, or some of you
+
+767
+00:36:03,200 --> 00:36:04,340
+might find it easy.
+
+768
+00:36:04,340 --> 00:36:05,840
+But in practice,
+when we try to do
+
+769
+00:36:05,840 --> 00:36:10,680
+this at very large-scale models,
+it can be quite expensive.
+
+770
+00:36:10,680 --> 00:36:17,160
+So let's say you're training a
+hundred billion parameter model,
+
+771
+00:36:17,160 --> 00:36:19,060
+maybe a trillion
+parameter model.
+
+772
+00:36:19,060 --> 00:36:22,610
+You have to sample every
+answer and then query
+
+773
+00:36:22,610 --> 00:36:24,170
+your reward model.
+
+774
+00:36:24,170 --> 00:36:30,542
+And depending on the
+RL algorithm you use,
+
+775
+00:36:30,542 --> 00:36:35,050
+you have to compute like value
+functions and other things just
+
+776
+00:36:35,050 --> 00:36:36,850
+to optimize the model.
+
+777
+00:36:36,850 --> 00:36:39,310
+And you don't have to
+understand this figure.
+
+778
+00:36:39,310 --> 00:36:42,130
+I put it specifically
+to scare you guys.
+
+779
+00:36:42,130 --> 00:36:45,930
+So here, there's just
+like a whole flow
+
+780
+00:36:45,930 --> 00:36:49,830
+of things that in practice can
+be fairly hard to get right.
+
+781
+00:36:49,830 --> 00:36:51,910
+And the more parameters
+you have in the system,
+
+782
+00:36:51,910 --> 00:36:54,530
+the harder it is
+to get it right.
+
+783
+00:36:54,530 --> 00:36:58,890
+So RLHF can be
+pretty complex, but--
+
+784
+00:36:58,890 --> 00:37:01,950
+so when we were looking into
+direct preference optimization,
+
+785
+00:37:01,950 --> 00:37:05,450
+our goal was to like, can
+we make this a lot simpler?
+
+786
+00:37:05,450 --> 00:37:11,490
+And yeah, as I said, they
+have some initial pipeline
+
+787
+00:37:11,490 --> 00:37:12,930
+which we refer to as RM.
+
+788
+00:37:12,930 --> 00:37:15,690
+We take an
+instruction-tuned model
+
+789
+00:37:15,690 --> 00:37:17,890
+and produce a final RLHF model.
+
+790
+00:37:17,890 --> 00:37:21,482
+But if you look at
+the whole process,
+
+791
+00:37:21,482 --> 00:37:22,940
+we have a language
+model, and we're
+
+792
+00:37:22,940 --> 00:37:24,580
+collecting some preferences.
+
+793
+00:37:24,580 --> 00:37:27,780
+Why can we just not directly
+train on the preference data
+
+794
+00:37:27,780 --> 00:37:30,500
+and directly optimize
+the parameter models?
+
+795
+00:37:30,500 --> 00:37:33,200
+Why do we have to learn
+this intermediate quantities
+
+796
+00:37:33,200 --> 00:37:34,980
+like a reward model?
+
+797
+00:37:34,980 --> 00:37:37,260
+And why can't we just
+directly go from preferences
+
+798
+00:37:37,260 --> 00:37:38,900
+and optimize our language model?
+
+799
+00:37:38,900 --> 00:37:42,140
+So that's really why it's called
+direct preference optimization,
+
+800
+00:37:42,140 --> 00:37:47,100
+is that we find a way to
+go from preferences, too,
+
+801
+00:37:47,100 --> 00:37:48,920
+and optimizing the
+language model.
+
+802
+00:37:48,920 --> 00:37:52,940
+And the way we do it is
+that at a very high level,
+
+803
+00:37:52,940 --> 00:37:56,700
+we want to be able to write
+the reward model in terms
+
+804
+00:37:56,700 --> 00:37:59,220
+of our language model itself.
+
+805
+00:37:59,220 --> 00:38:01,060
+Why do we want to do that?
+
+806
+00:38:01,060 --> 00:38:04,940
+Because we fit our reward
+model to the preference data
+
+807
+00:38:04,940 --> 00:38:06,620
+through a fairly
+simple classification
+
+808
+00:38:06,620 --> 00:38:08,900
+loss, the Bradley-Terry
+loss we discussed.
+
+809
+00:38:08,900 --> 00:38:11,940
+If we can just connect the
+reward model and the language
+
+810
+00:38:11,940 --> 00:38:15,040
+model, instead of having
+a separate process,
+
+811
+00:38:15,040 --> 00:38:17,100
+we can just take the
+language model parameters
+
+812
+00:38:17,100 --> 00:38:20,060
+and fit it through
+the loss directly.
+
+813
+00:38:20,060 --> 00:38:23,180
+And that's really the high level
+motivation for direct preference
+
+814
+00:38:23,180 --> 00:38:25,380
+optimization.
+
+815
+00:38:25,380 --> 00:38:26,980
+Yeah.
+
+816
+00:38:26,980 --> 00:38:34,040
+So this part of the math gets
+a little bit slightly intense.
+
+817
+00:38:34,040 --> 00:38:35,790
+So I'll go through this slowly.
+
+818
+00:38:35,790 --> 00:38:36,553
+OK.
+
+819
+00:38:36,553 --> 00:38:41,700
+So we discussed the
+scale-constrained RL objective
+
+820
+00:38:41,700 --> 00:38:43,540
+in the last few
+slides, where we want
+
+821
+00:38:43,540 --> 00:38:48,260
+to maximize the expected reward
+with some KL penalty, such
+
+822
+00:38:48,260 --> 00:38:50,940
+that the model should not
+drift away from the instruction
+
+823
+00:38:50,940 --> 00:38:52,780
+fine-tuned model a lot.
+
+824
+00:38:52,780 --> 00:38:56,900
+So again, the parameters we're
+going to optimize is p theta RL.
+
+825
+00:38:56,900 --> 00:38:59,520
+p pre-trained and RM are fixed.
+
+826
+00:38:59,520 --> 00:39:00,686
+And for now, we can--
+
+827
+00:39:00,686 --> 00:39:04,740
+yeah, we're just assuming some
+kind of a reward model here.
+
+828
+00:39:04,740 --> 00:39:06,900
+It turns out that
+this equation actually
+
+829
+00:39:06,900 --> 00:39:10,460
+has a closed-form solution.
+
+830
+00:39:10,460 --> 00:39:12,300
+And this is not
+possible if you're
+
+831
+00:39:12,300 --> 00:39:15,640
+doing just the regular
+expected reward maximization.
+
+832
+00:39:15,640 --> 00:39:17,533
+But once you add
+a KL constraint,
+
+833
+00:39:17,533 --> 00:39:19,950
+it turns out that you can write
+out a closed-form solution
+
+834
+00:39:19,950 --> 00:39:21,850
+to this equation,
+which is really cool.
+
+835
+00:39:21,850 --> 00:39:24,350
+It's rare to find such things.
+
+836
+00:39:24,350 --> 00:39:26,690
+And the solution looks
+something like this.
+
+837
+00:39:26,690 --> 00:39:29,630
+This is the optimal
+policy, p star,
+
+838
+00:39:29,630 --> 00:39:31,510
+where we're going to
+compute probabilities
+
+839
+00:39:31,510 --> 00:39:34,230
+over y hat conditioned over x.
+
+840
+00:39:34,230 --> 00:39:38,950
+And roughly, this optimal
+quantity says that we want--
+
+841
+00:39:38,950 --> 00:39:41,750
+ignore the Z (x) for now.
+
+842
+00:39:41,750 --> 00:39:45,670
+We have our pre-trained model,
+p pre-trained y hat given x.
+
+843
+00:39:45,670 --> 00:39:48,110
+And we're going to multiply
+the log probabilities
+
+844
+00:39:48,110 --> 00:39:52,510
+with the exponentiated reward.
+
+845
+00:39:52,510 --> 00:39:57,770
+So very simply,
+put exponentiated--
+
+846
+00:39:57,770 --> 00:40:00,130
+so if a sentence has
+a higher reward--
+
+847
+00:40:00,130 --> 00:40:03,150
+so if y hat has a
+higher reward, we're
+
+848
+00:40:03,150 --> 00:40:04,830
+going to upgrade
+the probabilities
+
+849
+00:40:04,830 --> 00:40:08,910
+under the optimal distribution
+by an exponentiated reward
+
+850
+00:40:08,910 --> 00:40:10,350
+by beta.
+
+851
+00:40:10,350 --> 00:40:13,290
+High reward, high exponent,
+higher probability
+
+852
+00:40:13,290 --> 00:40:14,770
+under the optimal policy.
+
+853
+00:40:14,770 --> 00:40:16,800
+If the reward is
+low, it's going to be
+
+854
+00:40:16,800 --> 00:40:21,640
+downgraded by exponentiated
+reward as well.
+
+855
+00:40:21,640 --> 00:40:24,880
+And Z (x) here is just
+a normalizing factor
+
+856
+00:40:24,880 --> 00:40:28,440
+which ensures that this quantity
+is a probability distribution.
+
+857
+00:40:28,440 --> 00:40:31,280
+So really, you only need
+to focus on the numerator.
+
+858
+00:40:31,280 --> 00:40:33,063
+And that's it.
+
+859
+00:40:33,063 --> 00:40:34,480
+You'll have to
+take my word for it
+
+860
+00:40:34,480 --> 00:40:39,440
+that this is the optimal
+solution for the above equation.
+
+861
+00:40:39,440 --> 00:40:42,880
+Maybe I can share something
+later on how to derive this.
+
+862
+00:40:42,880 --> 00:40:45,080
+But yeah.
+
+863
+00:40:45,080 --> 00:40:45,880
+Cool.
+
+864
+00:40:45,880 --> 00:40:49,000
+Now this is where the
+key observation comes in,
+
+865
+00:40:49,000 --> 00:40:51,600
+is that because we have
+this optimal solution
+
+866
+00:40:51,600 --> 00:40:54,280
+to the above equation,
+we can rewrite the reward
+
+867
+00:40:54,280 --> 00:40:58,520
+model in terms of the
+optimal policy itself.
+
+868
+00:40:58,520 --> 00:41:01,680
+So this lower equation is
+just like a rearrangement
+
+869
+00:41:01,680 --> 00:41:03,640
+of the terms.
+
+870
+00:41:03,640 --> 00:41:05,200
+The reward model can--
+
+871
+00:41:05,200 --> 00:41:09,200
+RM (x comma y hat) can be
+written as beta log p star
+
+872
+00:41:09,200 --> 00:41:11,080
+upon p PT.
+
+873
+00:41:11,080 --> 00:41:13,620
+And we have some
+beta log Z (x) term,
+
+874
+00:41:13,620 --> 00:41:17,520
+which is a constant over y.
+
+875
+00:41:17,520 --> 00:41:22,080
+So again, just to make sure this
+makes sense intuitively as well,
+
+876
+00:41:22,080 --> 00:41:26,040
+if a completion y hat
+should have a high score,
+
+877
+00:41:26,040 --> 00:41:29,400
+it will typically have a
+high probability under p star
+
+878
+00:41:29,400 --> 00:41:30,480
+as well.
+
+879
+00:41:30,480 --> 00:41:33,400
+And p PT is something
+that's fixed,
+
+880
+00:41:33,400 --> 00:41:36,240
+so beta log will be
+high whenever the reward
+
+881
+00:41:36,240 --> 00:41:39,640
+model gives a high score.
+
+882
+00:41:39,640 --> 00:41:45,360
+And similarly, if a reward model
+assigns a poor score to y hat,
+
+883
+00:41:45,360 --> 00:41:46,920
+our optimal policy
+will typically
+
+884
+00:41:46,920 --> 00:41:50,760
+assign a low
+probability to y hat.
+
+885
+00:41:50,760 --> 00:41:56,040
+And typically, the beta log p
+star by PT will also be low.
+
+886
+00:41:56,040 --> 00:41:57,780
+So the relationship
+sort of makes sense.
+
+887
+00:41:57,780 --> 00:42:00,120
+And we can ignore Z (x) for now.
+
+888
+00:42:00,120 --> 00:42:02,440
+Cool.
+
+889
+00:42:02,440 --> 00:42:07,120
+The main argument here
+is that this isn't just
+
+890
+00:42:07,120 --> 00:42:09,720
+true for the optimal policy.
+
+891
+00:42:09,720 --> 00:42:13,650
+You can always plug in
+some reward model p theta.
+
+892
+00:42:13,650 --> 00:42:18,490
+And it will be optimal for
+some kind of reward model.
+
+893
+00:42:18,490 --> 00:42:21,970
+And that's really like the
+observation you make here.
+
+894
+00:42:21,970 --> 00:42:25,330
+And yeah, so we've
+just replaced p star
+
+895
+00:42:25,330 --> 00:42:27,190
+with some kind of
+a learnable policy,
+
+896
+00:42:27,190 --> 00:42:28,970
+given that our parameter's
+theta represent
+
+897
+00:42:28,970 --> 00:42:32,930
+the optimal policy for some
+kind of a reward model.
+
+898
+00:42:32,930 --> 00:42:34,390
+And after that is simple.
+
+899
+00:42:34,390 --> 00:42:37,050
+Given the relationship
+we have derived so far,
+
+900
+00:42:37,050 --> 00:42:39,250
+we know this is how we
+fit our reward model
+
+901
+00:42:39,250 --> 00:42:40,830
+through the Bradley-Terry loss.
+
+902
+00:42:40,830 --> 00:42:43,570
+We want to make
+sure that the reward
+
+903
+00:42:43,570 --> 00:42:45,290
+for the winning
+completion is higher
+
+904
+00:42:45,290 --> 00:42:49,090
+than the reward for
+the losing completion.
+
+905
+00:42:49,090 --> 00:42:54,050
+And so far, I've been asking
+you to ignore the partition
+
+906
+00:42:54,050 --> 00:42:57,530
+function, but that
+was for a reason.
+
+907
+00:42:57,530 --> 00:43:00,090
+The reason is that
+because the objective only
+
+908
+00:43:00,090 --> 00:43:03,650
+optimizes for the difference
+between the rewards,
+
+909
+00:43:03,650 --> 00:43:07,730
+the partition function Z
+(x) just simply cancels out.
+
+910
+00:43:07,730 --> 00:43:13,300
+So maybe I can write
+this out on the board.
+
+911
+00:43:13,300 --> 00:43:20,100
+We started with the relation
+RM theta x comma yw.
+
+912
+00:43:20,100 --> 00:43:28,100
+And we had beta log
+p theta yw given
+
+913
+00:43:28,100 --> 00:43:37,850
+x, where yw is the winning
+completion, and p PT yw given x.
+
+914
+00:43:37,850 --> 00:43:42,440
+
+915
+00:43:42,440 --> 00:43:42,940
+Yeah.
+
+916
+00:43:42,940 --> 00:43:48,420
+
+917
+00:43:48,420 --> 00:43:51,980
+So this is the relation we
+used with beta log Z (x).
+
+918
+00:43:51,980 --> 00:43:55,140
+And we're going to
+rewrite the same thing
+
+919
+00:43:55,140 --> 00:43:57,600
+for the losing
+completion as well.
+
+920
+00:43:57,600 --> 00:44:03,458
+So x comma y L beta
+log P of theta,
+
+921
+00:44:03,458 --> 00:44:05,500
+which is the current
+parameters we're optimizing.
+
+922
+00:44:05,500 --> 00:44:07,300
+y L is our losing
+completion conditioned
+
+923
+00:44:07,300 --> 00:44:11,660
+on the input x divided by
+the p, the log probabilities
+
+924
+00:44:11,660 --> 00:44:16,280
+under the pre-trained model, y L
+conditioned of x and beta log Z
+
+925
+00:44:16,280 --> 00:44:16,780
+(x).
+
+926
+00:44:16,780 --> 00:44:20,460
+
+927
+00:44:20,460 --> 00:44:22,920
+Now notice that the
+reward model is like--
+
+928
+00:44:22,920 --> 00:44:24,840
+the input is the same
+to the reward model.
+
+929
+00:44:24,840 --> 00:44:27,437
+So we're using the
+same text, and we're
+
+930
+00:44:27,437 --> 00:44:28,520
+summarizing the same text.
+
+931
+00:44:28,520 --> 00:44:30,260
+So the input is
+actually the same.
+
+932
+00:44:30,260 --> 00:44:33,700
+So when we're going
+to subtract this,
+
+933
+00:44:33,700 --> 00:44:36,040
+we're going to subtract
+these and this.
+
+934
+00:44:36,040 --> 00:44:39,178
+And this is just simply
+going to cancel out.
+
+935
+00:44:39,178 --> 00:44:41,220
+The reason why canceling
+out of this is important
+
+936
+00:44:41,220 --> 00:44:43,920
+is that Z (x) is actually
+intractable to compute.
+
+937
+00:44:43,920 --> 00:44:46,620
+It's not something we
+can compute for real.
+
+938
+00:44:46,620 --> 00:44:51,460
+So we get this relation
+that you can see over here,
+
+939
+00:44:51,460 --> 00:44:54,940
+is the difference between
+the reward models is simply
+
+940
+00:44:54,940 --> 00:44:58,680
+the difference between
+the beta log ratios here.
+
+941
+00:44:58,680 --> 00:45:01,940
+
+942
+00:45:01,940 --> 00:45:02,780
+Cool.
+
+943
+00:45:02,780 --> 00:45:06,680
+So taking this identity
+which we have just derived,
+
+944
+00:45:06,680 --> 00:45:10,910
+we simply plug it into the
+original Bradley-Terry loss.
+
+945
+00:45:10,910 --> 00:45:13,550
+And we get something
+super nice, is
+
+946
+00:45:13,550 --> 00:45:19,210
+that we will have a data set of,
+again, input, winning output,
+
+947
+00:45:19,210 --> 00:45:20,510
+losing output.
+
+948
+00:45:20,510 --> 00:45:23,190
+And we're going to optimize
+this objective directly
+
+949
+00:45:23,190 --> 00:45:25,950
+for the language
+model parameters.
+
+950
+00:45:25,950 --> 00:45:28,750
+And this is a classification
+objective, by the way.
+
+951
+00:45:28,750 --> 00:45:32,190
+So we're not doing
+any RL loop anymore.
+
+952
+00:45:32,190 --> 00:45:35,790
+We are going directly from
+the preference data set
+
+953
+00:45:35,790 --> 00:45:39,430
+and optimizing the language
+parameter models themselves.
+
+954
+00:45:39,430 --> 00:45:39,950
+Yes.
+
+955
+00:45:39,950 --> 00:45:41,690
+So initially, it
+will be the same,
+
+956
+00:45:41,690 --> 00:45:44,110
+but the gradient would
+only backpropagate
+
+957
+00:45:44,110 --> 00:45:47,190
+through the P thetas.
+
+958
+00:45:47,190 --> 00:45:50,190
+p PT will remain
+the same throughout,
+
+959
+00:45:50,190 --> 00:45:52,750
+and it will increase the
+probability of the winning
+
+960
+00:45:52,750 --> 00:45:54,990
+completion and decrease
+the probability
+
+961
+00:45:54,990 --> 00:45:57,390
+of the losing completion.
+
+962
+00:45:57,390 --> 00:46:01,950
+So let's spend a little
+bit of time here again.
+
+963
+00:46:01,950 --> 00:46:05,190
+This objective will try
+to encourage the RM theta
+
+964
+00:46:05,190 --> 00:46:07,830
+for the winning
+completion to go up and RM
+
+965
+00:46:07,830 --> 00:46:11,760
+theta for the losing
+completion to go down.
+
+966
+00:46:11,760 --> 00:46:15,880
+The way to increase RM theta is
+to increase the probability of y
+
+967
+00:46:15,880 --> 00:46:18,960
+w under the current
+model, and decrease
+
+968
+00:46:18,960 --> 00:46:22,080
+the probability of the losing
+one under the current model.
+
+969
+00:46:22,080 --> 00:46:23,680
+It's a very intuitive objective.
+
+970
+00:46:23,680 --> 00:46:24,580
+Good thing go up.
+
+971
+00:46:24,580 --> 00:46:26,440
+Bad thing go down.
+
+972
+00:46:26,440 --> 00:46:31,240
+And apparently, you can do it
+without RL or any complexity.
+
+973
+00:46:31,240 --> 00:46:36,160
+So the question is, can we do
+something like distillation
+
+974
+00:46:36,160 --> 00:46:37,532
+instead of this?
+
+975
+00:46:37,532 --> 00:46:42,200
+The question is like,
+so for the reward model,
+
+976
+00:46:42,200 --> 00:46:46,480
+you first have to get a
+reward model somehow, right?
+
+977
+00:46:46,480 --> 00:46:48,440
+There's no easy way
+to get it, so you
+
+978
+00:46:48,440 --> 00:46:50,520
+have to collect some
+kind of preference data
+
+979
+00:46:50,520 --> 00:46:53,260
+to even begin with to
+get a reward model.
+
+980
+00:46:53,260 --> 00:46:55,200
+And that's where
+DPO comes in, is
+
+981
+00:46:55,200 --> 00:46:58,360
+that if you have collected
+a preference data, instead
+
+982
+00:46:58,360 --> 00:47:00,140
+of fitting an
+explicit reward model,
+
+983
+00:47:00,140 --> 00:47:03,960
+you can optimize your language
+model parameters directly.
+
+984
+00:47:03,960 --> 00:47:05,040
+Yeah.
+
+985
+00:47:05,040 --> 00:47:08,610
+So the question is there's a
+penalty for pre-trained model.
+
+986
+00:47:08,610 --> 00:47:10,860
+We're not drifting too far
+from the pre-trained model.
+
+987
+00:47:10,860 --> 00:47:12,460
+Actually, this does do that.
+
+988
+00:47:12,460 --> 00:47:14,340
+So this is a good question.
+
+989
+00:47:14,340 --> 00:47:18,080
+So our loss function is
+set up as a log sigmoid.
+
+990
+00:47:18,080 --> 00:47:21,480
+So one property of the sigmoid
+is that the gradients vanish
+
+991
+00:47:21,480 --> 00:47:23,400
+when the difference becomes--
+
+992
+00:47:23,400 --> 00:47:25,103
+is already sufficiently large.
+
+993
+00:47:25,103 --> 00:47:27,520
+And the difference becomes
+sufficiently large, like faster
+
+994
+00:47:27,520 --> 00:47:28,440
+than the--
+
+995
+00:47:28,440 --> 00:47:32,120
+so the beta parameter
+actually controls how quickly
+
+996
+00:47:32,120 --> 00:47:34,320
+the difference becomes large.
+
+997
+00:47:34,320 --> 00:47:38,280
+So if you have a very high
+beta, even a small discrepancy
+
+998
+00:47:38,280 --> 00:47:40,640
+would suddenly
+saturate the sigmoid,
+
+999
+00:47:40,640 --> 00:47:44,200
+and it would not change
+the parameters a lot.
+
+1000
+00:47:44,200 --> 00:47:47,080
+The question is, is
+the main advantage
+
+1001
+00:47:47,080 --> 00:47:50,880
+of DPO that you don't have
+to train a reward model?
+
+1002
+00:47:50,880 --> 00:47:53,120
+The way I would
+say it is that you
+
+1003
+00:47:53,120 --> 00:47:55,040
+are training a reward
+model, because you're
+
+1004
+00:47:55,040 --> 00:47:56,840
+using the same objective.
+
+1005
+00:47:56,840 --> 00:47:59,720
+The DPO provides a connection
+between the reward model
+
+1006
+00:47:59,720 --> 00:48:02,720
+and the corresponding
+optimal policy for it.
+
+1007
+00:48:02,720 --> 00:48:05,960
+So you don't have to do
+an explicit or a loop
+
+1008
+00:48:05,960 --> 00:48:09,830
+to go from the reward model
+to an optimal policy for it.
+
+1009
+00:48:09,830 --> 00:48:14,090
+You can all-- we have cleverly
+parameterized a reward
+
+1010
+00:48:14,090 --> 00:48:19,090
+model in terms of the
+language model itself.
+
+1011
+00:48:19,090 --> 00:48:21,990
+So when you fit a reward
+model to the preference data,
+
+1012
+00:48:21,990 --> 00:48:24,970
+you are optimizing the
+language model itself too.
+
+1013
+00:48:24,970 --> 00:48:29,170
+And so the question is, do we
+still need to do RLHF or not,
+
+1014
+00:48:29,170 --> 00:48:31,490
+given this is cheaper?
+
+1015
+00:48:31,490 --> 00:48:33,670
+I think it depends
+a lot on situation.
+
+1016
+00:48:33,670 --> 00:48:37,650
+I think there's still some
+purported benefits to RLHF
+
+1017
+00:48:37,650 --> 00:48:41,850
+because you can expect like
+some kind of generalization
+
+1018
+00:48:41,850 --> 00:48:45,090
+from the reward model,
+which allows you
+
+1019
+00:48:45,090 --> 00:48:49,250
+to grade generations which might
+not have been seen in preference
+
+1020
+00:48:49,250 --> 00:48:50,410
+data.
+
+1021
+00:48:50,410 --> 00:48:52,550
+So there's still
+some benefit to it.
+
+1022
+00:48:52,550 --> 00:48:56,610
+So it depends upon your budget
+and what you want to achieve.
+
+1023
+00:48:56,610 --> 00:49:00,850
+So the question I get is
+that the KL divergence,
+
+1024
+00:49:00,850 --> 00:49:03,210
+why are we relying
+on the sigmoid
+
+1025
+00:49:03,210 --> 00:49:07,590
+when initially the KL divergence
+was not related to the sigmoid?
+
+1026
+00:49:07,590 --> 00:49:10,020
+[INAUDIBLE]
+
+1027
+00:49:10,020 --> 00:49:12,060
+To be more clear
+or precise, I think
+
+1028
+00:49:12,060 --> 00:49:15,820
+it's the beta term which
+controls how fast, how much
+
+1029
+00:49:15,820 --> 00:49:18,340
+you're allowed to drift away.
+
+1030
+00:49:18,340 --> 00:49:22,180
+And even in the
+original RL objective,
+
+1031
+00:49:22,180 --> 00:49:29,180
+this beta term is what
+controls the allowed divergence
+
+1032
+00:49:29,180 --> 00:49:31,720
+between our current model
+and the pre-trained model.
+
+1033
+00:49:31,720 --> 00:49:33,740
+So if the beta is
+really high, you
+
+1034
+00:49:33,740 --> 00:49:36,260
+are not allowed to diverge
+at all because you'll
+
+1035
+00:49:36,260 --> 00:49:38,460
+be penalized a lot more.
+
+1036
+00:49:38,460 --> 00:49:39,820
+Yes.
+
+1037
+00:49:39,820 --> 00:49:42,980
+So the beta controls the
+strength or the weight
+
+1038
+00:49:42,980 --> 00:49:44,922
+on this divergence.
+
+1039
+00:49:44,922 --> 00:49:45,880
+That's a good question.
+
+1040
+00:49:45,880 --> 00:49:47,380
+Yeah.
+
+1041
+00:49:47,380 --> 00:49:50,180
+So there's two kinds of
+sampling involved right now.
+
+1042
+00:49:50,180 --> 00:49:52,740
+First, we want to create a
+preference data set where
+
+1043
+00:49:52,740 --> 00:49:54,680
+humans label their preferences.
+
+1044
+00:49:54,680 --> 00:49:56,460
+And then during
+the RL optimization
+
+1045
+00:49:56,460 --> 00:50:00,540
+itself, we want to
+sample to get a score
+
+1046
+00:50:00,540 --> 00:50:04,040
+under some kind of an external
+or explicit reward model.
+
+1047
+00:50:04,040 --> 00:50:06,420
+And then we score,
+and then we optimize.
+
+1048
+00:50:06,420 --> 00:50:09,680
+So we are taking care of
+the second sampling step.
+
+1049
+00:50:09,680 --> 00:50:12,072
+But the first sampling
+step is still needed.
+
+1050
+00:50:12,072 --> 00:50:13,280
+Yeah, that's a good question.
+
+1051
+00:50:13,280 --> 00:50:18,250
+So when you're doing online RL
+or some kind of RLHF procedure,
+
+1052
+00:50:18,250 --> 00:50:20,620
+you don't only need the prompts.
+
+1053
+00:50:20,620 --> 00:50:23,520
+You don't need a
+preference data set.
+
+1054
+00:50:23,520 --> 00:50:26,940
+So typically, the set of
+prompts which is used during RL
+
+1055
+00:50:26,940 --> 00:50:28,900
+is larger than the set
+of prompts you used
+
+1056
+00:50:28,900 --> 00:50:30,832
+during preference training.
+
+1057
+00:50:30,832 --> 00:50:32,040
+Yeah, that's a good question.
+
+1058
+00:50:32,040 --> 00:50:35,060
+So I think question
+basically tries to ask,
+
+1059
+00:50:35,060 --> 00:50:38,060
+can we take into account the
+strength of the preference
+
+1060
+00:50:38,060 --> 00:50:41,180
+and not just like
+a binary label?
+
+1061
+00:50:41,180 --> 00:50:45,180
+I think this is a limitation
+for both RLHF and DPO, I think.
+
+1062
+00:50:45,180 --> 00:50:50,040
+And we should-- so giving
+more insight, typically,
+
+1063
+00:50:50,040 --> 00:50:52,640
+when we collect
+preference data sets,
+
+1064
+00:50:52,640 --> 00:50:56,120
+we ask annotators to give a
+strength for their preferences.
+
+1065
+00:50:56,120 --> 00:50:59,140
+And we only keep the
+preferences which are strong.
+
+1066
+00:50:59,140 --> 00:51:01,820
+So typically the
+preference-- but this
+
+1067
+00:51:01,820 --> 00:51:03,450
+isn't a resolved problem.
+
+1068
+00:51:03,450 --> 00:51:07,510
+How to learn from noisy data and
+low preferences or high strength
+
+1069
+00:51:07,510 --> 00:51:10,430
+preference's still
+an unsolved problem.
+
+1070
+00:51:10,430 --> 00:51:13,310
+And yeah, these are some of the
+results for direct preference
+
+1071
+00:51:13,310 --> 00:51:15,710
+optimization.
+
+1072
+00:51:15,710 --> 00:51:17,750
+We showed like a
+theoretical equivalence
+
+1073
+00:51:17,750 --> 00:51:22,230
+between doing the DP objective
+and doing a KL-constrained RL
+
+1074
+00:51:22,230 --> 00:51:23,190
+procedure.
+
+1075
+00:51:23,190 --> 00:51:26,350
+And in practice, when we try to
+look at the summarization task
+
+1076
+00:51:26,350 --> 00:51:30,530
+and try to measure win rates
+like we were doing earlier,
+
+1077
+00:51:30,530 --> 00:51:34,350
+we do actually find that
+it does similar or better.
+
+1078
+00:51:34,350 --> 00:51:36,450
+But this is like a
+debatable question.
+
+1079
+00:51:36,450 --> 00:51:37,450
+So, yeah.
+
+1080
+00:51:37,450 --> 00:51:41,230
+But in general, it
+does pretty well.
+
+1081
+00:51:41,230 --> 00:51:44,910
+The beta parameter that--
+
+1082
+00:51:44,910 --> 00:51:46,910
+do you see this
+beta parameter here?
+
+1083
+00:51:46,910 --> 00:51:50,350
+That corresponds exactly to
+the beta parameter in the--
+
+1084
+00:51:50,350 --> 00:51:53,110
+which is the extra
+hyperparameter there.
+
+1085
+00:51:53,110 --> 00:51:56,190
+So I'm just going to summarize
+what we have learned so far.
+
+1086
+00:51:56,190 --> 00:52:02,960
+And then we'll move on to where
+things are missing and so on.
+
+1087
+00:52:02,960 --> 00:52:04,880
+We want to optimize
+for human preferences,
+
+1088
+00:52:04,880 --> 00:52:07,960
+because first of all,
+it's more aligned
+
+1089
+00:52:07,960 --> 00:52:09,680
+with the objectives we want.
+
+1090
+00:52:09,680 --> 00:52:12,840
+The way we use these
+models are more closely
+
+1091
+00:52:12,840 --> 00:52:14,960
+aligned with improving
+human engagement
+
+1092
+00:52:14,960 --> 00:52:17,040
+or satisfying human
+preferences, so we
+
+1093
+00:52:17,040 --> 00:52:19,520
+want to optimize for
+that directly as well.
+
+1094
+00:52:19,520 --> 00:52:22,640
+And instead of relying
+on uncalibrated scores
+
+1095
+00:52:22,640 --> 00:52:24,280
+from different
+annotators, we try
+
+1096
+00:52:24,280 --> 00:52:27,400
+to collect preferences
+and then learn a reward
+
+1097
+00:52:27,400 --> 00:52:30,040
+model of some form, either
+through DPO or through RLHF,
+
+1098
+00:52:30,040 --> 00:52:33,800
+and improve the
+model through that.
+
+1099
+00:52:33,800 --> 00:52:37,180
+In RLHF, we learn an
+explicit reward model,
+
+1100
+00:52:37,180 --> 00:52:40,500
+which gives an explicit score
+for every completion we sample.
+
+1101
+00:52:40,500 --> 00:52:43,920
+And we'll use that to optimize
+the language model parameters.
+
+1102
+00:52:43,920 --> 00:52:46,360
+And we typically impose
+some kind of KL constraint
+
+1103
+00:52:46,360 --> 00:52:48,760
+to make sure that our model
+does not drift too far
+
+1104
+00:52:48,760 --> 00:52:51,920
+from where it was initialized.
+
+1105
+00:52:51,920 --> 00:52:54,600
+It's very effective, maybe
+sometimes even more effective
+
+1106
+00:52:54,600 --> 00:52:55,580
+than DPO.
+
+1107
+00:52:55,580 --> 00:52:57,383
+But it can be a little
+tricky to get right,
+
+1108
+00:52:57,383 --> 00:52:58,800
+and it's computationally
+expensive
+
+1109
+00:52:58,800 --> 00:53:03,080
+because of the sampling
+procedure that needs to be done.
+
+1110
+00:53:03,080 --> 00:53:05,060
+And in direct
+preference optimization,
+
+1111
+00:53:05,060 --> 00:53:08,040
+we can completely
+skip the sampling part
+
+1112
+00:53:08,040 --> 00:53:11,160
+and optimize directly
+on the preference data
+
+1113
+00:53:11,160 --> 00:53:15,680
+by posing it as a binary
+classification problem.
+
+1114
+00:53:15,680 --> 00:53:16,720
+Cool.
+
+1115
+00:53:16,720 --> 00:53:18,400
+And it's very
+simple and effective
+
+1116
+00:53:18,400 --> 00:53:21,440
+and does not require
+an online step.
+
+1117
+00:53:21,440 --> 00:53:23,680
+So where does this all lead us?
+
+1118
+00:53:23,680 --> 00:53:26,200
+We've discussed all
+the RLHF and DPO stuff.
+
+1119
+00:53:26,200 --> 00:53:30,100
+And these are roughly how the
+chatbots are built, by the way.
+
+1120
+00:53:30,100 --> 00:53:32,980
+So this is the
+InstructGPT pipeline.
+
+1121
+00:53:32,980 --> 00:53:36,540
+This was one of the first
+instruction, first chatbots
+
+1122
+00:53:36,540 --> 00:53:37,960
+which was available to public.
+
+1123
+00:53:37,960 --> 00:53:40,480
+And they interacted with it.
+
+1124
+00:53:40,480 --> 00:53:43,920
+And it worked pretty well.
+
+1125
+00:53:43,920 --> 00:53:46,220
+It can do a lot of tasks.
+
+1126
+00:53:46,220 --> 00:53:49,360
+It can answer general
+purpose questions.
+
+1127
+00:53:49,360 --> 00:53:54,680
+And yeah, InstructGPT.
+
+1128
+00:53:54,680 --> 00:53:58,640
+This is a comparison between
+what the pre-trained model gives
+
+1129
+00:53:58,640 --> 00:54:01,570
+as an answer versus what an
+instruction even though an RLHF
+
+1130
+00:54:01,570 --> 00:54:04,730
+model gives us an answer.
+
+1131
+00:54:04,730 --> 00:54:08,530
+And yeah, these
+are some examples.
+
+1132
+00:54:08,530 --> 00:54:12,590
+And yeah, we have optimized
+these models for dialogue.
+
+1133
+00:54:12,590 --> 00:54:14,570
+And it's not just summaries.
+
+1134
+00:54:14,570 --> 00:54:17,610
+I want to say we can optimize
+them for many, many general
+
+1135
+00:54:17,610 --> 00:54:18,750
+purpose tasks.
+
+1136
+00:54:18,750 --> 00:54:21,683
+And the more data you
+collect, more tasks you cover,
+
+1137
+00:54:21,683 --> 00:54:23,350
+the better these
+models are going to do,
+
+1138
+00:54:23,350 --> 00:54:25,433
+the better they're going
+to understand the intent,
+
+1139
+00:54:25,433 --> 00:54:31,370
+and the better they're going
+to respond to all of our needs.
+
+1140
+00:54:31,370 --> 00:54:35,330
+And yeah, DPO has been used a
+lot in the open-source community
+
+1141
+00:54:35,330 --> 00:54:37,930
+ever since it was launched.
+
+1142
+00:54:37,930 --> 00:54:39,430
+It's fairly cheap, works.
+
+1143
+00:54:39,430 --> 00:54:40,890
+It's pretty performant.
+
+1144
+00:54:40,890 --> 00:54:48,327
+And at some point, all LLMs were
+using DPO to get their alignment
+
+1145
+00:54:48,327 --> 00:54:49,160
+with human feedback.
+
+1146
+00:54:49,160 --> 00:54:51,587
+
+1147
+00:54:51,587 --> 00:54:53,670
+Llama and Mistral models,
+if you've heard of them,
+
+1148
+00:54:53,670 --> 00:54:56,210
+were also post-trained
+using DPO.
+
+1149
+00:54:56,210 --> 00:54:58,380
+So, yeah.
+
+1150
+00:54:58,380 --> 00:55:03,180
+And I guess this is an
+interesting example where it's--
+
+1151
+00:55:03,180 --> 00:55:04,780
+it's a good question
+to ask, like what
+
+1152
+00:55:04,780 --> 00:55:09,740
+is the difference between
+instruction-tuned model and RLHF
+
+1153
+00:55:09,740 --> 00:55:10,560
+models.
+
+1154
+00:55:10,560 --> 00:55:13,380
+And one clear stylistic
+difference that emerges
+
+1155
+00:55:13,380 --> 00:55:17,360
+is that they tend to give
+more detailed answers,
+
+1156
+00:55:17,360 --> 00:55:19,740
+well-formatted
+answers, and they tend
+
+1157
+00:55:19,740 --> 00:55:22,180
+to align more with
+the kind of text
+
+1158
+00:55:22,180 --> 00:55:24,140
+that humans find easier to read.
+
+1159
+00:55:24,140 --> 00:55:25,660
+So the question
+here are like, what
+
+1160
+00:55:25,660 --> 00:55:28,390
+are the five most common
+causes of stress among people?
+
+1161
+00:55:28,390 --> 00:55:30,140
+And if you just do
+instruction fine-tuning
+
+1162
+00:55:30,140 --> 00:55:32,120
+with a very small data
+set, you get a good answer.
+
+1163
+00:55:32,120 --> 00:55:34,203
+The five most common causes
+of stress among people
+
+1164
+00:55:34,203 --> 00:55:36,700
+are work, money, relationships,
+health, and family.
+
+1165
+00:55:36,700 --> 00:55:39,720
+But then you do some
+kind of a PPO procedure.
+
+1166
+00:55:39,720 --> 00:55:41,940
+You get a much
+clearer, longer answer
+
+1167
+00:55:41,940 --> 00:55:43,920
+with a very well-formatted list.
+
+1168
+00:55:43,920 --> 00:55:45,800
+And these are all
+emergent properties.
+
+1169
+00:55:45,800 --> 00:55:47,342
+This is what the
+model has discovered
+
+1170
+00:55:47,342 --> 00:55:48,680
+that humans like and prefer.
+
+1171
+00:55:48,680 --> 00:55:52,020
+And that's why they tend to
+generate answers of that form.
+
+1172
+00:55:52,020 --> 00:55:53,440
+I love the question.
+
+1173
+00:55:53,440 --> 00:55:55,880
+I'll basically like--
+
+1174
+00:55:55,880 --> 00:55:58,560
+I had a slide on
+this towards the end.
+
+1175
+00:55:58,560 --> 00:56:02,780
+But yes, the question is, can
+we trust like people's feedback?
+
+1176
+00:56:02,780 --> 00:56:06,100
+And what do we do if people
+don't know what they want?
+
+1177
+00:56:06,100 --> 00:56:09,560
+Again, that's a very
+hard boundary to go to.
+
+1178
+00:56:09,560 --> 00:56:12,540
+And I think what
+happens is that there's
+
+1179
+00:56:12,540 --> 00:56:14,900
+a misalignment between
+short-term incentives
+
+1180
+00:56:14,900 --> 00:56:16,240
+and long-term incentives.
+
+1181
+00:56:16,240 --> 00:56:18,880
+There are certain behaviors
+which look good in short term,
+
+1182
+00:56:18,880 --> 00:56:21,700
+and people give feedback based
+on short-term incentives.
+
+1183
+00:56:21,700 --> 00:56:23,940
+But sometimes behaviors are--
+
+1184
+00:56:23,940 --> 00:56:26,400
+these are very undesirable
+in the long term.
+
+1185
+00:56:26,400 --> 00:56:31,340
+And that is truly a hard
+problem to solve within the RLHF
+
+1186
+00:56:31,340 --> 00:56:32,722
+pipeline.
+
+1187
+00:56:32,722 --> 00:56:33,680
+That's a good question.
+
+1188
+00:56:33,680 --> 00:56:36,940
+The question is like, do
+they rank like two answers
+
+1189
+00:56:36,940 --> 00:56:38,840
+or multiple answers?
+
+1190
+00:56:38,840 --> 00:56:42,700
+And do we train
+on nC2 pairs or--
+
+1191
+00:56:42,700 --> 00:56:43,220
+yeah.
+
+1192
+00:56:43,220 --> 00:56:46,260
+So I think yeah, you
+can roughly like--
+
+1193
+00:56:46,260 --> 00:56:48,580
+just for efficiency
+purposes, people typically
+
+1194
+00:56:48,580 --> 00:56:50,820
+rank more than one answer.
+
+1195
+00:56:50,820 --> 00:56:53,060
+And you get more
+learning data out of it
+
+1196
+00:56:53,060 --> 00:56:56,600
+that way because you get
+nC2 preference pairs.
+
+1197
+00:56:56,600 --> 00:56:59,383
+But you can-- there's something
+called the Plackett-Luce family,
+
+1198
+00:56:59,383 --> 00:57:01,550
+which is like a generalization
+of Bradley-Terry that
+
+1199
+00:57:01,550 --> 00:57:05,650
+allows you to directly train
+on ranked completions as well,
+
+1200
+00:57:05,650 --> 00:57:07,670
+beyond just
+preference pairs too.
+
+1201
+00:57:07,670 --> 00:57:09,410
+So you can do either of those.
+
+1202
+00:57:09,410 --> 00:57:11,630
+They probably both work fine.
+
+1203
+00:57:11,630 --> 00:57:13,170
+Yeah, that's a
+really good question.
+
+1204
+00:57:13,170 --> 00:57:19,090
+So are companies incentivized to
+give preferences to engagement
+
+1205
+00:57:19,090 --> 00:57:21,990
+which are not
+aligned with human?
+
+1206
+00:57:21,990 --> 00:57:24,330
+This goes well beyond the
+scope of this lecture.
+
+1207
+00:57:24,330 --> 00:57:27,630
+And be like, I don't know
+what I can say about this.
+
+1208
+00:57:27,630 --> 00:57:29,830
+But we can look back at history.
+
+1209
+00:57:29,830 --> 00:57:32,923
+So this is not an issue
+that was just true for LLMs.
+
+1210
+00:57:32,923 --> 00:57:34,590
+For example, YouTube
+had a lot of issues
+
+1211
+00:57:34,590 --> 00:57:36,390
+with recommendation
+systems, and people
+
+1212
+00:57:36,390 --> 00:57:39,910
+were engaging with YouTube way
+more than they wanted it to.
+
+1213
+00:57:39,910 --> 00:57:45,350
+So in some ways, this
+is a broader problem
+
+1214
+00:57:45,350 --> 00:57:46,990
+on how technology
+should be interfaced
+
+1215
+00:57:46,990 --> 00:57:48,810
+with people and societies.
+
+1216
+00:57:48,810 --> 00:57:53,430
+But if I briefly recall
+from that incident,
+
+1217
+00:57:53,430 --> 00:57:56,480
+is that it was actually in
+YouTube's incentive to make sure
+
+1218
+00:57:56,480 --> 00:58:01,640
+that the consumers have
+long-term healthy engagement,
+
+1219
+00:58:01,640 --> 00:58:03,840
+which means if
+they're like spending
+
+1220
+00:58:03,840 --> 00:58:05,960
+20 hours a day on YouTube,
+that's probably not
+
+1221
+00:58:05,960 --> 00:58:07,380
+good for the product as well.
+
+1222
+00:58:07,380 --> 00:58:09,505
+So they probably want to
+make sure that they're not
+
+1223
+00:58:09,505 --> 00:58:12,440
+spending way too much time.
+
+1224
+00:58:12,440 --> 00:58:15,780
+So if you do optimize
+for long-term engagement,
+
+1225
+00:58:15,780 --> 00:58:17,840
+that should ideally address--
+
+1226
+00:58:17,840 --> 00:58:20,480
+that should not fall to
+the sycophantic behaviors
+
+1227
+00:58:20,480 --> 00:58:22,960
+that we saw from
+GPT-4, because that
+
+1228
+00:58:22,960 --> 00:58:25,440
+is more short-term behavior.
+
+1229
+00:58:25,440 --> 00:58:27,440
+But yeah.
+
+1230
+00:58:27,440 --> 00:58:30,120
+Cool.
+
+1231
+00:58:30,120 --> 00:58:34,500
+And yeah, this is basically
+all we've talked about.
+
+1232
+00:58:34,500 --> 00:58:39,360
+And I wanted to bring up a
+couple of things that this is--
+
+1233
+00:58:39,360 --> 00:58:41,480
+let me just jump
+ahead to the slide
+
+1234
+00:58:41,480 --> 00:58:43,740
+where-- because we've
+already talked about it,
+
+1235
+00:58:43,740 --> 00:58:47,000
+is that this is a very
+fast-evolving topic.
+
+1236
+00:58:47,000 --> 00:58:49,920
+This is touching our
+lives right now when
+
+1237
+00:58:49,920 --> 00:58:55,160
+we are deciding how to
+interface chatbots with humans.
+
+1238
+00:58:55,160 --> 00:58:59,580
+And for people who might not
+be familiar with this incident,
+
+1239
+00:58:59,580 --> 00:59:02,680
+but GPT-4o became
+fairly sycophantic
+
+1240
+00:59:02,680 --> 00:59:05,040
+due to a model update
+that was pushed.
+
+1241
+00:59:05,040 --> 00:59:09,560
+And suddenly, it was like
+endorsing all good and bad ideas
+
+1242
+00:59:09,560 --> 00:59:14,040
+from their users in a way that
+everyone deemed was unhealthy.
+
+1243
+00:59:14,040 --> 00:59:18,100
+So I don't work at OpenAI, and
+I'm not making any comments.
+
+1244
+00:59:18,100 --> 00:59:23,100
+But these issues,
+these are very real.
+
+1245
+00:59:23,100 --> 00:59:24,600
+And we're still
+trying to understand
+
+1246
+00:59:24,600 --> 00:59:28,360
+how does our feedback data
+affect our final model's
+
+1247
+00:59:28,360 --> 00:59:30,040
+emergent behaviors.
+
+1248
+00:59:30,040 --> 00:59:33,920
+And this affects how we
+use our products as well.
+
+1249
+00:59:33,920 --> 00:59:38,140
+And yeah, a lot of great
+questions came up in the class.
+
+1250
+00:59:38,140 --> 00:59:41,260
+And those are active problems
+people are working on.
+
+1251
+00:59:41,260 --> 00:59:44,560
+And we don't necessarily have
+the answers to all of them.
+
+1252
+00:59:44,560 --> 00:59:48,680
+So you guys should
+go look more into it.
+
+1253
+00:59:48,680 --> 00:59:51,330
+Yeah, and the other main thing
+that I do wanted to touch upon,
+
+1254
+00:59:51,330 --> 00:59:53,330
+which is the limitation
+of the current paradigm,
+
+1255
+00:59:53,330 --> 00:59:56,290
+is that there's this
+phenomena of reward
+
+1256
+00:59:56,290 --> 00:59:59,890
+hacking, which again touches
+upon misalignment as well,
+
+1257
+00:59:59,890 --> 01:00:04,290
+is that when we train on
+these learned reward models,
+
+1258
+01:00:04,290 --> 01:00:06,730
+they do align with
+human preferences
+
+1259
+01:00:06,730 --> 01:00:08,310
+up to a certain point.
+
+1260
+01:00:08,310 --> 01:00:10,670
+But as you train
+progressively against them,
+
+1261
+01:00:10,670 --> 01:00:14,850
+they tend to start drifting
+away from what we truly want.
+
+1262
+01:00:14,850 --> 01:00:17,770
+So it's a very
+common problem in RL
+
+1263
+01:00:17,770 --> 01:00:20,010
+when you have proxy rewards
+instead of true rewards
+
+1264
+01:00:20,010 --> 01:00:21,750
+that you care about.
+
+1265
+01:00:21,750 --> 01:00:25,490
+And this is generally true
+for machine learning as well.
+
+1266
+01:00:25,490 --> 01:00:26,930
+So yeah.
+
+1267
+01:00:26,930 --> 01:00:29,593
+This affects our ability to
+scale reinforcement learning,
+
+1268
+01:00:29,593 --> 01:00:31,010
+too, because if
+you start hacking,
+
+1269
+01:00:31,010 --> 01:00:33,650
+you have to stop
+training at some point.
+
+1270
+01:00:33,650 --> 01:00:37,090
+And this is like an active
+optimization problem
+
+1271
+01:00:37,090 --> 01:00:39,890
+that people are
+trying to address.
+
+1272
+01:00:39,890 --> 01:00:43,910
+Yeah, I think the field
+is evolving quite a lot.
+
+1273
+01:00:43,910 --> 01:00:46,050
+So it goes beyond like--
+
+1274
+01:00:46,050 --> 01:00:50,210
+people are moving towards
+more rubric-based things,
+
+1275
+01:00:50,210 --> 01:00:55,940
+where we score them for
+several different aspects.
+
+1276
+01:00:55,940 --> 01:00:59,620
+But yes, you typically do want
+to collect many different kinds
+
+1277
+01:00:59,620 --> 01:01:03,380
+of data to teach the model
+what kind of behaviors
+
+1278
+01:01:03,380 --> 01:01:05,980
+we want to instill and
+what's the right way
+
+1279
+01:01:05,980 --> 01:01:08,000
+to respond to
+certain situations.
+
+1280
+01:01:08,000 --> 01:01:11,380
+It's very hard to cover every
+situation a chatbot might ever
+
+1281
+01:01:11,380 --> 01:01:12,300
+encounter.
+
+1282
+01:01:12,300 --> 01:01:15,300
+So we are relying on the model
+to generalize from what kind
+
+1283
+01:01:15,300 --> 01:01:16,360
+of data we're teaching.
+
+1284
+01:01:16,360 --> 01:01:19,310
+But these things
+break all the time,
+
+1285
+01:01:19,310 --> 01:01:21,060
+and there are certain
+unexpected behaviors
+
+1286
+01:01:21,060 --> 01:01:23,460
+that come out of
+these models in ways
+
+1287
+01:01:23,460 --> 01:01:26,140
+where we could not anticipate.
+
+1288
+01:01:26,140 --> 01:01:28,520
+Yeah, I've already touched
+a little bit upon this,
+
+1289
+01:01:28,520 --> 01:01:32,580
+but it's a very fast-evolving
+field, very many, many areas
+
+1290
+01:01:32,580 --> 01:01:34,660
+still to improve.
+
+1291
+01:01:34,660 --> 01:01:37,160
+Preference data is still
+expensive to collect.
+
+1292
+01:01:37,160 --> 01:01:39,300
+And as we've maybe
+discussed, it's
+
+1293
+01:01:39,300 --> 01:01:43,060
+not necessarily representative
+of what kind of model behaviors
+
+1294
+01:01:43,060 --> 01:01:43,560
+we want.
+
+1295
+01:01:43,560 --> 01:01:46,230
+So we are looking for better
+ways to improve the feedback.
+
+1296
+01:01:46,230 --> 01:01:49,540
+
+1297
+01:01:49,540 --> 01:01:53,380
+I think you listen to a lot more
+about very cool, evolving things
+
+1298
+01:01:53,380 --> 01:01:55,380
+in reasoning space,
+where the models
+
+1299
+01:01:55,380 --> 01:01:57,460
+are generating their
+own outputs from
+
+1300
+01:01:57,460 --> 01:02:00,220
+and are being graded
+by verifiable rewards.
+
+1301
+01:02:00,220 --> 01:02:02,220
+And that's one of
+the coolest topics
+
+1302
+01:02:02,220 --> 01:02:04,660
+we're looking at as well in
+post-training and reasoning
+
+1303
+01:02:04,660 --> 01:02:06,140
+as well.
+
+1304
+01:02:06,140 --> 01:02:10,500
+And something that I personally
+find very interesting
+
+1305
+01:02:10,500 --> 01:02:12,460
+is that language
+models are aligned
+
+1306
+01:02:12,460 --> 01:02:15,400
+to the aggregate
+preferences of humans.
+
+1307
+01:02:15,400 --> 01:02:18,200
+But we are interacting
+one on one.
+
+1308
+01:02:18,200 --> 01:02:21,100
+We're not interacting
+with the entire internet.
+
+1309
+01:02:21,100 --> 01:02:22,740
+So we do want to
+eventually make sure
+
+1310
+01:02:22,740 --> 01:02:24,980
+that the models are aligned
+to our needs and not
+
+1311
+01:02:24,980 --> 01:02:26,620
+just everybody's needs.
+
+1312
+01:02:26,620 --> 01:02:29,900
+So personalizing language models
+and having more contextual input
+
+1313
+01:02:29,900 --> 01:02:32,780
+about us and our preferences
+is something that's also
+
+1314
+01:02:32,780 --> 01:02:35,092
+a fairly nice evolving field.
+
+1315
+01:02:35,092 --> 01:02:37,300
+And yeah, we talked a little
+bit about hallucinations
+
+1316
+01:02:37,300 --> 01:02:39,320
+and uncontrolled
+emergent behaviors.
+
+1317
+01:02:39,320 --> 01:02:43,260
+And these are all still
+active problems we work on.
+
+1318
+01:02:43,260 --> 01:02:46,210
+And that's all for today.
+
+1319
+01:02:46,210 --> 01:02:51,000
+

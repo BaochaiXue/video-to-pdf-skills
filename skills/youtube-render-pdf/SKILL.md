@@ -36,6 +36,7 @@ In addition to the shared workflow, this skill must:
 - prefer YouTube's official subtitle tracks before ASR
 - treat playlists, linked course pages, and description-linked lecture materials as strong `course mode` signals
 - prefer linked official materials over ad hoc inference when a lecture page, slide deck, notebook, or repo exists
+- treat `transcript.jsonl`, `slides.jsonl`, and `segments.jsonl` as the canonical machine-readable evidence layer whenever they exist
 - for playlists, long videos, or `course mode`, proactively recommend that the user explicitly request parallel subagents so `spawn_agent` can be used
 
 ## YouTube-Specific Source Acquisition
@@ -56,6 +57,7 @@ In addition to the shared workflow, this skill must:
    - use manual subtitles over auto-generated subtitles when both are available
    - prefer the default language that best matches the video or the user's requested language
    - keep timestamps intact for figure provenance and coverage accounting
+   - if you generate local lecture artifacts, preserve this information in `transcript.jsonl` rather than flattening it away too early
 
 5. If no suitable subtitle track is available, use a device-aware ASR backend.
    - on `CUDA / NVIDIA`, default to `Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B`
@@ -68,6 +70,13 @@ In addition to the shared workflow, this skill must:
 7. Prefer the best usable video source for figure extraction.
    Probe formats and choose the highest resolution that is actually downloadable in the current environment.
 
+8. Build a structured evidence layer before writing prose when local lecture workspaces are available.
+   Prefer:
+   - `transcript.jsonl` for subtitle-aligned spans
+   - `slides.jsonl` for page-aligned slide evidence
+   - `segments.jsonl` for required segment boundaries and source-unit assignment
+   Keep `transcript.txt` and `official.txt` only as debug artifacts.
+
 ## Playlist and Course Handling
 
 - If the user gives a playlist URL, preserve playlist order unless the user asks for a different order.
@@ -75,6 +84,7 @@ In addition to the shared workflow, this skill must:
 - When official lecture materials exist per lecture, build per-lecture source inventories rather than a single playlist-level inventory.
 - If some playlist entries are unavailable, private, or missing official materials, record that gap explicitly instead of silently skipping it.
 - If the workload is large and the user did not explicitly ask for parallel agent work, recommend phrasing the request with wording such as `请 spawn 多个 subagents 并行执行`.
+- If the lecture is longer than 20 minutes, has more than 300 subtitle spans, or enters `course mode`, segmentation is mandatory even without subagents; fall back to serial segment processing instead of one monolithic pass.
 
 ## YouTube-Specific Non-Teaching Content
 

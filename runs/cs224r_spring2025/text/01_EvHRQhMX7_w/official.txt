@@ -1,0 +1,716 @@
+Deep Reinforcement Learning
+CS 224R
+
+1
+
+Welcome!
+
+2
+
+Introductions
+
+3
+
+The Plan for Today
+1. Course goals & logistics
+2. Why study deep reinforcement learning?
+3. Intro to modeling behavior and reinforcement learning
+
+Key learnings goals:
+- what is deep reinforcement learning??
+- how to represent behavior
+- how to formulate a reinforcement learning problem
+4
+
+Information & Resources
+Course website: http://cs224r.stanford.edu/
+
+We have put a lot of info here.
+Please read it. :)
+
+Ed, Gradescope: Connected to Canvas
+Staff mailing list: cs224r-staff-spr2425@cs.stanford.edu
+
+Student liaison, course
+manager, head CA, me
+
+Of ce hours: Course website & Canvas, start today.
+
+OAE letters can be sent to staff mailing list or in private Ed post.
+
+fi
+
+5
+
+Lectures & Of ce Hours
+Lectures
+- In-person, livestreamed, & recorded
+- A few guest lectures (Ashish Kumar from Tesla, Archit
+Sharma from Google DeepMind, one TBD)
+-
+
+Aiming to make it interactive. I will ask you questions.
+Ask me questions too!
+
+Of ce hours
+- mix of in-person and remote
+
+fi
+
+fi
+
+6
+
+What do we mean by deep reinforcement learning?
+Sequential decision-making problems
+A system needs to make multiple decisions based on stream of information.
+observe, take action, observe, take action, …
+AND the solutions to such problems
+- imitation learning
+
+- of
+
+ine & online RL
+- model-free & model-based RL - multi-task & meta RL
+Emphasis on solutions that scale to deep neural networks
+
+fl
+
+7
+
+- RL for LLMs
+- RL for robots
+
+and more!
+
+How does deep RL differ from other ML topics?
+Supervised learning
+
+Reinforcement learning
+
+Given labeled data: {(xi, yi)}, learn f(x) ≈ y
+
+Learn behavior π(a | s).
+
+directly told what to output
+- inputs x are independently, identically
+distributed (i.i.d.)
+
+-
+
+from experience, indirect feedback
+- data not i.i.d.: actions a affect the
+future observations.
+
+-
+
+Behavior can include:
+
+motor control
+
+chat bots
+
+game playing
+8
+
+driving
+
+web agents
+
+We can’t cover everything in deep RL.
+We’ll focus on:
+- core concepts behind deep RL methods
+- implementation of algorithms
+- examples in robotics, control, language models (but techniques generalize broadly)
+- topics that we think are most useful & exciting!
+For more theory & other
+applications, see CS234!
+
+Core goal: Able to understand and implement existing and emerging methods.
+9
+
+Pre-Requisites
+Machine learning: CS229 or equivalent.
+e.g. we’ll assume knowledge of SGD, cross-val, calculus, probability theory
+
+Some familiarity with deep learning:
+We’ll build on concepts like backpropagation, neural networks, sequence models
+- Assignments will require training networks in PyTorch.
+- Marcel will hold a PyTorch review session on Friday, 1:30 pm in Gates B1.
+-
+
+Some familiarity with reinforcement learning:
+We will go quickly over the basics.
+- See Sutton & Barto or CS 221 for intro RL content
+-
+
+10
+
+Aiming to improve accessibility
+compared to Spring ’23!
+
+Coursework and Grading
+-
+
+4 x 2-week assignments (50% - lowest scoring is 5%, rest worth 15%)
+
+-
+
+Final default or custom course project (1-3 people, 50%)
+-
+
+-
+
+-
+
+proposal (10%), milestone (10%), poster (10%), report (20%)
+
+Late days:
+-
+
+6 free late days; afterwards, 2% of course grade per day late
+
+-
+
+maximum of 2 free late days per assignment unless advanced permission
+
+Collaboration & AI tools
+-
+
+Please read course website, honor code, AI tools policy
+
+-
+
+Document collaborators and write solutions on your own. Submit homework
+independently.
+
+-
+
+Employing AI tools (e.g. ChatGPT, Cursor) substantially is not allowed for
+homework and parts of default project.
+11
+
+Coursework
+Homeworks: Implement different methods in PyTorch, run experiments in physics
+simulators, navigation environments
+Homework 1: Imitation learning
+Homework 2: Online reinforcement learning
+Homework 3: Of ine reinforcement learning
+Homework 4: Goal-conditioned & meta reinforcement learning
+Project:
+-
+
+Custom project - propose your own topic, or
+
+-
+
+Default project (new this year!) - ne-tune an LLM with RL + open-ended extension
+
+-
+
+Teams of 1-3 students, encouraged to use your research if applicable
+fi
+
+fl
+
+12
+
+A bit of advice
+Deep RL methods take time to learn behavior!
+
+We try to make homeworks fast to train.
+(e.g. by using simple environments)
+But, they will still take some time & you
+may choose to be more ambitious in your
+project.
+
+We recommend that you don’t start HWs/project deliverables the night before the deadline. :)
+13
+
+One more thing
+We have been working hard to develop a great course!
+But, we will probably make mistakes.
+
+We would love your feedback both for this iteration & future iterations.
+—> high-resolution feedback form sent weekly to subset of students.
+
+14
+
+Initial Steps
+1. Homework 1 coming out on Fri — due Fri 4/18 at 11:59 pm PT
+2. Start forming nal project groups if you want to work in a group
+
+fi
+
+15
+
+The Plan for Today
+1. Course goals & logistics
+2. Why study deep reinforcement learning?
+3. Intro to modeling behavior and reinforcement learning
+
+16
+
+Why study deep reinforcement learning?
+1. Going beyond supervised (x, y) examples
+- AI model predictions have consequences!
+- When direct supervision isn’t available
+
+How can we take them
+into account?
+Learn from any objective.
+
+2. Widely used and deployed for performant AI systems
+3. Learning from experience seems fundamental to intelligence
+-
+
+RL can discover new solutions
+
+4. Plenty of exciting open research problems
+17
+
+Why study deep reinforcement learning?
+Beyond supervised learning from (x, y) examples
+Decision-making problems are everywhere!
+a. Any sort of AI agent: robots, autonomous vehicles, web assistants
+b. What if you want your AI system to interact with people?
+
+chatbots, recommenders
+
+c. What if deploying your system affects future outcomes & observations?
+d. What if don’t have labels or your objective isn’t just accuracy?
+(and isn’t differentiable!)
+
+18
+
+“feedback loops”
+
+Why study deep reinforcement learning?
+Widely used for performant AI systems
+Learning complex physical tasks: legged robots
+
+Unitree
+19
+
+Why study deep reinforcement learning?
+Widely used for performant AI systems
+Learning complex physical tasks: robot manipulation
+
+Physical Intelligence π0
+
+Google Gemini Robotics
+20
+
+Why study deep reinforcement learning?
+Widely used for performant AI systems
+Learning to play complex games
+
+Ability to discover new solutions:
+“Move 37” in Lee Sedol AlphaGo
+match surprises everyone
+
+21
+
+Why study deep reinforcement learning?
+Widely used for performant AI systems
+Not just robots and games!
+Nearly all modern language models use some form of RL for post-training.
+
+ChatGPT
+
+especially for more advanced reasoning.
+22
+
+Why study deep reinforcement learning?
+Widely used for performant AI systems
+Not just robots and games!
+Research on traf c control
+
+fi
+
+Source: https://mit-wu-lab.github.io/automatic_vehicular_control/
+
+23
+
+Why study deep reinforcement learning?
+Widely used for performant AI systems
+Not just robots and games!
+Training generative image models to follow their prompt
+
+Source: https://rl-diffusion.github.io/
+
+24
+
+Why study deep reinforcement learning?
+Widely used for performant AI systems
+Not just robots and games!
+Chip design, in Google’s production TPU chips
+
+Source: https://research.google/blog/chip-design-with-deep-reinforcement-learning/
+
+Why study deep reinforcement learning?
+Fundamental aspect of intelligence
+
+Enables the ability to
+get better with practice
+
+The robot has its eyes closed.
+Levine et al. ICRA ‘15
+
+26
+
+Why study deep reinforcement learning?
+Fundamental aspect of intelligence
+
+Enables the ability to
+get better with practice
+
+with vision this time
+Levine*, Finn* et al. JMLR ‘16Z
+
+27
+
+Why study deep reinforcement learning?
+Fundamental aspect of intelligence
+
+Enables the ability to
+get better with practice
+
+with vision this time
+Levine*, Finn* et al. JMLR ‘16
+
+28
+
+Why study deep reinforcement learning?
+Still lots of exciting research problems!
+How does robot learn to represent what is good or bad for the task? —> reward learning
+How can an agent generalize its behavior to many different scenarios?
+(Can we apply such a system at scale?)
+Leverage large, diverse datasets —> of ne RL
+Transfer from other tasks, goals —> multitask RL, meta-RL
+Can use RL to learn long-horizon tasks, like cooking a meal?
+
+fi
+
+Can robots practice fully autonomously?
+
+—> hierarchy, reasoning
+
+—> reset-free RL
+
+Behind the scenes of RL…
+
+Yevgen
+
+Yevgen is doing more work than the robot!
+It’s not practical to collect
+a lot of data this way.
+30
+
+The Plan for Today
+1. Course goals & logistics
+2. Why study deep reinforcement learning?
+3. Intro to modeling behavior and reinforcement learning
+
+31
+
+How to represent experience as data?
+state st - the state of the “world” at time t
+observation ot - what the agent observes at time t
+action at - the decision taken at time t
+
+(only used when missing information)
+
+trajectory τ - sequence of states/observations and actions
+
+(could be length T=1!)
+
+(s1, a1, s2, a2, . . . , sT, aT )
+reward function r(s, a) - how good is s, a?
+
+32
+
+States vs. observations
+Next state is purely a function of the current state and action (and randomness)
+
+unknown dynamics p(st+1 | st, at)
+independent of st−1
+
+“Markov property”
+33
+
+Examples
+
+state s - RGB images, joint positions, joint velocities
+
+observation o - the user’s most recent message
+
+trajectory τ - 10-sec sequence of camera, joint
+readings, controls at 20 Hz
+
+trajectory τ - variable length conversation trace
+
+action a - commanded next joint position
+
+action a - chatbot’s next message
+
+(o1, a1, o2, a2, . . . , oT, aT )
+
+(s1, a1, s2, a2, . . . , sT, aT ), T = 200
+reward r(s, a) = 1 if the towel is on the hook in state s
+0 otherwise
+34
+
+reward r(s, a) = 1 if the user gives upvote
+-10 if the user downvotes
+0 if no user feedback
+
+Think-pair-share: how to represent another example?
+
+De ne
+autonomous driving
+
+state s or observation o
+
+web agent
+
+action a
+
+trajectory τ
+reward r(s, a)
+
+poker player
+
+choose your own!
+
+fi
+
+35
+
+How to represent behavior with a neural network?
+θ
+a
+
+s
+πθ(a | s)
+Observe state st
+Take action at
+
+(e.g. by sampling from policy πθ( ⋅ | st))
+
+Observe next state st+1
+
+sampled from unknown world dynamics p( ⋅ | st, at)
+
+Result: a trajectory s1, a1, . . . , sT, aT,
+
+also called a policy roll-out or an episode
+
+If you only have observations o, give the policy memory: πθ(at | ot−m, …, ot))
+36
+
+What is the goal of reinforcement learning?
+maximize sum of rewards: max
+
+T
+
+∑
+t
+
+r(st, at)
+but this is not a deterministic quantity!
+Question: what are the sources of variability?
+Example
+
+p(s1, a1, . . . , sT, aT ) = p(s1)
+pθ(τ)
+
+T
+
+∏
+t=1
+
+πθ(at | st)p(st+1 | st, at)
+37
+
+1. the world is stochastic
+2. the car may not make the
+same decision every time.
+
+What is the goal of reinforcement learning?
+maximize sum of rewards: max
+
+T
+
+∑
+t
+
+r(st, at)
+
+maximize expected sum of rewards: max τ∼pθ(τ)
+θ
+
+p(s1, a1, . . . , sT, aT ) = p(s1)
+
+T
+
+∏
+
+𝔼
+
+pθ(τ)
+
+38
+
+t=1
+
+T
+
+r(st, at)
+∑
+[ t
+]
+
+πθ(at | st)p(st+1 | st, at)
+
+Aside: why stochastic policies?
+1. Exploration: to learn from your own experience, must try different things.
+2. Modeling stochastic behavior: existing data will exhibit varying behaviors
+We can leverage tools from generative modeling!
+—> generative model over actions given states/observations
+
+39
+
+What is the goal of reinforcement learning?
+maximize expected sum of rewards: max τ∼pθ(τ)
+θ
+
+p(s1, a1, . . . , sT, aT ) = p(s1)
+
+T
+
+∏
+t=1
+
+T
+
+r(st, at)
+[∑
+]
+t
+
+πθ(at | st)p(st+1 | st, at)
+
+pθ(τ)
+
+How good is a particular policy?
+π
+
+value function V (s) - future expected reward starting at s and following π
+π
+
+𝔼
+
+Q-function Q (s, a) - future expected reward starting at s, taking a, then following π
+40
+
+Types of algorithms
+maximize expected sum of rewards: max τ∼pθ(τ)
+θ
+
+T
+
+r(st, at)
+[∑
+]
+t
+
+1. Imitation learning: mimic a policy that achieves high reward
+2. Policy gradients: directly differentiate the above objective
+3. Actor-critic: estimate value of the current policy and use it to make the
+policy better
+
+𝔼
+
+4. Value-based: estimate value of the optimal policy
+5. Model-based: learn to model the dynamics, and use it for planning or
+policy improvement
+41
+
+Why so many algorithms?
+Algorithms make different trade-offs, thrive under different assumptions.
+• How easy / cheap is it to collect data with policy? (e.g. simulator vs. hand-written)
+• How easy / cheap are different forms of supervision? (demos, detailed rewards)
+• How important is stability and ease-of-use?
+• Action space dimensionality, continuous vs. discrete
+• Is it easy to learn the dynamics model?
+
+42
+
+Recap of de nitions
+state st - the state of the “world” at time t
+
+(or observation ot - what the agent observes at time t)
+
+(partially-observed)
+
+action at - the decision taken at time t
+
+Markov decision
+process
+
+initial state distr. p(s1), unknown dynamics p(st+1 | st, at)
+
+MDP, POMDP
+
+reward function r(s, a) - how good is s, a?
+
+fi
+
+43
+
+Recap of de nitions
+trajectory τ - sequence of states/observations and actions (s1, a1, s2, a2, . . . , sT, aT )
+policy π - represents behavior, selecting actions based on states or observations
+Goal: learn policy πθ that maximizes expected sum of rewards:
+
+max
+θ
+
+T
+
+r(s
+,
+a
+)
+τ∼pθ(τ) ∑
+t t
+[ t
+]
+
+π
+
+value function V (s) - future expected reward starting at s and following π
+π
+
+𝔼
+
+Q-function Q (s, a) - future expected reward starting at s, taking a, then following π
+fi
+
+44
+
+Course Reminders
+Your Initial Steps:
+Homework 1 comes out Friday, due Weds 4/18 at 11:59 pm PT
+Start forming nal project groups if you want to work in a group
+
+Coming Up Next:
+Imitation Learning Lecture (Friday 10:30, Hewlett 200)
+PyTorch Tutorial (Friday 1:30, Gates B1)
+
+fi
+
+45
+
+

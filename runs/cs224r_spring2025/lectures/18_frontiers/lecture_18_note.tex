@@ -1,0 +1,244 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS224R 课程笔记：Lecture 18 Frontiers}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-13}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{讲次日期 2025-05-30；YouTube 上传 2025-12-08}
+\newcommand{\videoduration}{1:10:49}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=FacJ_1tTSx4}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{前沿问题之一：没有清晰奖励、也没有可靠验证的领域}
+
+这讲前半部分谈 open problems，后半部分谈如何做研究。前沿问题里，讲者首先挑出的不是优化器或架构，而是 \textbf{problem setup}：很多真正重要的场景根本没有现成奖励，也没有可自动验证的正确答案。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{pdf_pages/page-05.png}
+\caption{“non-rewarding, non-verifiable domains” 的典型例子：聊天机器人、复杂机器人任务、推荐系统与科学推理。}
+\end{figure}
+
+传统游戏、数学标准答案题和编码 benchmark 之所以适合 RL，一个重要原因是“能打分”。但现实系统里，经常不是这样：
+\begin{itemize}
+\item 聊天机器人很难用单一 reward 概括“真实、有用、不迎合”的回答；
+\item 机器人很多任务只有粗糙的二值成功信号，或者手工 shaping reward；
+\item 推荐系统的点击、停留时长、点赞本身都只是 proxy，而且这些 proxy 的权重往往靠人为调参；
+\item 科学实验、长链推理和开放式学习常常根本不存在立即可验证的终点。
+\end{itemize}
+
+讲者对 preference optimization 的批评非常到位：偏好反馈并不天然等于真实目标，尤其当“用户更喜欢的回答”与“事实更正确的回答”不一致时，系统容易被推向迎合、自信、极化而不一定更真实。
+
+\subsection{为什么这是 RL 的根问题}
+
+如果 reward 本身不可靠，那么再高效的策略优化也可能只是把代理目标优化得更彻底。换句话说，前沿系统的瓶颈往往不是“算法没学好”，而是“目标没定义好”。
+
+\subsection{本章小结}
+
+本讲最先指出的 open problem 并不是更深的 network，而是更难的目标定义问题。很多现实场景并非 reward 缺失，而是 reward 只是偏置很强的近似量。
+
+\section{前沿问题之二：如何利用先验数据、知识与 world models}
+
+\subsection{先验并不总该以预训练权重的形式进入 RL}
+
+默认做法通常是：用预训练权重初始化模型，再用离线数据初始化 replay buffer。讲者认为这只是“最容易想到”的方法，而不是唯一合理的方法。更抽象的先验，比如规则、提示、新闻、外部知识、历史经验，有可能比权重或数据集本身更值得利用。
+
+更关键的是，预训练有时还可能过于约束优化。讲者提到一个经验现象：某些工作里，只初始化 buffer、但不初始化 policy 权重，反而比把权重也预训练后再微调效果更好。一个合理解释是，预训练输出层可能过早收敛到狭窄、确定性的模式，从而抑制探索。
+
+\subsection{视频生成模型会成为 RL 的 world model 吗}
+
+接着，讲者把话题转向视频生成模型与 world models。直觉上，这些模型显然蕴含丰富世界知识，因此理应有助于 RL；但真正把它们用起来并不简单。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{pdf_pages/page-12.png}
+\caption{视频生成 world model 的机会与风险：模型有丰富世界知识，但 policy 诱导的动作分布可能把未来视频推到分布外。}
+\end{figure}
+
+难点至少有两个。第一，action-conditioned future prediction 在 policy 改变后很容易 OOD，因为新策略采样的动作序列并不一定出现在训练数据里。第二，视频看起来逼真，不代表其物理细节足够精确；对控制来说，细微误差可能就会造成灾难性后果。
+
+因此讲者提出的思路更克制：与其直接把视频模型拿来闭环控制，不如先把它用在更安全的位置，例如只用 demonstrations 训练未来视频，再把预测结果交给 goal-conditioned policy。
+
+\subsection{本章小结}
+
+这一部分的主旨是：先验和 world model 很重要，但它们不能只靠“规模更大”就自动转化成更好的 RL。如何既继承预训练知识、又不被它束缚，是一个核心前沿问题。
+
+\section{前沿问题之三：如何规模化、如何安全部署、如何评价 generalist systems}
+
+\subsection{规模化 RL 目前仍偏短视与高在线成本}
+
+讲者指出，今天大规模 RL 在 LLM 上很热，但大多仍属于较短时程、较强在线采样依赖的范式。比如偏好优化经常只看单轮回复，不看整段对话的全局结果；推理 RL 则常常需要海量在线 rollout 穿插参数更新。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{pdf_pages/page-15.png}
+\caption{规模化 RL 的核心问题：能否支持更长 horizon、更少在线数据、更准确 value function，以及更适合大模型的数据更新节奏。}
+\end{figure}
+
+这里的几个关键疑问包括：
+\begin{itemize}
+\item value function 能否在大规模系统里真正训练得足够准确；
+\item 能否做“batch online RL”，即收集一大批数据后再更新，而不是高度交错地在线更新；
+\item expressive policies 是否会比传统高斯策略更适合支撑大规模探索。
+\end{itemize}
+
+\subsection{安全与 hallucination 不是附加要求，而是部署核心}
+
+在部署部分，讲者明确表示：对大规模模型而言，安全是 open-world problem，几乎不可能被彻底证明。尤其在机器人和自动驾驶等领域，单次错误就可能造成高代价后果，因此不能满足于“平均表现不错”。
+
+与安全相关但稍弱的一层问题是 inaccuracies / hallucinations。模型即使不在安全关键场景里，也会给出自信但错误的结论。讲者用视觉读数错误、错误解释图像等例子提醒大家：高置信输出并不意味着高可信输出。
+
+\subsection{评价 generalist systems 比评价单任务 agent 更难}
+
+如果系统越来越 generalist，评价方式也必须变化。单一 benchmark 上测 reward 已经不够，因为不同任务之间的 trade-off、泛化能力、任务切换能力和开放环境鲁棒性都需要新的评估设计。
+
+\subsection{本章小结}
+
+规模化、安全与评价三个问题彼此相连。系统越大、越通用，越不能只看一个平均 reward。需要同时考虑长时程优化、部署风险和跨任务评估。
+
+\section{如何做深度 RL 研究：从选题、转向到分享结果}
+
+\subsection{研究不是寻找完美点子，而是管理高失败率}
+
+讲者后半部分从 personal backstory 切入，强调研究最常见的现实是：绝大多数想法都不会成功。研究之所以有价值，恰恰因为没有人知道哪条路会通。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-34.png}
+\caption{选题标准的压缩表达：好项目至少同时满足“重要问题”和“可行推进路径”。}
+\end{figure}
+
+讲者给出一个非常实用的选题判据：一个研究项目至少需要两样东西，
+\begin{enumerate}
+\item 它要解决的重要问题；
+\item 它要有一个你知道如何切入的计划。
+\end{enumerate}
+
+只有大问题没有路径，会沦为空想；只有小改进没有问题意识，则很难形成有力度的研究。
+
+\subsection{problem-driven 与 idea-driven 可以并存}
+
+讲者并不主张只从 idea 出发或只从 problem 出发，而是强调两者都能成功。problem-driven research 往往更容易对齐长期价值，idea-driven research 则可能在方法上更灵活。真正重要的是，研究过程中要不断检查：当前工作是否仍然朝着高价值目标推进。
+
+\subsection{何时 pivot：比大多数人更早承认当前路径不对}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{pdf_pages/page-44.png}
+\caption{关于转向的建议：不要只问“是否继续当前项目”，而要把多个候选方向一起放进决策面。}
+\end{figure}
+
+这一页给出极其实用的建议。与其把问题表述成“坚持还是放弃当前项目”，不如把它写成“项目 A、B、C 哪个更值得投入”。一旦视野扩大，很多被 sunk cost 绑架的犹豫就会明显缓解。
+
+\subsection{分享研究不是附属劳动，而是研究产出本身}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{pdf_pages/page-46.png}
+\caption{分享研究成果的理由：研究的输出是 ideas、knowledge 与 learnings；如果没人知道，就等于没有真正输出。}
+\end{figure}
+
+讲者最后把“如何分享研究”提到很高的位置。研究输出常常不是产品，而是 ideas、knowledge、learnings。如果没有论文、报告、海报和清晰讲述，这些输出就无法进入共同体，影响也会大打折扣。
+
+\begin{knowledgebox}{这部分给学生最重要的信号}
+不要把研究看成“想出天才点子然后一击命中”。更真实的过程是：选高价值问题，容忍失败，及时 pivot，并认真把所得经验传播出去。
+\end{knowledgebox}
+
+\subsection{本章小结}
+
+后半部分提供的是研究方法论而不是技术公式：选题要同时看问题重要性和切入路径，过程里要能承受高失败率，必要时及时转向，而传播结果本身就是研究工作的一部分。
+
+\section{总结与延伸}
+
+Lecture 18 有两个看似分开的主题，但实际上高度统一。前半部分讨论的是 RL 还没解决好的前沿难题：奖励难定义、先验难利用、world model 难落地、规模化难兼顾长时程与低在线成本、安全与评价标准都还远未成熟。后半部分讨论的是，面对这样一片未定型的问题空间，研究者应当如何行动。
+
+把两部分连起来，可以得到一个非常强的结论：\textbf{前沿研究的难点，不只是把某个 loss 再调高一点，而是先认清什么问题真正值得解决，以及现有工具为什么还不够。}
+
+对学习这门课的人来说，这讲至少留下三条长期线索：
+\begin{itemize}
+\item 任何成功的 RL 系统，最终都要面对 reward misspecification。
+\item foundation models 与 RL 的结合值得期待，但不能忽视分布外与物理精度问题。
+\item 做研究需要同时管理价值判断、方法设计、实验执行和结果传播。
+\end{itemize}
+
+因此，这讲既是课程的 frontier survey，也是一次研究训练。它提醒我们：真正值得做的工作，往往处在 reward 不清、验证困难、方法尚不成熟的灰区里。
+
+\end{document}

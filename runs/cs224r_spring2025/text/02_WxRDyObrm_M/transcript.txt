@@ -1,0 +1,1268 @@
+[00:00:05,480 --> 00:00:08,960] Today we'll be talking about imitation learning.
+[00:00:08,960 --> 00:00:09,940] Great.
+[00:00:09,940 --> 00:00:11,780] So as a partial recap from last time,
+[00:00:11,780 --> 00:00:14,200] we started talking about some of the notation
+[00:00:14,200 --> 00:00:16,480] that we use for representing behavior
+[00:00:16,480 --> 00:00:21,240] and formulating problems as a decision-making problem.
+[00:00:21,240 --> 00:00:23,540] We talks about states and observations
+[00:00:23,540 --> 00:00:25,640] where we either have access to something that
+[00:00:25,640 --> 00:00:28,840] can fairly, completely represent the state of the world,
+[00:00:28,840 --> 00:00:31,560] or a more partial representation that we will
+[00:00:31,560 --> 00:00:34,120] refer to as an observation.
+[00:00:34,120 --> 00:00:39,760] We also will be representing actions or decisions with at,
+[00:00:39,760 --> 00:00:42,920] and then we can think about a trajectory
+[00:00:42,920 --> 00:00:49,397] as an example of behavior that we've taken over time.
+[00:00:49,397 --> 00:00:51,980] We also introduced this notion of a reward function, which is,
+[00:00:51,980 --> 00:00:55,920] how good is a given state and action.
+[00:00:55,920 --> 00:01:00,180] And lastly, this notion of a policy
+[00:01:00,180 --> 00:01:03,455] which is either conditioned on the current state, what
+[00:01:03,455 --> 00:01:04,580] actions do we want to take.
+[00:01:04,580 --> 00:01:06,800] Or conditioned on a history of observations,
+[00:01:06,800 --> 00:01:08,100] what actions should we take.
+[00:01:08,100 --> 00:01:10,420] And usually this policy is the behavior
+[00:01:10,420 --> 00:01:11,590] that we're trying to learn.
+[00:01:14,620 --> 00:01:18,300] We briefly mentioned how this policy can be represented
+[00:01:18,300 --> 00:01:19,440] using a generative model.
+[00:01:19,440 --> 00:01:22,910] And we'll actually touch on that a little bit more today.
+[00:01:22,910 --> 00:01:24,660] And the last thing that's not on the slide
+[00:01:24,660 --> 00:01:27,660] is that we talked about how the goal of reinforcement learning
+[00:01:27,660 --> 00:01:32,260] problems is usually to maximize the expected sum of rewards.
+[00:01:32,260 --> 00:01:35,220] And today we'll be talking about one way
+[00:01:35,220 --> 00:01:39,325] to do that by trying to imitate a good policy.
+[00:01:39,325 --> 00:01:40,700] And in particular, the plan today
+[00:01:40,700 --> 00:01:43,660] is to go over some of the basics for imitation learning.
+[00:01:43,660 --> 00:01:46,660] Then we'll talk about learning expressive policy
+[00:01:46,660 --> 00:01:49,940] distributions, and why that's important for imitation
+[00:01:49,940 --> 00:01:51,020] learning.
+[00:01:51,020 --> 00:01:53,600] Then we'll talk about learning from online interventions.
+[00:01:53,600 --> 00:01:55,433] And time permitting, we'll talk a little bit
+[00:01:55,433 --> 00:01:57,420] about how to collect demonstrations
+[00:01:57,420 --> 00:01:59,890] in the first place.
+[00:01:59,890 --> 00:02:01,390] So some of the key learning goals.
+[00:02:01,390 --> 00:02:04,090] This is, in some ways, orthogonal
+[00:02:04,090 --> 00:02:05,430] to the main topic of the class.
+[00:02:05,430 --> 00:02:07,755] But it's actually very important to understand in order
+[00:02:07,755 --> 00:02:09,630] to get performant imitation learning systems.
+[00:02:09,630 --> 00:02:12,050] So we'll be talking about how to represent distributions
+[00:02:12,050 --> 00:02:16,050] using neural networks rather than deterministic functions.
+[00:02:16,050 --> 00:02:19,170] We'll also be talking about why expressive distributions matter
+[00:02:19,170 --> 00:02:20,850] for imitation learning.
+[00:02:20,850 --> 00:02:23,170] And one challenge that can come up
+[00:02:23,170 --> 00:02:25,610] with imitation learning, which is compounding errors
+[00:02:25,610 --> 00:02:29,290] and how to address compounding errors.
+[00:02:29,290 --> 00:02:30,150] Great.
+[00:02:30,150 --> 00:02:33,083] So what is the goal of imitation learning?
+[00:02:33,083 --> 00:02:34,750] Like the goal of reinforcement learning,
+[00:02:34,750 --> 00:02:36,910] we want to try to achieve high reward.
+[00:02:36,910 --> 00:02:41,090] We want to get a good policy that can do the task well.
+[00:02:41,090 --> 00:02:43,850] And the way that we'll try to do that is we'll
+[00:02:43,850 --> 00:02:46,170] assume that we're given some trajectories that
+[00:02:46,170 --> 00:02:48,050] are collected by an expert.
+[00:02:48,050 --> 00:02:49,730] This is our data.
+[00:02:49,730 --> 00:02:52,990] And we'll refer to these trajectories as demonstrations.
+[00:02:52,990 --> 00:02:56,590] So it's a special trajectory that is demonstrating
+[00:02:56,590 --> 00:02:59,230] how to perform the task.
+[00:02:59,230 --> 00:03:03,590] And we'll use D to denote these demonstrations.
+[00:03:03,590 --> 00:03:06,910] A trajectory, it'll be a sequence of states and actions.
+[00:03:06,910 --> 00:03:10,150] And as an example of what this demonstration data might
+[00:03:10,150 --> 00:03:15,430] look like, if we wanted to learn how to autonomously drive a car,
+[00:03:15,430 --> 00:03:16,950] we could have demonstrations that
+[00:03:16,950 --> 00:03:19,512] are in the form of people driving cars.
+[00:03:19,512 --> 00:03:21,470] Because people are pretty good at driving cars,
+[00:03:21,470 --> 00:03:25,550] most of the time, and so we could
+[00:03:25,550 --> 00:03:27,650] record from the sensors on a car,
+[00:03:27,650 --> 00:03:31,030] as well as record steering commands, acceleration,
+[00:03:31,030 --> 00:03:32,110] and so forth.
+[00:03:32,110 --> 00:03:35,490] And using a data set of human drivers driving,
+[00:03:35,490 --> 00:03:39,790] we could then try to mimic that in order to train an autonomous
+[00:03:39,790 --> 00:03:42,830] driving agent.
+[00:03:42,830 --> 00:03:47,430] Now, we don't know exactly how humans drive.
+[00:03:47,430 --> 00:03:50,350] We don't know the policy that humans
+[00:03:50,350 --> 00:03:52,550] are using in order to drive.
+[00:03:52,550 --> 00:03:54,940] So we can think about this demonstration
+[00:03:54,940 --> 00:03:58,390] data set as being sampled from some unknown policy pi expert.
+[00:04:01,028 --> 00:04:02,820] And then the goal is to learn a policy that
+[00:04:02,820 --> 00:04:07,140] performs at the level or similar to the level of the expert
+[00:04:07,140 --> 00:04:11,020] policy by mimicking what's present in the demonstration
+[00:04:11,020 --> 00:04:12,200] data set.
+[00:04:12,200 --> 00:04:12,700] Cool.
+[00:04:12,700 --> 00:04:15,780] So this is the problem setup.
+[00:04:15,780 --> 00:04:23,100] Now, let's think about version 0 of how we could try to do this.
+[00:04:23,100 --> 00:04:28,220] So a very simple way that we could do this is first,
+[00:04:28,220 --> 00:04:34,780] we're given our demonstration data set.
+[00:04:34,780 --> 00:04:40,090] So this is some data set that contains state action pairs.
+[00:04:42,962 --> 00:04:44,420] These are each of the state actions
+[00:04:44,420 --> 00:04:47,580] and each of the demonstration trajectories.
+[00:04:47,580 --> 00:04:52,520] And then we could say that we want to train some policy
+[00:04:52,520 --> 00:04:55,880] to mimic the demonstration.
+[00:04:55,880 --> 00:05:01,280] So we would be training some policy.
+[00:05:01,280 --> 00:05:05,360] And in particular, we could think about the actions
+[00:05:05,360 --> 00:05:07,240] that this policy is going to take.
+[00:05:07,240 --> 00:05:11,080] So if we were to take one of the states in our demonstrations
+[00:05:11,080 --> 00:05:15,480] and run it through our policy, then we would get some
+[00:05:15,480 --> 00:05:17,960] predicted action, a hat.
+[00:05:17,960 --> 00:05:22,720] So let's say that this is sampled from pi theta given
+[00:05:22,720 --> 00:05:26,320] a state in the demonstration.
+[00:05:26,320 --> 00:05:27,960] And then we could try to basically say
+[00:05:27,960 --> 00:05:30,320] we want this predicted action to be as close as
+[00:05:30,320 --> 00:05:33,480] possible to the action that the demonstrator took.
+[00:05:33,480 --> 00:05:39,400] So we could then minimize the difference
+[00:05:39,400 --> 00:05:44,920] between the predicted action and the action in the data set.
+[00:05:44,920 --> 00:05:47,160] And we could do this minimization
+[00:05:47,160 --> 00:05:51,270] over all of the states and actions in our demonstration
+[00:05:51,270 --> 00:05:52,550] data set.
+[00:05:52,550 --> 00:05:55,510] Once you train a policy such that the predicted actions are
+[00:05:55,510 --> 00:05:58,590] as close as possible to the actions in your data set,
+[00:05:58,590 --> 00:06:02,190] then you can just deploy your policy.
+[00:06:02,190 --> 00:06:07,590] This is a policy that should be mimicking
+[00:06:07,590 --> 00:06:09,870] the actions in your data set.
+[00:06:09,870 --> 00:06:12,430] This is version 0 of imitation learning.
+[00:06:12,430 --> 00:06:15,550] So given demonstrations collected by an expert,
+[00:06:15,550 --> 00:06:18,990] you essentially do supervised regression
+[00:06:18,990 --> 00:06:21,070] to the expert actions.
+[00:06:21,070 --> 00:06:23,570] If your policy is a neural network,
+[00:06:23,570 --> 00:06:28,030] this means doing a forward pass, sample a mini batch.
+[00:06:28,030 --> 00:06:31,150] From here, do a forward pass on your neural network
+[00:06:31,150 --> 00:06:34,170] to get the predicted actions, compute the loss,
+[00:06:34,170 --> 00:06:36,790] and then back propagate the loss into the parameters
+[00:06:36,790 --> 00:06:37,890] of the neural network.
+[00:06:37,890 --> 00:06:40,810] And you do that iteratively with your favorite optimizer,
+[00:06:40,810 --> 00:06:42,830] some form of stochastic gradient descent
+[00:06:42,830 --> 00:06:46,017] in order to optimize your policy.
+[00:06:46,017 --> 00:06:48,100] So it's essentially a form of supervised learning.
+[00:06:51,770 --> 00:06:55,670] And then from here, you can then deploy your learned policy.
+[00:06:55,670 --> 00:06:58,170] And it should be able to mimic the expert
+[00:06:58,170 --> 00:07:01,330] and do something sensible.
+[00:07:01,330 --> 00:07:04,730] So in this case, we're considering
+[00:07:04,730 --> 00:07:06,410] a deterministic policy.
+[00:07:06,410 --> 00:07:09,250] And we're just essentially doing L2 regression.
+[00:07:09,250 --> 00:07:12,690] I guess here I wrote it as a stochastic policy.
+[00:07:12,690 --> 00:07:15,610] But let's correct that and let's have
+[00:07:15,610 --> 00:07:19,890] this be a deterministic policy.
+[00:07:19,890 --> 00:07:22,730] The expert might not be deterministic,
+[00:07:22,730 --> 00:07:25,272] and that might lead to some issues.
+[00:07:25,272 --> 00:07:27,230] So let's actually talk about that a little bit.
+[00:07:27,230 --> 00:07:30,450] So what could go wrong?
+[00:07:30,450 --> 00:07:32,150] Let's go back to our driving example.
+[00:07:32,150 --> 00:07:34,530] So we have a data set from human drivers.
+[00:07:34,530 --> 00:07:38,030] And we recorded the states or the observations.
+[00:07:38,030 --> 00:07:41,010] We recorded the steering commands, and any other actions
+[00:07:41,010 --> 00:07:43,250] that we might want to use.
+[00:07:43,250 --> 00:07:48,722] And let's say that for this particular car, in some cases,
+[00:07:48,722 --> 00:07:51,950] some human drivers might decide to go straight
+[00:07:51,950 --> 00:07:54,850] and other drivers might decide to merge left,
+[00:07:54,850 --> 00:07:58,830] maybe because they want to move to a faster lane.
+[00:07:58,830 --> 00:08:01,990] So our data set might contain both examples
+[00:08:01,990 --> 00:08:04,450] of going straight in situations like this,
+[00:08:04,450 --> 00:08:09,870] and examples of merging left in situations like this.
+[00:08:09,870 --> 00:08:15,070] Now, a question for you.
+[00:08:15,070 --> 00:08:18,230] If you train a policy with L2 regression
+[00:08:18,230 --> 00:08:22,470] on a data set that has these examples,
+[00:08:22,470 --> 00:08:25,350] what would a policy that was trained with L2 regression
+[00:08:25,350 --> 00:08:29,550] do in a situation like this?
+[00:08:29,550 --> 00:08:32,510] So the policy might go to the middle of the two lane.
+[00:08:32,510 --> 00:08:33,809] And let's see why that is.
+[00:08:38,590 --> 00:08:46,220] In this example, say we have the steering command.
+[00:08:46,220 --> 00:08:48,220] And if we thought about the distribution
+[00:08:48,220 --> 00:08:52,580] over actions that are covered in the data set for drivers that
+[00:08:52,580 --> 00:08:56,940] chose to go straight, their distribution of actions
+[00:08:56,940 --> 00:08:59,980] would look maybe something like this, where this
+[00:08:59,980 --> 00:09:01,720] is like 0 steering command.
+[00:09:01,720 --> 00:09:03,820] This is staying straight.
+[00:09:03,820 --> 00:09:09,220] And for the drivers that chose to merge left,
+[00:09:09,220 --> 00:09:12,100] their distribution over actions for the steering command
+[00:09:12,100 --> 00:09:16,580] might look something like this.
+[00:09:16,580 --> 00:09:19,490] So this is the probability of actions.
+[00:09:23,310 --> 00:09:25,180] These are the two examples.
+[00:09:25,180 --> 00:09:28,740] If they're deciding to merge left,
+[00:09:28,740 --> 00:09:31,160] they maybe have a steering command of negative 2.
+[00:09:31,160 --> 00:09:32,577] This is if you stay straight, that
+[00:09:32,577 --> 00:09:34,340] might have a steering command of 0.
+[00:09:34,340 --> 00:09:39,740] And then in your data set, the overarching distribution
+[00:09:39,740 --> 00:09:42,860] over actions represented in the data set
+[00:09:42,860 --> 00:09:48,040] might look something like this, where
+[00:09:48,040 --> 00:09:51,980] maybe, more likely people are to go straight than to merge left.
+[00:09:51,980 --> 00:09:54,560] But you get this multimodal distribution
+[00:09:54,560 --> 00:09:57,720] that has two peaks, one at going straight and one at merging
+[00:09:57,720 --> 00:09:59,880] left.
+[00:09:59,880 --> 00:10:02,120] And then when you use L2 regression
+[00:10:02,120 --> 00:10:06,240] to try to fit this data, what it's going to do
+[00:10:06,240 --> 00:10:07,740] is it's going to predict the mean.
+[00:10:07,740 --> 00:10:09,448] So it's going to predict the mean action.
+[00:10:09,448 --> 00:10:11,040] And in this case, the mean action
+[00:10:11,040 --> 00:10:13,960] would be something like here.
+[00:10:13,960 --> 00:10:16,560] And that would be probably not very good action
+[00:10:16,560 --> 00:10:19,720] to take because that might straddle
+[00:10:19,720 --> 00:10:24,160] the lines on the highway.
+[00:10:24,160 --> 00:10:26,360] And also we can see that this action actually
+[00:10:26,360 --> 00:10:30,060] has very low probability under the data distribution.
+[00:10:30,060 --> 00:10:34,400] So it's also objectively or mathematically a poor choice
+[00:10:34,400 --> 00:10:39,320] because it had low probability under what the data was doing.
+[00:10:39,320 --> 00:10:42,810] So L2 regression is the equation from the previous slide.
+[00:10:42,810 --> 00:10:44,670] So basically minimizing this squared
+[00:10:44,670 --> 00:10:48,270] loss between the predicted action and the true action.
+[00:10:48,270 --> 00:10:50,310] And then the other question was, what
+[00:10:50,310 --> 00:10:53,270] is the difference between the green and the red here?
+[00:10:53,270 --> 00:10:55,670] So essentially what I'm drawing in the green
+[00:10:55,670 --> 00:11:01,210] is this is the distribution over expert actions.
+[00:11:01,210 --> 00:11:04,390] Maybe I'll use expert to refer to that,
+[00:11:04,390 --> 00:11:08,460] conditioned on only the data that chose to go straight.
+[00:11:13,190 --> 00:11:19,430] The blue is the distribution over expert actions
+[00:11:19,430 --> 00:11:22,310] if they choose to merge left.
+[00:11:22,310 --> 00:11:26,150] And then the red is the distribution
+[00:11:26,150 --> 00:11:33,380] of actions represented in the data set for a given state.
+[00:11:36,030 --> 00:11:38,092] The red is actually what your data looks like.
+[00:11:38,092 --> 00:11:39,550] And this is a gap here just showing
+[00:11:39,550 --> 00:11:41,008] this is what the distribution looks
+[00:11:41,008 --> 00:11:46,370] like for one subset of drivers and the other subset of drivers.
+[00:11:46,370 --> 00:11:49,290] You're asking, can you sample from the data set
+[00:11:49,290 --> 00:11:52,290] and do what was in the data set, basically?
+[00:11:52,290 --> 00:11:52,845] Yeah.
+[00:11:52,845 --> 00:11:54,970] So the tricky thing with sampling from the data set
+[00:11:54,970 --> 00:11:56,428] and doing what's in the data set is
+[00:11:56,428 --> 00:11:59,410] that, that would look like a nearest neighbors
+[00:11:59,410 --> 00:12:02,310] approach within the realm of machine learning.
+[00:12:02,310 --> 00:12:05,410] And it is, in some ways, a viable approach
+[00:12:05,410 --> 00:12:07,270] to a number of machine learning problems.
+[00:12:07,270 --> 00:12:09,350] But one big challenge is that ultimately,
+[00:12:09,350 --> 00:12:13,410] when the car is driving or when you have some autonomous driving
+[00:12:13,410 --> 00:12:15,090] agent, it's going to face scenarios
+[00:12:15,090 --> 00:12:17,290] that are different from what's in the data set.
+[00:12:17,290 --> 00:12:23,730] And when it's in those different positions,
+[00:12:23,730 --> 00:12:25,970] you won't necessarily have examples in your data set
+[00:12:25,970 --> 00:12:30,330] that you can just pick from.
+[00:12:30,330 --> 00:12:32,570] So you won't necessarily be able to say like, oh, I
+[00:12:32,570 --> 00:12:34,710] saw what the expert did in exactly this situation
+[00:12:34,710 --> 00:12:37,530] because, ultimately, you'll be evaluating scenarios
+[00:12:37,530 --> 00:12:38,760] that are different.
+[00:12:38,760 --> 00:12:43,760] So what would you do if the actions are not numerical?
+[00:12:43,760 --> 00:12:48,440] In a slide or two, we'll talk about discrete actions as well.
+[00:12:48,440 --> 00:12:51,040] So to go over this example on the slides,
+[00:12:51,040 --> 00:12:53,940] we can say that the data for staying straight is in yellow.
+[00:12:53,940 --> 00:12:57,000] The data for merging left is in blue.
+[00:12:57,000 --> 00:13:00,440] The combined data set, maybe because more people decided
+[00:13:00,440 --> 00:13:05,160] to stay straight, is shown in the black dotted line.
+[00:13:05,160 --> 00:13:11,440] And then if we train a model to minimize the L2 error,
+[00:13:11,440 --> 00:13:14,600] then the deterministic policy will
+[00:13:14,600 --> 00:13:17,220] choose to take an action that's right here,
+[00:13:17,220 --> 00:13:20,520] which is the mean of the black distribution, which has
+[00:13:20,520 --> 00:13:22,830] low probability under the data.
+[00:13:25,305 --> 00:13:27,680] Now, you might be wondering, how often does this actually
+[00:13:27,680 --> 00:13:28,472] happen in practice?
+[00:13:31,024 --> 00:13:34,600] Maybe you might think that this is a contrived example where
+[00:13:34,600 --> 00:13:37,580] there is variability in what people would do.
+[00:13:37,580 --> 00:13:41,140] It turns out that this action actually happens all the time.
+[00:13:41,140 --> 00:13:44,480] People and demonstrators often do things in different ways,
+[00:13:44,480 --> 00:13:47,820] not just in driving and not just in key decision states.
+[00:13:47,820 --> 00:13:50,260] And this happens, especially when
+[00:13:50,260 --> 00:13:52,940] data is collected by multiple people
+[00:13:52,940 --> 00:13:54,860] because people have different preferences.
+[00:13:54,860 --> 00:13:57,360] They have underlying ways that they like about doing things,
+[00:13:57,360 --> 00:13:59,260] and you can't directly observe all
+[00:13:59,260 --> 00:14:01,580] of those preferences and all the things
+[00:14:01,580 --> 00:14:04,100] that might affect their behavior.
+[00:14:04,100 --> 00:14:06,380] And so as a result, there are some scenarios
+[00:14:06,380 --> 00:14:10,580] where if you have one expert policy that's always takes
+[00:14:10,580 --> 00:14:14,260] a consistent strategy, it's OK to use a deterministic policy.
+[00:14:14,260 --> 00:14:17,380] But in many other cases, it's actually very important
+[00:14:17,380 --> 00:14:20,420] to make sure that you account for this multimodality
+[00:14:20,420 --> 00:14:22,620] in the data.
+[00:14:22,620 --> 00:14:26,020] And so the natural question that arises from here
+[00:14:26,020 --> 00:14:28,740] is, instead of just learning the mean,
+[00:14:28,740 --> 00:14:30,900] could we actually learn to represent
+[00:14:30,900 --> 00:14:34,180] more of the distribution of the expert data
+[00:14:34,180 --> 00:14:35,950] and not just the mean?
+[00:14:40,630 --> 00:14:43,090] And so this is where learning distributions
+[00:14:43,090 --> 00:14:45,550] with neural networks comes in.
+[00:14:50,410 --> 00:14:55,550] Let's start a new whiteboard.
+[00:14:55,550 --> 00:14:59,890] So in the case of the deterministic policy,
+[00:14:59,890 --> 00:15:03,770] we had some neural network.
+[00:15:03,770 --> 00:15:07,650] I will use a box to represent a neural network.
+[00:15:07,650 --> 00:15:11,350] And we're taking as input some state,
+[00:15:11,350 --> 00:15:14,050] and we're outputting the mean action,
+[00:15:14,050 --> 00:15:16,110] the mean of a distribution.
+[00:15:16,110 --> 00:15:18,090] And so because it's only representing the mean
+[00:15:18,090 --> 00:15:20,570] it's hardly a distribution at all.
+[00:15:20,570 --> 00:15:23,330] And instead what we'd like to be able to do
+[00:15:23,330 --> 00:15:26,010] is have this neural network actually
+[00:15:26,010 --> 00:15:36,710] output the parameters of a distribution over action.
+[00:15:36,710 --> 00:15:42,430] And if it can output a distribution over actions,
+[00:15:42,430 --> 00:15:45,530] then we should be able to capture more than just the mean.
+[00:15:48,530 --> 00:15:49,030] Cool.
+[00:15:49,030 --> 00:15:52,893] So this is often the way that we try to learn distributions
+[00:15:52,893 --> 00:15:55,310] with neural networks, is we actually output the parameters
+[00:15:55,310 --> 00:15:56,830] of those distributions.
+[00:15:56,830 --> 00:15:58,270] So you can think about it as this.
+[00:15:58,270 --> 00:16:00,390] You have a neural network outputs parameters.
+[00:16:00,390 --> 00:16:03,610] If the distribution class that you choose is very expressive,
+[00:16:03,610 --> 00:16:06,630] then you should be able to get expressive distribution
+[00:16:06,630 --> 00:16:09,750] as output.
+[00:16:09,750 --> 00:16:11,710] Now, let's think about a couple examples
+[00:16:11,710 --> 00:16:13,130] of what this might look like.
+[00:16:13,130 --> 00:16:15,790] So if your actions are not continuous
+[00:16:15,790 --> 00:16:19,750] and instead they are discrete actions,
+[00:16:19,750 --> 00:16:22,110] maybe you're trying to train a policy
+[00:16:22,110 --> 00:16:25,350] to play a video game like Super Mario,
+[00:16:25,350 --> 00:16:26,830] then the actions might be something
+[00:16:26,830 --> 00:16:30,370] like up arrow, down arrow, press A, press B, right arrow,
+[00:16:30,370 --> 00:16:33,210] something like that.
+[00:16:33,210 --> 00:16:35,250] What the neural network could output
+[00:16:35,250 --> 00:16:38,450] is basically this categorical distribution over actions
+[00:16:38,450 --> 00:16:42,810] where, in this discrete case, it will
+[00:16:42,810 --> 00:16:45,248] output the probability of the first action,
+[00:16:45,248 --> 00:16:46,790] the probability of the second action,
+[00:16:46,790 --> 00:16:50,450] the probability of the third action, and so forth.
+[00:16:50,450 --> 00:16:55,010] And so you can think of this as a classification problem.
+[00:16:55,010 --> 00:17:00,050] And this distribution is actually maximally expressive.
+[00:17:00,050 --> 00:17:03,530] And what I mean by that is that there isn't any distribution
+[00:17:03,530 --> 00:17:08,250] over actions that this cannot represent because it's a fairly
+[00:17:08,250 --> 00:17:14,290] simple categorical or pretty simple set of discrete possible
+[00:17:14,290 --> 00:17:15,817] options.
+[00:17:15,817 --> 00:17:17,150] So this is actually really nice.
+[00:17:17,150 --> 00:17:19,609] We can get a really expressive distribution this way.
+[00:17:19,609 --> 00:17:21,329] Unfortunately, a lot of the world
+[00:17:21,329 --> 00:17:24,990] is not just one dimensional discrete action choices.
+[00:17:24,990 --> 00:17:27,089] We often have much more complex actions,
+[00:17:27,089 --> 00:17:30,918] and that's why we need to think about how to model distributions
+[00:17:30,918 --> 00:17:31,710] over those actions.
+[00:17:35,320 --> 00:17:39,710] So if we move towards continuous actions like in a driving
+[00:17:39,710 --> 00:17:41,460] scenario where you have steering commands,
+[00:17:41,460 --> 00:17:45,560] for example, the most natural thing to do
+[00:17:45,560 --> 00:17:47,260] is to use a Gaussian distribution.
+[00:17:47,260 --> 00:17:48,927] We talked about outputting just the mean
+[00:17:48,927 --> 00:17:52,120] of a Gaussian distribution, which corresponds to minimizing
+[00:17:52,120 --> 00:17:54,320] the squared error.
+[00:17:54,320 --> 00:17:58,520] But you can also have the neural network output the variance.
+[00:17:58,520 --> 00:18:01,140] And fortunately, if you have it output the variance,
+[00:18:01,140 --> 00:18:05,240] it's not going to do anything particularly helpful.
+[00:18:05,240 --> 00:18:09,040] In this example, it'll just output a wider variance Gaussian
+[00:18:09,040 --> 00:18:12,760] in order to try to cover more probability mass.
+[00:18:12,760 --> 00:18:14,280] And it's not very expressive.
+[00:18:14,280 --> 00:18:17,640] And so we want to be able to use distribution classes that
+[00:18:17,640 --> 00:18:20,720] are more expressive so that we can
+[00:18:20,720 --> 00:18:25,640] try to ultimately get actions that are high probability.
+[00:18:25,640 --> 00:18:30,220] So the question was, if we have some action distribution that
+[00:18:30,220 --> 00:18:34,260] looks like this, for example, would we be happy
+[00:18:34,260 --> 00:18:36,483] if we can perfectly model this?
+[00:18:36,483 --> 00:18:37,900] Or would that still lead to issues
+[00:18:37,900 --> 00:18:39,817] where you might have an indecisive policy that
+[00:18:39,817 --> 00:18:43,646] chooses one mode and then chooses another mode?
+[00:18:43,646 --> 00:18:47,740] The answer here is that if you have a good state
+[00:18:47,740 --> 00:18:50,460] representation, then you should be happy.
+[00:18:50,460 --> 00:18:53,600] And in particular, say you modeled this perfectly,
+[00:18:53,600 --> 00:18:55,560] and for example, you chose like this,
+[00:18:55,560 --> 00:18:57,985] and then you start merging left--
+[00:18:57,985 --> 00:18:59,860] if you know that you've started to merge left
+[00:18:59,860 --> 00:19:01,820] and your velocity is moving left,
+[00:19:01,820 --> 00:19:04,800] then the data should continue moving left.
+[00:19:04,800 --> 00:19:08,340] And so then, at that point, the distribution over actions
+[00:19:08,340 --> 00:19:12,460] should look something more like this
+[00:19:12,460 --> 00:19:16,220] once you are in that state at that point.
+[00:19:16,220 --> 00:19:18,060] So if you have a good demonstration data
+[00:19:18,060 --> 00:19:20,240] set and a good state representation,
+[00:19:20,240 --> 00:19:22,480] if you perfectly model the demonstrations,
+[00:19:22,480 --> 00:19:25,380] you will get a good policy out.
+[00:19:25,380 --> 00:19:27,517] So the question is, is the only goal in imitation
+[00:19:27,517 --> 00:19:29,850] learning to mimic the expert or is there some assumption
+[00:19:29,850 --> 00:19:33,450] that the expert was maximizing some reward?
+[00:19:33,450 --> 00:19:37,650] Generally, if you assume that what you're trying to imitate
+[00:19:37,650 --> 00:19:42,210] is good, but it doesn't necessarily
+[00:19:42,210 --> 00:19:44,490] need to be the optimal policy--
+[00:19:44,490 --> 00:19:49,030] and in many real world practical, messy scenarios,
+[00:19:49,030 --> 00:19:52,565] getting the optimal policy is like hopeless in some ways.
+[00:19:52,565 --> 00:19:55,190] Generally we assume that you're trying to mimic something good,
+[00:19:55,190 --> 00:19:58,650] and really the focus is on trying to imitate that.
+[00:19:58,650 --> 00:20:02,650] So the question is, in this case, if we do this perfectly,
+[00:20:02,650 --> 00:20:07,090] are we happy with sampling a mode that is underrepresented?
+[00:20:07,090 --> 00:20:09,530] There are scenarios where you might
+[00:20:09,530 --> 00:20:11,870] want to try to essentially do better than the expert.
+[00:20:11,870 --> 00:20:14,390] And maybe in some cases this mode is actually better,
+[00:20:14,390 --> 00:20:17,770] or maybe in some cases this mode is really better.
+[00:20:17,770 --> 00:20:19,990] If you want to outperform the expert,
+[00:20:19,990 --> 00:20:22,170] that's more where reinforcement learning comes in
+[00:20:22,170 --> 00:20:23,343] and other tools come in.
+[00:20:23,343 --> 00:20:25,010] You can also try to curate your data set
+[00:20:25,010 --> 00:20:29,870] to try to contain more of the stuff that you think is better.
+[00:20:29,870 --> 00:20:32,253] But yeah, with imitation learning,
+[00:20:32,253 --> 00:20:34,670] generally everything that we'll talk about in this lecture
+[00:20:34,670 --> 00:20:36,710] is trying to meet expert performance
+[00:20:36,710 --> 00:20:39,802] or meet the demonstrator performance and not exceed it.
+[00:20:39,802 --> 00:20:41,510] So the question is, should the parameters
+[00:20:41,510 --> 00:20:44,090] of the distribution over actions be state dependent?
+[00:20:44,090 --> 00:20:45,470] And yeah, absolutely.
+[00:20:45,470 --> 00:20:48,590] I've been writing this as the parameters of p of a.
+[00:20:48,590 --> 00:20:50,012] But everything here is implicitly
+[00:20:50,012 --> 00:20:51,470] dependent on the state because this
+[00:20:51,470 --> 00:20:54,670] is the output of a neural network that
+[00:20:54,670 --> 00:20:56,990] was conditioned on the state.
+[00:20:56,990 --> 00:20:59,910] And so in some states, it might choose to output a distribution
+[00:20:59,910 --> 00:21:01,210] that's really multimodal.
+[00:21:01,210 --> 00:21:03,750] In other cases, it might choose to output a distribution
+[00:21:03,750 --> 00:21:07,490] that is much more unimodal.
+[00:21:07,490 --> 00:21:09,870] So let's talk about some more interesting
+[00:21:09,870 --> 00:21:12,350] expressive distributions with neural networks.
+[00:21:12,350 --> 00:21:13,990] And some of these will build upon tools
+[00:21:13,990 --> 00:21:15,950] in generative modeling.
+[00:21:15,950 --> 00:21:19,790] And in particular, if we think about some examples
+[00:21:19,790 --> 00:21:21,470] of generative models, we won't go
+[00:21:21,470 --> 00:21:23,090] into all the details of these.
+[00:21:23,090 --> 00:21:25,420] But one example of a generative model
+[00:21:25,420 --> 00:21:28,620] that you might have seen before is called a diffusion model,
+[00:21:28,620 --> 00:21:32,380] and this is a model that can output and generate
+[00:21:32,380 --> 00:21:35,280] images of different people, can be used to generate videos,
+[00:21:35,280 --> 00:21:38,060] and so forth, is very popular for generative models
+[00:21:38,060 --> 00:21:40,460] over visual data.
+[00:21:40,460 --> 00:21:44,540] And the thing that's really cool about these image diffusion
+[00:21:44,540 --> 00:21:47,340] models is that they are able to represent
+[00:21:47,340 --> 00:21:49,900] a very diverse distribution over images, including
+[00:21:49,900 --> 00:21:55,340] images that are completely different from one another.
+[00:21:55,340 --> 00:21:57,020] Another example of a generative model
+[00:21:57,020 --> 00:21:59,020] is an autoregressive model.
+[00:21:59,020 --> 00:22:01,780] You can think about this as essentially what
+[00:22:01,780 --> 00:22:05,900] happens with language modeling, where you're predicting one
+[00:22:05,900 --> 00:22:09,460] token or one word at a time.
+[00:22:09,460 --> 00:22:11,520] And this is also a really powerful model.
+[00:22:11,520 --> 00:22:17,243] And it's much more powerful than just outputting
+[00:22:17,243 --> 00:22:19,660] the distribution, like the mean and variance of a Gaussian
+[00:22:19,660 --> 00:22:21,860] and much more powerful than outputting,
+[00:22:21,860 --> 00:22:26,440] for example, the categorical distribution over one dimension.
+[00:22:26,440 --> 00:22:30,640] So you can think about these two as most typically used
+[00:22:30,640 --> 00:22:33,760] to represent either the probability of an image
+[00:22:33,760 --> 00:22:37,680] given a text description or the probability of the next word
+[00:22:37,680 --> 00:22:40,240] given the word so far.
+[00:22:40,240 --> 00:22:43,440] And the reason why they're often used in these contexts
+[00:22:43,440 --> 00:22:47,360] is because these are very common problems
+[00:22:47,360 --> 00:22:49,080] that people work on a lot, and also
+[00:22:49,080 --> 00:22:53,040] because they're very well suited for addressing these problems.
+[00:22:53,040 --> 00:22:57,280] But the underlying technique behind image diffusion models
+[00:22:57,280 --> 00:23:00,040] and autoregressive models is extremely general,
+[00:23:00,040 --> 00:23:02,720] and you can use the same idea to learn
+[00:23:02,720 --> 00:23:05,200] a distribution over actions given
+[00:23:05,200 --> 00:23:08,820] observations or given state.
+[00:23:08,820 --> 00:23:10,320] So let's talk a little bit about how
+[00:23:10,320 --> 00:23:14,020] we might use some of these tools to learn that distribution.
+[00:23:16,720 --> 00:23:21,580] So our goal is to approximate p of a given s.
+[00:23:21,580 --> 00:23:25,415] One maybe form of generative model
+[00:23:25,415 --> 00:23:27,540] that's simpler than those two that we'll start with
+[00:23:27,540 --> 00:23:29,460] is a mixture of Gaussians.
+[00:23:29,460 --> 00:23:32,180] And a mixture of Gaussians is already a lot more expressive
+[00:23:32,180 --> 00:23:34,380] than just a single Gaussian, and so it's
+[00:23:34,380 --> 00:23:36,820] a case where we're trying to model a distribution
+[00:23:36,820 --> 00:23:39,380] as a combination of Gaussians.
+[00:23:39,380 --> 00:23:43,900] And so in this case, instead of just having the neural network
+[00:23:43,900 --> 00:23:49,420] output mu, we'll have it output the parameters of a Gaussian
+[00:23:49,420 --> 00:23:51,120] mixture model distribution.
+[00:23:51,120 --> 00:23:57,900] And so in the case of a GMM, it will
+[00:23:57,900 --> 00:24:04,900] output the mean standard deviation and weight associated
+[00:24:04,900 --> 00:24:10,140] with one Gaussian, also the mean standard deviation and weight
+[00:24:10,140 --> 00:24:13,020] of a Gaussian, and so on.
+[00:24:13,020 --> 00:24:15,540] And if you have n different components,
+[00:24:15,540 --> 00:24:19,530] it will output n different parameters
+[00:24:19,530 --> 00:24:22,810] for different Gaussians.
+[00:24:22,810 --> 00:24:26,750] So the question is, can we elaborate more on,
+[00:24:26,750 --> 00:24:29,930] what does it mean for these distributions
+[00:24:29,930 --> 00:24:32,130] to be more or less expressive?
+[00:24:32,130 --> 00:24:38,730] So essentially, if you have some underlying distribution,
+[00:24:38,730 --> 00:24:41,250] like how--
+[00:24:41,250 --> 00:24:41,750] let's see.
+[00:24:41,750 --> 00:24:43,958] Maybe I'll actually rephrase it slightly differently.
+[00:24:43,958 --> 00:24:46,050] So one way to think about it is it's
+[00:24:46,050 --> 00:24:48,330] essentially the number of different distributions
+[00:24:48,330 --> 00:24:55,010] you can capture perfectly with that chosen representation.
+[00:24:55,010 --> 00:24:58,330] And so if you only use a Gaussian,
+[00:24:58,330 --> 00:25:01,210] then you can only perfectly model Gaussian distributions.
+[00:25:01,210 --> 00:25:03,530] Whereas if you use Gaussian mixture model,
+[00:25:03,530 --> 00:25:05,550] you can represent any individual Gaussian,
+[00:25:05,550 --> 00:25:08,810] but you can also represent any distribution
+[00:25:08,810 --> 00:25:10,330] that can be represented perfectly
+[00:25:10,330 --> 00:25:11,790] as a combination of Gaussians.
+[00:25:11,790 --> 00:25:14,330] And so it's strictly more expressive than using
+[00:25:14,330 --> 00:25:15,770] a single Gaussian.
+[00:25:15,770 --> 00:25:19,818] Now in some cases, it can be difficult to compare
+[00:25:19,818 --> 00:25:22,110] two different distribution classes because in some ways
+[00:25:22,110 --> 00:25:24,250] some might be more expressive or less expressive.
+[00:25:24,250 --> 00:25:26,050] But in the case of Gaussian mixture models,
+[00:25:26,050 --> 00:25:29,850] it's strictly more expressive than a Gaussian.
+[00:25:29,850 --> 00:25:32,350] The question is, do you need to pick the number of Gaussians
+[00:25:32,350 --> 00:25:33,310] ahead of time?
+[00:25:33,310 --> 00:25:34,178] Yes, you do.
+[00:25:34,178 --> 00:25:35,970] You can think about it as a hyperparameter,
+[00:25:35,970 --> 00:25:38,512] and you could experiment and look at how well are you fitting
+[00:25:38,512 --> 00:25:41,770] the data with different numbers of mixture components.
+[00:25:45,490 --> 00:25:48,350] And then there's two other examples of generative models
+[00:25:48,350 --> 00:25:50,510] that we could use.
+[00:25:50,510 --> 00:25:54,790] The second one is discretized and autoregressive,
+[00:25:54,790 --> 00:25:56,570] which is just like language models.
+[00:25:56,570 --> 00:26:00,510] And the third would be to use something like diffusion
+[00:26:00,510 --> 00:26:05,003] over actions instead of diffusion over images.
+[00:26:05,003 --> 00:26:06,670] And so we talked a little bit, just now,
+[00:26:06,670 --> 00:26:08,310] about mixtures of Gaussians where
+[00:26:08,310 --> 00:26:12,030] we'll be outputting basically the parameters of a Gaussian
+[00:26:12,030 --> 00:26:15,030] mixture model.
+[00:26:15,030 --> 00:26:19,620] Now let's talk a little bit about a scenario where
+[00:26:19,620 --> 00:26:22,900] we could try to use an autoregressive model
+[00:26:22,900 --> 00:26:28,620] like a language model in order to generate action.
+[00:26:28,620 --> 00:26:33,140] So in this case, there is a couple scenarios where
+[00:26:33,140 --> 00:26:35,220] you might want to use this.
+[00:26:35,220 --> 00:26:38,180] So you might be in a scenario where your actions are already
+[00:26:38,180 --> 00:26:40,100] discrete.
+[00:26:40,100 --> 00:26:43,460] And you actually don't need to discretize in that case.
+[00:26:43,460 --> 00:26:46,692] Or you might be in a scenario where it's multidimensional,
+[00:26:46,692 --> 00:26:48,900] or you might be in a scenario where they are actually
+[00:26:48,900 --> 00:26:51,000] continuous and multi-dimensional,
+[00:26:51,000 --> 00:26:54,300] and then you need to discretize or tokenize first, and then
+[00:26:54,300 --> 00:26:56,140] use an autoregressive model.
+[00:26:56,140 --> 00:27:03,100] And so if we think about this back in the driving example,
+[00:27:03,100 --> 00:27:11,500] if we use discretize plus autoregressive--
+[00:27:14,220 --> 00:27:16,140] let's say that we're in the driving case,
+[00:27:16,140 --> 00:27:20,960] and we'll just consider a simplified driving case
+[00:27:20,960 --> 00:27:27,240] where the first action is the steering angle,
+[00:27:27,240 --> 00:27:31,060] and the second action is the acceleration.
+[00:27:34,160 --> 00:27:39,200] So if we wanted to represent a distribution over these actions
+[00:27:39,200 --> 00:27:42,480] using an autoregressive model, there's two things
+[00:27:42,480 --> 00:27:45,120] that we would want to do.
+[00:27:45,120 --> 00:27:46,500] The first would be to discretize,
+[00:27:46,500 --> 00:27:48,360] and the second then would be to formulate
+[00:27:48,360 --> 00:27:49,760] the autoregressive model.
+[00:27:49,760 --> 00:27:52,510] And in particular, when we use autoregressive models,
+[00:27:52,510 --> 00:27:54,760] it means that we're going to be essentially predicting
+[00:27:54,760 --> 00:27:57,360] one dimension at a time.
+[00:27:57,360 --> 00:27:59,320] So we first want to model a distribution
+[00:27:59,320 --> 00:28:02,320] over the first dimension of the action.
+[00:28:02,320 --> 00:28:05,860] What we would do is, in the case of steering--
+[00:28:05,860 --> 00:28:10,830] so we have P steering.
+[00:28:13,670 --> 00:28:16,710] Say that we wanted our prediction
+[00:28:16,710 --> 00:28:19,630] to look something like this.
+[00:28:19,630 --> 00:28:21,490] Now, a Gaussian can't represent this.
+[00:28:21,490 --> 00:28:24,870] And so we would choose to discretize it and represent
+[00:28:24,870 --> 00:28:26,530] a discretized distribution.
+[00:28:26,530 --> 00:28:29,070] And what that would look like is essentially
+[00:28:29,070 --> 00:28:34,990] creating bins for the different steering angles,
+[00:28:34,990 --> 00:28:41,350] and you would then output a probability for each bin.
+[00:28:41,350 --> 00:28:46,750] And then something that looks a little bit closer
+[00:28:46,750 --> 00:28:52,230] to a staircase, these bars would be the distribution that you're
+[00:28:52,230 --> 00:28:56,010] actually using to approximate the original distribution.
+[00:29:03,290 --> 00:29:04,990] So for the first dimension, you would
+[00:29:04,990 --> 00:29:07,270] be outputting each of the probability
+[00:29:07,270 --> 00:29:09,670] values for each of these bars, like the height
+[00:29:09,670 --> 00:29:12,010] of each of these bars.
+[00:29:12,010 --> 00:29:14,730] So this gives you a fairly expressive distribution
+[00:29:14,730 --> 00:29:15,555] over angle.
+[00:29:15,555 --> 00:29:16,930] And then you could choose to have
+[00:29:16,930 --> 00:29:20,350] a more fine discretization or a more coarse discretization.
+[00:29:20,350 --> 00:29:23,770] And if it's more fine, you get more expressivity in terms
+[00:29:23,770 --> 00:29:24,922] of what you can represent.
+[00:29:24,922 --> 00:29:26,630] But you also have to output more numbers,
+[00:29:26,630 --> 00:29:28,690] so there's a trade-off there.
+[00:29:28,690 --> 00:29:32,850] And then once you output a distribution over the angle,
+[00:29:32,850 --> 00:29:37,090] then you would want to output a distribution over acceleration.
+[00:29:37,090 --> 00:29:40,050] And in particular, in the case of merging
+[00:29:40,050 --> 00:29:42,322] left versus going straight, if you're merging left,
+[00:29:42,322 --> 00:29:44,530] probably you would be accelerating more because there
+[00:29:44,530 --> 00:29:46,455] was a car back into the left.
+[00:29:46,455 --> 00:29:47,830] Whereas if you're going straight,
+[00:29:47,830 --> 00:29:53,970] you're probably more likely to be keeping your current speed.
+[00:29:53,970 --> 00:30:00,170] And so we want our distribution over acceleration
+[00:30:00,170 --> 00:30:04,320] to be conditioned on which steering angle we chose.
+[00:30:06,930 --> 00:30:13,990] So what we'll do is we'll predict p angle,
+[00:30:13,990 --> 00:30:18,730] and then we will sample a steering angle from this.
+[00:30:18,730 --> 00:30:22,070] We'll refer to this for now as at1
+[00:30:22,070 --> 00:30:25,210] because it's the first dimension of the action.
+[00:30:25,210 --> 00:30:29,030] We'll sample it from this distribution here.
+[00:30:29,030 --> 00:30:32,750] And then we want to get a distribution
+[00:30:32,750 --> 00:30:36,590] over the second dimension conditioned
+[00:30:36,590 --> 00:30:39,550] on the first dimension.
+[00:30:39,550 --> 00:30:42,350] And to do this, we'll then pass our predicted action
+[00:30:42,350 --> 00:30:45,070] or the sampled action back into our model
+[00:30:45,070 --> 00:30:48,470] and then have our model output another distribution.
+[00:30:48,470 --> 00:30:57,750] And in this case, if you are conditioning on at1
+[00:30:57,750 --> 00:31:02,910] equals maybe an angle that's negative 2, so something more
+[00:31:02,910 --> 00:31:07,620] left, then you might output a distribution over acceleration
+[00:31:07,620 --> 00:31:16,500] that has more probability on higher accelerations,
+[00:31:16,500 --> 00:31:23,460] versus if you condition on a steering angle that is something
+[00:31:23,460 --> 00:31:27,300] more like 0, then you might output a distribution
+[00:31:27,300 --> 00:31:33,500] over accelerations that is smaller.
+[00:31:33,500 --> 00:31:36,300] So the question is, how do you build your training data when
+[00:31:36,300 --> 00:31:38,730] you are discretizing like this?
+[00:31:44,500 --> 00:31:45,040] Let's see.
+[00:31:45,040 --> 00:31:47,660] So when you build your training data,
+[00:31:47,660 --> 00:31:51,140] you'll have the state action pairs,
+[00:31:51,140 --> 00:31:53,740] and you'll be sampling state action pairs.
+[00:31:53,740 --> 00:31:59,333] And in order to convert it into something like this, what you'll
+[00:31:59,333 --> 00:32:01,000] do is you'll sample a state action pair,
+[00:32:01,000 --> 00:32:03,700] then you'll bin the action according
+[00:32:03,700 --> 00:32:05,800] to your bidding strategy.
+[00:32:05,800 --> 00:32:10,640] And then you'll apply a loss that
+[00:32:10,640 --> 00:32:13,600] is between the model's predicted distribution
+[00:32:13,600 --> 00:32:17,347] and the sampled action, which would be like one of these bins.
+[00:32:17,347 --> 00:32:19,680] And the loss you can actually just use the cross entropy
+[00:32:19,680 --> 00:32:20,760] loss here.
+[00:32:20,760 --> 00:32:22,440] And so you can think about it as you're
+[00:32:22,440 --> 00:32:25,720] doing a classification problem for each dimension
+[00:32:25,720 --> 00:32:29,080] of your actions.
+[00:32:29,080 --> 00:32:31,440] One other diagram that I think would be helpful here
+[00:32:31,440 --> 00:32:38,240] to think about how we go about doing this is when you have
+[00:32:38,240 --> 00:32:41,720] a model that's autoregressive, that's predicting actions,
+[00:32:41,720 --> 00:32:44,040] you often use a sequence model.
+[00:32:44,040 --> 00:32:47,612] And so if you think about a sequence neural network,
+[00:32:47,612 --> 00:32:49,320] something like a transformer or something
+[00:32:49,320 --> 00:32:53,600] like that, you would pass as input your state.
+[00:32:53,600 --> 00:33:00,000] And then you're predicting a distribution
+[00:33:00,000 --> 00:33:05,470] over the first dimension of your action.
+[00:33:05,470 --> 00:33:08,590] So this is a distribution over steering angle.
+[00:33:08,590 --> 00:33:14,110] You would then sample from this distribution,
+[00:33:14,110 --> 00:33:20,990] and then you'll pass this sampled action or your chosen
+[00:33:20,990 --> 00:33:24,470] steering command back into your model, and then
+[00:33:24,470 --> 00:33:28,890] output the distribution over the next action.
+[00:33:28,890 --> 00:33:30,810] This is exactly how language models work,
+[00:33:30,810 --> 00:33:35,650] where you'll have some beginning token.
+[00:33:35,650 --> 00:33:37,890] You'll predict a distribution over the next word.
+[00:33:37,890 --> 00:33:41,550] You'll sample a word from that, pass that sampled word back
+[00:33:41,550 --> 00:33:44,510] into the model, and then predict a distribution
+[00:33:44,510 --> 00:33:46,870] over the next word, except now we're
+[00:33:46,870 --> 00:33:49,430] doing it over dimensions of our action sequence
+[00:33:49,430 --> 00:33:54,105] rather than over different words in a sentence.
+[00:33:54,105 --> 00:33:54,730] Great question.
+[00:33:54,730 --> 00:33:57,750] How do you determine the order of these different dimensions?
+[00:33:57,750 --> 00:33:59,310] In language models, it's very natural
+[00:33:59,310 --> 00:34:02,900] because there's a natural ordering to words in a sentence,
+[00:34:02,900 --> 00:34:05,150] for example, although even across different languages,
+[00:34:05,150 --> 00:34:07,370] there's some variation there.
+[00:34:07,370 --> 00:34:10,870] It's something that generally you pick by hand.
+[00:34:10,870 --> 00:34:13,630] You could also, in some ways treat it as a hyperparameter.
+[00:34:13,630 --> 00:34:16,130] In other cases, there might also be somewhat natural choices
+[00:34:16,130 --> 00:34:17,230] for the ordering.
+[00:34:17,230 --> 00:34:18,790] So if you're controlling a robot arm,
+[00:34:18,790 --> 00:34:21,130] for example, you can go down what's
+[00:34:21,130 --> 00:34:23,310] called the kinematic chain of a robot arm
+[00:34:23,310 --> 00:34:25,670] where you start with the base dimension,
+[00:34:25,670 --> 00:34:28,170] and then you go to the next joint and the next joint,
+[00:34:28,170 --> 00:34:30,489] and so forth.
+[00:34:30,489 --> 00:34:34,449] The good news is that, in principle,
+[00:34:34,449 --> 00:34:37,409] the expressive power of this distribution
+[00:34:37,409 --> 00:34:39,330] doesn't change with the order.
+[00:34:39,330 --> 00:34:41,449] Essentially, your goal is trying to represent
+[00:34:41,449 --> 00:34:44,290] the full joint distribution over all dimensions.
+[00:34:44,290 --> 00:34:47,449] And the only reason why you're doing an ordering here
+[00:34:47,449 --> 00:34:52,889] is because, if you tried to represent a joint distribution
+[00:34:52,889 --> 00:34:54,570] over all the dimensions at once, there's
+[00:34:54,570 --> 00:34:58,170] a lot of pairwise probabilities that you would have to predict,
+[00:34:58,170 --> 00:35:01,400] and it's a lot more efficient to do it one dimension at a time
+[00:35:01,400 --> 00:35:04,240] to represent the full joint.
+[00:35:04,240 --> 00:35:07,142] So the question is, in the case of a video game,
+[00:35:07,142 --> 00:35:08,100] it was pretty discrete.
+[00:35:08,100 --> 00:35:11,500] Here we're in a more continuous case.
+[00:35:11,500 --> 00:35:13,500] Whenever we want to use an autoregressive model,
+[00:35:13,500 --> 00:35:15,220] does that mean we should be discretizing?
+[00:35:15,220 --> 00:35:16,100] Right?
+[00:35:16,100 --> 00:35:17,280] Cool.
+[00:35:17,280 --> 00:35:24,720] So there's actually two reasons to be using discretization.
+[00:35:24,720 --> 00:35:26,280] One reason to use discretization is
+[00:35:26,280 --> 00:35:30,560] it allows you to model a very multimodal complex distribution.
+[00:35:30,560 --> 00:35:34,102] And so these bars can be any height that you want.
+[00:35:34,102 --> 00:35:35,560] And so it actually can model things
+[00:35:35,560 --> 00:35:38,280] that are way more expressive than a mixture of Gaussians,
+[00:35:38,280 --> 00:35:42,745] up to how fine your discretization is.
+[00:35:42,745 --> 00:35:44,120] The challenge with discretization
+[00:35:44,120 --> 00:35:45,860] is that if you have a lot of bins--
+[00:35:45,860 --> 00:35:48,100] you might have hundreds bins for one dimension,
+[00:35:48,100 --> 00:35:50,680] and then you're trying to represent, I don't know,
+[00:35:50,680 --> 00:35:53,000] 10 dimensional action or something like that,
+[00:35:53,000 --> 00:35:56,640] then the dimensionality of your discretized actions
+[00:35:56,640 --> 00:35:59,540] is going to blow up if you try to model
+[00:35:59,540 --> 00:36:03,400] that full 10 to the fifth matrix over probabilities.
+[00:36:03,400 --> 00:36:05,220] And so using an autoregressive model
+[00:36:05,220 --> 00:36:09,020] helps you deal with that dimensionality.
+[00:36:09,020 --> 00:36:12,260] You could, in principle, also use an autoregressive model
+[00:36:12,260 --> 00:36:15,740] with a mixture of Gaussians, for example,
+[00:36:15,740 --> 00:36:18,560] and that would be completely fine as well.
+[00:36:21,680 --> 00:36:24,340] It's not like a common choice per se,
+[00:36:24,340 --> 00:36:26,980] because if you're going to go through the trouble of using
+[00:36:26,980 --> 00:36:29,100] an autoregressive model, usually discretization
+[00:36:29,100 --> 00:36:32,500] is a pretty powerful choice.
+[00:36:32,500 --> 00:36:35,100] But yeah, you can also use it with a Gaussian mixture
+[00:36:35,100 --> 00:36:37,820] model or Gaussians or something like that.
+[00:36:37,820 --> 00:36:40,800] So the question was around how we actually train this.
+[00:36:40,800 --> 00:36:42,660] And maybe let's just walk through how
+[00:36:42,660 --> 00:36:44,000] we go about training this.
+[00:36:44,000 --> 00:36:46,640] So it's actually going to look--
+[00:36:49,382 --> 00:36:50,840] Let's walk through how we train it.
+[00:36:50,840 --> 00:36:52,620] So we're given some data set.
+[00:36:52,620 --> 00:36:58,810] So we're given some data set that has state action pairs,
+[00:36:58,810 --> 00:37:02,070] and we're going to want to train our neural network.
+[00:37:02,070 --> 00:37:04,370] And we're going to follow a typical way
+[00:37:04,370 --> 00:37:05,890] of training neural networks which
+[00:37:05,890 --> 00:37:11,930] is to sample an example from your data set,
+[00:37:11,930 --> 00:37:14,090] or sample a mini batch of examples.
+[00:37:14,090 --> 00:37:16,930] I'll write it up for a mini batch size of 1, just
+[00:37:16,930 --> 00:37:20,210] for simplicity, but you can extend it.
+[00:37:20,210 --> 00:37:23,610] So we're going to be sampling a state action
+[00:37:23,610 --> 00:37:26,130] pair from our data set.
+[00:37:26,130 --> 00:37:37,575] And once we sample this, we will essentially
+[00:37:37,575 --> 00:37:39,450] be running a forward pass through our network
+[00:37:39,450 --> 00:37:41,290] and a backward pass through our network.
+[00:37:41,290 --> 00:37:43,210] And the key question that comes up
+[00:37:43,210 --> 00:37:48,010] is doing the forward pass is fairly straightforward.
+[00:37:48,010 --> 00:37:49,650] And when we do the forward pass, we'll
+[00:37:49,650 --> 00:37:53,890] be getting some probability over the actions of each dimension.
+[00:37:53,890 --> 00:37:59,070] And then we need to figure out what should the objective be.
+[00:37:59,070 --> 00:38:01,510] There's actually a common objective
+[00:38:01,510 --> 00:38:05,590] that we can think about for all of these generative models.
+[00:38:05,590 --> 00:38:10,470] And that objective is that we're outputting these probability
+[00:38:10,470 --> 00:38:11,510] distributions.
+[00:38:11,510 --> 00:38:14,510] We want to be maximizing the probability of the actions
+[00:38:14,510 --> 00:38:16,710] represented in the data.
+[00:38:16,710 --> 00:38:20,590] Or equivalently, we'll write this
+[00:38:20,590 --> 00:38:28,230] as minimizing the log probability of--
+[00:38:28,230 --> 00:38:34,470] I'll write this as pi theta of a given S,
+[00:38:34,470 --> 00:38:37,368] and this is with respect to theta.
+[00:38:37,368 --> 00:38:38,910] And so what this means is we're going
+[00:38:38,910 --> 00:38:41,870] to be evaluating how likely is the action that
+[00:38:41,870 --> 00:38:43,880] was sampled under our policy.
+[00:38:46,430 --> 00:38:51,030] And then we'll be trying to make the probability of the action
+[00:38:51,030 --> 00:38:54,290] in the data set as high as possible, or the negative log
+[00:38:54,290 --> 00:38:56,970] probability as low as possible.
+[00:38:56,970 --> 00:38:59,450] Now, in practice, what this log probability
+[00:38:59,450 --> 00:39:03,290] looks like is going to be different for different models.
+[00:39:03,290 --> 00:39:05,330] For a Gaussian mixture model, what you'll do
+[00:39:05,330 --> 00:39:07,730] is you can write down the probability density
+[00:39:07,730 --> 00:39:10,970] function for a Gaussian mixture model,
+[00:39:10,970 --> 00:39:15,850] and then just differentiate with respect to the mean, variance,
+[00:39:15,850 --> 00:39:19,890] and weight that is outputted by the neural network.
+[00:39:19,890 --> 00:39:26,143] And for the case of a autoregressive model,
+[00:39:26,143 --> 00:39:27,310] it's a little bit different.
+[00:39:27,310 --> 00:39:32,690] So what this looks like for the autoregressive model is
+[00:39:32,690 --> 00:39:44,850] we essentially get the probability of at1
+[00:39:44,850 --> 00:39:52,320] and the probability of at2 given at1 and so forth.
+[00:39:52,320 --> 00:39:58,020] And this probability, for this first dimension,
+[00:39:58,020 --> 00:40:00,920] it will just be the cross-entropy loss
+[00:40:00,920 --> 00:40:04,240] that corresponds to trying to maximize the log
+[00:40:04,240 --> 00:40:11,320] probability of this value for a discrete categorical variable.
+[00:40:11,320 --> 00:40:14,103] And for the second dimension, that's
+[00:40:14,103 --> 00:40:15,520] where things get a little bit more
+[00:40:15,520 --> 00:40:19,660] complicated because this will just be the cross-entropy loss.
+[00:40:19,660 --> 00:40:24,120] But you need to figure out which action you want to use here,
+[00:40:24,120 --> 00:40:28,840] and oftentimes you will use the action in the data set.
+[00:40:28,840 --> 00:40:31,720] So for the inputs, you'll often actually
+[00:40:31,720 --> 00:40:35,000] pass as input the state and the dimensions that
+[00:40:35,000 --> 00:40:36,340] were chosen in the data set.
+[00:40:36,340 --> 00:40:38,520] And then for each of these probabilities,
+[00:40:38,520 --> 00:40:41,122] you'll be applying the cross-entropy loss
+[00:40:41,122 --> 00:40:43,080] and backpropagating the cross-entropy loss back
+[00:40:43,080 --> 00:40:44,800] into the network.
+[00:40:44,800 --> 00:40:47,320] And then at test time, you'll then actually
+[00:40:47,320 --> 00:40:51,020] be using your own predictions and passing your own predictions
+[00:40:51,020 --> 00:40:53,980] into the neural network.
+[00:40:53,980 --> 00:40:59,580] But this objective right here is really the core loss function.
+[00:40:59,580 --> 00:41:04,020] And this corresponds to a form of cross-entropy loss
+[00:41:04,020 --> 00:41:06,380] for discretized distributions.
+[00:41:06,380 --> 00:41:08,060] And for Gaussian mixture models, you
+[00:41:08,060 --> 00:41:10,900] write down the PDF and differentiate.
+[00:41:10,900 --> 00:41:14,420] So the question was, it seems a little odd to discretize and do
+[00:41:14,420 --> 00:41:17,287] a categorical distribution over continuous variable,
+[00:41:17,287 --> 00:41:19,620] especially given that a loss function like cross-entropy
+[00:41:19,620 --> 00:41:24,500] won't take into account the fact that two bins error is probably
+[00:41:24,500 --> 00:41:29,060] less costly than an error for two bins that are very far
+[00:41:29,060 --> 00:41:31,300] apart from one another.
+[00:41:31,300 --> 00:41:38,820] This is one downside to using discretized actions.
+[00:41:38,820 --> 00:41:41,780] In practice, often that distance is something
+[00:41:41,780 --> 00:41:45,980] that is fairly quick to learn.
+[00:41:45,980 --> 00:41:51,050] And so the outcome is often still pretty good,
+[00:41:51,050 --> 00:41:54,230] but you might need more data.
+[00:41:54,230 --> 00:41:57,410] And how fine your discretization is a really important
+[00:41:57,410 --> 00:41:59,730] hyperparameter because if it's too fine,
+[00:41:59,730 --> 00:42:01,290] then it'll be very hard to get signal
+[00:42:01,290 --> 00:42:05,270] because if you're off by 1, you'll get 0 loss function.
+[00:42:05,270 --> 00:42:06,770] There are also other things that you
+[00:42:06,770 --> 00:42:10,410] can do to try to smoothen out the data
+[00:42:10,410 --> 00:42:15,330] and smoothen out the labels so that the label isn't just
+[00:42:15,330 --> 00:42:16,550] like a one hot vector.
+[00:42:16,550 --> 00:42:18,955] You can smooth around it a little bit.
+[00:42:18,955 --> 00:42:20,330] So that's one thing that can also
+[00:42:20,330 --> 00:42:24,130] help with that, although it's a little bit more advanced.
+[00:42:24,130 --> 00:42:24,710] Oh, yeah.
+[00:42:24,710 --> 00:42:25,418] Awesome question.
+[00:42:25,418 --> 00:42:28,380] I didn't actually get to write the third example.
+[00:42:31,030 --> 00:42:35,390] So when you are outputting the probability of the third action,
+[00:42:35,390 --> 00:42:37,810] it will be conditioned on everything so far.
+[00:42:37,810 --> 00:42:40,090] And often the way that you do that,
+[00:42:40,090 --> 00:42:41,970] is if you're using a sequence model,
+[00:42:41,970 --> 00:42:45,370] you can then output the prediction like a sample
+[00:42:45,370 --> 00:42:52,270] from this distribution, so at2, and then output the probability
+[00:42:52,270 --> 00:42:54,010] of the third action right here.
+[00:42:54,010 --> 00:42:55,990] And if you have a sequence model that
+[00:42:55,990 --> 00:42:58,130] takes into account everything from the past,
+[00:42:58,130 --> 00:43:01,710] then it will already condition on all the actions so far.
+[00:43:01,710 --> 00:43:06,010] So how does backpropagation handle this when it's discrete?
+[00:43:06,010 --> 00:43:09,870] So only the output is discrete.
+[00:43:09,870 --> 00:43:12,430] And so you can think about it as a classification problem.
+[00:43:12,430 --> 00:43:14,070] And so if the weights are discrete,
+[00:43:14,070 --> 00:43:17,530] that's bad for backpropagation.
+[00:43:17,530 --> 00:43:19,190] But when it's only at the labels,
+[00:43:19,190 --> 00:43:21,190] you're only just computing the loss function
+[00:43:21,190 --> 00:43:25,710] on those discrete variables, and then that loss
+[00:43:25,710 --> 00:43:29,910] you can back propagate in a direct way.
+[00:43:29,910 --> 00:43:33,950] And that's because it's outputting a probability
+[00:43:33,950 --> 00:43:37,210] and computing a loss on that probability,
+[00:43:37,210 --> 00:43:40,030] and then you can back propagate that loss on that probability.
+[00:43:40,030 --> 00:43:42,070] So that outputs are actually still
+[00:43:42,070 --> 00:43:45,060] continuous values because you're outputting the height of each
+[00:43:45,060 --> 00:43:45,840] of these bars.
+[00:43:49,660 --> 00:43:50,660] Cool.
+[00:43:50,660 --> 00:43:54,060] So this is a visualization of this discretized case
+[00:43:54,060 --> 00:43:57,920] where outputting the first dimension, the second dimension
+[00:43:57,920 --> 00:44:00,300] given the first dimension, the third dimension given
+[00:44:00,300 --> 00:44:03,620] the first two dimensions of the action, and so forth.
+[00:44:03,620 --> 00:44:05,200] And this is very scalable.
+[00:44:05,200 --> 00:44:09,660] It allows you to handle fairly long sequences of actions
+[00:44:09,660 --> 00:44:12,740] similar to language models.
+[00:44:12,740 --> 00:44:15,160] The last thing that I put up on here is diffusion.
+[00:44:15,160 --> 00:44:18,940] Diffusion is also a very appealing choice, especially
+[00:44:18,940 --> 00:44:21,140] for continuous actions.
+[00:44:21,140 --> 00:44:23,180] It can model very complex distributions
+[00:44:23,180 --> 00:44:24,958] over continuous variables, including
+[00:44:24,958 --> 00:44:26,500] high-dimensional continuous variables
+[00:44:26,500 --> 00:44:28,020] like images or actions.
+[00:44:28,020 --> 00:44:31,020] And it does so by using this denoising process
+[00:44:31,020 --> 00:44:32,620] where you start with complete noise,
+[00:44:32,620 --> 00:44:37,500] and denoise it iteratively to make it a less and less noisy
+[00:44:37,500 --> 00:44:41,060] version of the action to ultimately generate, hopefully,
+[00:44:41,060 --> 00:44:44,040] a clean action prediction.
+[00:44:44,040 --> 00:44:48,560] Oh, and one thing that's notable is just both this model
+[00:44:48,560 --> 00:44:52,280] and diffusion models do have some iterative process.
+[00:44:52,280 --> 00:44:53,980] In the case of autoregressive models,
+[00:44:53,980 --> 00:44:57,580] it's iterative over the dimensions of your prediction.
+[00:44:57,580 --> 00:44:59,120] And in the case of diffusion, it's
+[00:44:59,120 --> 00:45:02,760] iterative over this denoising process.
+[00:45:02,760 --> 00:45:04,780] Now, one question I have for all of you.
+[00:45:04,780 --> 00:45:10,840] So we've talked about these more expressive distribution classes,
+[00:45:10,840 --> 00:45:14,120] and none of what we talked about has actually really changed
+[00:45:14,120 --> 00:45:16,600] the architecture of the model.
+[00:45:16,600 --> 00:45:20,680] And I'm curious.
+[00:45:20,680 --> 00:45:23,640] One very important question is, instead
+[00:45:23,640 --> 00:45:27,320] of having these more complex distributions,
+[00:45:27,320 --> 00:45:31,600] we could just still use the L2 error, the L2 norm as the loss
+[00:45:31,600 --> 00:45:34,987] function, but just make the neural network bigger.
+[00:45:34,987 --> 00:45:37,320] And bigger neural networks are generally more expressive
+[00:45:37,320 --> 00:45:39,360] than smaller neural networks.
+[00:45:39,360 --> 00:45:43,980] So does anyone have thoughts on how what we talked about here
+[00:45:43,980 --> 00:45:47,780] is different from just making the model bigger with the L2
+[00:45:47,780 --> 00:45:49,340] loss?
+[00:45:49,340 --> 00:45:51,020] So in the driving example, even if you
+[00:45:51,020 --> 00:45:53,520] make the network really, really large,
+[00:45:53,520 --> 00:45:55,780] it's still going to output just the mean.
+[00:45:55,780 --> 00:45:58,220] It might output the mean very, very accurately,
+[00:45:58,220 --> 00:46:00,540] but it doesn't actually change its ability
+[00:46:00,540 --> 00:46:03,940] to represent a more complex distribution.
+[00:46:03,940 --> 00:46:07,780] And so the expressive power of a distribution that you're
+[00:46:07,780 --> 00:46:11,100] trying to represent is actually, in many ways,
+[00:46:11,100 --> 00:46:15,700] separate from the expressive power of the function itself.
+[00:46:15,700 --> 00:46:17,200] And if you think about this picture,
+[00:46:17,200 --> 00:46:19,075] again, where you have a neural network that's
+[00:46:19,075 --> 00:46:20,880] outputting parameters of a distribution,
+[00:46:20,880 --> 00:46:22,740] there's the expressive part of this function
+[00:46:22,740 --> 00:46:26,100] of how many functions can you represent
+[00:46:26,100 --> 00:46:28,100] that go from S to parameters.
+[00:46:28,100 --> 00:46:30,683] And then there's the expressive power of this top part that,
+[00:46:30,683 --> 00:46:33,100] how many different distributions can those parameters even
+[00:46:33,100 --> 00:46:35,260] represent in the first place?
+[00:46:35,260 --> 00:46:37,340] And this is a really important point
+[00:46:37,340 --> 00:46:38,980] where neural network expressivity
+[00:46:38,980 --> 00:46:42,270] is often distinct from distribution expressivity.
+[00:46:50,908 --> 00:46:52,450] The expressivity of the distributions
+[00:46:52,450 --> 00:46:55,570] that it can represent is captured
+[00:46:55,570 --> 00:46:58,855] by what distribution you're allowing it to represent.
+[00:46:58,855 --> 00:47:00,730] And if it only outputs the mean and variance,
+[00:47:00,730 --> 00:47:03,250] it can very expressively represent functions
+[00:47:03,250 --> 00:47:05,070] that go from state to mean and variance,
+[00:47:05,070 --> 00:47:09,090] but it can't represent anything more complex than a Gaussian.
+[00:47:09,090 --> 00:47:10,510] So we walk through this a bit.
+[00:47:10,510 --> 00:47:12,190] So we are given some demonstrations.
+[00:47:12,190 --> 00:47:15,050] We're trying to train a generative model over actions.
+[00:47:15,050 --> 00:47:21,570] And this is trying to minimize the negative log
+[00:47:21,570 --> 00:47:23,930] likelihood of the expert's actions
+[00:47:23,930 --> 00:47:30,450] given the states and the demonstration.
+[00:47:30,450 --> 00:47:32,610] And so this equation looks, I mean, maybe a little
+[00:47:32,610 --> 00:47:36,450] bit complicated, but the log pi is the log probability
+[00:47:36,450 --> 00:47:38,870] under the policy.
+[00:47:38,870 --> 00:47:42,230] The blue part is the demo actions
+[00:47:42,230 --> 00:47:44,590] that are sampled from the demonstration data set.
+[00:47:44,590 --> 00:47:47,030] And this probability is under the policy
+[00:47:47,030 --> 00:47:48,250] that we're trying to learn.
+[00:47:52,310 --> 00:47:54,790] And then once we fit this, we should
+[00:47:54,790 --> 00:47:58,310] have a policy that's better at actually matching what
+[00:47:58,310 --> 00:48:00,450] the expert is doing, and as a result,
+[00:48:00,450 --> 00:48:03,750] it should be better at performing the task.
+[00:48:03,750 --> 00:48:06,950] So now why do we learn all this?
+[00:48:06,950 --> 00:48:09,630] How well does the generative model
+[00:48:09,630 --> 00:48:13,390] work compared to just using an L2 loss?
+[00:48:13,390 --> 00:48:15,750] There's a couple of works that have
+[00:48:15,750 --> 00:48:17,330] evaluated this more explicitly.
+[00:48:17,330 --> 00:48:19,350] So here's a transport task where you
+[00:48:19,350 --> 00:48:25,050] need to have one robot transport a tool to another robot.
+[00:48:25,050 --> 00:48:28,750] And the policy is controlling both of these robots.
+[00:48:28,750 --> 00:48:32,650] And we'll be comparing diffusion and a Gaussian mixture model.
+[00:48:32,650 --> 00:48:34,910] Diffusion is a lot more expressive
+[00:48:34,910 --> 00:48:37,567] than what you can even represent with a Gaussian mixture model.
+[00:48:37,567 --> 00:48:39,900] And we'll be looking at two different demonstration data
+[00:48:39,900 --> 00:48:40,400] sets.
+[00:48:40,400 --> 00:48:43,400] One was a data set that was just collected by one person,
+[00:48:43,400 --> 00:48:44,900] and then the other one is a data set
+[00:48:44,900 --> 00:48:46,500] that was collected by multiple people.
+[00:48:46,500 --> 00:48:49,540] And we'll look at success rate.
+[00:48:49,540 --> 00:48:50,840] And we use diffusion.
+[00:48:50,840 --> 00:48:54,240] We see that, on both data sets, it's able to do pretty well,
+[00:48:54,240 --> 00:48:56,660] although it does degrade with multiple humans in the data
+[00:48:56,660 --> 00:49:01,140] set, which means that as you add more diversity in the data set,
+[00:49:01,140 --> 00:49:03,360] performance can go down.
+[00:49:03,360 --> 00:49:04,860] And with the Gaussian mixture model,
+[00:49:04,860 --> 00:49:08,560] we see that well, first it does worse than diffusion,
+[00:49:08,560 --> 00:49:12,720] so expressive distributions is very helpful.
+[00:49:12,720 --> 00:49:15,260] And second it actually goes down a lot more
+[00:49:15,260 --> 00:49:17,620] for the multi-human data set, which
+[00:49:17,620 --> 00:49:22,060] means that the expressivity of the distribution
+[00:49:22,060 --> 00:49:26,340] is especially important for data sets that have more
+[00:49:26,340 --> 00:49:28,920] different behaviors in them.
+[00:49:31,860 --> 00:49:35,055] We can also see this on a real task on a real robot.
+[00:49:35,055 --> 00:49:37,180] So this is a task that's actually pretty difficult,
+[00:49:37,180 --> 00:49:41,240] hanging a shirt on a hanger.
+[00:49:41,240 --> 00:49:44,063] The data set was collected by lots of different people
+[00:49:44,063 --> 00:49:45,980] because it's actually a pretty large data set.
+[00:49:45,980 --> 00:49:47,522] And once you scale up, it's very hard
+[00:49:47,522 --> 00:49:50,000] to have a single person with one consistent strategy
+[00:49:50,000 --> 00:49:53,360] collect all of your data, so it has different people
+[00:49:53,360 --> 00:49:55,160] and different strategies.
+[00:49:55,160 --> 00:49:57,200] And it compares using either diffusion, which
+[00:49:57,200 --> 00:50:00,680] is very expressive, or an L1 loss, which
+[00:50:00,680 --> 00:50:04,160] is a deterministic policy.
+[00:50:04,160 --> 00:50:07,760] And what we see first, it's not as successful as the simpler
+[00:50:07,760 --> 00:50:09,080] simulated task.
+[00:50:09,080 --> 00:50:12,360] But here we see again that having a expressive distribution
+[00:50:12,360 --> 00:50:15,120] is really critical for being able to do
+[00:50:15,120 --> 00:50:16,100] the task successfully.
+[00:50:16,100 --> 00:50:19,720] And if you just use L1 loss, the success rate of the policy
+[00:50:19,720 --> 00:50:22,265] drops by nearly 50%.
+[00:50:22,265 --> 00:50:23,640] Is there any scenario where you'd
+[00:50:23,640 --> 00:50:27,400] want to use a mixture of other models instead of a Gaussian?
+[00:50:27,400 --> 00:50:33,110] Oftentimes other models might already be quite expressive.
+[00:50:33,110 --> 00:50:43,390] So not to my knowledge, but it's completely inconceivable.
+[00:50:43,390 --> 00:50:46,230] Now, if you actually look at some of the big models
+[00:50:46,230 --> 00:50:50,430] that people have been developing in robotics,
+[00:50:50,430 --> 00:50:54,910] they build on what we covered so far in lecture.
+[00:50:54,910 --> 00:50:57,485] And so these are foundation models trained
+[00:50:57,485 --> 00:50:59,110] on lots of different demonstration data
+[00:50:59,110 --> 00:51:04,670] sets by companies like NVIDIA, Figure, Pi, and this open source
+[00:51:04,670 --> 00:51:06,087] vision language model.
+[00:51:06,087 --> 00:51:08,670] Using expressive distributions, when you have large scale data
+[00:51:08,670 --> 00:51:12,390] sets is a key component of these models.
+[00:51:12,390 --> 00:51:15,470] And if you look at some of the big models
+[00:51:15,470 --> 00:51:18,470] that people have been developing for autonomous driving at Waymo
+[00:51:18,470 --> 00:51:22,030] and Wayve, the first one uses discretized and autoregressive
+[00:51:22,030 --> 00:51:25,190] prediction, and the second one also uses discretized actions
+[00:51:25,190 --> 00:51:27,770] with autoregressive prediction.
+[00:51:27,770 --> 00:51:28,270] Great.
+[00:51:28,270 --> 00:51:30,910] So a summary so far of what we've talked about.
+[00:51:30,910 --> 00:51:33,970] If you have data from one consistent demonstrator,
+[00:51:33,970 --> 00:51:37,530] you should learn a unimodal policy distribution.
+[00:51:37,530 --> 00:51:39,910] If you have multimodal data from multiple demonstrators,
+[00:51:39,910 --> 00:51:41,770] you should learn a distribution.
+[00:51:41,770 --> 00:51:43,930] You need an expressive generative model
+[00:51:43,930 --> 00:51:48,770] when you have data from multiple people, very important.
+[00:51:48,770 --> 00:51:51,730] And one other thing that I'll mention here
+[00:51:51,730 --> 00:51:54,730] is that the algorithm is fully offline.
+[00:51:54,730 --> 00:51:57,090] And this is getting into a notion that's
+[00:51:57,090 --> 00:52:00,410] very important in reinforcement learning more generally,
+[00:52:00,410 --> 00:52:03,695] which is, offline algorithms are a bit
+[00:52:03,695 --> 00:52:05,070] different from online algorithms.
+[00:52:05,070 --> 00:52:08,890] So offline algorithms use only an existing data set,
+[00:52:08,890 --> 00:52:14,130] and they don't use any new data from what you're learning.
+[00:52:14,130 --> 00:52:16,890] And online means that you're using new data
+[00:52:16,890 --> 00:52:18,415] from your learned policy.
+[00:52:18,415 --> 00:52:20,290] And this distinction is important in a couple
+[00:52:20,290 --> 00:52:21,690] of different ways.
+[00:52:21,690 --> 00:52:27,490] Online means that you're going to have to actually recollect
+[00:52:27,490 --> 00:52:32,510] data as you run the algorithm, and so this can be expensive.
+[00:52:32,510 --> 00:52:36,690] If your policy might be under-trained, in some scenarios
+[00:52:36,690 --> 00:52:39,350] it might be unsafe to run your policy.
+[00:52:39,350 --> 00:52:41,170] If you're in a medical domain, for example,
+[00:52:41,170 --> 00:52:42,712] you might want to not want to collect
+[00:52:42,712 --> 00:52:45,340] online data from a policy that doesn't work fully yet.
+[00:52:48,830 --> 00:52:50,270] Thinking about offline algorithms
+[00:52:50,270 --> 00:52:54,830] and online algorithms, it's a key distinction and a key way
+[00:52:54,830 --> 00:52:58,470] to think about different algorithms.
+[00:52:58,470 --> 00:53:01,270] So for what we've covered so far,
+[00:53:01,270 --> 00:53:04,510] we don't need any data from the policy, so this is offline.
+[00:53:04,510 --> 00:53:07,470] We also don't need to define a reward function.
+[00:53:07,470 --> 00:53:10,390] Last time we talked about defining reward functions
+[00:53:10,390 --> 00:53:13,670] for some examples, and we talked about how, in some examples,
+[00:53:13,670 --> 00:53:16,250] it might be hard to write down the reward function.
+[00:53:16,250 --> 00:53:17,430] So this is pretty nice.
+[00:53:17,430 --> 00:53:19,310] In driving, you don't have to write down
+[00:53:19,310 --> 00:53:23,308] all of the ways in which you might want it to drive.
+[00:53:23,308 --> 00:53:25,350] The downside is that you might need a lot of data
+[00:53:25,350 --> 00:53:26,570] for reliable performance.
+[00:53:26,570 --> 00:53:29,260] You need a lot of demonstrations,
+[00:53:29,260 --> 00:53:33,060] and that ties into how we might try to learn
+[00:53:33,060 --> 00:53:36,300] from online interventions.
+[00:53:36,300 --> 00:53:37,620] So the question was--
+[00:53:37,620 --> 00:53:40,140] for the previous videos that I showed--
+[00:53:40,140 --> 00:53:42,432] imitation learning seems straightforward,
+[00:53:42,432 --> 00:53:45,820] what is the research in it?
+[00:53:45,820 --> 00:53:49,457] And is it just doing what we talked about today?
+[00:53:49,457 --> 00:53:51,540] Well, I guess there's a number of different things
+[00:53:51,540 --> 00:53:54,430] that went into those different examples.
+[00:53:57,060 --> 00:54:00,000] So I can walk through maybe a couple examples.
+[00:54:00,000 --> 00:54:04,780] So in the case of the first demonstration, a lot of things
+[00:54:04,780 --> 00:54:09,020] went into curation of the data and also
+[00:54:09,020 --> 00:54:11,220] the architecture of the model.
+[00:54:11,220 --> 00:54:14,320] And so those were two things that were novel about this.
+[00:54:14,320 --> 00:54:16,660] In the case of the NVIDIA example, a lot of work
+[00:54:16,660 --> 00:54:19,580] went into trying to use data from simulation, especially
+[00:54:19,580 --> 00:54:22,400] because collecting data on humanoids is quite challenging,
+[00:54:22,400 --> 00:54:25,603] and trying to figure out how to leverage that simulation data.
+[00:54:25,603 --> 00:54:27,020] In the case of the figure example,
+[00:54:27,020 --> 00:54:30,000] there was also some architectural design choices
+[00:54:30,000 --> 00:54:32,680] that made it helpful, especially in terms of running models
+[00:54:32,680 --> 00:54:34,852] at very high frequency.
+[00:54:34,852 --> 00:54:36,560] And in the OpenVLA example, that was also
+[00:54:36,560 --> 00:54:39,240] an example where there was a lot of architectural choices
+[00:54:39,240 --> 00:54:42,120] in terms of the models.
+[00:54:42,120 --> 00:54:44,860] And so it's not just exactly what we talked about,
+[00:54:44,860 --> 00:54:46,760] so there is a bit more to it.
+[00:54:46,760 --> 00:54:49,920] But what we talked about is a huge driving factor
+[00:54:49,920 --> 00:54:53,520] behind these different examples.
+[00:54:53,520 --> 00:54:55,920] And these two, a lot of that also went
+[00:54:55,920 --> 00:55:00,200] into different co-training objectives and architectures.
+[00:55:00,200 --> 00:55:05,200] So we've talked a lot about how to train models
+[00:55:05,200 --> 00:55:06,680] with imitation learning.
+[00:55:06,680 --> 00:55:09,580] And there's one important thing that we haven't covered yet,
+[00:55:09,580 --> 00:55:13,080] which is what can go wrong and why imitation learning is
+[00:55:13,080 --> 00:55:14,120] challenging.
+[00:55:14,120 --> 00:55:17,500] So for this, it's helpful to look at supervised learning.
+[00:55:17,500 --> 00:55:21,120] So in supervised learning, we have some data.
+[00:55:21,120 --> 00:55:25,020] And it's usually trained from one data set that stays fixed.
+[00:55:27,990 --> 00:55:31,350] And the inputs to the model are completely
+[00:55:31,350 --> 00:55:35,310] independent from the predictions that the model makes.
+[00:55:35,310 --> 00:55:38,530] Now, this all changes in imitation learning.
+[00:55:38,530 --> 00:55:43,810] So say you have a demonstration that is in your data set.
+[00:55:43,810 --> 00:55:47,910] And so each of these dots is like a state and then state
+[00:55:47,910 --> 00:55:52,710] action, something like this.
+[00:55:52,710 --> 00:55:57,430] And now you're trying to mimic this demonstration.
+[00:55:57,430 --> 00:56:00,070] If you're trying to mimic it, and then you
+[00:56:00,070 --> 00:56:03,310] roll out your policy, the starting from this state,
+[00:56:03,310 --> 00:56:05,310] maybe at the beginning of the trajectory,
+[00:56:05,310 --> 00:56:08,910] it's able to do pretty well.
+[00:56:08,910 --> 00:56:11,130] But at some point it might make a mistake.
+[00:56:11,130 --> 00:56:13,090] The policy isn't going to be perfect.
+[00:56:13,090 --> 00:56:15,110] And so if it makes a mistake, maybe it
+[00:56:15,110 --> 00:56:16,870] ends up over here a little further
+[00:56:16,870 --> 00:56:20,150] from where the demonstration covered.
+[00:56:20,150 --> 00:56:21,750] And now from this state, it's possible
+[00:56:21,750 --> 00:56:25,650] that it actually doesn't have that much data from where
+[00:56:25,650 --> 00:56:27,750] it ended up after it made this mistake.
+[00:56:27,750 --> 00:56:29,250] Even if it was a small mistake, it's
+[00:56:29,250 --> 00:56:32,930] going to be potentially underrepresented in the data.
+[00:56:32,930 --> 00:56:35,770] And if it's underrepresented, it's actually even more likely
+[00:56:35,770 --> 00:56:38,270] to make a mistake in the future.
+[00:56:38,270 --> 00:56:40,190] And so if it's more likely to make a mistake,
+[00:56:40,190 --> 00:56:45,170] it might actually drift away from the distribution even more.
+[00:56:45,170 --> 00:56:47,630] And at that point, maybe here it's actually very far away,
+[00:56:47,630 --> 00:56:52,210] and it makes maybe an even bigger mistake.
+[00:56:52,210 --> 00:56:57,290] So this is often referred to as compounding errors.
+[00:56:57,290 --> 00:56:59,790] Because they can start drifting of the distribution
+[00:56:59,790 --> 00:57:01,410] when you make mistakes, those mistakes
+[00:57:01,410 --> 00:57:06,050] can then compound as you roll out your policy.
+[00:57:06,050 --> 00:57:07,810] And as a result of this--
+[00:57:07,810 --> 00:57:10,690] and one thing that you see here is that the distribution
+[00:57:10,690 --> 00:57:11,970] of states--
+[00:57:11,970 --> 00:57:14,490] this pen, sorry.
+[00:57:14,490 --> 00:57:20,170] The distribution of states that are visited by your policy
+[00:57:20,170 --> 00:57:23,200] is actually different from the distribution of states that's
+[00:57:23,200 --> 00:57:29,320] visited by the expert, and this means
+[00:57:29,320 --> 00:57:35,343] that it differs fundamentally from supervised learning.
+[00:57:35,343 --> 00:57:37,260] So errors can lead away from the distribution.
+[00:57:37,260 --> 00:57:40,140] Error can then compound.
+[00:57:40,140 --> 00:57:41,640] The states visited by the expert are
+[00:57:41,640 --> 00:57:44,440] different than the states visited by the learned policy.
+[00:57:44,440 --> 00:57:46,820] This is referred to as covariate shift.
+[00:57:46,820 --> 00:57:49,960] So it's a distribution shift.
+[00:57:49,960 --> 00:57:56,120] And that distribution shift can lead to worse performance.
+[00:57:56,120 --> 00:57:59,680] It also makes it different from supervised learning.
+[00:57:59,680 --> 00:58:03,200] So this is one of the reasons why fitting the distribution
+[00:58:03,200 --> 00:58:05,500] really well is very important.
+[00:58:05,500 --> 00:58:07,080] Because if you don't fit it well,
+[00:58:07,080 --> 00:58:10,080] and you learn only the mean, for example, then you're
+[00:58:10,080 --> 00:58:13,110] even more likely to have these compounding errors.
+[00:58:15,505 --> 00:58:17,880] Even if you do fit it well, you might still make mistakes
+[00:58:17,880 --> 00:58:21,700] and might drift of the distribution.
+[00:58:21,700 --> 00:58:23,330] So how can we address this?
+[00:58:26,460 --> 00:58:28,740] One solution is just to collect a ton of data,
+[00:58:28,740 --> 00:58:31,900] train for as long as possible to fit the data as well as you can,
+[00:58:31,900 --> 00:58:34,300] and hope for the best.
+[00:58:34,300 --> 00:58:35,800] If you have the capacity to do this,
+[00:58:35,800 --> 00:58:38,620] it's not a terrible solution.
+[00:58:38,620 --> 00:58:40,900] But there's also some other solutions,
+[00:58:40,900 --> 00:58:45,320] and these solutions are actually quite popular in practice.
+[00:58:45,320 --> 00:58:48,980] And basically the key alternative solution
+[00:58:48,980 --> 00:58:52,500] is to try to collect corrective data.
+[00:58:52,500 --> 00:58:55,500] And so if we're in this scenario, what
+[00:58:55,500 --> 00:59:01,320] we can try to do is, as the policy starts to make a mistake,
+[00:59:01,320 --> 00:59:03,660] we could try to say, OK, if you're here,
+[00:59:03,660 --> 00:59:07,500] the correct action is to do this.
+[00:59:07,500 --> 00:59:11,220] And this green data can be very, very helpful
+[00:59:11,220 --> 00:59:15,760] to allow the policy to recover from mistakes that it made.
+[00:59:20,810 --> 00:59:23,930] So the corrective data would be, ideally, you
+[00:59:23,930 --> 00:59:26,890] would learn something like this that tells your policy exactly
+[00:59:26,890 --> 00:59:28,075] how to recover.
+[00:59:28,075 --> 00:59:29,950] And then if you collect this corrective data,
+[00:59:29,950 --> 00:59:33,570] then you could combine the data in green with the data in black,
+[00:59:33,570 --> 00:59:36,970] train a policy on that combined data.
+[00:59:36,970 --> 00:59:39,890] And then if it makes a mistake, it
+[00:59:39,890 --> 00:59:42,850] should actually have examples of how to recover and get back
+[00:59:42,850 --> 00:59:44,610] to the distribution because we're actually
+[00:59:44,610 --> 00:59:46,650] running our policy and then getting
+[00:59:46,650 --> 00:59:51,410] examples of how to recover after running our policy.
+[00:59:51,410 --> 00:59:54,648] Does this not overfit the model and make it less generalizable?
+[00:59:54,648 --> 00:59:57,190] You will need to make sure that when you collect online data,
+[00:59:57,190 --> 00:59:59,930] you collect it in diverse scenarios and not just very
+[00:59:59,930 --> 01:00:01,150] narrow scenarios.
+[01:00:01,150 --> 01:00:03,670] If you only collect it in a very small amount of scenarios,
+[01:00:03,670 --> 01:00:05,650] then these corrections won't be as diverse
+[01:00:05,650 --> 01:00:07,787] as your original data set.
+[01:00:07,787 --> 01:00:10,370] So the main difference between the learned policy distribution
+[01:00:10,370 --> 01:00:15,830] and the expert distribution, it is just how the actions
+[01:00:15,830 --> 01:00:17,540] led to particular states.
+[01:00:20,590 --> 01:00:22,950] I'm using this as shorthand for the states
+[01:00:22,950 --> 01:00:26,630] visited by the policy.
+[01:00:26,630 --> 01:00:30,570] And when you start to incorporate these corrections,
+[01:00:30,570 --> 01:00:33,510] you're expanding the distributions of states
+[01:00:33,510 --> 01:00:36,750] that you have data for, and you're
+[01:00:36,750 --> 01:00:40,030] making your distribution of states
+[01:00:40,030 --> 01:00:42,070] seen in your data set wider to include
+[01:00:42,070 --> 01:00:45,910] both p of s and the states that your policy might
+[01:00:45,910 --> 01:00:48,240] be likely to visit if it makes mistakes.
+[01:00:51,550 --> 01:00:54,790] So in terms of what this looks like as an algorithm,
+[01:00:54,790 --> 01:00:57,410] we will first roll out our policy.
+[01:00:57,410 --> 01:01:00,470] So this is what's shown in blue here.
+[01:01:00,470 --> 01:01:06,630] Then we will query an expert at the states that you visited.
+[01:01:06,630 --> 01:01:11,430] And these actions in green are the same as the orange
+[01:01:11,430 --> 01:01:14,570] a star on the slide.
+[01:01:14,570 --> 01:01:18,370] And then we will aggregate the corrective data
+[01:01:18,370 --> 01:01:22,770] with the first demonstration data set,
+[01:01:22,770 --> 01:01:28,410] and then we'll update the policy on the aggregated data set.
+[01:01:28,410 --> 01:01:30,490] And this updated policy, you could
+[01:01:30,490 --> 01:01:34,170] fine tune the policy, so warm start it,
+[01:01:34,170 --> 01:01:37,130] trained on the original data set and then update it
+[01:01:37,130 --> 01:01:37,990] with fine tuning.
+[01:01:37,990 --> 01:01:39,365] You could also train from scratch
+[01:01:39,365 --> 01:01:41,167] if you're concerned about, I don't know,
+[01:01:41,167 --> 01:01:43,250] some biases or something like that, oftentimes you
+[01:01:43,250 --> 01:01:44,913] might fine tune.
+[01:01:44,913 --> 01:01:46,830] And then you can actually repeat this process.
+[01:01:46,830 --> 01:01:48,670] So you can train on the corrective data,
+[01:01:48,670 --> 01:01:51,250] get a better policy, and then maybe your policy
+[01:01:51,250 --> 01:01:54,310] actually starts making you have another policy,
+[01:01:54,310 --> 01:01:57,170] and maybe it makes mistakes in a different way.
+[01:01:57,170 --> 01:02:00,530] And in that case, you'd want to then collect
+[01:02:00,530 --> 01:02:03,890] some corrective data from that second policy
+[01:02:03,890 --> 01:02:09,090] if a new failure mode or a new mistake emerges.
+[01:02:09,090 --> 01:02:12,680] And so this is a repetitive process.
+[01:02:12,680 --> 01:02:14,992] This name has a terrible algorithm because it's not
+[01:02:14,992 --> 01:02:15,700] very descriptive.
+[01:02:15,700 --> 01:02:18,760] But it's called data set aggregation or DAgger
+[01:02:18,760 --> 01:02:21,280] because you're aggregating data.
+[01:02:21,280 --> 01:02:24,520] It's helpful to know terminology, but this, I think,
+[01:02:24,520 --> 01:02:26,360] was a bad choice.
+[01:02:26,360 --> 01:02:29,520] And it's a data efficient way to learn from an expert.
+[01:02:29,520 --> 01:02:32,920] But it can be hard to query an expert.
+[01:02:32,920 --> 01:02:34,840] And so getting these green actions
+[01:02:34,840 --> 01:02:36,060] can be a little bit tricky.
+[01:02:36,060 --> 01:02:37,920] So you might have to actually ask
+[01:02:37,920 --> 01:02:42,440] a person OK, this is what my car did on the road, what
+[01:02:42,440 --> 01:02:46,000] steering command should it have done instead in those scenarios?
+[01:02:46,000 --> 01:02:48,840] And so this data actually can be potentially very
+[01:02:48,840 --> 01:02:50,800] hard to collect.
+[01:02:50,800 --> 01:02:53,040] So how do we get the correct data?
+[01:02:53,040 --> 01:02:55,800] What this would look like is you would run your policy
+[01:02:55,800 --> 01:02:57,880] to get this blue trajectory.
+[01:02:57,880 --> 01:03:07,520] And so this trajectory is like a sequence of S1, a1, S2, a2,
+[01:03:07,520 --> 01:03:08,150] and so forth.
+[01:03:11,540 --> 01:03:13,200] This is not possible in some scenarios,
+[01:03:13,200 --> 01:03:17,900] but you'd ask a person for this S, what should the a have been?
+[01:03:17,900 --> 01:03:19,947] And for this S, what should the a have been?
+[01:03:19,947 --> 01:03:21,780] And for this S, what should the a have been?
+[01:03:21,780 --> 01:03:24,060] Now, there are scenarios where you can't do that,
+[01:03:24,060 --> 01:03:27,420] and where this algorithm is just not possible to run,
+[01:03:27,420 --> 01:03:33,238] and that leads into potentially another way
+[01:03:33,238 --> 01:03:35,280] that we might be able to collect corrective data.
+[01:03:35,280 --> 01:03:37,140] We might not be able to tell exactly that this is exactly
+[01:03:37,140 --> 01:03:38,848] the steering command you should have done
+[01:03:38,848 --> 01:03:41,020] because that's very hard to do.
+[01:03:41,020 --> 01:03:45,700] And so what we could do instead is instead of saying,
+[01:03:45,700 --> 01:03:49,100] for each of these actions we want
+[01:03:49,100 --> 01:03:50,908] to query what the expert would have done,
+[01:03:50,908 --> 01:03:52,700] we're actually going to let the expert take
+[01:03:52,700 --> 01:03:54,800] full control at some point.
+[01:03:54,800 --> 01:03:56,740] And so what this would look like is something
+[01:03:56,740 --> 01:03:58,240] where you start drifting off.
+[01:03:58,240 --> 01:04:02,220] The expert notices that a mistake was made, and then takes
+[01:04:02,220 --> 01:04:05,860] full control, for example, starts driving the car
+[01:04:05,860 --> 01:04:09,366] rather than letting the policy drive the car.
+[01:04:09,366 --> 01:04:11,130] And then in this case, you can then
+[01:04:11,130 --> 01:04:15,770] add those partial demonstrations to your data
+[01:04:15,770 --> 01:04:20,570] set instead of trying to query the expert on the policy states.
+[01:04:20,570 --> 01:04:24,130] And so here you would start to roll out the learned policy.
+[01:04:24,130 --> 01:04:27,890] The expert intervenes when the policy makes a mistake.
+[01:04:27,890 --> 01:04:31,330] The expert provides a partial demonstration from the state
+[01:04:31,330 --> 01:04:34,850] that the policy visited, so it would take full control
+[01:04:34,850 --> 01:04:37,930] and then aggregate this partial demonstrations
+[01:04:37,930 --> 01:04:42,910] with the original data set in order to then update the policy.
+[01:04:42,910 --> 01:04:45,088] And again, you can repeat this process
+[01:04:45,088 --> 01:04:47,130] so that you can cover different potential failure
+[01:04:47,130 --> 01:04:50,050] modes of the policy.
+[01:04:50,050 --> 01:04:53,090] In all of these cases, the best performance of the policy
+[01:04:53,090 --> 01:04:55,690] is upper bounded by the expert.
+[01:04:55,690 --> 01:04:57,890] The question was, if we're detecting a mistake,
+[01:04:57,890 --> 01:04:59,890] is that mostly if you've collided with something
+[01:04:59,890 --> 01:05:01,330] or something else?
+[01:05:01,330 --> 01:05:07,236] This is something that's subjective and is
+[01:05:07,236 --> 01:05:10,830] up to the demonstrator in many ways.
+[01:05:10,830 --> 01:05:13,670] Oftentimes you want to be a bit more proactive.
+[01:05:13,670 --> 01:05:15,690] And before the car hits something,
+[01:05:15,690 --> 01:05:16,995] you would want to take control.
+[01:05:16,995 --> 01:05:18,870] And so one of the downsides of this algorithm
+[01:05:18,870 --> 01:05:21,410] is that it can sometimes be hard to catch mistakes quickly.
+[01:05:21,410 --> 01:05:23,790] Or if the policy decides to, I don't know,
+[01:05:23,790 --> 01:05:27,070] drastically change the action and it was unpredictable,
+[01:05:27,070 --> 01:05:30,790] that can be very hard to proactively prevent.
+[01:05:30,790 --> 01:05:32,710] And you want ideally this to be in a scenario
+[01:05:32,710 --> 01:05:35,110] where you can predict.
+[01:05:35,110 --> 01:05:37,870] If the policy is starting to drift into another lane,
+[01:05:37,870 --> 01:05:40,990] re centering it, that sort of thing.
+[01:05:40,990 --> 01:05:43,030] This is actually something that companies
+[01:05:43,030 --> 01:05:45,250] do in driving where they let the policy run.
+[01:05:45,250 --> 01:05:46,610] They have a safety driver.
+[01:05:46,610 --> 01:05:48,850] And then the safety driver will take full control
+[01:05:48,850 --> 01:05:51,610] if it seems like the policy either doesn't know what to do,
+[01:05:51,610 --> 01:05:56,187] and it's like stalling, or it's starting to make a mistake.
+[01:05:56,187 --> 01:05:57,770] Now, We've seen failure modes of that.
+[01:05:57,770 --> 01:05:59,687] We've seen cases where safety drivers were not
+[01:05:59,687 --> 01:06:04,230] able to prevent a mistake that was more major.
+[01:06:04,230 --> 01:06:09,100] And so there's downsides relying on the demonstrator
+[01:06:09,100 --> 01:06:13,820] to proactively prevent a huge mistake from happening.
+[01:06:13,820 --> 01:06:17,780] But it is a practical interface for providing corrections
+[01:06:17,780 --> 01:06:21,420] in a lot of scenarios, and can help improve performance
+[01:06:21,420 --> 01:06:23,660] significantly.
+[01:06:23,660 --> 01:06:25,460] So the question was, can you explain again
+[01:06:25,460 --> 01:06:27,960] why if you're correcting a narrow corrective data,
+[01:06:27,960 --> 01:06:30,260] why that would lead to overfitting?
+[01:06:30,260 --> 01:06:32,480] So let's take the driving example.
+[01:06:32,480 --> 01:06:36,480] If your original driving data was all over the United States,
+[01:06:36,480 --> 01:06:38,740] and then your corrective driving data was only
+[01:06:38,740 --> 01:06:43,420] on Stanford's campus, then when you combine the data set,
+[01:06:43,420 --> 01:06:46,300] it might only learn that corrective behavior
+[01:06:46,300 --> 01:06:48,040] in a more narrow set of scenarios,
+[01:06:48,040 --> 01:06:50,660] and might also overfit to the Stanford data,
+[01:06:50,660 --> 01:06:53,680] leading to a policy that is perhaps less generalizable.
+[01:06:53,680 --> 01:06:56,400] And ideally, when you collected corrective data,
+[01:06:56,400 --> 01:07:00,410] it would be in a broader set of scenarios than campus.

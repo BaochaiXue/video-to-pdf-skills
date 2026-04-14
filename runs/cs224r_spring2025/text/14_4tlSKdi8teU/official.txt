@@ -1,0 +1,728 @@
+Exploration & Meta-Exploration
+CS224R
+
+Reminders
+Homework 3 due tonight
+(and HW4 out today)
+Project milestone due next Friday
+
+2
+
+The plan for today
+1. Exploration
+a. Why is exploration hard?
+b. Algorithms for exploration in bandits
+c. Exploration in robotics, LLMs
+2. Learning to Explore via Meta-Learning
+a. Ef ciently Meta-Learning Optimal Exploration
+b. Meta-Exploration in for CS Education
+
+fi
+
+3
+
+<- Part of HW 4
+
+What’s the problem?
+this is easy (mostly)
+
+this is impossible
+
+Why?
+
+Slide adapted from Sergey Levine
+
+Montezuma’s revenge
+• Getting key = reward
+• Opening door = reward
+• Getting killed by skull = nothing (is it good? bad?)
+• Finishing the game only weakly correlates with rewarding
+events
+• We know what to do because we understand what these
+sprites mean!
+
+Slide adapted from Sergey Levine
+
+Put yourself in the algorithm’s shoes
+• “the only rule you may be told is this one”
+• Incur a penalty when you break a rule
+• Can only discover rules through trial and error
+• Rules don’t always make sense to you
+
+Mao
+
+• Temporally extended tasks like Montezuma’s
+revenge become increasingly difficult based on
+• How long the task is
+• How little you know about the rules
+• Imagine if your goal in life was to win 50
+games of Mao…
+• (and you didn’t know this in advance)
+
+Slide adapted from Sergey Levine
+
+Exploration and exploitation
+• Two potential definitions of exploration problem
+• How can an agent discover high-reward strategies that require a temporally extended
+sequence of complex behaviors that, individually, are not rewarding?
+• How can an agent decide whether to attempt new behaviors (to discover ones with higher
+reward) or continue to do the best thing it knows so far?
+
+• Actually the same problem:
+• Exploitation: doing what you know will yield highest reward
+• Exploration: doing things you haven’t done before, in the hopes of getting even higher
+reward
+
+Slide adapted from Sergey Levine
+
+Exploration and exploitation examples
+• Restaurant selection
+• Exploitation: go to your favorite restaurant
+• Exploration: try a new restaurant
+
+• Online ad placement
+• Exploitation: show the most successful advertisement
+• Exploration: show a different random advertisement
+
+• Oil drilling
+• Exploitation: drill at the best known location
+• Exploration: drill at a new location
+
+Examples from D. Silver lecture notes: http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/XX.pdf
+
+Exploration is hard
+Can we derive an optimal exploration strategy?
+what does optimal even mean?
+Let’s talk about these for a minute.
+multi-armed bandits
+(1-step stateless
+RL problems)
+theoretically tractable
+
+Slide adapted from Sergey Levine
+
+contextual bandits
+(1-step RL problems)
+
+small, tabular MDPs
+
+large MDPs with
+known low-rank
+features
+
+large MDPs without
+known special
+structure
+
+theoretically intractable
+
+How do we measure optimality in bandits?
+regret after doing RL for T episodes
+
+expected reward of best action
+(the best we can hope for in expectation)
+
+reward of action
+actually taken
+
+Variety of relatively simple strategies
+Often can provide theoretical guarantees on regret
+
+•
+•
+•
+•
+
+Variety of optimal algorithms (up to a constant factor)
+But empirical performance may vary…
+
+Slide adapted from Sergey Levine
+
+Exploration in Bandits
+Optimism when uncertain
+
+Probability matching
+
+(e.g. upper con dence bound (UCB))
+
+(e.g. posterior sampling)
+
+Track avg reward r̄a for all actions
+
+Assume r(ai) ∼ pψi(r) for each arm ai
+
+Exploit: pick aexploit = arg max r̄a
+
+De nes a POMDP with s := [ψ1, …, ψn]
+
+Explore: pick aexplore = arg max r̄a + Cσa
+
+1. Form beliefs ̂
+p(ψ1, …, ψn) from data
+
+a
+
+a
+
+some kind of variance estimate
+
+2. Sample an MDP ψ1, …, ψn ∼ p(̂ ⋅ )
+3. Take optimal action a assuming
+MDP is correct.
+
+Intuition: assume unknown = good
+
+Intuition: iteratively improve model
+of bandit, act according to one model
+
+fi
+
+fi
+
+These methods are widely used/studied in industry for recommenders, ad placement!
+
+Exploration game
+
+Exploration in Robotics and LLMs
+Lots of research translating these exploration methods to large MDPs like robot control.
+But, at the end of the day, exploration from scratch in large MDPs is intractable.
+These models are excellent at exploration!
+
+Instead:
+
+- rely on demonstrations, or on base models pre-trained on demonstrations
+- use shaped rewards wherever feasible
+(e.g. hand-coded in simulation for legged robots, single step rewards from preferences for LLMs)
+
+The plan for today
+1. Exploration
+a. Why is exploration hard?
+b. Algorithms for exploration in bandits
+c. Exploration in robotics, LLMs
+2. Learning to Explore via Meta-Learning
+a. Ef ciently Meta-Learning Optimal Exploration
+b. Meta-Exploration in for CS Education
+
+fi
+
+14
+
+<- Part of HW 4
+
+What if we need to explore at test time?
+
+fi
+
+Let’s revisit exploration in meta-RL
+
+Partial observability
+
+LLM reasoning
+
+e.g. nding ingredients in a kitchen
+
+e.g. identifying strategies for solving a complex problem
+
+Recall: Why is End-to-End Training Hard for Meta-Learning with Exploration?
+End-to-end approach: optimize exploration and execution episode behaviors end-to-end to
+maximize reward of execution
+
+🥚
+
+🐔
+
+Learning to cook
+(execution)
+
+Learning to find ingredients
+(exploration)
+
+Ingredient not found
+(bad exploration)
+
+Cannot learn to cook
+(bad execution)
+
+Cannot cook
+(bad execution)
+
+Low reward for any
+exploration
+
+Coupling problem: learning exploration and execution depend on each other
+—> can lead to poor local optima, poor sample efficiency
+fi
+
+Liu, Raghunathan, Liang, Finn. Decoupling Exploration and Exploitation for Meta-Reinforcement Learning without Sacri ces. ICML 2021
+
+2a. Use posterior sampling
+
+PEARL (Rakelly, Zhou, Quillen, Finn, Levine. ICML ’19)
+
+(also called Thompson sampling)
+
+i. Learn distribution over latent task variable p(z), q(z |
+
+tr) and corresponding task policies π(a | s, z)
+
+ii. Sample z from current posterior and sample from policy π(a | s, z)
+
+2b. Use intrinsic rewards
+
+MAME (Gurumurthy, Kumar, Sycara. CoRL ’19)
+
+2c. Task dynamics & reward prediction
+
+MetaCURE (Zhang, Wang, Hu, Chen, Fan, Zhang. ‘20)
+
+i. Train model f(s′, r | s, a, train)
+
+ii. Collect
+
+train so that model is accurate.
+
+When might this be bad?
+
+𝒟
+
+𝒟
+
+Lots of distractors,
+or complex, high-dim state dynamics
+￼
+
+𝒟
+
+Alternative: Leverage Alternative Exploration Strategies
+
+Can we avoid the chicken-and-egg problem without sacrificing optimality?
+(best of both worlds?)
+
+Yes!
+
+Solution #3
+Idea from solution #2c: Train model f(s′, r | s, a, tr) & collect
+
+Do we have to learn a full dynamics & reward model?
+
+Idea 3.0:
+Meta
+training
+
+Label each training task with a unique ID μ
+exp
+Exploration policy: train policy π (a | s) and task identification model q(μ |
+such that
+
+tr
+
+tr)
+
+exp
+∼π
+allows accurate task prediction from f
+
+exec
+(a | s, μ )
+Execution policy: train ID-conditioned policy π
+i
+
+Meta
+testing
+
+Explore:
+
+tr
+
+exp
+∼π
+(a | s)
+
+Infer task: μ ̂ ∼ q(μ | tr)
+
+𝒟
+
+𝒟
+
+𝒟
+￼
+
+𝒟
+
++ no longer need to model dynamics, rewards
+𝒟
+𝒟
+
+tr so that model is accurate.
+
+Perform task: πexec(a | s, μ)̂
+
+— may not generalize well for one-hot μ
+
+Solution #3: Decouple by acquiring representation of task relevant information
+Meta-training
+1) Learn execution & identify key information
+MDP identifier μ
+wall color
+
+Bottlenecked
+representation
+
+🥚
+
+Execution
+policy
+
+2) Learn to explore by recovering that
+information
+Exploration
+Exploration episode
+policy
+
+ingredients
+decorations
+
+Information recovery reward
+
+fi
+
+Liu, Raghunathan, Liang, Finn. Decoupling Exploration and Exploitation for Meta-Reinforcement Learning without Sacri ces. ICML 2021
+
+🐣
+
+Aside: How can we bottleneck the information in a neural net’s representation?
+V0: Add noise the representation.
+
+ϵ∼
+
+(0,I) z̄ = z + ϵ
+
++ will discard information 😊
+- if done at test time, my discard good info
+- if done during training, model can increase magnitude of z
+
+Key ideas:
+
+1. Add Gaussian noise during training
+2. Prevent the model from increasing magnitude
+
+V1: Variational information bottleneck
+Add noise before passing representation
+to next layer:
+
+𝒩
+
+𝒩
+
+𝒩
+
+ϵ∼
+
+Modify loss term:
+
+(0,I) z̄ = z + ϵ
+
+2
+
+Ltr + ∥z∥
+
+-> equivalent to DKL (F(z | μi)∥
+
+Alemi, Fischer, Dillon, Murphy. Deep Variational Information Bottleneck. ICLR 2017.
+
+(0,1)).
+
+Meta-training
+1) Learn execution & identify key information
+MDP identifier μ
+wall color
+
+Bottlenecked
+representation
+
+🥚
+
+Execution
+policy
+
+2) Learn to explore by recovering that
+information
+
+🐣
+
+Exploration
+Exploration episode
+policy
+
+ingredients
+Information recovery reward
+
+decorations
+
+exec
+(a | s, z ) and encoder F(z | μ ) to:
+Train π
+i
+
+i
+
+i
+
+exp
+Train π
+such that collected
+
+tr is predictive of zi.
+
+In practice: (1) and (2) can be trained simultaneously.
+Liu, Raghunathan, Liang, Finn. Decoupling Exploration and Exploitation for Meta-Reinforcement Learning without Sacri ces. ICML 2021
+fi
+
+𝒟
+
+Solution #3: Decouple by acquiring representation of task relevant information
+
+Meta-training
+1) Learn execution & identify key information
+
+exec
+Train π
+(a | s, z ) and encoder F(z | μ ) to:
+i
+
+i
+
+i
+
+🥚
+
+2) Learn to explore by recovering that
+information
+exp
+Train π
+such that collected
+
+🐣
+
+tr is predictive of zi.
+
+exp
+How to formulate the reward function for π ?
+(a) Train model q(zi |
+
+tr) (b) rt = per-step information gain
+
+rt = prediction error from τ1:t−1 — prediction error from τ1:t
+
+𝒟
+
+Decoupled Reward-free ExplorAtion and Execution in Meta-Reinforcement Learning (DREAM)
+Liu, Raghunathan, Liang, Finn. Decoupling Exploration and Exploitation for Meta-Reinforcement Learning without Sacri ces. ICML 2021
+fi
+
+𝒟
+
+Solution #3: Decouple by acquiring representation of task relevant information
+
+Solution #3: Decouple by acquiring representation of task relevant information
+(Informal) Theoretical Analysis
+(1) DREAM objective is consistent with end-to-end optimization.
+
+[under mild assumptions]
+
+-> can in principle recover the optimal exploration strategy
+arms.
+
+In MDP i, arm i yields reward. In all MDPs, arm 0 reveals the rewarding arm.
+
+RL2 requires
+DREAM requires
+
+samples for meta-optimization.
+samples for meta-optimization.
+
+[assuming Q-learning with uniform outer-loop exploration]
+
+Sample Complexity
+Samples (1e3) until Optimality
+
+(2) Consider a bandit-like setting with
+
+300
+
+Dream
+O(|A| log |A|)
+RL2
+
+250
+200
+150
+
+≠(|A|2 log |A|)
+
+100
+50
+0
+0
+
+20
+
+40
+
+60
+
+80
+
+100
+
+120
+
+Number of Actions (|A|)
+
+fi
+
+Liu, Raghunathan, Liang, Finn. Decoupling Exploration and Exploitation for Meta-Reinforcement Learning without Sacri ces. ICML 2021
+
+Empirical Comparison: Sparse Reward 3D Visual Navigation Problem
+● Task: go to the (key / block / ball), color
+specified by the sign
+● Agent starts on other side of barrier,
+must walk around to read the sign
+● Pixels observations (80 x 60 RGB)
+● Sparse binary reward
+
+fi
+
+Liu, Raghunathan, Liang, Finn. Decoupling Exploration and Exploitation for Meta-Reinforcement Learning without Sacri ces. ICML 2021
+
+Quantitative Comparison
+
+●
+
+End-to-end algorithms (RL2,IMPORT, VARIBAD)
+perform poorly due to coupling
+
+●
+
+PEARL-UB: Upper-bound on PEARL: optimal
+policy and Thompson-Sampling exploration,
+does not learn the optimal exploration strategy
+
+●
+
+DREAM achieves near-optimal reward
+
+RL2 (Duan et al., 2016), IMPORT (Kamienny et al., 2020), VARIBAD (Zintgraf et al., 2019), PEARL (Rakelly, et. al., 2019), Thompson, 1933
+
+fi
+
+Liu, Raghunathan, Liang, Finn. Decoupling Exploration and Exploitation for Meta-Reinforcement Learning without Sacri ces. ICML 2021
+
+Qualitative Results for DREAM
+Exploration episode
+
+Execution episode
+Goal: Go to key
+
+fi
+
+Liu, Raghunathan, Liang, Finn. Decoupling Exploration and Exploitation for Meta-Reinforcement Learning without Sacri ces. ICML 2021
+
+How Do We Learn to Explore in Meta-RL?
+End-to-End
+
+Alternative Strategies
+
++
+
+leads to optimal strategy in
+principle
+
++
+
+easy to optimize
++ many based on principled
+strategies
+
+--
+
+challenging optimization when
+exploration is hard
+
+--
+
+suboptimal by arbitrarily large
+amount in some environments.
+
+Decoupled Exploration & Execution
+leads to optimal strategy in
+principle
++ easy to optimize in practice
++
+
+--
+
+requires task identifier
+
+Time Permitting: Applying Meta-RL to CS Education
+
+29
+
+Example application: finding bugs & providing feedback in student programs
+Bounce programming assignment
+
+Breakout assignment
+
+(Code.org)
+
+(CS106A)
+
+Time-consuming for instructors/TAs to give feedback, grades.
+Use meta-RL to learn exploration!
+
+Experiments: Learned Exploration Behavior on Bounce
+
+What happens when…
+
+the ball hits the goal?
+
+the ball hits the floor?
+
+the ball hits the wall?
+
+Liu*, Stephan*, Nie, Piech, Brunskill, Finn. Giving Feedback on Interactive Student Programs via Meta-Exploration. NeurIPS 2022.
+
+Experiments: AI-Assisted Grading in CS106A (Spring 2023)
+Leads to 44% faster & 6% more accurate grading.
+
+Stanford TAs like using it.
+
+Autograder prepopulates rubric & shows videos.
+Liu, Yuan, Ahmed, Cornwall, Woodrow, Burns, Nie, Brunskill, Piech, Finn. A Fast and Accurate Machine Learning Autograder for the Breakout Assignment. SIGCSE 2024.
+
+The plan for today
+1. Exploration
+a. Why is exploration hard?
+b. Algorithms for exploration in bandits
+c. Exploration in robotics, LLMs
+2. Learning to Explore via Meta-Learning
+a. Ef ciently Meta-Learning Optimal Exploration
+b. Meta-Exploration in for CS Education
+
+fi
+
+33
+
+<- Part of HW 4
+
+Reminders
+Homework 3 due tonight
+(and HW4 out today)
+Project milestone due next Friday
+
+Next week: Can we make reinforcement learning more autonomous?
+Can we do extra long-horizon tasks leveraging hierarchy?
+
+34
+
+

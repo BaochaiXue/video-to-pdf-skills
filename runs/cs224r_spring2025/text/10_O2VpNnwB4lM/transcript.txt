@@ -1,0 +1,1694 @@
+[00:00:05,440 --> 00:00:07,020] So today we'll not talk about SQL.
+[00:00:07,020 --> 00:00:12,160] We'll talk about reasoning and, particularly, reinforcement
+[00:00:12,160 --> 00:00:14,280] learning for LLM reasoning.
+[00:00:14,280 --> 00:00:17,120] So a high-level reasoning could mean many, many things.
+[00:00:17,120 --> 00:00:19,160] And it clearly even today means different things
+[00:00:19,160 --> 00:00:21,320] for different people, but what I'm going
+[00:00:21,320 --> 00:00:23,760] to do today in this lecture--
+[00:00:23,760 --> 00:00:25,440] and also I should mention that it's
+[00:00:25,440 --> 00:00:28,903] very hard to do justice to reasoning topics in one lecture.
+[00:00:28,903 --> 00:00:30,320] This was also a trouble that I had
+[00:00:30,320 --> 00:00:32,200] for my own class this semester, where
+[00:00:32,200 --> 00:00:34,763] I was covering similar content two weeks ago,
+[00:00:34,763 --> 00:00:36,180] and I couldn't go over everything.
+[00:00:36,180 --> 00:00:37,680] But what I'm going to do today is
+[00:00:37,680 --> 00:00:39,560] to give you at least one perspective
+[00:00:39,560 --> 00:00:42,320] on some of the trends in the field of reasoning.
+[00:00:42,320 --> 00:00:43,880] And for doing that, what we'll do
+[00:00:43,880 --> 00:00:47,700] is we'll restrict ourselves to solving math problems.
+[00:00:47,700 --> 00:00:52,200] So if you're following all the news in language models
+[00:00:52,200 --> 00:00:54,200] these days, people have been really
+[00:00:54,200 --> 00:00:58,480] excited about solving technical questions like math and coding
+[00:00:58,480 --> 00:01:00,560] and scientific questions with these models.
+[00:01:00,560 --> 00:01:03,460] And one of the benchmarks people look at, for example,
+[00:01:03,460 --> 00:01:06,800] is this AIME exam, American Invitational Mathematical
+[00:01:06,800 --> 00:01:08,040] Examination.
+[00:01:08,040 --> 00:01:13,760] This is an example question from that particular exam where
+[00:01:13,760 --> 00:01:17,460] you have to solve a certain number theory question,
+[00:01:17,460 --> 00:01:18,640] for instance.
+[00:01:18,640 --> 00:01:21,040] And to solve this-- these are some ground truth
+[00:01:21,040 --> 00:01:23,840] solutions for it-- you have to solve this in natural language
+[00:01:23,840 --> 00:01:27,025] where you want your language model, for instance, seeing
+[00:01:27,025 --> 00:01:28,400] this question, produce a solution
+[00:01:28,400 --> 00:01:29,983] that looks like one of those solutions
+[00:01:29,983 --> 00:01:31,520] that you'll see up on the slide.
+[00:01:31,520 --> 00:01:35,440] So I took these solutions from the reference solutions that
+[00:01:35,440 --> 00:01:37,800] exist for this exam, but you would want your LLM
+[00:01:37,800 --> 00:01:40,600] to be capable enough to, one, write
+[00:01:40,600 --> 00:01:43,100] a solution like this and, two, come up with the right answer
+[00:01:43,100 --> 00:01:44,200] finally.
+[00:01:44,200 --> 00:01:47,200] So that's all for the goal for today.
+[00:01:47,200 --> 00:01:52,520] So what I'll do today is I'll give you my perspective on--
+[00:01:52,520 --> 00:01:55,040] or I'll organize the material and reasoning
+[00:01:55,040 --> 00:01:57,520] and, especially RL for reasoning, in a particular way
+[00:01:57,520 --> 00:01:59,030] that I particularly like.
+[00:01:59,030 --> 00:02:02,005] And to do that, we'll start off from the conventional way
+[00:02:02,005 --> 00:02:03,630] or looking back at the conventional way
+[00:02:03,630 --> 00:02:05,185] of training language models.
+[00:02:05,185 --> 00:02:07,310] So typically, when we train language models or just
+[00:02:07,310 --> 00:02:09,310] generally foundation models overall,
+[00:02:09,310 --> 00:02:11,350] the conventional paradigm has been
+[00:02:11,350 --> 00:02:14,310] to do next token prediction, meaning you take your data.
+[00:02:14,310 --> 00:02:19,130] You tokenize that into a string of tokens and token inputs,
+[00:02:19,130 --> 00:02:22,350] and you train the model with a negative log likelihood loss
+[00:02:22,350 --> 00:02:24,770] to predict the next token that appears in the sequence.
+[00:02:24,770 --> 00:02:26,270] So in the context of reasoning, this
+[00:02:26,270 --> 00:02:28,370] would mean you would take the question.
+[00:02:28,370 --> 00:02:30,570] You would tokenize it into a string of tokens.
+[00:02:30,570 --> 00:02:33,070] You'll take the answer, which is from one of these reference
+[00:02:33,070 --> 00:02:35,170] solutions, tokenize that into a string of tokens,
+[00:02:35,170 --> 00:02:36,628] and then train the model to predict
+[00:02:36,628 --> 00:02:40,830] this answer string conditioned on the input question string.
+[00:02:40,830 --> 00:02:43,350] Now, to start to look at, or start
+[00:02:43,350 --> 00:02:45,550] to understand why RL matters here,
+[00:02:45,550 --> 00:02:47,230] we'll start by asking this question
+[00:02:47,230 --> 00:02:49,790] of why does next token prediction of this form
+[00:02:49,790 --> 00:02:51,190] actually work?
+[00:02:51,190 --> 00:02:53,950] And again, this answering this question
+[00:02:53,950 --> 00:02:56,750] will take more than-- it's an open research
+[00:02:56,750 --> 00:02:58,070] question to be honest.
+[00:02:58,070 --> 00:03:01,190] But one perspective of looking at this that I particularly like
+[00:03:01,190 --> 00:03:03,910] is to look at this particular equation, which
+[00:03:03,910 --> 00:03:07,430] tells you how well next token prediction works in general.
+[00:03:07,430 --> 00:03:09,270] So what is this equation telling me?
+[00:03:09,270 --> 00:03:11,510] It's telling me that if I train a model, if I train
+[00:03:11,510 --> 00:03:14,930] a particular model p theta, which is mapping some inputs x,
+[00:03:14,930 --> 00:03:18,910] like the question, to some output y, like the answer,
+[00:03:18,910 --> 00:03:22,430] this learned model is only going to approximate the ground
+[00:03:22,430 --> 00:03:25,830] truth underlying model, or the ground truth solution,
+[00:03:25,830 --> 00:03:29,350] with an error, meaning with an error that
+[00:03:29,350 --> 00:03:31,750] is shown on the slide, which is p theta minus p star,
+[00:03:31,750 --> 00:03:35,110] depending on the size of the data that you use for training.
+[00:03:35,110 --> 00:03:36,950] So if you have a lot of data which
+[00:03:36,950 --> 00:03:40,208] shows you many, many questions and many, many answers,
+[00:03:40,208 --> 00:03:41,750] then ideally this error would be low,
+[00:03:41,750 --> 00:03:45,230] and you would approximate a very highly capable expert
+[00:03:45,230 --> 00:03:46,950] at solving these questions.
+[00:03:46,950 --> 00:03:49,680] But in reality, it so happens that the amount of data
+[00:03:49,680 --> 00:03:51,430] that you have for a lot of these reasoning
+[00:03:51,430 --> 00:03:54,470] problems, many other domains as well,
+[00:03:54,470 --> 00:03:57,600] you really don't have enough data to make this bound
+[00:03:57,600 --> 00:03:59,620] small enough, so you end up learning
+[00:03:59,620 --> 00:04:01,100] models that are not approximating
+[00:04:01,100 --> 00:04:04,740] human-level capabilities if you just do next token prediction.
+[00:04:04,740 --> 00:04:07,100] So there's actually a lot of work
+[00:04:07,100 --> 00:04:10,013] that exists out there which studies the amount of data.
+[00:04:10,013 --> 00:04:12,180] And one of the interesting things that they tell you
+[00:04:12,180 --> 00:04:14,580] is if you simply keep doing--
+[00:04:14,580 --> 00:04:17,100] if you simply keep taking high-quality solutions
+[00:04:17,100 --> 00:04:20,839] of hard questions from the internet,
+[00:04:20,839 --> 00:04:24,200] and you train your model with some supervised training,
+[00:04:24,200 --> 00:04:27,100] some next token prediction, you can not
+[00:04:27,100 --> 00:04:28,757] do really well because it's estimated
+[00:04:28,757 --> 00:04:31,340] that you're going to run out of high-quality data of this sort
+[00:04:31,340 --> 00:04:32,520] by 2028.
+[00:04:32,520 --> 00:04:34,460] And clearly, have not gotten to a level where
+[00:04:34,460 --> 00:04:37,080] you can do great research with-- or these models,
+[00:04:37,080 --> 00:04:40,100] can just replace human researchers, for instance.
+[00:04:40,100 --> 00:04:41,660] This also happens in other domains,
+[00:04:41,660 --> 00:04:44,200] like for instance, in robotics and embodied AI where, again,
+[00:04:44,200 --> 00:04:45,740] data is very limited, which means
+[00:04:45,740 --> 00:04:48,500] that if you just simply rely on next token prediction
+[00:04:48,500 --> 00:04:51,900] alone, you'll not be able to get the ground truth expert level
+[00:04:51,900 --> 00:04:55,620] capability in your model of sorts.
+[00:04:55,620 --> 00:04:58,500] So just to give you a concrete example,
+[00:04:58,500 --> 00:05:00,367] if you just train models on current data,
+[00:05:00,367 --> 00:05:02,700] and you ask them to solve this very interesting question
+[00:05:02,700 --> 00:05:05,555] from IMO 2021, presumably this question
+[00:05:05,555 --> 00:05:07,680] exists in the training sets of one of these models.
+[00:05:07,680 --> 00:05:12,000] But if you ask GPT or OpenAI family of models to solve this,
+[00:05:12,000 --> 00:05:14,260] they're going to give you a solution that looks very
+[00:05:14,260 --> 00:05:16,038] sensible in these settings.
+[00:05:16,038 --> 00:05:17,580] So they're going to produce solutions
+[00:05:17,580 --> 00:05:20,700] that look quite like a solution that a human expert would have
+[00:05:20,700 --> 00:05:23,180] written, except that they end up missing
+[00:05:23,180 --> 00:05:24,925] the logic behind the answer.
+[00:05:24,925 --> 00:05:27,300] So in this particular question, if you need to prove that
+[00:05:27,300 --> 00:05:29,160] inequality that you see up on the slide,
+[00:05:29,160 --> 00:05:32,020] you cannot really go out there and start to look at individual
+[00:05:32,020 --> 00:05:33,560] terms of that expression.
+[00:05:33,560 --> 00:05:35,380] You have to think about the whole summation
+[00:05:35,380 --> 00:05:36,880] as a whole and these models.
+[00:05:36,880 --> 00:05:39,240] This is, I think, from an O series model--
+[00:05:39,240 --> 00:05:43,180] I think O1 that I got the solution.
+[00:05:43,180 --> 00:05:46,020] It starts to look at individual terms, for instance,
+[00:05:46,020 --> 00:05:49,898] and ends up asserting its solution at the end.
+[00:05:49,898 --> 00:05:51,940] But it really does not realize that it's actually
+[00:05:51,940 --> 00:05:54,315] making a mistake and does not correct it.
+[00:05:54,315 --> 00:05:55,690] So really, what ends up happening
+[00:05:55,690 --> 00:05:57,890] with these current supervised training paradigms, when
+[00:05:57,890 --> 00:05:59,370] you think about reasoning, is that they're
+[00:05:59,370 --> 00:06:01,130] going to produce a solution that looks very
+[00:06:01,130 --> 00:06:02,810] much like a legitimate solution that you
+[00:06:02,810 --> 00:06:04,330] could have written on an exam.
+[00:06:04,330 --> 00:06:06,270] It's just that solution ends up being wrong,
+[00:06:06,270 --> 00:06:10,370] and the logical content of that solution is not quite correct.
+[00:06:10,370 --> 00:06:13,550] And that's precisely something that RL tries to fix.
+[00:06:13,550 --> 00:06:14,970] And I'll hopefully try to show you
+[00:06:14,970 --> 00:06:17,450] some examples today of what kind of RL
+[00:06:17,450 --> 00:06:20,850] techniques come to rescue in that setting.
+[00:06:20,850 --> 00:06:23,290] So in today's lecture, I guess we'll
+[00:06:23,290 --> 00:06:24,770] talk about RL for reasoning.
+[00:06:24,770 --> 00:06:29,030] I roughly characterized this in two parts,
+[00:06:29,030 --> 00:06:30,890] or I broke this down into two parts.
+[00:06:30,890 --> 00:06:33,110] And these two parts are based on timeline.
+[00:06:33,110 --> 00:06:37,610] So it's based on stuff that came before the DeepSeek-R1
+[00:06:37,610 --> 00:06:38,910] family of models came out.
+[00:06:38,910 --> 00:06:41,870] How many of you know what the DeepSeek R1 model is actually?
+[00:06:41,870 --> 00:06:44,770] I'm just curious-- or have seen it, have played around with it?
+[00:06:44,770 --> 00:06:46,610] It's a model that was released, which
+[00:06:46,610 --> 00:06:49,650] is from a company in China named DeepSeek, which
+[00:06:49,650 --> 00:06:51,770] is really, really good at solving
+[00:06:51,770 --> 00:06:54,890] a lot of these competition math problems or competition coding
+[00:06:54,890 --> 00:06:56,210] problems.
+[00:06:56,210 --> 00:06:59,050] It's in a similar vein, a similar style
+[00:06:59,050 --> 00:07:01,710] of model as the OpenAI series of models,
+[00:07:01,710 --> 00:07:04,190] or some of these thinking models that exist out there,
+[00:07:04,190 --> 00:07:07,610] like the Gemini thinking model or Claude Sonnet
+[00:07:07,610 --> 00:07:09,110] thinking version, et cetera.
+[00:07:09,110 --> 00:07:10,910] So these are models of the same family.
+[00:07:10,910 --> 00:07:11,730] And what we're going to do is we're
+[00:07:11,730 --> 00:07:13,650] going to talk about techniques that
+[00:07:13,650 --> 00:07:17,130] came before these models came out, which is early 2025-- so
+[00:07:17,130 --> 00:07:20,730] January 2025-- and some techniques that have become
+[00:07:20,730 --> 00:07:22,650] much more prominent in the community
+[00:07:22,650 --> 00:07:24,650] after these models came out.
+[00:07:24,650 --> 00:07:26,290] So the first part of my lecture will
+[00:07:26,290 --> 00:07:27,890] be based on these classical techniques
+[00:07:27,890 --> 00:07:29,190] that I'm going to talk about.
+[00:07:29,190 --> 00:07:31,410] And I'll talk about techniques that rely
+[00:07:31,410 --> 00:07:33,770] on some form of imitation learning, which I'm guessing
+[00:07:33,770 --> 00:07:35,020] has been covered in the class.
+[00:07:35,020 --> 00:07:36,562] We'll talk about some techniques that
+[00:07:36,562 --> 00:07:38,490] look like offline reinforcement learning,
+[00:07:38,490 --> 00:07:39,948] and I'll talk about some techniques
+[00:07:39,948 --> 00:07:42,170] that look like online reinforcement learning.
+[00:07:42,170 --> 00:07:45,450] This is my characterization of this whole space.
+[00:07:45,450 --> 00:07:47,210] In general, there's a lot of literature
+[00:07:47,210 --> 00:07:48,730] that has been coming out, so I'll probably
+[00:07:48,730 --> 00:07:49,850] miss out on some of them, but this
+[00:07:49,850 --> 00:07:51,600] is roughly a characterization that I think
+[00:07:51,600 --> 00:07:53,945] makes sense to think about.
+[00:07:53,945 --> 00:07:55,320] And after that, I'm going to talk
+[00:07:55,320 --> 00:07:57,640] about some modern extensions of these techniques
+[00:07:57,640 --> 00:08:01,953] into this thinking model territory, where we'll
+[00:08:01,953 --> 00:08:04,120] talk about how can you take some of these techniques
+[00:08:04,120 --> 00:08:07,840] that people have built before early 2025?
+[00:08:07,840 --> 00:08:10,000] And think about using them to train
+[00:08:10,000 --> 00:08:13,560] thinking models that have been doing really amazing right now.
+[00:08:13,560 --> 00:08:16,280] And there's some very interesting things
+[00:08:16,280 --> 00:08:19,040] that need to change when you go from the first on the left hand
+[00:08:19,040 --> 00:08:23,440] side to the right hand side in this particular setting.
+[00:08:23,440 --> 00:08:27,920] So I guess I already talked about the problem setup,
+[00:08:27,920 --> 00:08:31,520] but let me just quickly go into a little bit of a detail
+[00:08:31,520 --> 00:08:34,159] and connect back to RL terminology.
+[00:08:34,159 --> 00:08:36,850] So we're going to consider reasoning.
+[00:08:36,850 --> 00:08:39,100] And in this particular setting as I described earlier,
+[00:08:39,100 --> 00:08:41,100] you will be given a problem in natural language,
+[00:08:41,100 --> 00:08:43,679] and you have to write a solution in natural language.
+[00:08:43,679 --> 00:08:46,400] So what we can do when you think about this in the context of RL
+[00:08:46,400 --> 00:08:48,360] from an RL person's lens, is you can
+[00:08:48,360 --> 00:08:51,220] think of this whole problem solving as an MDP,
+[00:08:51,220 --> 00:08:53,280] as a Markov Decision Process.
+[00:08:53,280 --> 00:08:54,800] And to do that, what you can do is
+[00:08:54,800 --> 00:08:56,400] you can think of the string of tokens
+[00:08:56,400 --> 00:08:58,240] that exist in the-- or string of words
+[00:08:58,240 --> 00:09:00,640] that exist in the question as sort
+[00:09:00,640 --> 00:09:03,160] of an initial state of your MDP.
+[00:09:03,160 --> 00:09:05,520] So it's the initial state that your agent or your policy
+[00:09:05,520 --> 00:09:10,000] is going to start from when it starts to act in the world.
+[00:09:10,000 --> 00:09:13,640] You can think of the solution that the model produces
+[00:09:13,640 --> 00:09:16,920] as being broken down into a sequence of steps,
+[00:09:16,920 --> 00:09:19,665] and these steps could correspond to actions, for example.
+[00:09:19,665 --> 00:09:21,040] So you can think of it as there's
+[00:09:21,040 --> 00:09:23,615] a model, which takes as input this initial state, which
+[00:09:23,615 --> 00:09:24,240] is the problem.
+[00:09:24,240 --> 00:09:26,720] It, one by one, takes in a bunch of actions
+[00:09:26,720 --> 00:09:28,680] which are these steps, and at the end
+[00:09:28,680 --> 00:09:30,620] ends up with a particular answer.
+[00:09:30,620 --> 00:09:32,480] So in this particular setting, that answer
+[00:09:32,480 --> 00:09:37,320] is represented in this box that you see up there.
+[00:09:37,320 --> 00:09:38,458] And the answer is 8.
+[00:09:38,458 --> 00:09:40,000] And what you're going to do is you're
+[00:09:40,000 --> 00:09:44,640] going to reward the model with a sparse reward of plus 1
+[00:09:44,640 --> 00:09:48,870] if this answer ends up being correct, and a reward of 0
+[00:09:48,870 --> 00:09:51,070] if this answer does not end up being correct.
+[00:09:51,070 --> 00:09:54,630] So the real Markov decision process here is state.
+[00:09:54,630 --> 00:09:56,750] I'm going to a sequence of actions
+[00:09:56,750 --> 00:10:01,350] and going to a termination bit where the model produces
+[00:10:01,350 --> 00:10:04,030] an answer and you get a reward at the end of it
+[00:10:04,030 --> 00:10:08,670] if the particular answer is correct or not.
+[00:10:08,670 --> 00:10:12,150] So in RL terminology, this is a lot like a sparse reward MDP
+[00:10:12,150 --> 00:10:14,790] with a deterministic dynamics.
+[00:10:14,790 --> 00:10:15,750] What do I mean by this?
+[00:10:15,750 --> 00:10:18,532] Basically, there's no external environment
+[00:10:18,532 --> 00:10:20,490] in this whole process of producing these steps.
+[00:10:20,490 --> 00:10:23,390] There's no external environment that gives you a next state.
+[00:10:23,390 --> 00:10:26,390] All you are seeing is the initial state and these actions
+[00:10:26,390 --> 00:10:29,330] one by ond, which tell you that the next state of the problem.
+[00:10:29,330 --> 00:10:32,430] So I'll just draw on the board because I think--
+[00:10:32,430 --> 00:10:35,110] so this is your initial state.
+[00:10:35,110 --> 00:10:38,330] Your model takes as action, the particular step.
+[00:10:38,330 --> 00:10:39,830] The first step of the problem, it
+[00:10:39,830 --> 00:10:41,470] gets to state S1, which is nothing
+[00:10:41,470 --> 00:10:45,150] but the string of tokens in S0 and S0
+[00:10:45,150 --> 00:10:46,650] concatenated with each other.
+[00:10:46,650 --> 00:10:48,190] So that's all S1 is.
+[00:10:48,190 --> 00:10:51,050] It produces the next state A1 or next--
+[00:10:51,050 --> 00:10:54,970] it takes the next step A1 or next action A1 goes to S2.
+[00:10:54,970 --> 00:10:58,750] And your next state S2 is just S0, A0, A1
+[00:10:58,750 --> 00:11:01,970] concatenated with each other until you hit the final answer.
+[00:11:01,970 --> 00:11:03,410] So you do this multiple times.
+[00:11:03,410 --> 00:11:04,670] You hit the final answer.
+[00:11:04,670 --> 00:11:07,070] Your model produces some answer-- let's say 8.
+[00:11:07,070 --> 00:11:08,790] You get a reward which is based on
+[00:11:08,790 --> 00:11:13,230] whether 8 is equal to the ground truth answer or not.
+[00:11:13,230 --> 00:11:15,930] So you get a reward of r of 8 comma ground truth.
+[00:11:15,930 --> 00:11:17,870] This is either plus 1 or 0.
+[00:11:17,870 --> 00:11:20,438] That's your MDP that you're operating in.
+[00:11:20,438 --> 00:11:21,730] So that's a very good question.
+[00:11:21,730 --> 00:11:23,553] So the actions here could be infinity.
+[00:11:23,553 --> 00:11:24,970] There are infinitely many actions.
+[00:11:24,970 --> 00:11:28,150] But unlike having-- unlike continuous control where
+[00:11:28,150 --> 00:11:31,670] you have a fixed dimension vector of continuous values,
+[00:11:31,670 --> 00:11:34,710] which are also infinite, you have a variable length string
+[00:11:34,710 --> 00:11:37,030] of tokens which are discrete, but then there
+[00:11:37,030 --> 00:11:38,790] could be many of them.
+[00:11:38,790 --> 00:11:41,870] So the question is, what about questions
+[00:11:41,870 --> 00:11:47,420] where the answer is a proof or not a final numerical value?
+[00:11:47,420 --> 00:11:48,900] That's a very good question.
+[00:11:48,900 --> 00:11:51,020] I think we as a community haven't
+[00:11:51,020 --> 00:11:53,550] figured out the right set of techniques for such problems.
+[00:11:53,550 --> 00:11:55,800] So that's why we started off with competition problems
+[00:11:55,800 --> 00:11:58,298] where there is a sort of a deterministic final answer
+[00:11:58,298 --> 00:11:58,840] in some ways.
+[00:11:58,840 --> 00:12:00,580] So we'll assume for now that we have
+[00:12:00,580 --> 00:12:02,997] a deterministic final answer we'll end with.
+[00:12:02,997 --> 00:12:04,580] Yeah, so the question, is there a risk
+[00:12:04,580 --> 00:12:07,680] that we get to the right answer, but we take suboptimal steps?
+[00:12:07,680 --> 00:12:08,180] There is.
+[00:12:08,180 --> 00:12:10,420] And I'm going to be talking about that in this lecture
+[00:12:10,420 --> 00:12:10,920] actually.
+[00:12:10,920 --> 00:12:12,020] Yeah.
+[00:12:12,020 --> 00:12:15,340] So that's a basic reasoning MDP or a language.
+[00:12:15,340 --> 00:12:17,820] MDP, you can pose for studying reasoning problems
+[00:12:17,820 --> 00:12:19,903] in this particular setting, and at least something
+[00:12:19,903 --> 00:12:23,220] that I'm going to be sticking to in this particular lecture.
+[00:12:23,220 --> 00:12:25,820] So we'll start with studying some classical RL
+[00:12:25,820 --> 00:12:26,960] methods for reasoning.
+[00:12:26,960 --> 00:12:28,460] And what I'm going to do here is I'm
+[00:12:28,460 --> 00:12:31,557] going to cover one of my papers from NeurIPS 2024
+[00:12:31,557 --> 00:12:32,640] that you see on the slide.
+[00:12:32,640 --> 00:12:34,700] This is the first bullet point.
+[00:12:34,700 --> 00:12:36,120] And why am I covering that paper?
+[00:12:36,120 --> 00:12:37,620] It's not because this paper invented
+[00:12:37,620 --> 00:12:39,953] a lot of the techniques, but because this paper actually
+[00:12:39,953 --> 00:12:43,517] did a lot of interesting empirical analysis
+[00:12:43,517 --> 00:12:45,100] of a lot of the methods that exist out
+[00:12:45,100 --> 00:12:47,100] there to understand why something works
+[00:12:47,100 --> 00:12:48,700] and why something fails.
+[00:12:48,700 --> 00:12:51,480] So it's just a nice way to get a conceptual model,
+[00:12:51,480 --> 00:12:53,820] at least in my opinion, about all the techniques
+[00:12:53,820 --> 00:12:58,300] and the classical reasoning space with RL.
+[00:12:58,300 --> 00:13:00,540] So what we're going to do is we're
+[00:13:00,540 --> 00:13:03,900] going to try to understand how different methods--
+[00:13:03,900 --> 00:13:06,620] or how RL methods for training for reasoning
+[00:13:06,620 --> 00:13:10,140] behave when we train them on different amounts of data.
+[00:13:10,140 --> 00:13:12,340] So we're going to do what we call a data scaling
+[00:13:12,340 --> 00:13:15,580] analysis in this particular segment of the talk.
+[00:13:15,580 --> 00:13:17,460] So the basic setup here would be,
+[00:13:17,460 --> 00:13:20,620] I'm going to build algorithms that
+[00:13:20,620 --> 00:13:24,560] can be used to train reasoning models on a data set.
+[00:13:24,560 --> 00:13:26,940] This data set will consist of some problems
+[00:13:26,940 --> 00:13:29,980] or these initial states that I described to you earlier.
+[00:13:29,980 --> 00:13:32,222] And we'll assume access to some Oracle solutions
+[00:13:32,222 --> 00:13:34,180] because we need a way to check the ground truth
+[00:13:34,180 --> 00:13:36,180] answer because that defines the reward function.
+[00:13:36,180 --> 00:13:38,398] So we have a data set of problems and solutions
+[00:13:38,398 --> 00:13:39,940] that we're going to be training with.
+[00:13:39,940 --> 00:13:41,398] And what we're going to do is we're
+[00:13:41,398 --> 00:13:43,970] going to try to understand different classes of methods
+[00:13:43,970 --> 00:13:46,770] by evaluating how well they do when we train them
+[00:13:46,770 --> 00:13:49,170] on different amounts of problems and solution pairs
+[00:13:49,170 --> 00:13:52,770] that this data set gives us.
+[00:13:52,770 --> 00:13:54,250] So there's three axes we're going
+[00:13:54,250 --> 00:13:57,130] to look at when we think about training
+[00:13:57,130 --> 00:13:59,890] these methods on this data.
+[00:13:59,890 --> 00:14:03,930] We can train them with potentially ground truth answers
+[00:14:03,930 --> 00:14:05,470] on multiple questions.
+[00:14:05,470 --> 00:14:08,127] So we can take this data set of problems and solutions
+[00:14:08,127 --> 00:14:10,210] and train the model to produce the solution, given
+[00:14:10,210 --> 00:14:12,810] the question, like, what supervised fine tuning
+[00:14:12,810 --> 00:14:14,830] or imitation learning does.
+[00:14:14,830 --> 00:14:18,330] So we can just do imitation learning on top of this data.
+[00:14:18,330 --> 00:14:23,010] We'll introduce a new method that we call rejection fine
+[00:14:23,010 --> 00:14:26,970] tuning, which trains on many correct solutions for a given
+[00:14:26,970 --> 00:14:27,970] answer.
+[00:14:27,970 --> 00:14:33,102] So I'm going to write this method out here,
+[00:14:33,102 --> 00:14:34,310] and that'll be clear for you.
+[00:14:34,310 --> 00:14:36,727] So what you're going to do is you're going to take a model
+[00:14:36,727 --> 00:14:38,570] pi of y given x.
+[00:14:38,570 --> 00:14:41,550] We'll take a question x from my data set.
+[00:14:41,550 --> 00:14:44,910] So this is my question or problem.
+[00:14:44,910 --> 00:14:46,410] So this is my initial state.
+[00:14:46,410 --> 00:14:47,850] This is my solution which consists
+[00:14:47,850 --> 00:14:49,250] of a sequence of actions.
+[00:14:49,250 --> 00:14:51,970] What I'm going to do now is I'm going to take these questions
+[00:14:51,970 --> 00:14:57,690] and sample multiple solutions from my particular model,
+[00:14:57,690 --> 00:14:59,530] from my current model that I want to train
+[00:14:59,530 --> 00:15:00,655] in this particular setting.
+[00:15:00,655 --> 00:15:01,970] So I have a model pi theta.
+[00:15:01,970 --> 00:15:04,930] I'm going to sample multiple solutions conditioned
+[00:15:04,930 --> 00:15:10,830] on the question, given this particular model.
+[00:15:10,830 --> 00:15:14,240] So this is my model I'm training, the initial model.
+[00:15:16,770 --> 00:15:18,050] This is the data set.
+[00:15:18,050 --> 00:15:20,210] I'm going to sample multiple solution traces.
+[00:15:20,210 --> 00:15:24,530] What I'm going to do now is I'm going to take these traces,
+[00:15:24,530 --> 00:15:26,510] evaluate the rewards on each of them.
+[00:15:26,510 --> 00:15:35,290] So I'm going to evaluate r of Y1, r of Y2, r of Yn.
+[00:15:35,290 --> 00:15:36,190] Why can I do this?
+[00:15:36,190 --> 00:15:38,290] Because I have this question in my data set
+[00:15:38,290 --> 00:15:41,320] which means I have a ground truth answer,
+[00:15:41,320 --> 00:15:45,600] y star, for this question in my data set as well.
+[00:15:45,600 --> 00:15:50,545] Ground truth answer for x question.
+[00:15:50,545 --> 00:15:51,920] And what I can do is I can simply
+[00:15:51,920 --> 00:15:55,840] match whether multiple traces or multiple trajectories
+[00:15:55,840 --> 00:15:59,240] sampled from my policy pi theta end up in the right answer
+[00:15:59,240 --> 00:16:04,280] or not by checking whether the final number was correct or not.
+[00:16:04,280 --> 00:16:06,560] So what I'm doing here is I'm taking my initial model,
+[00:16:06,560 --> 00:16:08,960] sampling a bunch of traces, or rolling it out
+[00:16:08,960 --> 00:16:11,280] in my environment, which is simply producing solutions
+[00:16:11,280 --> 00:16:13,280] from this model for each question
+[00:16:13,280 --> 00:16:17,280] and evaluating the rewards against the ground truth answer.
+[00:16:17,280 --> 00:16:21,880] Now, what I do is I take this particular set of Y1
+[00:16:21,880 --> 00:16:25,600] to Yn's I produced, and I retain only those ones which
+[00:16:25,600 --> 00:16:27,720] ended up in the right answer.
+[00:16:27,720 --> 00:16:34,080] So I take the set s of Y1 to Yn, and I filter
+[00:16:34,080 --> 00:16:38,500] it to get some filtered set.
+[00:16:38,500 --> 00:16:41,080] Let's call it's s tilde, which consists
+[00:16:41,080 --> 00:16:49,120] of Ys, so Yj, such that the reward is 1,
+[00:16:49,120 --> 00:16:52,720] meaning these solutions ended up at the right answer.
+[00:16:52,720 --> 00:16:55,660] Does this procedure make sense to people?
+[00:16:55,660 --> 00:16:56,160] OK.
+[00:16:56,160 --> 00:16:58,760] And what I'm going to do now is now
+[00:16:58,760 --> 00:17:00,920] I have a bunch of traces or a bunch of trajectories
+[00:17:00,920 --> 00:17:02,587] that ended up at the right answer, which
+[00:17:02,587 --> 00:17:03,760] means they're successful.
+[00:17:03,760 --> 00:17:07,079] So what I can do is I can simply try to train my model pi theta
+[00:17:07,079 --> 00:17:09,079] to imitate these trajectories.
+[00:17:09,079 --> 00:17:13,140] So I can train pi theta to imitate S tilde.
+[00:17:13,140 --> 00:17:16,040] So I'm just going to write it down here again.
+[00:17:16,040 --> 00:17:23,880] So my algorithm looks like this for iteration 1 to some t
+[00:17:23,880 --> 00:17:26,940] that I can choose however I want.
+[00:17:26,940 --> 00:17:35,080] So step one is sample Y1 to n from pi theta of dot
+[00:17:35,080 --> 00:17:35,910] given x question.
+[00:17:38,800 --> 00:17:43,480] The second step is filter and generate
+[00:17:43,480 --> 00:17:53,000] s tilde, which consists of correct Y's only.
+[00:17:53,000 --> 00:17:58,623] And the third step is, do imitation or do BC or SFP,
+[00:17:58,623 --> 00:18:00,540] depending upon whatever terminology you like--
+[00:18:00,540 --> 00:18:01,680] you can call that--
+[00:18:01,680 --> 00:18:03,340] on s tilde.
+[00:18:03,340 --> 00:18:05,760] So you're training the model now by theta
+[00:18:05,760 --> 00:18:08,920] to produce only the Y's that were correct.
+[00:18:08,920 --> 00:18:12,160] So that's this particular approach.
+[00:18:12,160 --> 00:18:15,120] So this approach is what is called
+[00:18:15,120 --> 00:18:17,580] rejection fine tuning or RFP.
+[00:18:17,580 --> 00:18:20,880] And that's why you see it on the horizontal axis
+[00:18:20,880 --> 00:18:23,120] up there where what you're doing now
+[00:18:23,120 --> 00:18:25,440] is you're going to produce many solutions
+[00:18:25,440 --> 00:18:29,840] and try to filter for correct ones and train on them again.
+[00:18:29,840 --> 00:18:31,760] What happens now is you're rejecting
+[00:18:31,760 --> 00:18:34,360] the ones that were wrong, hence the word rejection.
+[00:18:34,360 --> 00:18:36,870] And fine tuning just stands for fine tuning, so RFT
+[00:18:36,870 --> 00:18:38,590] or rejection fine tuning.
+[00:18:38,590 --> 00:18:40,430] The nice property about this approach
+[00:18:40,430 --> 00:18:43,830] is it's not actually, asking you for Oracle solutions
+[00:18:43,830 --> 00:18:45,070] that a human wrote.
+[00:18:45,070 --> 00:18:50,530] All it asks for is solutions that your model can produce,
+[00:18:50,530 --> 00:18:52,030] which ended up being correct.
+[00:18:52,030 --> 00:18:54,270] So these are on-policy rollouts that
+[00:18:54,270 --> 00:18:55,737] are sampled from your policy.
+[00:18:55,737 --> 00:18:57,570] And you're simply filtering for correctness,
+[00:18:57,570 --> 00:19:00,112] which you can because you know what the reward function looks
+[00:19:00,112 --> 00:19:01,030] like.
+[00:19:01,030 --> 00:19:03,030] And the third axis here is actually
+[00:19:03,030 --> 00:19:04,830] full-blown reinforcement learning
+[00:19:04,830 --> 00:19:06,810] where, in RL when we train on data,
+[00:19:06,810 --> 00:19:09,110] we don't really need the data to be
+[00:19:09,110 --> 00:19:10,850] high-quality or high-rewarding.
+[00:19:10,850 --> 00:19:12,017] You talked about offline RL.
+[00:19:12,017 --> 00:19:13,017] That's on your homework.
+[00:19:13,017 --> 00:19:14,490] You can learn from suboptimal data,
+[00:19:14,490 --> 00:19:15,950] data that does not succeed.
+[00:19:15,950 --> 00:19:19,310] And so you can also think about the third axis in all
+[00:19:19,310 --> 00:19:21,390] of these methods as methods which
+[00:19:21,390 --> 00:19:23,550] train on incorrect solutions or learn
+[00:19:23,550 --> 00:19:25,930] from traces or rollouts that did not succeed,
+[00:19:25,930 --> 00:19:27,390] that attained a reward of 0.
+[00:19:27,390 --> 00:19:29,305] So I'm just going to call them RL.
+[00:19:29,305 --> 00:19:31,430] So there are these three different axis along which
+[00:19:31,430 --> 00:19:33,410] you can train methods.
+[00:19:33,410 --> 00:19:34,410] You can scale your data.
+[00:19:34,410 --> 00:19:38,510] You can scale your model bandwidth, number of questions
+[00:19:38,510 --> 00:19:40,950] and Oracle solutions, SFT, number of questions
+[00:19:40,950 --> 00:19:43,870] and correct solutions by filtering or rejection, which
+[00:19:43,870 --> 00:19:45,710] is called Rejection Fine Tuning, or RFP,
+[00:19:45,710 --> 00:19:47,630] and just training on any kind of data, which
+[00:19:47,630 --> 00:19:49,165] is reinforcement learning.
+[00:19:49,165 --> 00:19:50,790] So what I'm going to do in this lecture
+[00:19:50,790 --> 00:19:53,630] is we'll talk about how these different methods actually
+[00:19:53,630 --> 00:19:55,510] behave in practice, and that'll give us
+[00:19:55,510 --> 00:19:58,390] a sense of what to use in what case.
+[00:19:58,390 --> 00:20:00,990] So the question is, are we forcing the model to come up
+[00:20:00,990 --> 00:20:02,910] with overly verbose answers?
+[00:20:02,910 --> 00:20:04,830] So here we are not really--
+[00:20:04,830 --> 00:20:07,710] so the short answer is no because here we are not really
+[00:20:07,710 --> 00:20:09,617] encouraging verbosity at all.
+[00:20:09,617 --> 00:20:11,950] All we're doing is we're simply sampling multiple traces
+[00:20:11,950 --> 00:20:16,070] from a model and training the model to find answers--
+[00:20:16,070 --> 00:20:19,830] train the model to closley mimic traces, which ended up
+[00:20:19,830 --> 00:20:21,995] being successful in some way.
+[00:20:21,995 --> 00:20:23,870] So if the traces that end up being successful
+[00:20:23,870 --> 00:20:26,750] are those that actually need more space to be verbose,
+[00:20:26,750 --> 00:20:28,798] then it's going to incentivize you to be verbose.
+[00:20:28,798 --> 00:20:30,590] But if the questions that end up succeeding
+[00:20:30,590 --> 00:20:32,750] are not those-- or the traces that end up succeeding
+[00:20:32,750 --> 00:20:34,760] are not the ones that end up needing to be verbose,
+[00:20:34,760 --> 00:20:36,380] then it's going to not incentivize it.
+[00:20:36,380 --> 00:20:38,047] So imagine that, let's say, the question
+[00:20:38,047 --> 00:20:39,800] is 2 plus 2 is equal to question mark.
+[00:20:39,800 --> 00:20:42,000] Maybe one of the traces gets you an answer of 4.
+[00:20:42,000 --> 00:20:43,458] And there are some traces which are
+[00:20:43,458 --> 00:20:45,670] going to do this, which are going to count 2 plus 2
+[00:20:45,670 --> 00:20:47,040] in 10 different ways.
+[00:20:47,040 --> 00:20:49,220] But most of the traces write down 4 right away.
+[00:20:49,220 --> 00:20:50,580] Then what you're going to do in this process
+[00:20:50,580 --> 00:20:52,797] is you're going to find traces which end up with a 4
+[00:20:52,797 --> 00:20:55,380] right away, and you're going to train them all to produce four
+[00:20:55,380 --> 00:20:57,540] right away as the next token.
+[00:20:57,540 --> 00:21:00,580] So it's not necessarily going to happen that way.
+[00:21:00,580 --> 00:21:04,380] So the question is if the method got the correct answer
+[00:21:04,380 --> 00:21:07,700] with the wrong approach, then you're incentivizing the model
+[00:21:07,700 --> 00:21:08,365] to learn that.
+[00:21:08,365 --> 00:21:09,740] And the answer is yes, and that's
+[00:21:09,740 --> 00:21:12,880] why we'll see how these things behave in empirical results.
+[00:21:12,880 --> 00:21:14,787] That's the next part of the talk.
+[00:21:14,787 --> 00:21:16,620] Yeah, so the question is, would the data set
+[00:21:16,620 --> 00:21:18,580] be biased towards easy problems?
+[00:21:18,580 --> 00:21:22,900] The short answer is, it does, yes, in some way.
+[00:21:22,900 --> 00:21:25,380] But the practical answer for this question
+[00:21:25,380 --> 00:21:27,500] is, well, in these cases, what you're going to do
+[00:21:27,500 --> 00:21:29,380] is you're going to potentially start
+[00:21:29,380 --> 00:21:33,900] with training the model on top of Oracle Data or Oracle
+[00:21:33,900 --> 00:21:36,460] question answer pairs, first with SFT,
+[00:21:36,460 --> 00:21:39,500] the first axis that goes up, and then do rejection fine
+[00:21:39,500 --> 00:21:40,680] tuning on top of it.
+[00:21:40,680 --> 00:21:42,180] So the model has some capability now
+[00:21:42,180 --> 00:21:44,013] to produce some answers for those questions,
+[00:21:44,013 --> 00:21:45,620] and then you'll start doing it.
+[00:21:45,620 --> 00:21:48,340] Great, so this was actually one of the slides
+[00:21:48,340 --> 00:21:51,760] which took me a long time even in my lecture back then.
+[00:21:51,760 --> 00:21:53,740] But a lot of the slides from here
+[00:21:53,740 --> 00:21:56,180] on are actually talking about properties of these methods
+[00:21:56,180 --> 00:21:56,752] actually.
+[00:21:56,752 --> 00:21:58,460] So the first thing we're going to look at
+[00:21:58,460 --> 00:22:00,280] is how does SFT behave?
+[00:22:00,280 --> 00:22:02,520] So training your model with imitation
+[00:22:02,520 --> 00:22:04,260] learning on correct answers, given
+[00:22:04,260 --> 00:22:06,540] questions that some human wrote.
+[00:22:06,540 --> 00:22:11,020] So when we're doing this work we looked at two benchmarks
+[00:22:11,020 --> 00:22:13,500] named GSM8K and MATH.
+[00:22:13,500 --> 00:22:15,680] These benchmarks now are fully solved.
+[00:22:15,680 --> 00:22:19,220] So it doesn't make sense to, going forward, benchmark methods
+[00:22:19,220 --> 00:22:20,460] on these benchmarks.
+[00:22:20,460 --> 00:22:24,420] But back then in 2024-- this was a year ago exactly--
+[00:22:24,420 --> 00:22:26,740] these benchmarks were very sort of representative
+[00:22:26,740 --> 00:22:28,320] of useful methods.
+[00:22:28,320 --> 00:22:32,050] So what we tried to do in this particular slide
+[00:22:32,050 --> 00:22:35,107] is we are trying to see how well SFT behaves
+[00:22:35,107 --> 00:22:36,690] and comparing it to-- and we're trying
+[00:22:36,690 --> 00:22:38,730] to compare it to RFP, or Rejection Fine Tuning,
+[00:22:38,730 --> 00:22:40,170] that I described to you.
+[00:22:40,170 --> 00:22:42,150] We do that on top of multiple models,
+[00:22:42,150 --> 00:22:44,970] and here I'm showing you one result on top of the DeepSeek V2
+[00:22:44,970 --> 00:22:45,590] model.
+[00:22:45,590 --> 00:22:49,090] That was one of the best math models back at that time.
+[00:22:49,090 --> 00:22:51,930] And what I'm plotting here is I'm plotting the average test
+[00:22:51,930 --> 00:22:55,490] error of these model after fine tuning with these SFT and RFP
+[00:22:55,490 --> 00:22:59,770] methods as a function of how much data we run fine tuning on.
+[00:22:59,770 --> 00:23:01,497] So the more the data, the ideal.
+[00:23:01,497 --> 00:23:03,330] And the picture is you will get lower error,
+[00:23:03,330 --> 00:23:05,580] and you should be able to actually get better accuracy
+[00:23:05,580 --> 00:23:08,890] because you have more data, more coverage of questions like that.
+[00:23:08,890 --> 00:23:10,030] So that indeed does happen.
+[00:23:10,030 --> 00:23:11,930] So you do find that error goes down
+[00:23:11,930 --> 00:23:13,730] as you scale up the amount of questions
+[00:23:13,730 --> 00:23:15,370] in both of these settings.
+[00:23:15,370 --> 00:23:18,330] But clearly, the error does not go down
+[00:23:18,330 --> 00:23:21,770] at a very fast rate, meaning it so turns out
+[00:23:21,770 --> 00:23:26,170] that the test error, if you try to approximate the closest
+[00:23:26,170 --> 00:23:28,670] function to this particular curve,
+[00:23:28,670 --> 00:23:32,450] it'll be the function that looks like D to the minus 0.15
+[00:23:32,450 --> 00:23:33,597] or D to the minus 0.05.
+[00:23:33,597 --> 00:23:35,430] So this particular curve that you're seeing,
+[00:23:35,430 --> 00:23:36,670] these are empirical measurements.
+[00:23:36,670 --> 00:23:38,337] But if I try to fit a smooth curve to it
+[00:23:38,337 --> 00:23:40,170] as a function of the data set size,
+[00:23:40,170 --> 00:23:43,515] that the exponent is going to be a very small number.
+[00:23:43,515 --> 00:23:45,890] Ideally, you would want this exponent to be really large,
+[00:23:45,890 --> 00:23:48,135] like, D to the minus 1/2, for instance,
+[00:23:48,135 --> 00:23:50,010] because this curve will go down very quickly.
+[00:23:50,010 --> 00:23:51,590] And with a reasonable amount of data,
+[00:23:51,590 --> 00:23:53,965] you're going to be succeeding at the particular problem--
+[00:23:53,965 --> 00:23:55,230] at this particular data set.
+[00:23:55,230 --> 00:23:57,450] But that doesn't happen in this case.
+[00:23:57,450 --> 00:23:59,530] So one of the goals that we then could
+[00:23:59,530 --> 00:24:01,930] have for a lot of these reasoning methods and RL
+[00:24:01,930 --> 00:24:05,290] methods for reasoning is to push this curve
+[00:24:05,290 --> 00:24:10,270] as much as possible towards the left and towards the x-axis.
+[00:24:10,270 --> 00:24:13,730] So push them down and towards the left.
+[00:24:13,730 --> 00:24:15,650] And the first result we saw to that extent
+[00:24:15,650 --> 00:24:18,010] was the fact that rejection fine tuning or training
+[00:24:18,010 --> 00:24:21,650] on your own data, on your own correct solutions,
+[00:24:21,650 --> 00:24:24,190] actually gets you a much better test error.
+[00:24:24,190 --> 00:24:28,480] So you find that you can get the same test error on both of these
+[00:24:28,480 --> 00:24:32,960] benchmarks with RFP, as you could do with 2x the number
+[00:24:32,960 --> 00:24:35,800] of questions and 2x the number of human-written solutions
+[00:24:35,800 --> 00:24:37,880] for SFT.
+[00:24:37,880 --> 00:24:41,640] So what this tells you at a high level is that on-policy
+[00:24:41,640 --> 00:24:44,480] imitation, learning, sampling from your policy and imitating
+[00:24:44,480 --> 00:24:47,360] the correct answers can be 2x more efficient in this
+[00:24:47,360 --> 00:24:51,160] particular setting, compared to SFT alone or off-policy SFT
+[00:24:51,160 --> 00:24:53,640] or just imitation learning alone.
+[00:24:53,640 --> 00:24:54,500] OK, great.
+[00:24:54,500 --> 00:24:59,177] So that's the first result, first takeaway to have here.
+[00:24:59,177 --> 00:25:00,760] But it so turns out that if you simply
+[00:25:00,760 --> 00:25:02,720] keep doing this over and over, it's
+[00:25:02,720 --> 00:25:05,960] not going to give you the best possible policy or the best
+[00:25:05,960 --> 00:25:07,080] possible model.
+[00:25:07,080 --> 00:25:10,127] So if you simply keep scaling up SFT on policy data,
+[00:25:10,127 --> 00:25:11,460] what do I mean by scaling it up?
+[00:25:11,460 --> 00:25:14,660] I mean you increase this value of n that you see up here.
+[00:25:14,660 --> 00:25:16,680] So you just sample tons and tons of solutions
+[00:25:16,680 --> 00:25:18,440] and pick the correct ones and just start
+[00:25:18,440 --> 00:25:20,260] to do BC on all of them.
+[00:25:20,260 --> 00:25:22,840] Turns out that that recipe does not actually work.
+[00:25:22,840 --> 00:25:25,560] So what happens is on-policy imitation learning ends
+[00:25:25,560 --> 00:25:28,880] up hurting generalization if you do too much of it.
+[00:25:28,880 --> 00:25:30,560] And to show a result for it, I'm going
+[00:25:30,560 --> 00:25:35,080] to show you a plot here, which is showing the test
+[00:25:35,080 --> 00:25:36,960] performance, so the same plot.
+[00:25:36,960 --> 00:25:41,000] But now the x-axis is the number of correct answers
+[00:25:41,000 --> 00:25:43,720] you get in this filtered set that I was describing
+[00:25:43,720 --> 00:25:45,740] to you earlier per question.
+[00:25:45,740 --> 00:25:49,660] So you can scale it up for how much ever you want.
+[00:25:49,660 --> 00:25:52,280] The size of s tilde multiplied by a constant factor
+[00:25:52,280 --> 00:25:53,960] is shown on the x-axis, and we're
+[00:25:53,960 --> 00:25:57,260] plotting the performance of the resulting RFP trained model.
+[00:25:57,260 --> 00:25:58,760] The interesting thing to notice here
+[00:25:58,760 --> 00:26:01,180] is that, initially, your error goes down.
+[00:26:01,180 --> 00:26:02,597] So as you do more and more correct
+[00:26:02,597 --> 00:26:04,513] solution traces, as you generate more and more
+[00:26:04,513 --> 00:26:05,900] of these correct solution traces,
+[00:26:05,900 --> 00:26:08,060] your error goes down, as you see initially.
+[00:26:08,060 --> 00:26:09,600] But then beyond a point, your error
+[00:26:09,600 --> 00:26:11,940] starts to go up in this particular setting.
+[00:26:11,940 --> 00:26:13,973] So you find that, beyond a point,
+[00:26:13,973 --> 00:26:15,140] you get diminishing returns.
+[00:26:15,140 --> 00:26:16,515] And there's no way you can simply
+[00:26:16,515 --> 00:26:18,600] generate more solutions from your policy,
+[00:26:18,600 --> 00:26:20,460] mimic them, and get better performance.
+[00:26:20,460 --> 00:26:23,043] And in fact, the error even goes up on some of these data sets
+[00:26:23,043 --> 00:26:25,240] that you see up here.
+[00:26:25,240 --> 00:26:27,470] [INAUDIBLE]
+[00:26:28,590 --> 00:26:30,710] You can think of it as S--
+[00:26:30,710 --> 00:26:31,730] the size of S tilde.
+[00:26:31,730 --> 00:26:33,230] It's the number of correct solutions
+[00:26:33,230 --> 00:26:34,710] you retain per question.
+[00:26:34,710 --> 00:26:36,530] So the question was, what is the x-axis?
+[00:26:36,530 --> 00:26:38,270] The x-axis is number of S tilde.
+[00:26:38,270 --> 00:26:39,580] For each S.
+[00:26:39,580 --> 00:26:44,590] So the plot it's basically, S tilde times 8K in the plot
+[00:26:44,590 --> 00:26:47,450] because that's the number of prompts that you see up here.
+[00:26:47,450 --> 00:26:49,710] But yeah, it's just a constant multiplier
+[00:26:49,710 --> 00:26:52,845] which stays same for all the points on that particular plot.
+[00:26:52,845 --> 00:26:53,970] So that's a great question.
+[00:26:53,970 --> 00:26:56,890] So the question is, when you scale S tilde, which is for RFP,
+[00:26:56,890 --> 00:26:58,910] do you do deduplication?
+[00:26:58,910 --> 00:27:00,110] The answer is yes.
+[00:27:00,110 --> 00:27:02,110] And I actually removed that detail from my slide
+[00:27:02,110 --> 00:27:03,770] because I thought it would be too much details.
+[00:27:03,770 --> 00:27:05,390] But since you asked it, the answer
+[00:27:05,390 --> 00:27:07,530] is yes, you would often-- when you do this process,
+[00:27:07,530 --> 00:27:10,112] you would often deduplicate S tildes.
+[00:27:10,112 --> 00:27:11,570] There's a lot of mechanisms for it.
+[00:27:11,570 --> 00:27:15,070] People can do just edit distance-based rejection
+[00:27:15,070 --> 00:27:15,570] as well.
+[00:27:15,570 --> 00:27:17,850] So keep the sample more than n.
+[00:27:17,850 --> 00:27:20,990] So one of the recipes people do is sample more than n, like, 2n,
+[00:27:20,990 --> 00:27:23,990] and retain the n of them, which actually seem to be maximally
+[00:27:23,990 --> 00:27:24,620] diverse.
+[00:27:24,620 --> 00:27:26,370] That's something people do a lot of times.
+[00:27:26,370 --> 00:27:28,670] So yeah, you do that kind of thing.
+[00:27:28,670 --> 00:27:29,790] Great, OK.
+[00:27:29,790 --> 00:27:31,630] So what this tells us at a high level
+[00:27:31,630 --> 00:27:33,590] is that fitting on self-generated data
+[00:27:33,590 --> 00:27:36,310] on a limited number of initial states
+[00:27:36,310 --> 00:27:38,610] actually hurts generalization of the model.
+[00:27:38,610 --> 00:27:41,010] So if you recall the picture that I drew earlier,
+[00:27:41,010 --> 00:27:44,510] which I erased, where there was an S0, and your model took an A0
+[00:27:44,510 --> 00:27:46,990] and went to S1, you can think of this as basically training
+[00:27:46,990 --> 00:27:49,910] on a set of S0 and evaluating on a new set,
+[00:27:49,910 --> 00:27:52,490] on a new test problem.
+[00:27:52,490 --> 00:27:54,990] And turns out that if you train too much on a particular set
+[00:27:54,990 --> 00:27:56,450] of S naughts in this particular way,
+[00:27:56,450 --> 00:27:57,992] you end up hitting the generalization
+[00:27:57,992 --> 00:28:01,230] bottleneck in that setting.
+[00:28:01,230 --> 00:28:02,610] OK, so why does this happen?
+[00:28:02,610 --> 00:28:04,978] And this is the picture that I'm going to talk about.
+[00:28:04,978 --> 00:28:07,270] And I'll connect it to some of the interesting concepts
+[00:28:07,270 --> 00:28:09,510] that we know in imitation learning right now,
+[00:28:09,510 --> 00:28:12,110] which is this picture of spurious steps.
+[00:28:12,110 --> 00:28:14,390] So yeah, so what we're going to do
+[00:28:14,390 --> 00:28:17,070] is we'll move away a little bit from examples
+[00:28:17,070 --> 00:28:18,830] and look at pictures.
+[00:28:18,830 --> 00:28:20,788] And what we'll do is we'll plot these pictures,
+[00:28:20,788 --> 00:28:22,247] as I was describing to you earlier,
+[00:28:22,247 --> 00:28:23,810] as this little trajectory in an MDP.
+[00:28:23,810 --> 00:28:25,393] So you have prompts as initial states,
+[00:28:25,393 --> 00:28:27,340] and you're producing these steps one by one.
+[00:28:27,340 --> 00:28:28,548] They take you to next states.
+[00:28:28,548 --> 00:28:30,860] And then eventually, you end up at the answer.
+[00:28:30,860 --> 00:28:33,500] So happens that when you sample a lot from your own model
+[00:28:33,500 --> 00:28:35,140] and train on it on policy, like, you
+[00:28:35,140 --> 00:28:36,980] sample from your policy and train
+[00:28:36,980 --> 00:28:38,660] on it, you'll often find that there
+[00:28:38,660 --> 00:28:42,420] are some of these traces which end up having steps which
+[00:28:42,420 --> 00:28:45,480] are spurious in nature, steps which actually are incorrect,
+[00:28:45,480 --> 00:28:48,480] but they just somehow don't affect the model's generation.
+[00:28:48,480 --> 00:28:50,355] So I'm going to show you an example.
+[00:28:50,355 --> 00:28:52,980] But basically, these are steps which would take you to a regime
+[00:28:52,980 --> 00:28:55,620] where you're maybe doing a wrong calculation.
+[00:28:55,620 --> 00:28:57,920] Somehow, you get there.
+[00:28:57,920 --> 00:28:59,580] Maybe on this particular trace when
+[00:28:59,580 --> 00:29:01,100] you're sampling from your model, you
+[00:29:01,100 --> 00:29:02,920] end up do recovering from these traces.
+[00:29:02,920 --> 00:29:04,580] So you end up with the correct answer.
+[00:29:04,580 --> 00:29:08,460] But maybe in reality, these traces are actually harmful.
+[00:29:08,460 --> 00:29:10,300] So just to give you an example, let's say
+[00:29:10,300 --> 00:29:12,520] this is a little arithmetic problem.
+[00:29:12,520 --> 00:29:14,320] It's from this GSM8K data set.
+[00:29:14,320 --> 00:29:15,720] One interesting example we found,
+[00:29:15,720 --> 00:29:18,700] which was the most stark example of this particular issue,
+[00:29:18,700 --> 00:29:21,460] was there's a solution from the model which
+[00:29:21,460 --> 00:29:22,900] does some calculation.
+[00:29:22,900 --> 00:29:26,500] Then it says that the total amount of money needed
+[00:29:26,500 --> 00:29:28,840] is like, 100 times 2, which is 200,
+[00:29:28,840 --> 00:29:31,320] and it reverses its calculation in the next line.
+[00:29:31,320 --> 00:29:35,520] So the true calculation is 100 by 2, but it ends up saying 200
+[00:29:35,520 --> 00:29:37,610] and then goes to 100 by 2 right away.
+[00:29:37,610 --> 00:29:39,860] So what ends up happening is this particular step that
+[00:29:39,860 --> 00:29:42,920] exists in the middle, where it's doing 200, is a spurious step.
+[00:29:42,920 --> 00:29:44,680] It's a step that is not needed.
+[00:29:44,680 --> 00:29:47,000] It's an incorrect step that exists in the solution.
+[00:29:47,000 --> 00:29:48,500] You end up still at the right answer
+[00:29:48,500 --> 00:29:50,860] in this particular rollout, but this step
+[00:29:50,860 --> 00:29:55,020] shouldn't be there in reality in that particular setting.
+[00:29:55,020 --> 00:29:58,278] So that's a spurious step in this particular set.
+[00:29:58,278 --> 00:30:00,320] So the question is the step is always a sentence.
+[00:30:00,320 --> 00:30:02,140] For now, you can imagine it's always
+[00:30:02,140 --> 00:30:04,100] a sentence in this particular setting.
+[00:30:04,100 --> 00:30:06,800] There's no universally agreed upon definition to it.
+[00:30:06,800 --> 00:30:08,137] So this is a very--
+[00:30:08,137 --> 00:30:09,720] I guess in the second part of my talk,
+[00:30:09,720 --> 00:30:11,540] I'm going to show you some examples where the step is not
+[00:30:11,540 --> 00:30:12,320] at all a sentence.
+[00:30:12,320 --> 00:30:13,487] It's a full block of things.
+[00:30:13,487 --> 00:30:15,400] So yeah, that's a great question.
+[00:30:15,400 --> 00:30:20,080] So the question is, "Is this the main cause of increase in error?
+[00:30:20,080 --> 00:30:22,290] And can you not measure it in some way?"
+[00:30:22,290 --> 00:30:24,090] So it turns out that the answer to both
+[00:30:24,090 --> 00:30:27,290] is, yes, it's one of the main causes for increase in error.
+[00:30:27,290 --> 00:30:29,330] Can you measure it in some way?
+[00:30:29,330 --> 00:30:31,410] At least normal notions of fitting the data
+[00:30:31,410 --> 00:30:33,150] won't tell you this.
+[00:30:33,150 --> 00:30:34,150] That's a great question.
+[00:30:34,150 --> 00:30:35,850] So the question is, "Can we associate the overfitting
+[00:30:35,850 --> 00:30:36,670] problem to this?"
+[00:30:36,670 --> 00:30:37,750] So you can actually measure this.
+[00:30:37,750 --> 00:30:39,110] In the paper, we did measure this.
+[00:30:39,110 --> 00:30:41,360] We measured the amount of spurious steps that you see,
+[00:30:41,360 --> 00:30:42,443] and it grows on over time.
+[00:30:42,443 --> 00:30:44,860] Obviously, I cannot give you a proof that this is the only
+[00:30:44,860 --> 00:30:45,370] cause.
+[00:30:45,370 --> 00:30:47,030] I can give you proof that this should be a problem.
+[00:30:47,030 --> 00:30:49,363] I cannot give you a proof that this is the only problem,
+[00:30:49,363 --> 00:30:51,632] but this is one of the big problems that you see.
+[00:30:51,632 --> 00:30:54,090] So the question is, "How do you find out if it's a spurious
+[00:30:54,090 --> 00:30:54,430] step?"
+[00:30:54,430 --> 00:30:56,472] In our experiments, we do it in a particular way,
+[00:30:56,472 --> 00:30:58,370] and that also dictates a lot of methodologies
+[00:30:58,370 --> 00:31:00,650] that I'm going to show you in a second.
+[00:31:00,650 --> 00:31:02,217] So this particular method--
+[00:31:02,217 --> 00:31:04,550] so the question is, "Do you sample entire trajectories?"
+[00:31:04,550 --> 00:31:07,050] This particular method samples entire trajectories.
+[00:31:07,050 --> 00:31:09,530] You can sample a parts of trajectories
+[00:31:09,530 --> 00:31:10,970] if you want it to be, but I think
+[00:31:10,970 --> 00:31:13,330] it needs some advanced machinery that I
+[00:31:13,330 --> 00:31:15,850] think can be done based on what I'm going to talk about
+[00:31:15,850 --> 00:31:17,350] in the next slide.
+[00:31:17,350 --> 00:31:18,350] That's a great question.
+[00:31:18,350 --> 00:31:20,370] So the question is, "Do you overfit to a certain class
+[00:31:20,370 --> 00:31:22,210] of methods that got to the right answer?"
+[00:31:22,210 --> 00:31:26,450] In a way, the answer is, at a high level, yes, with the caveat
+[00:31:26,450 --> 00:31:29,170] that I don't know how to define what a method means.
+[00:31:29,170 --> 00:31:31,470] So you can call a method that--
+[00:31:31,470 --> 00:31:33,290] so just seeing this example, one can
+[00:31:33,290 --> 00:31:36,170] say that the calculation of 100 times 2
+[00:31:36,170 --> 00:31:38,530] is a methodological phenomenon that the model wants
+[00:31:38,530 --> 00:31:40,490] to do to be able to then succeed and then
+[00:31:40,490 --> 00:31:42,290] realize that it was wrong.
+[00:31:42,290 --> 00:31:44,490] You can also say that really, the method here
+[00:31:44,490 --> 00:31:46,835] is nothing but just doing a bunch of arithmetic,
+[00:31:46,835 --> 00:31:48,710] so it really depends on what you define that.
+[00:31:48,710 --> 00:31:51,110] And I think it's a semantic question at that point.
+[00:31:51,110 --> 00:31:54,103] But yeah, so from a very symbolic perspective,
+[00:31:54,103 --> 00:31:56,770] one can say that there are a set of tokens that maybe still lead
+[00:31:56,770 --> 00:31:58,742] you to the right answer on the training set,
+[00:31:58,742 --> 00:32:01,450] but may not actually help you do the right thing on the test set,
+[00:32:01,450 --> 00:32:03,170] on a test problem.
+[00:32:03,170 --> 00:32:06,290] So this is very similar to the problem of causal confusion
+[00:32:06,290 --> 00:32:08,810] in imitation learning actually.
+[00:32:08,810 --> 00:32:10,750] I'm not sure if causal confusion--
+[00:32:10,750 --> 00:32:12,153] OK, OK, OK, never mind.
+[00:32:12,153 --> 00:32:13,570] But basically there's this problem
+[00:32:13,570 --> 00:32:17,930] of if you produce a bunch of stuff
+[00:32:17,930 --> 00:32:23,220] in your policy, that might be bad, like these spurious steps,
+[00:32:23,220 --> 00:32:25,120] you might just not learn to imitate
+[00:32:25,120 --> 00:32:26,900] the expert in the right way possible.
+[00:32:26,900 --> 00:32:30,858] So maybe you actually end up at the right answer,
+[00:32:30,858 --> 00:32:32,900] but you're learning these incorrect associations.
+[00:32:32,900 --> 00:32:35,442] That's basically the gist of this problem of causal confusion
+[00:32:35,442 --> 00:32:36,880] that people in imitation learning
+[00:32:36,880 --> 00:32:40,040] know a lot about actually,
+[00:32:40,040 --> 00:32:41,493] OK, so how can we address this?
+[00:32:41,493 --> 00:32:43,160] And that's where RL comes in, and that's
+[00:32:43,160 --> 00:32:45,400] the third axis of using incorrect data
+[00:32:45,400 --> 00:32:47,720] or incorrect rollouts for learning.
+[00:32:47,720 --> 00:32:50,080] The simple idea is, as many of you
+[00:32:50,080 --> 00:32:52,920] already asked questions about, assigning some notion
+[00:32:52,920 --> 00:32:54,260] of a credit to a step.
+[00:32:54,260 --> 00:32:58,760] So if I can understand what is the utility of every single step
+[00:32:58,760 --> 00:33:01,340] or every single state that my policy generates,
+[00:33:01,340 --> 00:33:03,160] then I can somehow use that notion
+[00:33:03,160 --> 00:33:08,160] to filter off these bad kinds of solutions in some way.
+[00:33:08,160 --> 00:33:11,640] So that's exactly what we do, or what RL for reasoning
+[00:33:11,640 --> 00:33:13,680] tries to do at a high level as well.
+[00:33:13,680 --> 00:33:15,880] So identifying these spurious steps
+[00:33:15,880 --> 00:33:18,240] and eliminating them in some way.
+[00:33:18,240 --> 00:33:21,520] So the way to do this is the following-- and this ties
+[00:33:21,520 --> 00:33:24,000] back to a lot of concepts of value functions and advantage
+[00:33:24,000 --> 00:33:27,028] functions that many of you are probably familiar with.
+[00:33:27,028 --> 00:33:28,820] So I'm going to start with an illustration,
+[00:33:28,820 --> 00:33:31,800] and then I'll write down the exact math for what this means.
+[00:33:31,800 --> 00:33:33,720] So let's say I gave you a particular rollout
+[00:33:33,720 --> 00:33:35,200] or a particular trace.
+[00:33:35,200 --> 00:33:36,800] So again, starting from a prompt,
+[00:33:36,800 --> 00:33:39,287] adding these steps or actions and going
+[00:33:39,287 --> 00:33:41,620] to a final answer, which maybe ended up being incorrect,
+[00:33:41,620 --> 00:33:43,640] so it's shown as a red dot.
+[00:33:43,640 --> 00:33:47,120] What I can do now is I can try to identify whether a step is
+[00:33:47,120 --> 00:33:51,040] spurious or not by taking these particular prefixes,
+[00:33:51,040 --> 00:33:53,360] or taking these particular states that were basically
+[00:33:53,360 --> 00:33:55,400] concatenating all the tokens so far,
+[00:33:55,400 --> 00:33:59,400] and doing what you can think of as rollouts in a way.
+[00:33:59,400 --> 00:34:03,680] So I can ask some model to try to complete the solution, given
+[00:34:03,680 --> 00:34:06,240] a prefix of a generated solution.
+[00:34:06,240 --> 00:34:08,230] So for example, in this particular setting
+[00:34:08,230 --> 00:34:10,480] that you see on the slide, I have kept the first three
+[00:34:10,480 --> 00:34:11,920] steps the same.
+[00:34:11,920 --> 00:34:15,440] And I'm asking a separate model or a separate rollout policy
+[00:34:15,440 --> 00:34:18,500] to try to complete the solution, given this particular prefix.
+[00:34:21,250 --> 00:34:23,969] So if I do this, and let's say the rollout ends up succeeding--
+[00:34:23,969 --> 00:34:26,830] so many of these rollouts end up at the right answer--
+[00:34:26,830 --> 00:34:30,150] then, likely, the prefix was not too bad because, clearly,
+[00:34:30,150 --> 00:34:32,370] for this particular rollout policy,
+[00:34:32,370 --> 00:34:35,790] it did not end up affecting any of
+[00:34:35,790 --> 00:34:38,920] its problem-solving abilities.
+[00:34:38,920 --> 00:34:40,670] On the other hand, let's say if I ended up
+[00:34:40,670 --> 00:34:43,750] at a totally wrong answer, conditioned on the prefix
+[00:34:43,750 --> 00:34:47,889] that you see up here, clearly, something is not OK here.
+[00:34:47,889 --> 00:34:50,592] And clearly, there's something wrong with the prefix
+[00:34:50,592 --> 00:34:52,550] that you're seeing up here because your rollout
+[00:34:52,550 --> 00:34:55,590] policy could not at all succeed, conditioned on that prefix, even
+[00:34:55,590 --> 00:34:58,430] after doing many possible rollouts.
+[00:34:58,430 --> 00:35:01,050] And if I ended up succeeding sometimes and sometimes not,
+[00:35:01,050 --> 00:35:02,490] maybe there's still some issue.
+[00:35:02,490 --> 00:35:04,282] Maybe it's not the best thing you can have,
+[00:35:04,282 --> 00:35:06,230] but at least it's slightly better
+[00:35:06,230 --> 00:35:10,670] than always failing that you see up here, for instance.
+[00:35:10,670 --> 00:35:13,230] So this basic principle of doing rollouts and estimating
+[00:35:13,230 --> 00:35:15,990] some notion of expected success in the future
+[00:35:15,990 --> 00:35:17,910] can tell you something about what
+[00:35:17,910 --> 00:35:20,670] is wrong with the current prefix that you are particularly
+[00:35:20,670 --> 00:35:22,670] operating at.
+[00:35:22,670 --> 00:35:27,030] This is also very similar to a value function because this is
+[00:35:27,030 --> 00:35:31,870] basically computing the expected future 01 reward that my rollout
+[00:35:31,870 --> 00:35:34,950] policy, that this orange policy gets when it acts in this
+[00:35:34,950 --> 00:35:36,910] particular MDP.
+[00:35:36,910 --> 00:35:39,710] So the question is-- the spurious step on the previous
+[00:35:39,710 --> 00:35:40,510] slide--
+[00:35:40,510 --> 00:35:45,950] "IS that actually irrelevant or Incorrect?"
+[00:35:45,950 --> 00:35:47,870] Or irrelevant slash--
+[00:35:47,870 --> 00:35:49,630] I mean, it's incorrect purely because--
+[00:35:49,630 --> 00:35:52,970] or OK, the step is not incorrect in its own right,
+[00:35:52,970 --> 00:35:55,550] but it is irrelevant a way.
+[00:35:55,550 --> 00:35:57,710] Imagine for a second that if you pass to a language
+[00:35:57,710 --> 00:36:00,670] model a million irrelevant tokens
+[00:36:00,670 --> 00:36:03,270] and ask it to dig out the information that actually
+[00:36:03,270 --> 00:36:05,590] matters, that can be a challenging problem on a test
+[00:36:05,590 --> 00:36:06,090] set.
+[00:36:06,090 --> 00:36:08,550] So that's why, even if a step is irrelevant,
+[00:36:08,550 --> 00:36:11,130] it can be a problem for the model.
+[00:36:11,130 --> 00:36:11,630] OK.
+[00:36:11,630 --> 00:36:13,010] So we did these rollouts.
+[00:36:13,010 --> 00:36:16,245] We computed the expected value of how many times can I succeed?
+[00:36:16,245 --> 00:36:17,870] And that resembles something that looks
+[00:36:17,870 --> 00:36:19,998] like a value function of sorts.
+[00:36:19,998 --> 00:36:21,290] And why is it a value function?
+[00:36:21,290 --> 00:36:24,735] Because if you write this down in a bit of math--
+[00:36:24,735 --> 00:36:27,110] so let's say if I define the problem or the initial state
+[00:36:27,110 --> 00:36:31,910] as x, each of these steps as Y1's to Yn's So I
+[00:36:31,910 --> 00:36:34,230] guess there's a bit of a notation mismatch here Y1
+[00:36:34,230 --> 00:36:36,190] to Yn's are independent rollout.
+[00:36:36,190 --> 00:36:38,670] Here, the Yi's I'm showing are basically each step
+[00:36:38,670 --> 00:36:41,030] or each action that you take.
+[00:36:41,030 --> 00:36:45,910] So if you define a quantity that looks like the following,
+[00:36:45,910 --> 00:36:47,290] it's basically a Q function.
+[00:36:47,290 --> 00:36:48,470] So what is this quantity?
+[00:36:48,470 --> 00:36:52,670] It's telling you the Q value for your particular rollout
+[00:36:52,670 --> 00:36:54,130] policy, pi tilde.
+[00:36:54,130 --> 00:36:56,790] So the policy which is trying to complete the solution,
+[00:36:56,790 --> 00:36:58,350] rollout policy pi tilde.
+[00:36:58,350 --> 00:37:02,990] I'm computing its Q value at a given state given by the initial
+[00:37:02,990 --> 00:37:05,510] state and the prefix of the solution so far,
+[00:37:05,510 --> 00:37:07,870] and given an action, which is the current step that
+[00:37:07,870 --> 00:37:12,220] your policy adds, I can define the Q value here as the expected
+[00:37:12,220 --> 00:37:16,060] long-term reward, meaning the expected 01 reward,
+[00:37:16,060 --> 00:37:19,140] that I get under my rollout policy.
+[00:37:19,140 --> 00:37:22,492] If I start by executing--
+[00:37:22,492 --> 00:37:25,860] if I start by getting actions I plus 1 to L
+[00:37:25,860 --> 00:37:27,360] from this rollout policy.
+[00:37:27,360 --> 00:37:28,960] So what's the Q function?
+[00:37:28,960 --> 00:37:31,680] A Q function, just to recall, Q pi--
+[00:37:31,680 --> 00:37:34,180] I guess, it's subscript pi.
+[00:37:34,180 --> 00:37:42,180] Q pi of s,a is basically nothing but R of s,a, or, I guess,
+[00:37:42,180 --> 00:37:44,160] depends upon how you write this.
+[00:37:44,160 --> 00:37:53,260] But it's basically the expected discounted reward that you get,
+[00:37:53,260 --> 00:37:56,500] starting from P equal to 0 to, let's say, infinity
+[00:37:56,500 --> 00:37:59,820] in general, conditioned on S0 being S
+[00:37:59,820 --> 00:38:03,603] and A0 being A. This is the definition of a Q function.
+[00:38:03,603 --> 00:38:05,020] In this particular setting, we are
+[00:38:05,020 --> 00:38:07,000] assuming discount factor is 1.
+[00:38:07,000 --> 00:38:08,980] So gamma is set to exactly 1.
+[00:38:08,980 --> 00:38:12,120] And the reward that you get is only at termination,
+[00:38:12,120 --> 00:38:16,120] so there's 0000 until you end up hitting the final answer.
+[00:38:16,120 --> 00:38:18,620] So that's why you see there's only one expectation up there.
+[00:38:18,620 --> 00:38:21,800] And this expectation is computed under policy pi.
+[00:38:21,800 --> 00:38:27,100] So you roll this policy pi out from there on.
+[00:38:27,100 --> 00:38:28,560] There's one minor detail here.
+[00:38:28,560 --> 00:38:31,927] You typically have R of s,a plus this thing because you roll out
+[00:38:31,927 --> 00:38:34,260] the policy from the next step, and you sum up the reward
+[00:38:34,260 --> 00:38:35,255] at the current state.
+[00:38:35,255 --> 00:38:37,880] In this case, it doesn't matter because r of s,a is equal to 0.
+[00:38:37,880 --> 00:38:39,260] You only get a reward at the end.
+[00:38:39,260 --> 00:38:40,583] Gamma is set to 1.
+[00:38:40,583 --> 00:38:42,500] So essentially, the thing that you see up here
+[00:38:42,500 --> 00:38:45,140] is essentially an expected future reward,
+[00:38:45,140 --> 00:38:46,940] starting from a given prefix, which
+[00:38:46,940 --> 00:38:50,700] is the state at a given step, which is the action.
+[00:38:50,700 --> 00:38:54,420] And the rollout is performed under pi tilde
+[00:38:54,420 --> 00:38:56,180] that you see up here.
+[00:38:56,180 --> 00:38:59,140] So the question is, "Would you use the same policy to roll out
+[00:38:59,140 --> 00:39:00,860] those other trajectories?"
+[00:39:00,860 --> 00:39:03,140] So in principle, this equation that I wrote
+[00:39:03,140 --> 00:39:08,040] is agnostic of which policy you use to do the rollout.
+[00:39:08,040 --> 00:39:10,810] So there's been actually no--
+[00:39:10,810 --> 00:39:13,370] so I have a belief about this answer,
+[00:39:13,370 --> 00:39:15,878] about this particular choice of the policy.
+[00:39:15,878 --> 00:39:18,170] So in my opinion, the policy that you're doing rollouts
+[00:39:18,170 --> 00:39:19,690] with should be a different policy,
+[00:39:19,690 --> 00:39:21,440] compared to the current one, otherwise, it
+[00:39:21,440 --> 00:39:22,668] can fail in the same way.
+[00:39:22,668 --> 00:39:24,210] There's some work in literature which
+[00:39:24,210 --> 00:39:26,330] argues that even using the same policy
+[00:39:26,330 --> 00:39:28,810] can actually be good enough.
+[00:39:28,810 --> 00:39:32,010] I think we haven't seen an apples-to-apples comparison,
+[00:39:32,010 --> 00:39:34,730] given the scale of experiments, which definitively
+[00:39:34,730 --> 00:39:36,475] shows one way or the other.
+[00:39:36,475 --> 00:39:38,850] I think most of the evidence that exists right now points
+[00:39:38,850 --> 00:39:41,150] towards the benefits from having a different policy
+[00:39:41,150 --> 00:39:42,918] because that makes sense also.
+[00:39:42,918 --> 00:39:45,210] But I think there's a part of the community, especially
+[00:39:45,210 --> 00:39:48,730] the NLP community, which does it using the same policy
+[00:39:48,730 --> 00:39:52,010] and finds it to work reasonably fine.
+[00:39:52,010 --> 00:39:53,430] That's a great question.
+[00:39:53,430 --> 00:39:56,010] So the question is, "This similar to trajectory stitching
+[00:39:56,010 --> 00:39:57,850] and advantage weights?"
+[00:39:57,850 --> 00:40:00,290] So turns out that the answer is exactly, yes.
+[00:40:00,290 --> 00:40:01,810] It is very related to that.
+[00:40:01,810 --> 00:40:05,490] I don't think I have a discussion of this stitching
+[00:40:05,490 --> 00:40:07,490] angle in my slides because I think it would
+[00:40:07,490 --> 00:40:09,330] have been a bit too technical.
+[00:40:09,330 --> 00:40:12,070] But yeah, if you check the paper, you will find exactly.
+[00:40:12,070 --> 00:40:14,370] It talks about stitching in this particular setting,
+[00:40:14,370 --> 00:40:15,910] and it's very related concepts.
+[00:40:15,910 --> 00:40:18,050] So yeah, think of it that way.
+[00:40:18,050 --> 00:40:19,010] OK, great.
+[00:40:19,010 --> 00:40:21,030] So this is the definition of a Q function.
+[00:40:21,030 --> 00:40:24,190] And once you've defined this Q function,
+[00:40:24,190 --> 00:40:27,250] it turns out that you can use this Q function to now tell you
+[00:40:27,250 --> 00:40:30,170] whether steps are spurious or not or are good
+[00:40:30,170 --> 00:40:33,930] or not, in the same way as defining advantages would
+[00:40:33,930 --> 00:40:34,510] have done.
+[00:40:34,510 --> 00:40:36,450] So I'm pretty sure you talked about
+[00:40:36,450 --> 00:40:39,710] advantage-weighted regression as an offline RL method.
+[00:40:39,710 --> 00:40:41,730] I'm going to do something very similar to that,
+[00:40:41,730 --> 00:40:46,050] but just to spend one minute on the definition of the advantage
+[00:40:46,050 --> 00:40:46,550] here.
+[00:40:46,550 --> 00:40:49,770] So the advantage function typically means q s,a minus V
+[00:40:49,770 --> 00:40:53,250] of s that you probably talked about.
+[00:40:53,250 --> 00:40:59,330] So a of s,a under a given policy is Q pi I of s,a minus V pi
+[00:40:59,330 --> 00:41:01,650] of S.
+[00:41:01,650 --> 00:41:03,810] In this particular setting, though, the dynamics
+[00:41:03,810 --> 00:41:06,650] are deterministic, and the state is simply
+[00:41:06,650 --> 00:41:08,360] a concatenation of the previous state
+[00:41:08,360 --> 00:41:12,160] with a new set of tokens which define the step that
+[00:41:12,160 --> 00:41:13,440] is added in there.
+[00:41:13,440 --> 00:41:16,760] Hence, what happens is you can define the advantage as Q
+[00:41:16,760 --> 00:41:21,840] value of the prefix until step I minus Q value of the prefix
+[00:41:21,840 --> 00:41:25,080] until step I minus 1.
+[00:41:25,080 --> 00:41:26,960] That serves as the same notion of advantage
+[00:41:26,960 --> 00:41:28,240] in this particular MDP.
+[00:41:28,240 --> 00:41:29,865] So that's why the definition you see up
+[00:41:29,865 --> 00:41:31,800] there is Q minus Q and not Q minus V,
+[00:41:31,800 --> 00:41:34,440] but it's basically the same thing.
+[00:41:34,440 --> 00:41:35,900] So once you define it in this way,
+[00:41:35,900 --> 00:41:38,820] you can actually compute these advantages for every step.
+[00:41:38,820 --> 00:41:41,680] So you can compute advantages by subtracting the Q values
+[00:41:41,680 --> 00:41:44,560] for consecutive steps, one from each other.
+[00:41:44,560 --> 00:41:47,280] And you'll get some positive and some negative numbers
+[00:41:47,280 --> 00:41:49,640] in this particular setting.
+[00:41:49,640 --> 00:41:52,160] Just really depends on how many times can you succeed.
+[00:41:52,160 --> 00:41:53,860] And once you have these advantages,
+[00:41:53,860 --> 00:41:57,360] they are a measure of how well a particular step, how
+[00:41:57,360 --> 00:42:00,040] much a particular step contributed to your ability
+[00:42:00,040 --> 00:42:04,400] to be able to succeed from that particular prefix.
+[00:42:04,400 --> 00:42:06,940] So if step two ended up reducing the advantage,
+[00:42:06,940 --> 00:42:11,040] that means your Q value at step one was higher than Q value
+[00:42:11,040 --> 00:42:12,820] after step two has been executed,
+[00:42:12,820 --> 00:42:14,880] which means step two is probably not
+[00:42:14,880 --> 00:42:16,760] that good of a step to have in order to be
+[00:42:16,760 --> 00:42:18,600] able to succeed eventually.
+[00:42:18,600 --> 00:42:20,560] So a negative or a low advantage means
+[00:42:20,560 --> 00:42:23,260] it's a bad step or of a spurious step,
+[00:42:23,260 --> 00:42:25,647] and you don't want to necessarily learn from it.
+[00:42:25,647 --> 00:42:27,480] A positive advantage means it's a good step,
+[00:42:27,480 --> 00:42:30,200] and you probably want to learn from it in some way.
+[00:42:30,200 --> 00:42:32,480] So this was supposed to answer the questions
+[00:42:32,480 --> 00:42:36,280] about how do you identify spurious steps in something.
+[00:42:36,280 --> 00:42:38,800] So the question is, "Are we fitting a Q function?"
+[00:42:38,800 --> 00:42:40,425] It's a very good question.
+[00:42:40,425 --> 00:42:41,800] Turns out that in the literature,
+[00:42:41,800 --> 00:42:43,840] there's been two kinds of work.
+[00:42:43,840 --> 00:42:46,760] They explicitly fit a Q function like quantity.
+[00:42:46,760 --> 00:42:50,340] It's what's called-- so in the NLP community,
+[00:42:50,340 --> 00:42:54,440] this is what's called a process reward model,
+[00:42:54,440 --> 00:42:57,400] process reward model.
+[00:42:57,400 --> 00:43:01,980] So I'm guessing since you covered DPO and RHF,
+[00:43:01,980 --> 00:43:03,480] you talked about reward models which
+[00:43:03,480 --> 00:43:07,490] give you a score for particular question and answer.
+[00:43:07,490 --> 00:43:09,630] This is giving you the score for every step
+[00:43:09,630 --> 00:43:13,630] and hence, scoring the process and, hence, the word Process
+[00:43:13,630 --> 00:43:16,190] Reward Model, or a PRM.
+[00:43:16,190 --> 00:43:20,030] I don't necessarily think that PRM and Q values are exactly--
+[00:43:20,030 --> 00:43:21,950] or should be semantically the same thing,
+[00:43:21,950 --> 00:43:25,350] but that's what a lot of the NLP people call this.
+[00:43:25,350 --> 00:43:27,175] But yeah, you can train that.
+[00:43:27,175 --> 00:43:29,550] But there's the other class of methods which would simply
+[00:43:29,550 --> 00:43:31,870] use rollouts the way I talked to you about to estimate
+[00:43:31,870 --> 00:43:34,280] advantages, and we'll see what that means.
+[00:43:34,280 --> 00:43:35,530] Yeah, that's a great question.
+[00:43:35,530 --> 00:43:37,447] So the question is, how does this help learn--
+[00:43:37,447 --> 00:43:39,510] or how does this help models learn
+[00:43:39,510 --> 00:43:41,770] general problem-solving strategies?
+[00:43:41,770 --> 00:43:44,270] The rough answer is, ultimately, what ends up happening here
+[00:43:44,270 --> 00:43:47,350] is you're breaking down the success
+[00:43:47,350 --> 00:43:51,430] of a particular long trace into successes of individual steps
+[00:43:51,430 --> 00:43:52,790] that appear inside of it.
+[00:43:52,790 --> 00:43:55,510] And that can be a useful thing to because, now,
+[00:43:55,510 --> 00:43:58,070] presumably your model can realize that, OK, once ,
+[00:43:58,070 --> 00:44:00,990] let's say, it has broken down a problem into four steps or four
+[00:44:00,990 --> 00:44:05,110] high-level plans, if it can also localize which step is going
+[00:44:05,110 --> 00:44:07,990] wrong, it can actually better learn that step as opposed
+[00:44:07,990 --> 00:44:10,730] to just vaguely thinking that, OK,
+[00:44:10,730 --> 00:44:13,588] a step three might be the cause of the problem when it fails,
+[00:44:13,588 --> 00:44:15,130] whereas maybe it's actually step one.
+[00:44:15,130 --> 00:44:17,838] So it helps you just learn in a more--
+[00:44:17,838 --> 00:44:20,130] so ultimately, you need to have some data for learning,
+[00:44:20,130 --> 00:44:23,310] but then this is vastly improving your data efficiency
+[00:44:23,310 --> 00:44:24,270] and so on.
+[00:44:24,270 --> 00:44:26,070] Yeah.
+[00:44:26,070 --> 00:44:26,570] Great.
+[00:44:26,570 --> 00:44:28,628] OK, so the next step is going to be
+[00:44:28,628 --> 00:44:30,170] to use these advantages for training,
+[00:44:30,170 --> 00:44:33,470] and this is where a lot of the methods that I talked about also
+[00:44:33,470 --> 00:44:35,367] will come into picture.
+[00:44:35,367 --> 00:44:36,950] So the first thing is just going to be
+[00:44:36,950 --> 00:44:39,450] to filter by advantages that I just described.
+[00:44:39,450 --> 00:44:42,550] So you can take a bunch of traces from your model.
+[00:44:42,550 --> 00:44:45,590] And I still have the RFT algorithm here,
+[00:44:45,590 --> 00:44:50,210] so I'm going to write it down as 1 to N, sample from pi theta.
+[00:44:50,210 --> 00:44:51,470] You can take this--
+[00:44:51,470 --> 00:44:54,630] You can take the RFT algorithm.
+[00:44:54,630 --> 00:44:57,830] You can sample from your model and on-policy trace potentially.
+[00:44:57,830 --> 00:45:00,070] You can take every step, do these rollouts
+[00:45:00,070 --> 00:45:03,560] that we talked about, use them to estimate advantages,
+[00:45:03,560 --> 00:45:06,060] and put this into your training data set
+[00:45:06,060 --> 00:45:09,020] for doing imitation learning or SFT,
+[00:45:09,020 --> 00:45:11,300] if this particular step is correct.
+[00:45:11,300 --> 00:45:12,480] So what does that mean?
+[00:45:12,480 --> 00:45:14,980] That basically means that you are taking a particular trace,
+[00:45:14,980 --> 00:45:17,580] and you are checking at a step level
+[00:45:17,580 --> 00:45:20,100] whether the advantages are positive.
+[00:45:20,100 --> 00:45:22,660] Even if that particular step comes from an incorrect solution
+[00:45:22,660 --> 00:45:24,743] trace, you're going to put that into your training
+[00:45:24,743 --> 00:45:29,100] data set if that step itself gives you a high advantage.
+[00:45:29,100 --> 00:45:32,500] On the other hand, let's say if that step itself comes
+[00:45:32,500 --> 00:45:34,100] from a correct solution trace--
+[00:45:34,100 --> 00:45:35,680] maybe there's a particular step here
+[00:45:35,680 --> 00:45:38,800] which gets a low advantage or a really negative advantage--
+[00:45:38,800 --> 00:45:41,180] I'm going to just throw it away.
+[00:45:41,180 --> 00:45:43,580] So this is very much reminiscent of advantage-weighted
+[00:45:43,580 --> 00:45:45,380] regression, except that here, rather
+[00:45:45,380 --> 00:45:49,260] than doing exponentiated advantages, which I'm guessing
+[00:45:49,260 --> 00:45:52,980] was covered, we are doing filtering on advantages.
+[00:45:52,980 --> 00:45:54,280] That's the basic idea.
+[00:45:54,280 --> 00:45:56,160] You can also do exponentiation of advantages.
+[00:45:56,160 --> 00:46:00,460] So you can train on everything but multiply the loss by E
+[00:46:00,460 --> 00:46:04,600] to the A. That objective, I think, requires a lot of tuning.
+[00:46:04,600 --> 00:46:06,320] And if you can only run one experiment,
+[00:46:06,320 --> 00:46:08,580] you probably prefer this objective over E
+[00:46:08,580 --> 00:46:11,240] to the A in general.
+[00:46:11,240 --> 00:46:12,240] That's a great question.
+[00:46:12,240 --> 00:46:14,900] So the question is, "Do you only train up to the good steps
+[00:46:14,900 --> 00:46:16,820] on an incorrect solution?"
+[00:46:16,820 --> 00:46:19,160] The answer is, not really.
+[00:46:19,160 --> 00:46:21,260] So we initially thought that that's the only way
+[00:46:21,260 --> 00:46:22,340] to train here.
+[00:46:22,340 --> 00:46:24,920] And we did a concrete ablation studying this as well.
+[00:46:24,920 --> 00:46:27,788] The answer is, well, you never really train the model to--
+[00:46:27,788 --> 00:46:29,580] so in this particular setting, you're not--
+[00:46:29,580 --> 00:46:31,955] let's say a particular step gives you a higher advantage.
+[00:46:31,955 --> 00:46:35,180] You're not training the model to produce this step and then
+[00:46:35,180 --> 00:46:35,940] this step.
+[00:46:35,940 --> 00:46:38,300] All you're training is to produce this step conditioned
+[00:46:38,300 --> 00:46:40,140] on the prefix so far.
+[00:46:40,140 --> 00:46:45,460] So your loss looks like train the model to produce Ai
+[00:46:45,460 --> 00:46:48,500] given Si, and not the previous actions or the previous steps
+[00:46:48,500 --> 00:46:49,580] that you see up here.
+[00:46:49,580 --> 00:46:53,020] So I'm just going to probably just draw it here
+[00:46:53,020 --> 00:46:55,660] because I think it's easiest to draw it.
+[00:46:55,660 --> 00:46:57,140] So think of it as this way--
+[00:46:57,140 --> 00:46:59,850] you had X or S0.
+[00:46:59,850 --> 00:47:01,310] You took A0.
+[00:47:01,310 --> 00:47:02,430] You went to S1.
+[00:47:02,430 --> 00:47:04,590] You are taking, A1, S2.
+[00:47:04,590 --> 00:47:07,610] These are steps, and this is the states.
+[00:47:07,610 --> 00:47:09,530] Let's say this state got an advantage which
+[00:47:09,530 --> 00:47:10,430] is really positive.
+[00:47:10,430 --> 00:47:16,690] So A of S1, A1 is really positive, and A of S0, A0
+[00:47:16,690 --> 00:47:17,827] is really negative.
+[00:47:17,827 --> 00:47:19,410] What you are going to do now is you're
+[00:47:19,410 --> 00:47:21,450] going to not necessarily--
+[00:47:21,450 --> 00:47:24,730] so what I'm not saying is train your policy
+[00:47:24,730 --> 00:47:26,690] to produce A0 given S0.
+[00:47:26,690 --> 00:47:27,910] You're not going to do that.
+[00:47:27,910 --> 00:47:31,770] You're going to just train the policy to produce A1 given S0
+[00:47:31,770 --> 00:47:33,543] comma A0.
+[00:47:33,543 --> 00:47:34,710] So that's all you're trying.
+[00:47:34,710 --> 00:47:36,630] Or I wrote S0, A0.
+[00:47:36,630 --> 00:47:38,170] This basically just is equal to S1
+[00:47:38,170 --> 00:47:40,090] because you're concatenating steps.
+[00:47:40,090 --> 00:47:42,390] But that's the thing you're going to incentivize.
+[00:47:42,390 --> 00:47:45,130] So you're only training on the steps.
+[00:47:45,130 --> 00:47:47,850] So the question is, "is there a separate prompter that keeps
+[00:47:47,850 --> 00:47:50,010] prompting the model when it acts here?"
+[00:47:50,010 --> 00:47:51,590] The answer is not really, right?
+[00:47:51,590 --> 00:47:55,050] So in general, when you do RL, we never
+[00:47:55,050 --> 00:47:56,850] really train the policy to--
+[00:47:56,850 --> 00:48:00,875] we train a policy to produce individual actions.
+[00:48:00,875 --> 00:48:02,750] Like, in offline RL or in imitation learning,
+[00:48:02,750 --> 00:48:05,507] we try to produce A1, given S1, A2 given S2 and so on.
+[00:48:05,507 --> 00:48:07,090] But when it acts in the world, it just
+[00:48:07,090 --> 00:48:10,170] acts and produces a giant string of token-- or giant sequence
+[00:48:10,170 --> 00:48:12,090] of actions in one go.
+[00:48:12,090 --> 00:48:14,490] So you can train the policy on different segments
+[00:48:14,490 --> 00:48:16,530] of steps it's seeing.
+[00:48:16,530 --> 00:48:18,570] But at when it's deployed, it's going
+[00:48:18,570 --> 00:48:19,950] to just produce one action.
+[00:48:19,950 --> 00:48:24,410] Then the state S1 is going to be simply the whole tokens
+[00:48:24,410 --> 00:48:26,910] and the question tokens and the tokens and the steps so far.
+[00:48:26,910 --> 00:48:28,647] And that's S1, and you're going to now--
+[00:48:28,647 --> 00:48:31,230] the same policy can now continue on and produce the next step.
+[00:48:31,230 --> 00:48:33,063] So it's not going to be prompted in any way.
+[00:48:33,063 --> 00:48:36,330] It's just going to be producing the whole solution in one flow,
+[00:48:36,330 --> 00:48:38,370] except that now you're just training it in a way
+[00:48:38,370 --> 00:48:40,590] that you're breaking them down into steps.
+[00:48:40,590 --> 00:48:44,090] So really, there's no notion of a separate actor.
+[00:48:44,090 --> 00:48:46,090] So the question is, "Do you only train on a step
+[00:48:46,090 --> 00:48:48,850] because of the Markov property, because you don't care how you
+[00:48:48,850 --> 00:48:50,050] got there?"
+[00:48:50,050 --> 00:48:54,250] In a way, the answer is no, because in some ways,
+[00:48:54,250 --> 00:48:57,180] your state S1 consists of all of your history.
+[00:48:57,180 --> 00:48:59,440] So S1 consists of--
+[00:48:59,440 --> 00:49:03,160] so S0 is a problem.
+[00:49:03,160 --> 00:49:05,640] A0 is, let's say, step one.
+[00:49:05,640 --> 00:49:08,080] And S1, in this case, is basically
+[00:49:08,080 --> 00:49:12,932] problem concatenated with step one.
+[00:49:12,932 --> 00:49:15,440] So in some ways, you have preserved all of your history
+[00:49:15,440 --> 00:49:17,760] in this case, And it's a non-Markovian policy
+[00:49:17,760 --> 00:49:20,920] that you're learning, except that here the reason why
+[00:49:20,920 --> 00:49:23,940] we do this at the step level is because now we can better
+[00:49:23,940 --> 00:49:25,760] understand which part of the solution
+[00:49:25,760 --> 00:49:29,400] actually caused me to derail if it did.
+[00:49:29,400 --> 00:49:31,300] So there's no notion of independence.
+[00:49:31,300 --> 00:49:34,300] It's not like given S-- so, OK, in this particular setting,
+[00:49:34,300 --> 00:49:38,600] given S1, sure, action A1 is all matters, but S1 and S0, A0
+[00:49:38,600 --> 00:49:40,253] are the same.
+[00:49:40,253 --> 00:49:41,940] Depending upon the way you look at it,
+[00:49:41,940 --> 00:49:44,470] it can be called non-Markovian policy
+[00:49:44,470 --> 00:49:46,720] as well because it's conditioned on the whole history.
+[00:49:46,720 --> 00:49:48,303] But in this particular setting, if you
+[00:49:48,303 --> 00:49:52,160] define S1 as concatenated states, it's a Markovian policy.
+[00:49:52,160 --> 00:49:55,320] So the question is, "If your Q value is really--
+[00:49:55,320 --> 00:49:57,200] so the Q values are really negative,
+[00:49:57,200 --> 00:49:58,740] but your advantages are positive,
+[00:49:58,740 --> 00:50:01,400] would you put it in the training data set or not?"
+[00:50:01,400 --> 00:50:02,800] Yeah, that's a great question.
+[00:50:02,800 --> 00:50:08,840] I think we tried this with-- so we did take traces which
+[00:50:08,840 --> 00:50:11,840] were incorrect, and we put the steps
+[00:50:11,840 --> 00:50:15,120] which were actually good from them into our data set.
+[00:50:15,120 --> 00:50:16,960] And that was fine, except that let's
+[00:50:16,960 --> 00:50:19,740] say if there are traces where everything is just a--
+[00:50:19,740 --> 00:50:22,440] there's no way-- there's no prefix of that from which you
+[00:50:22,440 --> 00:50:23,503] can succeed at all.
+[00:50:23,503 --> 00:50:25,920] The advantages are also small, and the [? QL's ?] are also
+[00:50:25,920 --> 00:50:26,460] small.
+[00:50:26,460 --> 00:50:28,043] Turns out that if you filter them out,
+[00:50:28,043 --> 00:50:29,480] you might do a little bit better.
+[00:50:29,480 --> 00:50:32,280] But again, I don't have a very, very concrete like result
+[00:50:32,280 --> 00:50:34,535] I can show you here, so I'm not going to tell you
+[00:50:34,535 --> 00:50:35,660] that this is the way to go.
+[00:50:35,660 --> 00:50:37,680] But it seems like, to a large extent,
+[00:50:37,680 --> 00:50:39,680] the sensitivity does not exist in some way
+[00:50:39,680 --> 00:50:42,420] because the prefix is the culprit then,
+[00:50:42,420 --> 00:50:45,280] and you're training only a one conditioned on the prefix
+[00:50:45,280 --> 00:50:48,240] and not training the model to produce the prefix at all.
+[00:50:48,240 --> 00:50:49,080] OK, great.
+[00:50:49,080 --> 00:50:50,398] So that's the first option.
+[00:50:50,398 --> 00:50:52,440] So this is a lot like filtered imitation learning
+[00:50:52,440 --> 00:50:54,967] or advantage-weighted regression.
+[00:50:54,967 --> 00:50:57,050] OK, before that, I can show you some results here.
+[00:50:57,050 --> 00:51:00,190] So this actually ended up addressing that error going up
+[00:51:00,190 --> 00:51:01,870] problem, at least to the extent that we
+[00:51:01,870 --> 00:51:03,310] were able to train models.
+[00:51:03,310 --> 00:51:06,710] So here, again, I'm plotting the number of correct answers
+[00:51:06,710 --> 00:51:07,450] per question.
+[00:51:07,450 --> 00:51:10,630] And you find that the advantage filtering did help you,
+[00:51:10,630 --> 00:51:15,350] compared to the RFP approach which was going up before.
+[00:51:15,350 --> 00:51:17,807] So it does actually-- and we did measure
+[00:51:17,807 --> 00:51:19,390] the number of spurious steps according
+[00:51:19,390 --> 00:51:22,490] to some heuristic definition of how we can evaluate this,
+[00:51:22,490 --> 00:51:23,570] how can probe this.
+[00:51:23,570 --> 00:51:26,550] And it seemed like, just from a qualitative perspective also,
+[00:51:26,550 --> 00:51:32,270] the number of spurious steps actually reduced in some way.
+[00:51:32,270 --> 00:51:32,950] So
+[00:51:32,950 --> 00:51:34,030] The next thing is, how can you use
+[00:51:34,030 --> 00:51:35,730] this for offline reinforcement learning?
+[00:51:35,730 --> 00:51:39,010] And this is where DPO-based methods come in.
+[00:51:39,010 --> 00:51:41,610] So there was a question about this earlier in the class.
+[00:51:41,610 --> 00:51:42,990] So you can also use them for--
+[00:51:42,990 --> 00:51:44,448] you can also use the same principle
+[00:51:44,448 --> 00:51:46,110] for doing DPO actually.
+[00:51:46,110 --> 00:51:50,030] So the idea in DPO is slightly different from computing
+[00:51:50,030 --> 00:51:52,390] this advantage exactly, but uses the same protocol
+[00:51:52,390 --> 00:51:54,150] that I described to you earlier, where
+[00:51:54,150 --> 00:51:55,692] what you're going to do now is you're
+[00:51:55,692 --> 00:51:57,990] going to take a solution from your base model
+[00:51:57,990 --> 00:51:59,710] that you're training.
+[00:51:59,710 --> 00:52:01,165] Maybe this is incorrect.
+[00:52:01,165 --> 00:52:03,790] And so far, what we did was we found out steps that were useful
+[00:52:03,790 --> 00:52:06,123] and retained them in some way or the other and discarded
+[00:52:06,123 --> 00:52:06,810] everything else.
+[00:52:06,810 --> 00:52:09,670] But what we can do now is we can do these rollouts.
+[00:52:09,670 --> 00:52:14,790] And rather than throwing away or throwing away these rollouts
+[00:52:14,790 --> 00:52:17,670] or just using these rollouts to estimate the advantage, what
+[00:52:17,670 --> 00:52:20,990] I can do is I can, instead, take a rollout, which ended up
+[00:52:20,990 --> 00:52:24,230] succeeding, with a shared prefix;
+[00:52:24,230 --> 00:52:26,430] take the solution trace from my model, which did not
+[00:52:26,430 --> 00:52:30,550] end up succeeding, and construct a preference pair out of them.
+[00:52:30,550 --> 00:52:34,910] So I now have a preference pair, which looks like some prefix,
+[00:52:34,910 --> 00:52:37,430] followed by some correction, which is good,
+[00:52:37,430 --> 00:52:41,230] and some prefix followed by some steps which are actually wrong.
+[00:52:41,230 --> 00:52:45,150] And I can throw this into a DPR training data set in some way.
+[00:52:45,150 --> 00:52:48,610] I can also do the same thing with a correct rollout.
+[00:52:48,610 --> 00:52:51,660] So let's say I have a correct rollout from my base model.
+[00:52:51,660 --> 00:52:54,300] I can still do these rollouts, and maybe one of them
+[00:52:54,300 --> 00:52:57,020] will not end up succeeding potentially
+[00:52:57,020 --> 00:52:58,040] from my rollout policy.
+[00:52:58,040 --> 00:53:01,060] And I can basically put this thing as a preference pair
+[00:53:01,060 --> 00:53:03,623] into my training mix.
+[00:53:03,623 --> 00:53:05,540] So the nice thing that is happening-- or there
+[00:53:05,540 --> 00:53:07,373] are two differences that are happening here.
+[00:53:07,373 --> 00:53:10,140] In some way, I'm still realizing in this process
+[00:53:10,140 --> 00:53:12,080] that prefixes are shared.
+[00:53:12,080 --> 00:53:14,248] And really, the difference between a correct
+[00:53:14,248 --> 00:53:16,540] and an incorrect rollout comes from that little segment
+[00:53:16,540 --> 00:53:20,762] that you see, beyond the prefix in these settings.
+[00:53:20,762 --> 00:53:21,720] That's the first thing.
+[00:53:21,720 --> 00:53:22,595] And the second thing.
+[00:53:22,595 --> 00:53:24,380] Is, rather than the previous approach
+[00:53:24,380 --> 00:53:26,940] of filtering by advantages, I'm actually
+[00:53:26,940 --> 00:53:28,940] retaining the whole steps that appear
+[00:53:28,940 --> 00:53:31,260] in this rollout distribution.
+[00:53:31,260 --> 00:53:33,420] So I'm not simply using these rollouts
+[00:53:33,420 --> 00:53:37,440] like the orange-colored, dashed lines to compute advantages,
+[00:53:37,440 --> 00:53:39,180] but I'm retaining them, and I'm training
+[00:53:39,180 --> 00:53:42,940] on top of the tokens that appear in that rollout as well.
+[00:53:42,940 --> 00:53:46,080] So the DPO loss, I guess, I don't have that on my slides.
+[00:53:46,080 --> 00:53:48,860] But, I guess probably I don't need
+[00:53:48,860 --> 00:53:50,400] to necessarily write that down.
+[00:53:50,400 --> 00:53:53,220] But it's basically just a matter of the same old DPO
+[00:53:53,220 --> 00:53:56,980] loss on top of these two segments of solutions
+[00:53:56,980 --> 00:53:59,300] that we talked about.
+[00:53:59,300 --> 00:54:00,372] Yeah, great question.
+[00:54:00,372 --> 00:54:02,580] So the question is, "Do you want higher-quality text,
+[00:54:02,580 --> 00:54:05,420] or do you want more diversity?"
+[00:54:05,420 --> 00:54:08,060] I think the true--
+[00:54:08,060 --> 00:54:11,740] OK, I should mention that this is something that we
+[00:54:11,740 --> 00:54:13,000] have tried to formalize.
+[00:54:13,000 --> 00:54:15,660] So there's an exact equation that you can write down.
+[00:54:15,660 --> 00:54:18,100] And you can be like OK, I want a policy to do
+[00:54:18,100 --> 00:54:21,940] these rollouts which maximizes this expression sort of thing
+[00:54:21,940 --> 00:54:24,500] in one of the papers.
+[00:54:24,500 --> 00:54:27,500] I think that kind of balances, in some way, diversity
+[00:54:27,500 --> 00:54:28,980] and high quality.
+[00:54:28,980 --> 00:54:31,760] So imagine for a second that your model is really bad.
+[00:54:31,760 --> 00:54:35,440] So let's say your model mostly produces incorrect traces.
+[00:54:35,440 --> 00:54:37,907] Then you want a rollout policy that can actually
+[00:54:37,907 --> 00:54:39,740] somewhat succeed because, otherwise, there's
+[00:54:39,740 --> 00:54:41,907] no notion of a success that you can learn from ever.
+[00:54:41,907 --> 00:54:43,192] You've only seen failures.
+[00:54:43,192 --> 00:54:45,400] How can you actually even learn to solve that problem
+[00:54:45,400 --> 00:54:46,818] if you only see failures?
+[00:54:46,818 --> 00:54:49,360] On the other hand, let's say if your model is kind of decent,
+[00:54:49,360 --> 00:54:52,320] like 50% accurate, but it's not as good overall.
+[00:54:52,320 --> 00:54:54,393] It's not the best at solving problems.
+[00:54:54,393 --> 00:54:56,060] In that case, maybe all you want is just
+[00:54:56,060 --> 00:54:57,480] diverse ways of solving the problem,
+[00:54:57,480 --> 00:55:00,022] such that you can see what ways you're more prone to failing.
+[00:55:00,022 --> 00:55:02,940] So you care about coverage in some ways.
+[00:55:02,940 --> 00:55:05,640] So really, the answer here is like every single problem in RL,
+[00:55:05,640 --> 00:55:08,057] there is some balance between exploration and exploitation
+[00:55:08,057 --> 00:55:10,060] you want to do, which is high-quality text
+[00:55:10,060 --> 00:55:12,760] or high-quality solutions, which solve the question correctly
+[00:55:12,760 --> 00:55:17,318] and being more diverse in some way.
+[00:55:17,318 --> 00:55:18,860] I think the exact expression for this
+[00:55:18,860 --> 00:55:21,380] is actually something you can also write down.
+[00:55:21,380 --> 00:55:23,160] And I'm not going to cover today,
+[00:55:23,160 --> 00:55:25,820] but, yeah, it's a trade-off between them.
+[00:55:25,820 --> 00:55:28,460] Yeah, so basically used to train DPO.
+[00:55:28,460 --> 00:55:30,695] So far, I guess--
+[00:55:30,695 --> 00:55:32,820] OK, actually, let me just write that algorithm down
+[00:55:32,820 --> 00:55:35,500] for everybody's understanding.
+[00:55:35,500 --> 00:55:37,620] So what you do is you're basically-- so that
+[00:55:37,620 --> 00:55:39,100] is the RFD algorithm.
+[00:55:39,100 --> 00:55:41,020] And now what we're going to do is
+[00:55:41,020 --> 00:55:42,800] we're going to simply do the same process.
+[00:55:42,800 --> 00:55:52,410] So for iteration in 1 to T, I'm going to sample Y1
+[00:55:52,410 --> 00:55:57,450] to N from my current policy, given any question.
+[00:55:57,450 --> 00:55:59,350] I am going to now do these rollouts,
+[00:55:59,350 --> 00:56:06,730] so I'm going to do rollouts and construct the preference
+[00:56:06,730 --> 00:56:08,210] data set Dpref.
+[00:56:08,210 --> 00:56:11,030] In this case, it's basically those preferences.
+[00:56:11,030 --> 00:56:13,090] And now what I'm going to do is I'm going
+[00:56:13,090 --> 00:56:15,640] to run or minimize the loss.
+[00:56:23,850 --> 00:56:26,250] That's the main algorithm that you're going to do.
+[00:56:26,250 --> 00:56:29,770] And the Dpref reef consists of prefixes generated
+[00:56:29,770 --> 00:56:31,330] from your current base model.
+[00:56:31,330 --> 00:56:33,650] And the trace is coming from-- one part
+[00:56:33,650 --> 00:56:36,517] of it is from the same model that you are training pi theta.
+[00:56:36,517 --> 00:56:38,850] The other segment, the other part of the preference pair
+[00:56:38,850 --> 00:56:41,210] comes from the rollout policy.
+[00:56:41,210 --> 00:56:42,632] That's the orange line.
+[00:56:42,632 --> 00:56:44,590] So the question is, "Given a sample trajectory,
+[00:56:44,590 --> 00:56:46,070] how we segment into steps?"
+[00:56:46,070 --> 00:56:48,128] So in this work, we just used sentences.
+[00:56:48,128 --> 00:56:49,670] So we just had [INAUDIBLE] sentences.
+[00:56:49,670 --> 00:56:51,378] We're going to break them down into steps
+[00:56:51,378 --> 00:56:52,970] from after every sentence.
+[00:56:52,970 --> 00:56:54,952] In general, I think it depends--
+[00:56:54,952 --> 00:56:56,910] it's a thing that you can bake into your model.
+[00:56:56,910 --> 00:57:00,417] So if you have played with, for example, OpenAI models,
+[00:57:00,417 --> 00:57:02,250] you'll see that they often produce responses
+[00:57:02,250 --> 00:57:06,430] that look like step one in markdown, like a very big step
+[00:57:06,430 --> 00:57:08,930] one, and then they'll say a bunch of stuff and then step two
+[00:57:08,930 --> 00:57:12,290] and then say a bunch of stuff so you can use that notation.
+[00:57:12,290 --> 00:57:15,890] Oftentimes it's so happening that as these models get better
+[00:57:15,890 --> 00:57:17,650] at basic instruction following, you
+[00:57:17,650 --> 00:57:20,170] can just prompt them to produce responses
+[00:57:20,170 --> 00:57:23,250] for complex questions in a particular stylistic fashion,
+[00:57:23,250 --> 00:57:25,410] and use some heuristics about that style
+[00:57:25,410 --> 00:57:26,998] to partition things into steps.
+[00:57:26,998 --> 00:57:28,790] So for instance, you can just tell a model,
+[00:57:28,790 --> 00:57:33,970] well, I want an answer for this particular question that never
+[00:57:33,970 --> 00:57:37,770] uses the word step, that always produces
+[00:57:37,770 --> 00:57:41,650] a logical block of calculation, puts a horizontal line
+[00:57:41,650 --> 00:57:43,830] and then pushes the next logical block and so on.
+[00:57:43,830 --> 00:57:45,663] And it'll most likely do it for you,
+[00:57:45,663 --> 00:57:47,080] which is something you can also do
+[00:57:47,080 --> 00:57:48,100] during the course of training.
+[00:57:48,100 --> 00:57:49,840] So you can just prompt them to produce solutions
+[00:57:49,840 --> 00:57:52,200] in a particular way and then define steps accordingly.
+[00:57:52,200 --> 00:57:53,898] There's no universal definition.
+[00:57:53,898 --> 00:57:56,440] So the question is, "Is there a convention to produce special
+[00:57:56,440 --> 00:57:58,840] tokens for generating steps?"
+[00:57:58,840 --> 00:58:01,880] I think that I've not seen a very, very clear convention that
+[00:58:01,880 --> 00:58:03,977] is universally used all the time.
+[00:58:03,977 --> 00:58:05,560] One convention that we have been using
+[00:58:05,560 --> 00:58:07,102] that I've seen many other papers use,
+[00:58:07,102 --> 00:58:08,800] but they're still outliers for this,
+[00:58:08,800 --> 00:58:13,220] is they would produce step hash 1 colon and then say something.
+[00:58:13,220 --> 00:58:15,440] And that could be a bunch of lines as well.
+[00:58:15,440 --> 00:58:17,520] In this work, we use lines.
+[00:58:17,520 --> 00:58:20,420] In a follow-up thing, we had used this step notion.
+[00:58:20,420 --> 00:58:23,260] So it really depends on up to you, really, I think.
+[00:58:23,260 --> 00:58:25,240] Yeah.
+[00:58:25,240 --> 00:58:26,260] OK, cool.
+[00:58:26,260 --> 00:58:28,660] Any questions on the DPO part in this case?
+[00:58:28,660 --> 00:58:31,540] So this is the DPO version of the algorithm.
+[00:58:35,980 --> 00:58:36,480] Great.
+[00:58:36,480 --> 00:58:36,980] OK.
+[00:58:36,980 --> 00:58:41,480] So you can do this and put this into your data.
+[00:58:41,480 --> 00:58:44,940] So if you go back to our plot from before, if you measure how.
+[00:58:44,940 --> 00:58:47,360] How well does such kind of an offline RL method
+[00:58:47,360 --> 00:58:49,280] do, what ends up happening is--
+[00:58:49,280 --> 00:58:52,320] OK, I guess, these were supposed to be GIFs, but anyways.
+[00:58:52,320 --> 00:58:55,120] So I'm now plotting the test error
+[00:58:55,120 --> 00:58:57,040] as a function of number of questions
+[00:58:57,040 --> 00:58:59,985] that existed in my data set.
+[00:58:59,985 --> 00:59:01,360] So far, we were looking at number
+[00:59:01,360 --> 00:59:03,520] of correct answers per question for a lot
+[00:59:03,520 --> 00:59:04,902] of the plots in the middle.
+[00:59:04,902 --> 00:59:06,360] But now, I'm back to the plot where
+[00:59:06,360 --> 00:59:09,720] we are plotting the x-axis as a function of number of questions
+[00:59:09,720 --> 00:59:11,320] in the original data set.
+[00:59:11,320 --> 00:59:13,040] And you find that, compared to--
+[00:59:13,040 --> 00:59:14,500] and now there are two models here.
+[00:59:14,500 --> 00:59:16,180] One of them is a Llama 2 model.
+[00:59:16,180 --> 00:59:18,320] So this probably it tells you how old
+[00:59:18,320 --> 00:59:20,040] this work is at this point.
+[00:59:20,040 --> 00:59:24,160] It's a year old, but Llama 2 feels like a long time ago--
+[00:59:24,160 --> 00:59:27,770] and then DeepSeek V2 models, as well as DeepSeek V2 models.
+[00:59:27,770 --> 00:59:29,520] And what we're finding in general is that,
+[00:59:29,520 --> 00:59:32,480] compared to the base SFT method, where you were just training
+[00:59:32,480 --> 00:59:36,880] on human-written solutions, you can get up to an 8x boost
+[00:59:36,880 --> 00:59:39,460] in the amount of data that you need for training.
+[00:59:39,460 --> 00:59:43,430] So the dashed line here is this first-step BPO algorithm
+[00:59:43,430 --> 00:59:44,790] that I talked about.
+[00:59:44,790 --> 00:59:48,150] And you see that it can get you the same test error with 8x
+[00:59:48,150 --> 00:59:52,910] fewer samples than training with SFT on human written data.
+[00:59:52,910 --> 00:59:55,412] RFP was 2x for recollection.
+[00:59:55,412 --> 00:59:56,870] I removed that line here because it
+[00:59:56,870 --> 00:59:58,470] would have been too cluttered.
+[00:59:58,470 --> 01:00:01,830] But in general, this 8x also holds true for Llama too roughly
+[01:00:01,830 --> 01:00:03,790] overall in this setting.
+[01:00:03,790 --> 01:00:05,690] Yeah, so the question is, "What is Pass@5?"
+[01:00:05,690 --> 01:00:07,950] That's a great question.
+[01:00:07,950 --> 01:00:09,828] So you can think of Pass@5--
+[01:00:09,828 --> 01:00:11,370] I guess, for understanding the slide,
+[01:00:11,370 --> 01:00:12,530] it doesn't matter first of all.
+[01:00:12,530 --> 01:00:15,030] But in general, you can think of Pass@5 basically as saying,
+[01:00:15,030 --> 01:00:16,450] if I gave the model five chances,
+[01:00:16,450 --> 01:00:18,910] can it succeed even once out of those five chances?
+[01:00:18,910 --> 01:00:21,450] So it's a way people evaluate models
+[01:00:21,450 --> 01:00:23,950] because it's telling you that, OK, maybe the model could not
+[01:00:23,950 --> 01:00:26,575] succeed in one try, but if I gave it n tries,
+[01:00:26,575 --> 01:00:27,450] maybe it can succeed.
+[01:00:27,450 --> 01:00:30,570] And that's what Pass@n means in the setting.
+[01:00:30,570 --> 01:00:32,690] I mean, I don't think for this particular result,
+[01:00:32,690 --> 01:00:33,830] it matters so much.
+[01:00:33,830 --> 01:00:36,870] The main thing to look at is this 8x boost in data efficiency
+[01:00:36,870 --> 01:00:39,150] that you see up here.
+[01:00:39,150 --> 01:00:40,830] So the high-level takeaway here is
+[01:00:40,830 --> 01:00:44,230] that if you do offline RL with this first step notion of credit
+[01:00:44,230 --> 01:00:48,470] assignment that we talked about, you can actually
+[01:00:48,470 --> 01:00:50,430] get a lot more data efficiency boost
+[01:00:50,430 --> 01:00:51,770] compared to imitation learning.
+[01:00:51,770 --> 01:00:54,870] So for the same amount of data, for the same base model--
+[01:00:54,870 --> 01:00:57,950] or sorry, for the same base model and for 8x fewer
+[01:00:57,950 --> 01:01:00,150] questions, you can do a similar--
+[01:01:00,150 --> 01:01:03,550] you can get the same performance with RL in this setting.
+[01:01:03,550 --> 01:01:06,382] Yeah, so, generally, I've seen people use 0.6
+[01:01:06,382 --> 01:01:08,590] as the temperature for a lot of the-- so the question
+[01:01:08,590 --> 01:01:11,130] is, "What's the recommended temperature to use?
+[01:01:11,130 --> 01:01:14,010] I've generally found it to be 0.6 is what most people use.
+[01:01:14,010 --> 01:01:17,850] I don't think that there's something that's set in stone.
+[01:01:17,850 --> 01:01:21,710] You can always change it in some ways.
+[01:01:21,710 --> 01:01:23,410] So the question is, what's a solid line?
+[01:01:23,410 --> 01:01:27,070] That's just SFT on human-written solutions in this setting.
+[01:01:27,070 --> 01:01:28,850] There's no advantage in that line.
+[01:01:28,850 --> 01:01:31,298] And the first-step advantage one was actually
+[01:01:31,298 --> 01:01:32,590] the one I showed to you before.
+[01:01:32,590 --> 01:01:34,110] I removed it here because--
+[01:01:34,110 --> 01:01:36,327] so this is maybe the ultimate kind
+[01:01:36,327 --> 01:01:37,910] of result in some ways from human data
+[01:01:37,910 --> 01:01:39,890] to self-generated data sorts.
+[01:01:39,890 --> 01:01:43,460] But yeah, it's like 2x with the first step.
+[01:01:43,460 --> 01:01:45,500] Yeah.
+[01:01:45,500 --> 01:01:46,120] OK.
+[01:01:46,120 --> 01:01:47,580] So the final thing--
+[01:01:47,580 --> 01:01:49,080] that final main method, and then I'm
+[01:01:49,080 --> 01:01:51,163] going to just talk about what people are currently
+[01:01:51,163 --> 01:01:53,680] doing very briefly, and I'll end the lecture at that point.
+[01:01:53,680 --> 01:01:55,305] But the final thing we can also do here
+[01:01:55,305 --> 01:01:56,888] is online reinforcement learning.
+[01:01:56,888 --> 01:01:58,180] There's two ways of doing this.
+[01:01:58,180 --> 01:02:00,340] So the most basic recipe for doing this
+[01:02:00,340 --> 01:02:03,100] is actually to not use any of this advantage,
+[01:02:03,100 --> 01:02:05,460] but generalize this kind of basic RFD algorithm
+[01:02:05,460 --> 01:02:07,900] without advantages to online [INAUDIBLE].
+[01:02:07,900 --> 01:02:08,840] So how do we do that?
+[01:02:08,840 --> 01:02:13,060] You can basically just take your model,
+[01:02:13,060 --> 01:02:14,940] similar to how we sampled a bunch of traces
+[01:02:14,940 --> 01:02:17,020] from my current model or current policy,
+[01:02:17,020 --> 01:02:18,500] and filtered the right ones.
+[01:02:18,500 --> 01:02:21,520] Rather than filtering, you can just train it with on-policy RL.
+[01:02:21,520 --> 01:02:23,420] So you can just generate rollouts
+[01:02:23,420 --> 01:02:28,540] from your current policy, which might be correct or wrong.
+[01:02:28,540 --> 01:02:30,820] You can reward them using the reward function
+[01:02:30,820 --> 01:02:33,220] by just checking the answer against the answer
+[01:02:33,220 --> 01:02:34,472] that the model produces.
+[01:02:34,472 --> 01:02:36,680] You can penalize it if it does not produce an answer.
+[01:02:36,680 --> 01:02:38,820] You can penalize it if it violates format.
+[01:02:38,820 --> 01:02:41,500] There's a bunch of reward-shaping things
+[01:02:41,500 --> 01:02:42,620] you can do.
+[01:02:42,620 --> 01:02:44,580] And then you just train your policy
+[01:02:44,580 --> 01:02:47,740] to maximize this reward using policy gradients.
+[01:02:47,740 --> 01:02:52,343] So RFT, we were explicitly filtering and training with SFT.
+[01:02:52,343 --> 01:02:54,760] But rather than doing this filtering or training with SFT,
+[01:02:54,760 --> 01:02:56,860] you can simply run on-policy reinforcement
+[01:02:56,860 --> 01:02:59,180] learning because all in this formulation
+[01:02:59,180 --> 01:03:00,600] is just state action.
+[01:03:00,600 --> 01:03:01,280] There's an MDP.
+[01:03:01,280 --> 01:03:04,140] There's a reward and just do r on top of it.
+[01:03:04,140 --> 01:03:07,600] So you can simply write the policy gradient equation,
+[01:03:07,600 --> 01:03:09,500] so that basically just looks like grad log
+[01:03:09,500 --> 01:03:12,740] pi times the reward that you see up here.
+[01:03:12,740 --> 01:03:15,860] And you can just run that on your problem.
+[01:03:15,860 --> 01:03:17,700] There's also a lot of work which now
+[01:03:17,700 --> 01:03:21,220] tries to go beyond the basic reinforce style policy gradient
+[01:03:21,220 --> 01:03:24,220] and goes to methods like what's called GRPO.
+[01:03:24,220 --> 01:03:27,500] It's nothing but just an extension of the basic PPO
+[01:03:27,500 --> 01:03:29,400] algorithm in this setting.
+[01:03:29,400 --> 01:03:30,857] So the PPO algorithm--
+[01:03:30,857 --> 01:03:32,440] I guess I'm going to say a few things.
+[01:03:32,440 --> 01:03:34,840] PPO algorithm uses a learned value function.
+[01:03:34,840 --> 01:03:38,050] The GRP algorithm replaces that learned value function
+[01:03:38,050 --> 01:03:39,690] or learned Q-value function with simply
+[01:03:39,690 --> 01:03:42,130] this rollout-based estimation of advantages.
+[01:03:42,130 --> 01:03:44,570] So the same old basic RL recipe applied
+[01:03:44,570 --> 01:03:47,390] on an MDP that looks like the thing that you see up there.
+[01:03:47,390 --> 01:03:50,015] So a trajectory that looks like the thing that you see up there
+[01:03:50,015 --> 01:03:51,490] with a 01 reward.
+[01:03:51,490 --> 01:03:52,150] OK.
+[01:03:52,150 --> 01:03:53,713] And what you can also do-- and this
+[01:03:53,713 --> 01:03:55,130] is something that finally can do--
+[01:03:55,130 --> 01:03:58,730] is you can also do per-step advantages in online RL.
+[01:03:58,730 --> 01:04:01,130] That's the final method that you can apply.
+[01:04:01,130 --> 01:04:04,370] So in this setting you can take a solution from your base model
+[01:04:04,370 --> 01:04:06,895] or take a solution from your current policy
+[01:04:06,895 --> 01:04:07,770] that you're training.
+[01:04:07,770 --> 01:04:09,530] Or over the course of training, you
+[01:04:09,530 --> 01:04:11,370] can do these rollouts if you want to.
+[01:04:11,370 --> 01:04:14,250] You can use these rollouts to compute advantages.
+[01:04:14,250 --> 01:04:15,910] And rather than doing these rollouts,
+[01:04:15,910 --> 01:04:18,570] you can also potentially do something slightly different,
+[01:04:18,570 --> 01:04:22,010] which is basically to train a reward model-like
+[01:04:22,010 --> 01:04:24,290] thing to fit to these advantage predictions
+[01:04:24,290 --> 01:04:25,970] or to fit to these Q-value predictions
+[01:04:25,970 --> 01:04:27,890] and then compute advantages.
+[01:04:27,890 --> 01:04:30,370] So this is very similar to some of the RHLF work
+[01:04:30,370 --> 01:04:32,970] that you probably saw, except that now this
+[01:04:32,970 --> 01:04:36,750] is a reward model that is rewarding every step of sorts,
+[01:04:36,750 --> 01:04:39,950] or reward model that's producing the Q-value for every step,
+[01:04:39,950 --> 01:04:41,690] or the advantage for every step, as
+[01:04:41,690 --> 01:04:43,970] opposed to producing a reward for the whole sequence
+[01:04:43,970 --> 01:04:45,170] that you're seeing.
+[01:04:45,170 --> 01:04:48,010] And once you have these advantage predictions
+[01:04:48,010 --> 01:04:52,730] that you can fit to a network, you can query this particular--
+[01:04:52,730 --> 01:04:55,570] so for any rollout that your policy produces,
+[01:04:55,570 --> 01:04:58,690] you can query the advantage predictor
+[01:04:58,690 --> 01:05:01,690] that you have trained to reward every single step
+[01:05:01,690 --> 01:05:03,810] in this particular policy generation.
+[01:05:03,810 --> 01:05:05,850] And once you do that, what you can do now
+[01:05:05,850 --> 01:05:07,950] is you can simply take your network,
+[01:05:07,950 --> 01:05:11,250] produce these advantage labels, and optimize for reward
+[01:05:11,250 --> 01:05:13,810] that you're getting at the end, plus these advantages
+[01:05:13,810 --> 01:05:16,478] that you see up here in this setting.
+[01:05:16,478 --> 01:05:17,270] Yeah, that's great.
+[01:05:17,270 --> 01:05:19,437] So the question is, "How generalizable is reasoning?
+[01:05:19,437 --> 01:05:21,743] When you train on MATH, does it improve on GSM8K?"
+[01:05:21,743 --> 01:05:23,410] So it turns out if you train on MATH, it
+[01:05:23,410 --> 01:05:24,770] does not improve on GSM8K.
+[01:05:24,770 --> 01:05:26,110] And many people have shown it.
+[01:05:26,110 --> 01:05:29,010] But if you train on a bunch of mixture of prompts,
+[01:05:29,010 --> 01:05:30,785] which are of varied levels of difficulty,
+[01:05:30,785 --> 01:05:31,910] you can actually get there.
+[01:05:31,910 --> 01:05:33,610] So this is precisely the recipe, which
+[01:05:33,610 --> 01:05:36,260] is being used in-- and/or not this one,
+[01:05:36,260 --> 01:05:39,200] but the basic online recipe which I talked to you about
+[01:05:39,200 --> 01:05:41,440] earlier, used to train all of these,
+[01:05:41,440 --> 01:05:44,000] or many of these thinking models which
+[01:05:44,000 --> 01:05:46,822] have open recipe descriptions.
+[01:05:46,822 --> 01:05:49,280] So this online recipe is kind of used to train the DeepSeek
+[01:05:49,280 --> 01:05:50,405] carbon model, for instance.
+[01:05:50,405 --> 01:05:53,700] And that does generalize to a fairly good amount of extent.
+[01:05:53,700 --> 01:05:56,560] It doesn't also generalize to every single problem
+[01:05:56,560 --> 01:05:59,440] out there, but to a fairly good extent it does.
+[01:05:59,440 --> 01:06:02,020] So you can compute these advantage predictions.
+[01:06:02,020 --> 01:06:03,680] You can fit them to a network, use
+[01:06:03,680 --> 01:06:05,940] them to produce these rewards for every single step.
+[01:06:05,940 --> 01:06:09,015] And that's the more advanced way of doing online RL
+[01:06:09,015 --> 01:06:10,140] with this particular thing.
+[01:06:10,140 --> 01:06:13,000] So we had a work that we called process advantage verifiers
+[01:06:13,000 --> 01:06:13,680] here.
+[01:06:13,680 --> 01:06:16,480] A process because it's rewarding every step;
+[01:06:16,480 --> 01:06:18,880] advantage because it's fitting an advantage function;
+[01:06:18,880 --> 01:06:23,500] and a verifier because, somehow in the domain of reasoning,
+[01:06:23,500 --> 01:06:25,980] reward models are referred to often as verifiers.
+[01:06:25,980 --> 01:06:28,400] So if you see that word come up, it's
+[01:06:28,400 --> 01:06:30,540] just synonymous to a reward model of sorts.
+[01:06:30,540 --> 01:06:32,120] Or in this particular case, even you
+[01:06:32,120 --> 01:06:34,760] can think of it as a Q function or a value function of sorts.
+[01:06:34,760 --> 01:06:36,460] But that's the name of the method.
+[01:06:36,460 --> 01:06:38,628] And we find that in general--
+[01:06:38,628 --> 01:06:40,420] so I'm going to skip some of these details.
+[01:06:40,420 --> 01:06:44,120] But in general, if you do dense reward RL,
+[01:06:44,120 --> 01:06:47,480] like process reward or advantage-based reward RL,
+[01:06:47,480 --> 01:06:50,640] you find that you can get to a much better accuracy,
+[01:06:50,640 --> 01:06:54,725] compared to what's called ORM model or just 01 one reward RL,
+[01:06:54,725 --> 01:06:56,600] like the sparse 01 reward provided at the end
+[01:06:56,600 --> 01:06:57,600] of the trajectory.
+[01:06:57,600 --> 01:07:00,440] So this is the basic recipe that a lot of the current work
+[01:07:00,440 --> 01:07:01,260] is using.
+[01:07:01,260 --> 01:07:03,860] This is the advantage-based verifiers recipe.
+[01:07:03,860 --> 01:07:05,760] And you can see that you can get a bigger
+[01:07:05,760 --> 01:07:07,520] boost in sample efficiency, as well
+[01:07:07,520 --> 01:07:09,960] as in terms of just absolute performance
+[01:07:09,960 --> 01:07:11,160] that you see up here.
+[01:07:11,160 --> 01:07:15,920] Also, these numbers look small, but with 2B and 9B models that
+[01:07:15,920 --> 01:07:18,840] we were basing this off of, apparently this is the best
+[01:07:18,840 --> 01:07:21,880] result that you can get on certain data sets that we tried
+[01:07:21,880 --> 01:07:22,720] this on.
+[01:07:22,720 --> 01:07:25,840] So it's about 5 or 6x sample efficiency boost and about 6%
+[01:07:25,840 --> 01:07:29,280] to 7% absolute performance improvement in this particular
+[01:07:29,280 --> 01:07:32,020] setting with the dense advantages in some way.
+[01:07:35,350 --> 01:07:37,210] OK, I'm going to skip some of these things.
+[01:07:37,210 --> 01:07:42,030] But at a high level, we are also seeing now these newer thinking
+[01:07:42,030 --> 01:07:44,830] models that have come up where basically these models can just
+[01:07:44,830 --> 01:07:47,250] think for longer and produce a better answer.
+[01:07:47,250 --> 01:07:49,270] This is the DeepSeek-R1 family of models,
+[01:07:49,270 --> 01:07:54,790] OpenAI family of models or O series of models from OpenAI.
+[01:07:54,790 --> 01:07:57,430] In my opinion, really, these are trained
+[01:07:57,430 --> 01:07:59,838] using very similar recipes that I just
+[01:07:59,838 --> 01:08:01,630] talked to you about for this whole lecture,
+[01:08:01,630 --> 01:08:03,505] except that there are some small changes that
+[01:08:03,505 --> 01:08:08,630] happen in this process from pre these models
+[01:08:08,630 --> 01:08:10,390] versus these models.
+[01:08:10,390 --> 01:08:12,970] So the RL training objective has remained the same.
+[01:08:12,970 --> 01:08:14,310] So there's some minor details.
+[01:08:14,310 --> 01:08:16,069] Like, there's this new method called
+[01:08:16,069 --> 01:08:18,130] TRPO which I just describing.
+[01:08:18,130 --> 01:08:20,270] It's basically PPO with some tweaks.
+[01:08:20,270 --> 01:08:23,630] There's also some other methods like advantage-induced policy
+[01:08:23,630 --> 01:08:24,130] alignment.
+[01:08:24,130 --> 01:08:26,050] You don't need to know what those methods are.
+[01:08:26,050 --> 01:08:27,710] Just think of them roughly as policy
+[01:08:27,710 --> 01:08:30,830] gradient methods done with slight tweaks overall.
+[01:08:30,830 --> 01:08:34,350] But what has changed is that the action space in a way
+[01:08:34,350 --> 01:08:36,550] has changed for these models, in my opinion.
+[01:08:36,550 --> 01:08:38,750] Now, this is a very crude statement to make.
+[01:08:38,750 --> 01:08:41,333] And to be really rigorous about it,
+[01:08:41,333 --> 01:08:42,750] I think the statement sounds wrong
+[01:08:42,750 --> 01:08:45,229] because these models do actually produce token by token one
+[01:08:45,229 --> 01:08:46,149] at a time.
+[01:08:46,149 --> 01:08:48,850] But these models, the base models on which we are doing RL,
+[01:08:48,850 --> 01:08:53,590] have become better at being able to implement interesting meta
+[01:08:53,590 --> 01:08:54,910] procedures.
+[01:08:54,910 --> 01:08:56,803] These models can actually produce a solution,
+[01:08:56,803 --> 01:08:59,470] maybe go out there and then try to verify the solution they have
+[01:08:59,470 --> 01:09:01,637] produced, maybe then backtrack to a particular point
+[01:09:01,637 --> 01:09:03,130] and do something else from there.
+[01:09:03,130 --> 01:09:05,338] And you can think of this as just yet another version
+[01:09:05,338 --> 01:09:06,350] of defining the step.
+[01:09:06,350 --> 01:09:08,830] These models can produce more interesting steps
+[01:09:08,830 --> 01:09:12,029] than just going out there and calculating yet another quantity
+[01:09:12,029 --> 01:09:14,590] like the models previously could have done.
+[01:09:14,590 --> 01:09:17,790] So it's just a better notion of a step or a better action
+[01:09:17,790 --> 01:09:19,950] that these models can sample when
+[01:09:19,950 --> 01:09:22,830] you run all of these algorithms on top of them.
+[01:09:22,830 --> 01:09:26,029] And once you do that, and you give these models a longer
+[01:09:26,029 --> 01:09:28,990] budget to act-- so if you tell these models that, OK, there's
+[01:09:28,990 --> 01:09:31,819] no limit on how many tokens you can think,
+[01:09:31,819 --> 01:09:33,978] you can sample during the course of RL,
+[01:09:33,978 --> 01:09:36,520] you can maybe sample solutions which are really, really long,
+[01:09:36,520 --> 01:09:38,120] but just get me the right answer.
+[01:09:38,120 --> 01:09:39,819] If I give these models that playground
+[01:09:39,819 --> 01:09:42,220] to sample more and more tokens, turns out
+[01:09:42,220 --> 01:09:46,140] that RL training algorithms with these two bullet points
+[01:09:46,140 --> 01:09:48,165] actually give you much better performance.
+[01:09:48,165 --> 01:09:50,540] And that's what we see with these current thinking models
+[01:09:50,540 --> 01:09:51,939] right now.
+[01:09:51,939 --> 01:09:54,020] It turns out that these models are--
+[01:09:54,020 --> 01:09:57,060] if you do a counterfactual experiment where you take models
+[01:09:57,060 --> 01:10:00,380] which are not capable of implementing like basic
+[01:10:00,380 --> 01:10:04,080] answer-checking or verification or generating a better answer,
+[01:10:04,080 --> 01:10:08,740] it turns out that you cannot do good RL with them right now.
+[01:10:08,740 --> 01:10:10,660] So really, nothing has changed in terms
+[01:10:10,660 --> 01:10:13,640] of the high-level techniques that I talked about,
+[01:10:13,640 --> 01:10:17,540] except that the base models have become more interesting in a way
+[01:10:17,540 --> 01:10:20,813] that they can sample interesting kinds of steps to train on.
+[01:10:20,813 --> 01:10:22,980] And that has led to some of the most amazing results
+[01:10:22,980 --> 01:10:25,330] that we are seeing right now.

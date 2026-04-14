@@ -1,0 +1,1266 @@
+[00:00:05,093 --> 00:00:07,720] All right, let's get started.
+[00:00:07,720 --> 00:00:08,620] Great.
+[00:00:08,620 --> 00:00:11,280] So for today, we're planning to finish offline reinforcement
+[00:00:11,280 --> 00:00:11,980] learning.
+[00:00:11,980 --> 00:00:13,880] And along the reward learning front,
+[00:00:13,880 --> 00:00:16,960] the key goals today are to figure out
+[00:00:16,960 --> 00:00:19,800] why is task specification hard.
+[00:00:19,800 --> 00:00:24,400] Why do naive methods for trying to specify rewards fail?
+[00:00:24,400 --> 00:00:28,000] And what are some methods for learning reward functions
+[00:00:28,000 --> 00:00:31,440] from human supervision?
+[00:00:31,440 --> 00:00:31,980] Cool.
+[00:00:31,980 --> 00:00:36,280] So to start off with finishing offline reinforcement learning,
+[00:00:36,280 --> 00:00:39,160] we talked about this problem on Wednesday
+[00:00:39,160 --> 00:00:41,320] where our goal is to learn a policy
+[00:00:41,320 --> 00:00:45,680] from a batch of existing data without any online data
+[00:00:45,680 --> 00:00:46,920] collection.
+[00:00:46,920 --> 00:00:49,840] And we assume that the batch of offline data
+[00:00:49,840 --> 00:00:52,520] is collected by some unknown policy
+[00:00:52,520 --> 00:00:56,400] that we refer to as the behavior policy or pi beta.
+[00:00:56,400 --> 00:00:59,840] And our goal is to maximize rewards under pi theta.
+[00:00:59,840 --> 00:01:02,500] And so we have this challenge of a distribution shift
+[00:01:02,500 --> 00:01:05,780] between this prior policy that collected
+[00:01:05,780 --> 00:01:10,420] the data and the policy that we're optimizing.
+[00:01:10,420 --> 00:01:12,240] One of the challenges that comes up,
+[00:01:12,240 --> 00:01:14,860] if you try to use traditional reinforcement learning
+[00:01:14,860 --> 00:01:17,740] algorithms in this setting, is that-- if, for example, you're
+[00:01:17,740 --> 00:01:22,380] trying to optimize a Q function to then improve your policy,
+[00:01:22,380 --> 00:01:26,620] then you might query your Q function on actions
+[00:01:26,620 --> 00:01:28,480] that were sampled from your learned policy,
+[00:01:28,480 --> 00:01:31,540] and those actions might not be covered in the data.
+[00:01:31,540 --> 00:01:33,420] And that can cause overestimation.
+[00:01:33,420 --> 00:01:37,020] And it can cause your Q function to be inaccurate.
+[00:01:37,020 --> 00:01:38,460] We talked about this picture where
+[00:01:38,460 --> 00:01:41,540] if we had randomly initialized some Q function,
+[00:01:41,540 --> 00:01:47,100] and the data only covers actions along this range for this given
+[00:01:47,100 --> 00:01:50,140] state, then we might--
+[00:01:50,140 --> 00:01:52,140] then when we try to actually learn
+[00:01:52,140 --> 00:01:54,160] a policy that optimizes the Q function,
+[00:01:54,160 --> 00:01:55,860] then it will start to query actions
+[00:01:55,860 --> 00:02:00,320] that are over here because they randomly have a higher Q value.
+[00:02:00,320 --> 00:02:04,880] And that's one of the key challenges in offline RL.
+[00:02:04,880 --> 00:02:07,521] Now we talked about one algorithm that--
+[00:02:07,521 --> 00:02:08,979] I talked about a couple algorithms.
+[00:02:08,979 --> 00:02:11,187] But the main algorithm that we talked about last time
+[00:02:11,187 --> 00:02:12,880] was this IQL algorithm.
+[00:02:12,880 --> 00:02:15,680] And IQL addresses the offline RL problem
+[00:02:15,680 --> 00:02:20,800] by actually avoiding any sort of queries,
+[00:02:20,800 --> 00:02:24,080] any sort of function queries beyond the data set actions
+[00:02:24,080 --> 00:02:25,640] altogether.
+[00:02:25,640 --> 00:02:32,880] And it did this by actually just learning a value function
+[00:02:32,880 --> 00:02:36,960] and a Q function using the states and actions in the data.
+[00:02:36,960 --> 00:02:40,300] Now if you just do that with the normal updates,
+[00:02:40,300 --> 00:02:44,665] then you'll learn V pi and Q pi for the behavior policy.
+[00:02:44,665 --> 00:02:47,040] So you'll learn a value function for the behavior policy.
+[00:02:47,040 --> 00:02:49,600] And that won't allow you to improve very much
+[00:02:49,600 --> 00:02:52,280] over the behavior policy.
+[00:02:52,280 --> 00:02:54,880] And so instead, when learning the value function,
+[00:02:54,880 --> 00:02:58,810] it used this asymmetric loss to try
+[00:02:58,810 --> 00:03:01,970] to learn a value function for a policy that's better
+[00:03:01,970 --> 00:03:04,770] than the behavior policy.
+[00:03:04,770 --> 00:03:08,970] And then it learns both the value function and a Q function.
+[00:03:08,970 --> 00:03:12,550] For the Q function, it uses a standard L2 loss.
+[00:03:12,550 --> 00:03:15,330] One thing I didn't quite go over with regard to IQL
+[00:03:15,330 --> 00:03:18,390] is why use an asymmetric loss for the value function,
+[00:03:18,390 --> 00:03:20,090] but not for the Q function.
+[00:03:20,090 --> 00:03:23,090] And one way to think about that is you
+[00:03:23,090 --> 00:03:25,820] can think about when you're taking actions--
+[00:03:25,820 --> 00:03:28,150] when you're rolling out a policy,
+[00:03:28,150 --> 00:03:30,010] there's two sources of variability.
+[00:03:30,010 --> 00:03:32,690] One is that the different actions that you might take.
+[00:03:32,690 --> 00:03:36,410] And one is given an action, the state that you end up in.
+[00:03:36,410 --> 00:03:40,170] And if you think about, for example,
+[00:03:40,170 --> 00:03:45,130] the Q function after taking an action and separately
+[00:03:45,130 --> 00:03:51,490] the value function of the state that comes after that,
+[00:03:51,490 --> 00:03:52,790] these might be different.
+[00:03:52,790 --> 00:03:54,830] So because you actually-- because there's
+[00:03:54,830 --> 00:03:56,950] randomness in the environment, the value
+[00:03:56,950 --> 00:04:00,647] function for the next state, maybe it's something like 8,
+[00:04:00,647 --> 00:04:02,230] because maybe you got somewhat unlucky
+[00:04:02,230 --> 00:04:03,590] in terms of the next state.
+[00:04:03,590 --> 00:04:07,590] And it might be less than the Q function
+[00:04:07,590 --> 00:04:09,830] after taking this action.
+[00:04:09,830 --> 00:04:14,350] And likewise for these other states and actions,
+[00:04:14,350 --> 00:04:15,690] you might have some variability.
+[00:04:15,690 --> 00:04:20,350] So maybe Q of (s, a2).
+[00:04:20,350 --> 00:04:22,710] Maybe that's equal to 5, because this is
+[00:04:22,710 --> 00:04:25,390] an action that's worse than a1.
+[00:04:25,390 --> 00:04:28,790] Whereas perhaps when you actually
+[00:04:28,790 --> 00:04:30,630] rolled out a2 in the environment,
+[00:04:30,630 --> 00:04:36,190] the subsequent state after taking that action
+[00:04:36,190 --> 00:04:39,470] has a true value of--
+[00:04:39,470 --> 00:04:40,570] maybe a true value of 8.
+[00:04:40,570 --> 00:04:42,910] Maybe you got lucky this time.
+[00:04:42,910 --> 00:04:44,710] Maybe this action is really bad.
+[00:04:44,710 --> 00:04:50,590] In that case, then Q hat (s, a3).
+[00:04:50,590 --> 00:04:52,110] Maybe it was a very risky action,
+[00:04:52,110 --> 00:04:55,370] so it has a key value of negative 5.
+[00:04:55,370 --> 00:04:58,130] And then maybe when you actually took that risky action
+[00:04:58,130 --> 00:05:00,730] in the environment, maybe it wasn't quite as bad
+[00:05:00,730 --> 00:05:02,510] as what could have happened.
+[00:05:02,510 --> 00:05:07,170] And so in that case, the value for that next state
+[00:05:07,170 --> 00:05:09,450] maybe is something like 0 because it
+[00:05:09,450 --> 00:05:11,113] didn't turn out as bad.
+[00:05:11,113 --> 00:05:13,530] And the reason why I'm writing out these different numbers
+[00:05:13,530 --> 00:05:16,650] is that we can think about the asymmetric loss function
+[00:05:16,650 --> 00:05:19,130] when learning the value for IQL.
+[00:05:19,130 --> 00:05:22,930] And the first loss function when learning the value
+[00:05:22,930 --> 00:05:25,830] is trying to regress to the different Q values.
+[00:05:25,830 --> 00:05:27,970] And we could either learn the average Q value
+[00:05:27,970 --> 00:05:32,470] or try to lean towards the larger Q values.
+[00:05:32,470 --> 00:05:34,550] And if we lean towards the larger Q values,
+[00:05:34,550 --> 00:05:37,592] that corresponds to actions that are better.
+[00:05:37,592 --> 00:05:39,050] And so that corresponds to a policy
+[00:05:39,050 --> 00:05:42,490] that's better than the behavior policy.
+[00:05:42,490 --> 00:05:45,890] On the contrary, if we instead use an asymmetric loss function
+[00:05:45,890 --> 00:05:48,930] in the Q function, the targets for the Q function
+[00:05:48,930 --> 00:05:51,390] correspond to the next value.
+[00:05:51,390 --> 00:05:52,590] And if we instead--
+[00:05:52,590 --> 00:05:54,550] if we use this L2 loss, we'll just
+[00:05:54,550 --> 00:05:57,390] be optimizing for the average value here.
+[00:05:57,390 --> 00:06:00,110] If we instead use an asymmetric loss,
+[00:06:00,110 --> 00:06:03,750] then we'd be trying to regress to the future state
+[00:06:03,750 --> 00:06:06,430] values that are higher, which would actually
+[00:06:06,430 --> 00:06:11,470] be optimizing for not a better policy, but a more lucky policy.
+[00:06:11,470 --> 00:06:15,710] And that's something that you can't control with your actions.
+[00:06:15,710 --> 00:06:17,750] Yeah, so in the IQL objective, we're
+[00:06:17,750 --> 00:06:21,390] actually training both the value function and a Q function.
+[00:06:21,390 --> 00:06:26,350] And the reason for that is because we want to be finding--
+[00:06:26,350 --> 00:06:33,190] the goal is to fit V hat pi for a pi that
+[00:06:33,190 --> 00:06:36,830] is better than the behavior policy
+[00:06:36,830 --> 00:06:41,510] or better than the policy that underlies the data set.
+[00:06:41,510 --> 00:06:44,630] And as we see here, if we do that
+[00:06:44,630 --> 00:06:49,530] by regressing to these Q values, then we will pick--
+[00:06:49,530 --> 00:06:51,950] we'll lean towards-- instead of the average,
+[00:06:51,950 --> 00:06:54,790] lean towards the key values that correspond to better actions.
+[00:06:54,790 --> 00:06:57,265] And so that's learning a value function
+[00:06:57,265 --> 00:06:58,390] for a policy that's better.
+[00:06:58,390 --> 00:07:01,850] This takes better actions than the behavior policy.
+[00:07:01,850 --> 00:07:04,370] Now, we can't just use--
+[00:07:04,370 --> 00:07:07,230] it's useful to have a Q function and not just a value function,
+[00:07:07,230 --> 00:07:09,970] because the Q function is what helps us figure out
+[00:07:09,970 --> 00:07:13,930] which actions are better when we use
+[00:07:13,930 --> 00:07:15,790] advantage-weighted regression and so forth.
+[00:07:15,790 --> 00:07:18,690] And so we also learn a Q function as well.
+[00:07:18,690 --> 00:07:20,530] But for that, we use asymmetric loss
+[00:07:20,530 --> 00:07:23,810] so that we're not optimizing for being lucky.
+[00:07:23,810 --> 00:07:25,930] OK.
+[00:07:25,930 --> 00:07:31,690] So IQL was one way to learn a policy from an offline data set.
+[00:07:31,690 --> 00:07:34,670] There's also some other ways to do it.
+[00:07:34,670 --> 00:07:37,290] And in particular, we'll talk about one more way, one more
+[00:07:37,290 --> 00:07:38,570] algorithm.
+[00:07:38,570 --> 00:07:40,850] And in this case, we're still going
+[00:07:40,850 --> 00:07:42,930] to try to estimate the value.
+[00:07:42,930 --> 00:07:46,950] We're still going to actually query actions from our policy.
+[00:07:46,950 --> 00:07:50,510] And we want to think about how to discourage overestimation
+[00:07:50,510 --> 00:07:55,590] and discourage the RL algorithm from taking actions
+[00:07:55,590 --> 00:07:59,550] that you think might have high Q value because they're out
+[00:07:59,550 --> 00:08:01,990] of distribution.
+[00:08:01,990 --> 00:08:07,210] And so one idea is, what if we just outside of the data support
+[00:08:07,210 --> 00:08:10,230] try to minimize the Q values?
+[00:08:10,230 --> 00:08:12,230] Can we just basically take this part
+[00:08:12,230 --> 00:08:15,030] and try to push down on the Q values that
+[00:08:15,030 --> 00:08:17,830] are out of distribution?
+[00:08:17,830 --> 00:08:19,830] And if we did that, then we would
+[00:08:19,830 --> 00:08:22,830] be pessimistic or conservative with regard
+[00:08:22,830 --> 00:08:27,590] to everything that's out of distribution and not
+[00:08:27,590 --> 00:08:29,070] as conservative when we're actually
+[00:08:29,070 --> 00:08:32,190] in the support of the data.
+[00:08:32,190 --> 00:08:38,429] And so we could formulate some loss function that does this.
+[00:08:38,429 --> 00:08:45,080] And what this would look like is you're
+[00:08:45,080 --> 00:08:46,920] trying to fit a Q function.
+[00:08:46,920 --> 00:08:55,180] And you will have your standard loss for your critic,
+[00:08:55,180 --> 00:08:56,180] for your value function.
+[00:08:56,180 --> 00:08:58,680] I'll call this L critic.
+[00:08:58,680 --> 00:09:01,520] Then we could also add a loss function.
+[00:09:01,520 --> 00:09:07,620] This is for-- we're trying to fit the Q function.
+[00:09:07,620 --> 00:09:10,720] So maybe that Q function has parameters phi.
+[00:09:10,720 --> 00:09:12,600] And then we could add an additional term
+[00:09:12,600 --> 00:09:16,400] that is trying to additionally minimize
+[00:09:16,400 --> 00:09:20,200] the key values on actions that are out of distribution.
+[00:09:20,200 --> 00:09:26,880] So we would try to be minimizing our Q values.
+[00:09:26,880 --> 00:09:30,520] And in particular, we want to minimize key values
+[00:09:30,520 --> 00:09:32,280] for our distribution actions.
+[00:09:32,280 --> 00:09:36,440] And so this would be an expectation
+[00:09:36,440 --> 00:09:43,700] over states sampled from your data set and actions
+[00:09:43,700 --> 00:09:45,712] sampled from some other distribution that's
+[00:09:45,712 --> 00:09:46,420] not the data set.
+[00:09:49,180 --> 00:09:51,100] And ideally, this distribution would
+[00:09:51,100 --> 00:09:53,420] cover the out-of-distribution actions
+[00:09:53,420 --> 00:09:56,000] that your policy might be considering.
+[00:09:59,340 --> 00:10:02,260] So this is some other distribution.
+[00:10:02,260 --> 00:10:07,060] That distribution would probably be a function of [? f. ?]
+[00:10:07,060 --> 00:10:09,260] Now if you want to think about which
+[00:10:09,260 --> 00:10:11,977] out-of-distribution actions your policy might be considering,
+[00:10:11,977 --> 00:10:13,560] your policy is going to be considering
+[00:10:13,560 --> 00:10:18,100] the out-of-distribution actions that have high Q value.
+[00:10:18,100 --> 00:10:24,700] And so one initial version that we could do here
+[00:10:24,700 --> 00:10:29,180] is we could pick a mu, pick this distribution,
+[00:10:29,180 --> 00:10:33,660] such that it has high Q values, because our policy will
+[00:10:33,660 --> 00:10:37,180] be trying to take actions that have high Q values.
+[00:10:37,180 --> 00:10:42,160] And so what this would look like is minimizing our critic
+[00:10:42,160 --> 00:10:48,200] parameters and choosing a mu such
+[00:10:48,200 --> 00:10:53,257] that it's maximizing the Q values.
+[00:10:53,257 --> 00:10:54,840] So what this will do is it will have--
+[00:10:54,840 --> 00:10:57,240] it will try to optimize a critic and then
+[00:10:57,240 --> 00:11:02,520] minimize the Q values for actions
+[00:11:02,520 --> 00:11:06,480] that have a high Q value.
+[00:11:06,480 --> 00:11:07,610] Now this is version 1.
+[00:11:10,600 --> 00:11:13,240] We're going to be pushing down on large Q values.
+[00:11:13,240 --> 00:11:17,600] You can show with this version that if you have
+[00:11:17,600 --> 00:11:19,652] a large enough alpha, if you--
+[00:11:19,652 --> 00:11:23,200] you don't necessarily-- you want to have some sort of weight
+[00:11:23,200 --> 00:11:24,020] on this objective.
+[00:11:24,020 --> 00:11:25,460] This is going to be a hyperparameter.
+[00:11:25,460 --> 00:11:26,835] If you have a large enough alpha,
+[00:11:26,835 --> 00:11:30,000] you can show that the critic that you learned from this
+[00:11:30,000 --> 00:11:35,520] is going to be a lower bound on the true Q function.
+[00:11:35,520 --> 00:11:39,660] And so then what this would look like is
+[00:11:39,660 --> 00:11:46,140] if you have some plot of your Q functions
+[00:11:46,140 --> 00:11:50,220] for a different action, and if your data support is maybe
+[00:11:50,220 --> 00:11:52,860] something like this, something that you might learn
+[00:11:52,860 --> 00:11:57,320] is a lower bound on the true Q function,
+[00:11:57,320 --> 00:12:00,320] where this latter one is going to be Q hat.
+[00:12:04,380 --> 00:12:06,500] Now, one downside with this is that you
+[00:12:06,500 --> 00:12:10,778] might be a little bit too pessimistic,
+[00:12:10,778 --> 00:12:12,820] because this is actually going to be pushing down
+[00:12:12,820 --> 00:12:14,540] on all Q values.
+[00:12:14,540 --> 00:12:16,960] But we know that for the Q values,
+[00:12:16,960 --> 00:12:19,740] for the actions in the data set, for the part that's
+[00:12:19,740 --> 00:12:26,300] in the support of our data set, these actions
+[00:12:26,300 --> 00:12:28,015] we have more data for.
+[00:12:28,015 --> 00:12:30,140] And so we don't necessarily want to be pushing down
+[00:12:30,140 --> 00:12:34,203] on the key values for those actions.
+[00:12:34,203 --> 00:12:35,620] And so we could do is we could add
+[00:12:35,620 --> 00:12:40,420] a term that basically cancels out this term for the data
+[00:12:40,420 --> 00:12:42,240] sets in the actions.
+[00:12:42,240 --> 00:12:44,120] And so what that would do is just--
+[00:12:44,120 --> 00:12:47,240] what that would look like is simply
+[00:12:47,240 --> 00:12:51,840] taking this same exact term and subtracting it
+[00:12:51,840 --> 00:12:59,160] for states in the data set, but also actions in the data set.
+[00:12:59,160 --> 00:13:03,840] So we're going to be minimizing the Q values for actions
+[00:13:03,840 --> 00:13:06,360] from this distribution and maximizing
+[00:13:06,360 --> 00:13:09,040] for actions in the data set.
+[00:13:09,040 --> 00:13:13,760] And this will hopefully-- the goal of this would be to get a Q
+[00:13:13,760 --> 00:13:16,920] function that inside the support of the data--
+[00:13:16,920 --> 00:13:18,440] it's not a very good marker.
+[00:13:18,440 --> 00:13:22,120] That's inside the support of the data is maybe very accurate.
+[00:13:22,120 --> 00:13:25,253] And then for the things outside the support of the data
+[00:13:25,253 --> 00:13:27,318] has a low Q values, because we know
+[00:13:27,318 --> 00:13:28,860] that outside the support of the data,
+[00:13:28,860 --> 00:13:31,662] we aren't going to be able to learn an accurate Q function.
+[00:13:31,662 --> 00:13:33,120] Yeah, so the question is, does this
+[00:13:33,120 --> 00:13:35,620] affect your ability to generalize outside the support
+[00:13:35,620 --> 00:13:36,620] of the data?
+[00:13:36,620 --> 00:13:39,180] So certainly, it does.
+[00:13:39,180 --> 00:13:42,020] It's going to cause you to be basically more
+[00:13:42,020 --> 00:13:44,410] pessimistic outside of the support of the data.
+[00:13:49,620 --> 00:13:51,580] This hyperparameter alpha is going
+[00:13:51,580 --> 00:13:53,460] to control how pessimistic you are.
+[00:13:53,460 --> 00:13:55,340] And if you think that you're in a regime where you might
+[00:13:55,340 --> 00:13:56,923] be able to generalize better, then you
+[00:13:56,923 --> 00:13:59,180] could choose an alpha that is smaller
+[00:13:59,180 --> 00:14:02,180] so that you're using more of the original critic objective
+[00:14:02,180 --> 00:14:06,380] and less of this regularization term.
+[00:14:06,380 --> 00:14:07,780] Yeah.
+[00:14:07,780 --> 00:14:11,420] The question is, should it be Q or Q hat?
+[00:14:11,420 --> 00:14:11,920] Right.
+[00:14:11,920 --> 00:14:17,360] So it should be Q hat phi.
+[00:14:17,360 --> 00:14:20,166] So this is our--
+[00:14:20,166 --> 00:14:23,220] this is the Q function that we're learning right here.
+[00:14:23,220 --> 00:14:25,580] The notation on the slide is slightly different.
+[00:14:25,580 --> 00:14:27,040] Sorry for the difference there.
+[00:14:27,040 --> 00:14:29,660] So on the slides, we're treating Q as the thing
+[00:14:29,660 --> 00:14:32,940] that we're minimizing.
+[00:14:32,940 --> 00:14:36,230] And if we view it instead of minimizing these parameters,
+[00:14:36,230 --> 00:14:38,510] then this is how we would write it.
+[00:14:38,510 --> 00:14:40,750] Yeah, so the question is, what is mu?
+[00:14:40,750 --> 00:14:43,870] Is it this fake policy that's outside the support?
+[00:14:43,870 --> 00:14:48,950] You can think of mu as sort of as a policy.
+[00:14:48,950 --> 00:14:51,450] It's not actually the policy that we're going to be running,
+[00:14:51,450 --> 00:14:54,350] but it's essentially going to be something that is trying to seek
+[00:14:54,350 --> 00:14:57,870] out the Q values that have--
+[00:14:57,870 --> 00:14:59,350] the Q values that-- or the actions
+[00:14:59,350 --> 00:15:01,670] that have high Q value so that if, for example, you're
+[00:15:01,670 --> 00:15:06,093] over here, you would minimize the key values there.
+[00:15:06,093 --> 00:15:07,510] And yeah, it's basically something
+[00:15:07,510 --> 00:15:10,067] that's trying to seek out large key values,
+[00:15:10,067 --> 00:15:11,650] either in or outside the distribution.
+[00:15:11,650 --> 00:15:13,250] Once it gets inside the distribution,
+[00:15:13,250 --> 00:15:17,530] you're then going to be canceling out with this term.
+[00:15:17,530 --> 00:15:19,550] And so then you'll have a more accurate estimate
+[00:15:19,550 --> 00:15:21,630] inside the support of the data.
+[00:15:21,630 --> 00:15:24,857] The question is, does it mop out the Q for the actions
+[00:15:24,857 --> 00:15:25,690] outside the support.
+[00:15:25,690 --> 00:15:27,840] And yeah, that's basically what it's doing.
+[00:15:27,840 --> 00:15:29,530] Oh, in terms of-- the question is,
+[00:15:29,530 --> 00:15:32,150] what does it mean to maximize mu in terms of the distribution?
+[00:15:32,150 --> 00:15:35,870] It basically means that we're going to be picking a mu such
+[00:15:35,870 --> 00:15:38,170] that it has high Q values.
+[00:15:38,170 --> 00:15:40,850] In practice, we'll actually see in a minute.
+[00:15:40,850 --> 00:15:43,410] We can actually not have to explicitly represent
+[00:15:43,410 --> 00:15:47,570] mu for some choices, but we'll talk about that in a second.
+[00:15:47,570 --> 00:15:49,450] The question is, if our goal is to minimize
+[00:15:49,450 --> 00:15:51,950] Q for things outside the training distribution,
+[00:15:51,950 --> 00:15:56,050] why not just do normal behavior cloning?
+[00:15:56,050 --> 00:15:58,290] So one of the things that's nice about this algorithm
+[00:15:58,290 --> 00:16:01,110] is it has the potential to do better than behavior cloning.
+[00:16:01,110 --> 00:16:04,570] So any sort of RL method will be leveraging the reward
+[00:16:04,570 --> 00:16:07,825] information to learn a policy that has high Q values.
+[00:16:07,825 --> 00:16:09,450] And so you can actually use this method
+[00:16:09,450 --> 00:16:13,350] to do considerably better than behavior cloning.
+[00:16:13,350 --> 00:16:14,850] And then we also talked on Wednesday
+[00:16:14,850 --> 00:16:17,475] about a method that can also do better by behavior cloning just
+[00:16:17,475 --> 00:16:18,650] by ranking things.
+[00:16:18,650 --> 00:16:24,050] Generally, methods that try to train the policy on only
+[00:16:24,050 --> 00:16:26,250] the actions in the distribution are generally
+[00:16:26,250 --> 00:16:28,090] a valid way to do offline RL.
+[00:16:28,090 --> 00:16:31,830] This is thinking about an alternative way to do it.
+[00:16:31,830 --> 00:16:33,030] OK.
+[00:16:33,030 --> 00:16:36,990] So in terms of--
+[00:16:36,990 --> 00:16:38,612] when we introduced this last term,
+[00:16:38,612 --> 00:16:40,070] we're actually no longer guaranteed
+[00:16:40,070 --> 00:16:43,030] to have a lower bound on the Q function for all states
+[00:16:43,030 --> 00:16:44,050] and actions.
+[00:16:44,050 --> 00:16:47,270] But we're actually guaranteed an expectation
+[00:16:47,270 --> 00:16:52,430] to have a lower bound for all the states in our data set.
+[00:16:52,430 --> 00:16:54,670] I'm not going to go through the derivation for this,
+[00:16:54,670 --> 00:17:00,230] but it's a nice property to have that you
+[00:17:00,230 --> 00:17:07,109] will get some sort of lower bound on the true Q function.
+[00:17:07,109 --> 00:17:13,470] And it suggests that it's a reasonable objective to use.
+[00:17:13,470 --> 00:17:15,151] [? If ?] alpha is 0, it does not hold--
+[00:17:15,151 --> 00:17:16,609] alpha does need to be large enough.
+[00:17:16,609 --> 00:17:19,150] I can't remember the exact conditions on alpha.
+[00:17:19,150 --> 00:17:24,890] But you could take a look at the CQL paper for the proof.
+[00:17:24,890 --> 00:17:25,390] Cool.
+[00:17:25,390 --> 00:17:29,650] So this is an algorithm called conservative Q-learning.
+[00:17:29,650 --> 00:17:31,530] In terms of the full algorithm, we
+[00:17:31,530 --> 00:17:36,450] will optimize this objective using our data set.
+[00:17:36,450 --> 00:17:41,330] And then we'll get a Q function as a result of this.
+[00:17:41,330 --> 00:17:45,590] And then after we optimize our Q function,
+[00:17:45,590 --> 00:17:48,730] we can then update our policy and then
+[00:17:48,730 --> 00:17:52,450] repeat that process to--
+[00:17:52,450 --> 00:17:55,530] and yeah.
+[00:17:55,530 --> 00:18:01,970] If the actions are discrete, then you can just in some ways
+[00:18:01,970 --> 00:18:04,650] read out the actions by picking the actions that
+[00:18:04,650 --> 00:18:07,450] have maximum probability.
+[00:18:07,450 --> 00:18:09,370] If they're continuous, then you'll
+[00:18:09,370 --> 00:18:13,710] need to use some sort of update to optimize your policy.
+[00:18:13,710 --> 00:18:16,210] And you'll be wanting to optimize your policy such
+[00:18:16,210 --> 00:18:19,550] that you are picking actions that have high Q value.
+[00:18:24,370 --> 00:18:25,210] Cool.
+[00:18:25,210 --> 00:18:27,190] So we talked about this mu term.
+[00:18:27,190 --> 00:18:31,070] And in practice, if we had to construct this mu term,
+[00:18:31,070 --> 00:18:34,470] that would be annoying, and it would add a moving part
+[00:18:34,470 --> 00:18:37,030] to the algorithm.
+[00:18:37,030 --> 00:18:43,900] And so in terms of thinking what this mu should be,
+[00:18:43,900 --> 00:18:48,110] you want to pick a mu that is going to actually have high Q
+[00:18:48,110 --> 00:18:52,310] values, because that would allow it to push down
+[00:18:52,310 --> 00:18:54,763] erroneously large Q values.
+[00:18:54,763 --> 00:18:56,930] And when you apply it on things with small Q values,
+[00:18:56,930 --> 00:19:00,150] it's not really going to have a meaningful effect.
+[00:19:00,150 --> 00:19:04,175] But you also don't want to--
+[00:19:04,175 --> 00:19:06,170] you want it to--
+[00:19:06,170 --> 00:19:08,950] you want it to be considering actions that are not just
+[00:19:08,950 --> 00:19:12,330] like exactly the one largest Q value.
+[00:19:12,330 --> 00:19:15,510] And as written, this mu term might actually
+[00:19:15,510 --> 00:19:17,750] collapse to be very deterministic
+[00:19:17,750 --> 00:19:22,710] and just pick the one action that has the largest Q value.
+[00:19:22,710 --> 00:19:26,880] And so you can think of--
+[00:19:26,880 --> 00:19:29,820] in this case, you can think of instead of just maximizing mu,
+[00:19:29,820 --> 00:19:32,280] you could think of adding a regularizer
+[00:19:32,280 --> 00:19:35,760] to mu that encourages it to consider
+[00:19:35,760 --> 00:19:38,200] a broader set of actions.
+[00:19:38,200 --> 00:19:40,040] And specifically, you can think of that
+[00:19:40,040 --> 00:19:43,160] as choosing a mu that's maximizing Q
+[00:19:43,160 --> 00:19:47,880] but also has some entropy to it.
+[00:19:47,880 --> 00:19:51,620] And so if you view this as adding a regularizer,
+[00:19:51,620 --> 00:19:55,140] then you could choose a mu that has high entropy,
+[00:19:55,140 --> 00:19:58,720] meaning that it is a broader distribution.
+[00:19:58,720 --> 00:20:02,960] And it turns out that if you--
+[00:20:02,960 --> 00:20:06,360] for this equation, if you're trying to choose large Qs
+[00:20:06,360 --> 00:20:11,640] and choose a distribution that has wider, larger entropy,
+[00:20:11,640 --> 00:20:15,128] then you can actually write down--
+[00:20:15,128 --> 00:20:17,420] you can write down what this looks like in closed form.
+[00:20:17,420 --> 00:20:20,520] And in particular, for maximizing Q and maximizing
+[00:20:20,520 --> 00:20:23,260] entropy, you can show that the optimal mu
+[00:20:23,260 --> 00:20:27,777] is proportional to the exponentiated Q values.
+[00:20:27,777 --> 00:20:29,360] Won't go into the derivation for this.
+[00:20:29,360 --> 00:20:31,860] We possibly will post something on Ed
+[00:20:31,860 --> 00:20:34,340] after lecture if you're interested.
+[00:20:34,340 --> 00:20:39,620] And then this term turns out to simply come out
+[00:20:39,620 --> 00:20:44,980] to a log [? sum ?] x over your Q values without having
+[00:20:44,980 --> 00:20:48,980] to construct an explicit mu.
+[00:20:48,980 --> 00:20:52,740] And so then the final objective is
+[00:20:52,740 --> 00:20:54,030] going to look something like--
+[00:20:57,820 --> 00:21:02,140] will look something like the loss function for the critic
+[00:21:02,140 --> 00:21:12,900] plus the log [? sum ?] x of Q of (s, a) with an alpha term here
+[00:21:12,900 --> 00:21:20,452] minus alpha times the expected Q values for states and actions
+[00:21:20,452 --> 00:21:21,160] in your data set.
+[00:21:26,320 --> 00:21:29,240] And you will-- this means that you don't actually
+[00:21:29,240 --> 00:21:32,420] need to construct mu directly.
+[00:21:32,420 --> 00:21:34,420] This was the only term that depended on mu.
+[00:21:34,420 --> 00:21:38,923] And we just replaced this with this term right here.
+[00:21:38,923 --> 00:21:40,840] Yeah, so if there's a continuous action space,
+[00:21:40,840 --> 00:21:45,600] then you'll want to sample to estimate this.
+[00:21:45,600 --> 00:21:47,120] OK.
+[00:21:47,120 --> 00:21:48,200] Cool.
+[00:21:48,200 --> 00:21:53,960] So for this algorithm called CQL or conservative Q-learning,
+[00:21:53,960 --> 00:21:55,480] I figured [INAUDIBLE] application
+[00:21:55,480 --> 00:21:58,520] of this just as an example.
+[00:21:58,520 --> 00:22:01,600] We've seen a lot of applications in robotics
+[00:22:01,600 --> 00:22:04,160] and talked about driving and so forth.
+[00:22:04,160 --> 00:22:06,320] It turns out that some folks at LinkedIn
+[00:22:06,320 --> 00:22:09,160] use this algorithm to optimize a policy
+[00:22:09,160 --> 00:22:13,260] for sending notifications, like email notifications,
+[00:22:13,260 --> 00:22:14,240] for example.
+[00:22:14,240 --> 00:22:16,580] And usually, when you send notifications,
+[00:22:16,580 --> 00:22:19,842] you want to optimize for things like how much people
+[00:22:19,842 --> 00:22:22,300] are clicking on it, because that means that it is something
+[00:22:22,300 --> 00:22:24,100] that they're potentially interested in,
+[00:22:24,100 --> 00:22:26,620] but also want to minimize the total number of times
+[00:22:26,620 --> 00:22:28,380] that you're sending them a notification
+[00:22:28,380 --> 00:22:30,420] so that you're not spamming the user.
+[00:22:30,420 --> 00:22:33,420] You might also care about weekly active users.
+[00:22:33,420 --> 00:22:38,620] And they took the double DQN algorithm.
+[00:22:38,620 --> 00:22:40,440] They also had their existing system,
+[00:22:40,440 --> 00:22:41,740] which is the baseline here.
+[00:22:41,740 --> 00:22:48,900] And they also tried applying the CQL terms to a DQN objective.
+[00:22:48,900 --> 00:22:53,380] And they found that when you added CQL using an offline data
+[00:22:53,380 --> 00:22:58,100] set and then ran that policy in an online A/B test,
+[00:22:58,100 --> 00:23:01,060] they were able to get a higher click-through rate, a lower
+[00:23:01,060 --> 00:23:06,120] number of total notifications, and also a slight increase
+[00:23:06,120 --> 00:23:08,460] in user usage.
+[00:23:08,460 --> 00:23:08,960] So yeah.
+[00:23:08,960 --> 00:23:12,700] This is one example of a scenario where
+[00:23:12,700 --> 00:23:15,380] offline RL and specifically this algorithm
+[00:23:15,380 --> 00:23:18,400] was used in a fairly real-world scenario.
+[00:23:18,400 --> 00:23:20,040] Yeah, so the question is, why do we
+[00:23:20,040 --> 00:23:22,400] want to be conservative in the first place?
+[00:23:22,400 --> 00:23:28,240] So this really comes down to the very initial motivation
+[00:23:28,240 --> 00:23:31,640] for offline RL, which is that outside of the support
+[00:23:31,640 --> 00:23:37,896] of the data, when you cannot collect online data,
+[00:23:37,896 --> 00:23:42,760] you can't really learn a policy that's far beyond the data.
+[00:23:42,760 --> 00:23:46,252] And one reason to be conservative
+[00:23:46,252 --> 00:23:47,960] is specifically trying to be conservative
+[00:23:47,960 --> 00:23:51,560] outside the support of the data, because those
+[00:23:51,560 --> 00:23:53,720] are the regimes where you don't have the ability
+[00:23:53,720 --> 00:23:54,920] to collect more data.
+[00:23:54,920 --> 00:23:58,720] And if you try to learn--
+[00:23:58,720 --> 00:24:00,980] if you assume that you can go far beyond the data,
+[00:24:00,980 --> 00:24:03,200] then you might learn an inaccurate Q function
+[00:24:03,200 --> 00:24:05,350] and, as a result, might learn a poor policy.
+[00:24:08,680 --> 00:24:09,560] OK.
+[00:24:09,560 --> 00:24:13,760] So to summarize, online data is expensive.
+[00:24:13,760 --> 00:24:16,380] Using offline data is useful.
+[00:24:16,380 --> 00:24:18,820] A key challenge that comes up in offline RL
+[00:24:18,820 --> 00:24:21,700] is overestimation because of the shift between the policy
+[00:24:21,700 --> 00:24:24,783] and the data and the policy that you're learning.
+[00:24:24,783 --> 00:24:26,700] And we talked about a few different approaches
+[00:24:26,700 --> 00:24:27,360] for doing this.
+[00:24:27,360 --> 00:24:28,735] And the one we talked about today
+[00:24:28,735 --> 00:24:33,540] was to try to explicitly penalize Q values.
+[00:24:33,540 --> 00:24:36,100] And offline RL methods are allowed--
+[00:24:36,100 --> 00:24:39,220] are able to improve over imitation learning, including
+[00:24:39,220 --> 00:24:41,500] filtered imitation learning, by stitching together
+[00:24:41,500 --> 00:24:45,760] good behaviors and leveraging reward information.
+[00:24:48,460 --> 00:24:49,580] Cool.
+[00:24:49,580 --> 00:24:53,140] So let's shift gears and talk about reward learning.
+[00:24:53,140 --> 00:24:56,740] So in everything that we've talked about so far--
+[00:24:56,740 --> 00:24:58,380] well, except for imitation learning--
+[00:24:58,380 --> 00:25:02,460] we've been trying to maximize the sum of rewards.
+[00:25:02,460 --> 00:25:03,980] And there's this question of, where
+[00:25:03,980 --> 00:25:06,280] do the rewards come from in the first place,
+[00:25:06,280 --> 00:25:08,660] and where do we get them?
+[00:25:08,660 --> 00:25:12,220] And some of the very initial use cases of reinforcement learning
+[00:25:12,220 --> 00:25:14,230] were with computer games, where you can just
+[00:25:14,230 --> 00:25:17,910] use the score of the game as your reward function,
+[00:25:17,910 --> 00:25:22,070] and then get a player that plays the game very well.
+[00:25:22,070 --> 00:25:23,950] But in real-world scenarios, you often
+[00:25:23,950 --> 00:25:29,910] don't get rewards as directly, especially when we're developing
+[00:25:29,910 --> 00:25:30,930] computers to do things.
+[00:25:30,930 --> 00:25:34,950] So if you wanted to develop a robot that could pour water
+[00:25:34,950 --> 00:25:38,590] from a pitcher into a cup is fairly complex for a robot
+[00:25:38,590 --> 00:25:42,030] to do, although young children are able to do it fairly well.
+[00:25:42,030 --> 00:25:43,830] Humans maybe get some kind of reward
+[00:25:43,830 --> 00:25:47,190] when they drink the water and some sort of satisfaction
+[00:25:47,190 --> 00:25:48,130] from that.
+[00:25:48,130 --> 00:25:51,130] But robots do not get that kind of satisfaction.
+[00:25:51,130 --> 00:25:53,070] And so if you were to try to get a reward
+[00:25:53,070 --> 00:25:55,310] function for this kind of pouring task,
+[00:25:55,310 --> 00:25:59,910] then you would need to think about how to represent
+[00:25:59,910 --> 00:26:00,810] where the water is.
+[00:26:00,810 --> 00:26:01,850] Did you spill any water?
+[00:26:01,850 --> 00:26:04,650] Did the water get into the cup and so forth?
+[00:26:04,650 --> 00:26:08,030] So it's pretty challenging to get a reward function for that.
+[00:26:08,030 --> 00:26:11,410] If you have some kind of dialogue situation,
+[00:26:11,410 --> 00:26:13,540] you're trying to develop a chatbot,
+[00:26:13,540 --> 00:26:15,790] people don't directly tell you that was a reward of 1.
+[00:26:15,790 --> 00:26:17,170] That was a reward of 10.
+[00:26:17,170 --> 00:26:18,850] And so you need to think about how
+[00:26:18,850 --> 00:26:22,370] to get a reward function that's informative for reinforcement
+[00:26:22,370 --> 00:26:23,290] learning.
+[00:26:23,290 --> 00:26:27,050] Likewise, in autonomous driving, the real world doesn't just
+[00:26:27,050 --> 00:26:31,895] give you reward functions, and you need to think about how--
+[00:26:31,895 --> 00:26:33,770] a number of different factors, like the rules
+[00:26:33,770 --> 00:26:40,490] of the road, how comfortable is it for the user, and so forth.
+[00:26:40,490 --> 00:26:45,850] So in some cases, we can use a proxy for the true reward.
+[00:26:45,850 --> 00:26:48,850] And you could have a human giving the rewards
+[00:26:48,850 --> 00:26:53,250] like maybe giving like 1 if that was successful, 0 otherwise.
+[00:26:53,250 --> 00:26:56,990] You might have some proxy in terms of things
+[00:26:56,990 --> 00:26:57,990] like click-through rate.
+[00:26:57,990 --> 00:26:58,890] That's a proxy.
+[00:26:58,890 --> 00:27:01,265] We don't necessarily care about humans clicking on things
+[00:27:01,265 --> 00:27:04,280] inherently, but it's a proxy for what we might care about.
+[00:27:07,890 --> 00:27:10,450] But even with proxies, there's a lot of downsides.
+[00:27:10,450 --> 00:27:13,390] And it's worth thinking about if there's other ways
+[00:27:13,390 --> 00:27:16,030] to provide supervision to reinforcement learning
+[00:27:16,030 --> 00:27:16,890] algorithms.
+[00:27:19,978 --> 00:27:21,770] We've seen one alternative approach so far,
+[00:27:21,770 --> 00:27:23,847] which is just to use imitation learning.
+[00:27:23,847 --> 00:27:25,430] And you don't need any reward function
+[00:27:25,430 --> 00:27:27,190] if you use imitation learning.
+[00:27:27,190 --> 00:27:28,690] But when you use imitation learning,
+[00:27:28,690 --> 00:27:31,023] you're not really thinking about outcomes and optimizing
+[00:27:31,023 --> 00:27:32,090] for a particular outcome.
+[00:27:32,090 --> 00:27:36,212] You're just optimizing for mimicking the actions.
+[00:27:36,212 --> 00:27:37,670] You might also have scenarios where
+[00:27:37,670 --> 00:27:39,170] it's hard to provide demonstrations,
+[00:27:39,170 --> 00:27:41,450] or where the expert has different degrees of freedom.
+[00:27:41,450 --> 00:27:44,550] That might make it hard to get good demonstration
+[00:27:44,550 --> 00:27:47,333] data for imitation.
+[00:27:47,333 --> 00:27:48,750] And so a lot of reward learning is
+[00:27:48,750 --> 00:27:52,470] to think about what is the underlying outcome that we
+[00:27:52,470 --> 00:27:53,190] want to see.
+[00:27:53,190 --> 00:27:55,710] What is the expert trying to achieve?
+[00:27:55,710 --> 00:27:57,750] What do humans want?
+[00:27:57,750 --> 00:27:59,250] So people are able to infer rewards.
+[00:27:59,250 --> 00:28:00,630] There's a few other examples.
+[00:28:00,630 --> 00:28:05,623] Lots of fun videos, where even very small kids are
+[00:28:05,623 --> 00:28:07,790] able to figure out what is the reward function, what
+[00:28:07,790 --> 00:28:11,730] is the objective, and be able to even optimize
+[00:28:11,730 --> 00:28:14,890] that to help the person.
+[00:28:14,890 --> 00:28:15,430] OK.
+[00:28:15,430 --> 00:28:18,490] So how do we learn rewards?
+[00:28:18,490 --> 00:28:20,630] We'll talk about two approaches for doing this.
+[00:28:20,630 --> 00:28:24,250] One is from examples of goals, and another one
+[00:28:24,250 --> 00:28:27,250] is from human preferences.
+[00:28:27,250 --> 00:28:34,010] So one of the simplest things we could consider doing
+[00:28:34,010 --> 00:28:38,850] is try to give examples of what success looks like,
+[00:28:38,850 --> 00:28:43,530] and then train a classifier to predict success versus failure.
+[00:28:43,530 --> 00:28:45,610] So, for example, if we wanted a robot
+[00:28:45,610 --> 00:28:47,570] to put a pencil case behind a notebook,
+[00:28:47,570 --> 00:28:49,010] we give it a few examples of what
+[00:28:49,010 --> 00:28:54,250] that looks like, give it a few negative examples of scenarios
+[00:28:54,250 --> 00:28:55,970] where it's not behind the notebook,
+[00:28:55,970 --> 00:28:58,170] and then train a binary classifier
+[00:28:58,170 --> 00:29:02,863] to be able to predict that the positive examples should
+[00:29:02,863 --> 00:29:04,530] be labeled with 1, the negative examples
+[00:29:04,530 --> 00:29:07,830] should be labeled with 0.
+[00:29:07,830 --> 00:29:10,710] And then you could use the output of this binary classifier
+[00:29:10,710 --> 00:29:14,035] as your reward signal.
+[00:29:14,035 --> 00:29:15,910] So specifically, what this would look like is
+[00:29:15,910 --> 00:29:17,910] you first collect examples of successful states,
+[00:29:17,910 --> 00:29:19,390] unsuccessful states.
+[00:29:19,390 --> 00:29:22,310] You can think of this as states within some sort of goal set
+[00:29:22,310 --> 00:29:25,110] and states outside of that goal set,
+[00:29:25,110 --> 00:29:28,830] and then train a binary classifier,
+[00:29:28,830 --> 00:29:34,670] and then run reinforcement learning with this classifier.
+[00:29:34,670 --> 00:29:38,230] Does anyone have thoughts on what could go wrong
+[00:29:38,230 --> 00:29:40,510] if you took this approach?
+[00:29:40,510 --> 00:29:42,430] Yeah, so one downside with this approach
+[00:29:42,430 --> 00:29:44,690] is that it's going to give you a very sparse reward.
+[00:29:44,690 --> 00:29:48,270] It's just going to tell you, are you
+[00:29:48,270 --> 00:29:51,090] within this set of goal states, or are you outside of it?
+[00:29:51,090 --> 00:29:52,590] And you would need to figure out how
+[00:29:52,590 --> 00:29:54,788] to make progress towards that.
+[00:29:54,788 --> 00:29:56,830] Is there any other challenges or any other things
+[00:29:56,830 --> 00:29:58,402] that might go wrong?
+[00:29:58,402 --> 00:30:00,110] Yeah, so a second thing that might happen
+[00:30:00,110 --> 00:30:02,210] is it might learn to fool the classifier,
+[00:30:02,210 --> 00:30:05,250] but not actually do the task that you're interested in.
+[00:30:05,250 --> 00:30:09,710] And in particular, when you train a classifier,
+[00:30:09,710 --> 00:30:12,730] it's trained on some distribution of examples
+[00:30:12,730 --> 00:30:14,050] that you provided.
+[00:30:14,050 --> 00:30:16,810] But the policy that you're learning
+[00:30:16,810 --> 00:30:19,710] has the ability to visit lots of different states,
+[00:30:19,710 --> 00:30:23,110] including states that are different from the initial data
+[00:30:23,110 --> 00:30:24,130] set.
+[00:30:24,130 --> 00:30:26,850] And in some ways, analogous to some of the challenges
+[00:30:26,850 --> 00:30:28,250] we saw in offline RL.
+[00:30:28,250 --> 00:30:31,330] When you're optimizing against this classifier,
+[00:30:31,330 --> 00:30:36,050] you can hack it or fool it and find states where
+[00:30:36,050 --> 00:30:37,930] that classifier is inaccurate.
+[00:30:37,930 --> 00:30:39,810] And when it's inaccurate, some of the times
+[00:30:39,810 --> 00:30:45,130] it might be optimistic about how to do the task.
+[00:30:45,130 --> 00:30:48,110] So the first answer was absolutely correct.
+[00:30:48,110 --> 00:30:50,170] It does provide a sparse signal.
+[00:30:50,170 --> 00:30:52,850] But one especially thing that can go extra wrong here
+[00:30:52,850 --> 00:30:55,170] is that the RL algorithm will seek out states
+[00:30:55,170 --> 00:30:57,050] that the classifier thinks are good.
+[00:30:57,050 --> 00:31:00,170] And it might simply find states that the classifier wasn't
+[00:31:00,170 --> 00:31:04,900] trained on, and essentially exploiting
+[00:31:04,900 --> 00:31:08,100] the classifier's weaknesses.
+[00:31:08,100 --> 00:31:12,700] So can we prevent the algorithm from exploiting the weaknesses?
+[00:31:12,700 --> 00:31:15,440] In some ways, it's actually nice that we had--
+[00:31:15,440 --> 00:31:17,940] we're talking about this at the same time in which we talked
+[00:31:17,940 --> 00:31:20,780] about CQL, because we can actually use an approach that's
+[00:31:20,780 --> 00:31:27,020] very similar to CQL for preventing the RL algorithm
+[00:31:27,020 --> 00:31:29,540] from exploiting the weaknesses.
+[00:31:29,540 --> 00:31:35,980] And in particular, say that you have some kind of positive goal
+[00:31:35,980 --> 00:31:39,078] states over here where--
+[00:31:39,078 --> 00:31:39,620] I don't know.
+[00:31:39,620 --> 00:31:41,203] In the pencil case example, maybe this
+[00:31:41,203 --> 00:31:44,500] is where the pencil case should be.
+[00:31:44,500 --> 00:31:46,540] You could also just generally think of it
+[00:31:46,540 --> 00:31:48,220] as some abstract space.
+[00:31:48,220 --> 00:31:52,500] And then you also have negative examples over here.
+[00:31:52,500 --> 00:31:54,740] Maybe this is a bad place to go to.
+[00:31:54,740 --> 00:32:00,920] And then your classifier, when you train a binary classifier,
+[00:32:00,920 --> 00:32:05,280] it will learn some sort of decision boundary like this.
+[00:32:05,280 --> 00:32:09,800] And then when you train a policy, when
+[00:32:09,800 --> 00:32:12,000] it sees that the stuff over here is positive
+[00:32:12,000 --> 00:32:14,240] and the stuff over here is negative,
+[00:32:14,240 --> 00:32:17,640] maybe we can also specify the direction
+[00:32:17,640 --> 00:32:19,200] of our binary classifier.
+[00:32:19,200 --> 00:32:26,920] Then your RL algorithm, it might learn to go somewhere over here.
+[00:32:26,920 --> 00:32:30,520] And maybe some of these states are good, but maybe
+[00:32:30,520 --> 00:32:34,680] also some of these states are not so good.
+[00:32:34,680 --> 00:32:41,080] And if we want to avoid exploiting the classifier,
+[00:32:41,080 --> 00:32:43,480] one simple thing that we could do
+[00:32:43,480 --> 00:32:47,720] is we could take these states that we visited with our policy,
+[00:32:47,720 --> 00:32:55,240] and we could then label them as additional data points
+[00:32:55,240 --> 00:32:58,200] for training our classifier.
+[00:32:58,200 --> 00:33:01,140] Now we don't necessarily-- if we don't have a good reward
+[00:33:01,140 --> 00:33:04,100] function and we don't want supervision online,
+[00:33:04,100 --> 00:33:07,420] then we don't know exactly what the labels should be.
+[00:33:07,420 --> 00:33:10,540] And one thing that we could do is simply to be conservative.
+[00:33:10,540 --> 00:33:15,980] We could label these as negatives
+[00:33:15,980 --> 00:33:19,060] and say that all of these were states
+[00:33:19,060 --> 00:33:24,220] that were failures, essentially, and then retrain our classifier.
+[00:33:24,220 --> 00:33:26,620] And if we retrain our classifier,
+[00:33:26,620 --> 00:33:34,780] we would then get a classifier that maybe looks like this.
+[00:33:34,780 --> 00:33:37,840] And then maybe our policy visits over here.
+[00:33:37,840 --> 00:33:40,340] And then you eventually learn a classifier
+[00:33:40,340 --> 00:33:43,550] that is more accurate around these states.
+[00:33:46,340 --> 00:33:47,120] Is there any--
+[00:33:47,120 --> 00:33:47,680] well, OK.
+[00:33:47,680 --> 00:33:51,500] So let's walk through what this would look explicitly.
+[00:33:51,500 --> 00:33:53,420] So we could add states that the RL
+[00:33:53,420 --> 00:33:56,825] algorithm visits as negative examples for the classifier.
+[00:33:56,825 --> 00:33:58,200] So specifically, we would collect
+[00:33:58,200 --> 00:34:01,760] some initial set of success states and unsuccessful states.
+[00:34:01,760 --> 00:34:04,160] And then we would update our classifier
+[00:34:04,160 --> 00:34:08,040] and train it to classify the success states
+[00:34:08,040 --> 00:34:10,280] and the unsuccessful states.
+[00:34:10,280 --> 00:34:13,159] Then we would collect some experience using our policy
+[00:34:13,159 --> 00:34:17,719] and update our policy using the classifier-based reward.
+[00:34:17,719 --> 00:34:22,440] And then we'd add the visited states to our negative examples,
+[00:34:22,440 --> 00:34:26,480] and then reupdate our classifier using those negative states.
+[00:34:26,480 --> 00:34:30,639] Does anyone have concerns about this algorithm?
+[00:34:30,639 --> 00:34:32,880] The concern there is that you might not
+[00:34:32,880 --> 00:34:34,920] learn a very robust classifier, and you
+[00:34:34,920 --> 00:34:38,320] might overfit to the positives in your data set.
+[00:34:38,320 --> 00:34:43,000] And in particular, if you have a small number of positives,
+[00:34:43,000 --> 00:34:50,600] then you might learn a decision boundary that is very--
+[00:34:50,600 --> 00:34:53,840] only contains each of these positives
+[00:34:53,840 --> 00:34:56,860] and doesn't contain the things right around them.
+[00:34:56,860 --> 00:34:59,820] And so one thing that you can do for that
+[00:34:59,820 --> 00:35:01,600] is to try to regularize your classifier
+[00:35:01,600 --> 00:35:03,220] to try to prevent that overfitting.
+[00:35:03,220 --> 00:35:09,520] And even standard regularizers can be helpful for that.
+[00:35:09,520 --> 00:35:12,700] You can encourage it to be more smooth.
+[00:35:12,700 --> 00:35:15,460] Any other concerns about this algorithm?
+[00:35:15,460 --> 00:35:17,883] Yeah, so one of the challenges that
+[00:35:17,883 --> 00:35:19,300] can come up with this algorithm is
+[00:35:19,300 --> 00:35:21,550] that you're going to be adding more and more negatives
+[00:35:21,550 --> 00:35:23,540] to your data set.
+[00:35:23,540 --> 00:35:25,233] And one really critical thing here
+[00:35:25,233 --> 00:35:27,400] is that if you keep on adding negatives to your data
+[00:35:27,400 --> 00:35:30,320] set and don't rebalance your data set,
+[00:35:30,320 --> 00:35:33,020] then it might just predict negative everywhere.
+[00:35:33,020 --> 00:35:37,840] And so one critical thing here is to balance the data set 50/50
+[00:35:37,840 --> 00:35:40,940] so that the negatives account for half of the data that
+[00:35:40,940 --> 00:35:43,500] you're sampling, and the positives account for the other
+[00:35:43,500 --> 00:35:46,060] half of the data that you're sampling.
+[00:35:46,060 --> 00:35:48,340] Yeah, so the question was that at some point
+[00:35:48,340 --> 00:35:50,940] your original negatives will be overwhelmed by the sample
+[00:35:50,940 --> 00:35:51,760] negatives.
+[00:35:51,760 --> 00:35:54,430] And does it make sense to balance them?
+[00:35:54,430 --> 00:35:56,510] Certainly, you could do that.
+[00:35:56,510 --> 00:36:01,150] It depends on how large your initial negatives are.
+[00:36:01,150 --> 00:36:03,213] And so that's something to consider.
+[00:36:03,213 --> 00:36:04,630] One of the things that will happen
+[00:36:04,630 --> 00:36:06,750] is that your policy will actually
+[00:36:06,750 --> 00:36:09,950] start visiting the states here.
+[00:36:09,950 --> 00:36:11,750] And it might visit like even exactly
+[00:36:11,750 --> 00:36:14,270] the same states as the positives.
+[00:36:14,270 --> 00:36:18,070] And you're then going to be labeling these as negatives.
+[00:36:18,070 --> 00:36:22,376] Now those labels are incorrect.
+[00:36:22,376 --> 00:36:26,550] Those states are actually true positives.
+[00:36:26,550 --> 00:36:29,150] And this also alludes to the overfitting comment
+[00:36:29,150 --> 00:36:30,950] at the beginning.
+[00:36:30,950 --> 00:36:35,310] But it actually turns out that if you balance your data set,
+[00:36:35,310 --> 00:36:39,670] this might actually be OK and if you use enough regularization
+[00:36:39,670 --> 00:36:42,790] or have a large enough positive and negative data set.
+[00:36:42,790 --> 00:36:45,550] And the reason why this might be OK
+[00:36:45,550 --> 00:36:54,210] is that when you use balancing, it
+[00:36:54,210 --> 00:37:00,370] will ensure that the half of the data set will be positives.
+[00:37:00,370 --> 00:37:05,970] And even if-- let's say that--
+[00:37:05,970 --> 00:37:08,090] OK, so we know that 50% of the data set
+[00:37:08,090 --> 00:37:11,970] is going to be like true positives.
+[00:37:11,970 --> 00:37:15,982] And then for the other part of the data set,
+[00:37:15,982 --> 00:37:18,530] some proportion of it will be false negatives
+[00:37:18,530 --> 00:37:22,210] and some proportion of it will be true negatives.
+[00:37:22,210 --> 00:37:26,170] Let's say that we've gotten to the point where
+[00:37:26,170 --> 00:37:32,010] for the other 50%, 40% is a false negative, meaning
+[00:37:32,010 --> 00:37:35,050] that it's labeled as a negative, but it's actually a positive.
+[00:37:35,050 --> 00:37:38,330] And 10%, including our original negatives,
+[00:37:38,330 --> 00:37:43,090] corresponds to true negatives.
+[00:37:43,090 --> 00:37:44,650] Then in this case, as long as we're
+[00:37:44,650 --> 00:37:53,070] balancing our data set, for a positive, it will still output--
+[00:37:53,070 --> 00:37:55,990] it won't output like probability 1
+[00:37:55,990 --> 00:37:59,630] that something is a positive because of all these here.
+[00:37:59,630 --> 00:38:03,350] But it's still going to output a probability that something
+[00:38:03,350 --> 00:38:10,430] is positive that's higher than 50% and probability
+[00:38:10,430 --> 00:38:15,830] that's higher than the probability that it is negative.
+[00:38:15,830 --> 00:38:21,136] And so, yeah, specifically, with balancing,
+[00:38:21,136 --> 00:38:24,750] you can always expect that the probability
+[00:38:24,750 --> 00:38:29,950] of a true positive under our classifier, this
+[00:38:29,950 --> 00:38:32,630] will always be--
+[00:38:32,630 --> 00:38:34,350] if the classifier is training properly,
+[00:38:34,350 --> 00:38:38,070] this will always be greater than 50%,
+[00:38:38,070 --> 00:38:42,150] because as long as this data set is not like--
+[00:38:42,150 --> 00:38:45,890] if it's all the way like 50-- like entirely false negatives,
+[00:38:45,890 --> 00:38:48,570] then it will be exactly 50%.
+[00:38:48,570 --> 00:38:50,750] But as long as you have some true negatives around,
+[00:38:50,750 --> 00:38:54,380] including your original set of negatives,
+[00:38:54,380 --> 00:38:58,350] then it'll be strictly above 0.5.
+[00:38:58,350 --> 00:39:08,505] And the probability of a true negative will be less than 0.5.
+[00:39:08,505 --> 00:39:10,130] The question is, would this be resolved
+[00:39:10,130 --> 00:39:13,970] if we use confidence intervals instead of 0 or 1?
+[00:39:13,970 --> 00:39:17,970] So you can also use this probability as the reward
+[00:39:17,970 --> 00:39:20,250] and not threshold it.
+[00:39:20,250 --> 00:39:24,022] And that is also fine.
+[00:39:24,022 --> 00:39:26,565] In terms of confidence intervals,
+[00:39:26,565 --> 00:39:28,190] that could also potentially be helpful,
+[00:39:28,190 --> 00:39:30,510] although I haven't thought too much about it.
+[00:39:30,510 --> 00:39:33,050] And you would need probably a slightly more sophisticated RL
+[00:39:33,050 --> 00:39:34,290] method.
+[00:39:34,290 --> 00:39:37,370] Yeah, so if you're in a scenario where you visit a state that's
+[00:39:37,370 --> 00:39:40,090] very hard to distinguish between them,
+[00:39:40,090 --> 00:39:42,970] then if you have regularization, it's
+[00:39:42,970 --> 00:39:45,930] likely to label it as a positive,
+[00:39:45,930 --> 00:39:48,190] because the regularization will encourage the function
+[00:39:48,190 --> 00:39:49,590] to be smooth.
+[00:39:49,590 --> 00:39:53,030] But it comes down a lot to how different it is.
+[00:39:53,030 --> 00:39:54,670] Yeah.
+[00:39:54,670 --> 00:39:56,190] So the question is, would this be
+[00:39:56,190 --> 00:39:59,270] solved if we use a generative adversarial network where
+[00:39:59,270 --> 00:40:00,750] the classifier is--
+[00:40:00,750 --> 00:40:05,590] the reward is the discriminator and the generator is the agent?
+[00:40:05,590 --> 00:40:09,310] It turns out that this actually--
+[00:40:09,310 --> 00:40:11,850] OK, I don't have-- this is like two slides from now.
+[00:40:11,850 --> 00:40:13,350] But it turns out that this actually
+[00:40:13,350 --> 00:40:16,030] is exactly a generative adversarial network.
+[00:40:16,030 --> 00:40:19,150] So you can think of this classifier
+[00:40:19,150 --> 00:40:21,270] as a discriminator that's trying to discriminate
+[00:40:21,270 --> 00:40:23,870] between the positive examples that we gave
+[00:40:23,870 --> 00:40:26,190] and everything that the policy is visiting.
+[00:40:26,190 --> 00:40:30,430] And the generator in a generative adversarial network
+[00:40:30,430 --> 00:40:31,973] is the policy.
+[00:40:31,973 --> 00:40:33,390] You don't necessarily need to know
+[00:40:33,390 --> 00:40:35,807] about exactly what generative adversarial networks or GANs
+[00:40:35,807 --> 00:40:36,350] are.
+[00:40:36,350 --> 00:40:38,190] But if you do know what they are,
+[00:40:38,190 --> 00:40:42,083] this is basically exactly a form of a GAN.
+[00:40:42,083 --> 00:40:44,250] Yeah, so the question is, after we run a trajectory,
+[00:40:44,250 --> 00:40:45,670] are we seeing what the true label is?
+[00:40:45,670 --> 00:40:46,990] And the answer to that is no.
+[00:40:46,990 --> 00:40:50,130] So we're assuming that we don't get any more human supervision
+[00:40:50,130 --> 00:40:52,030] other than the initial training data set.
+[00:40:52,030 --> 00:40:54,810] Now one other thing that you can do here
+[00:40:54,810 --> 00:40:58,290] that makes this a little bit potentially easier is you
+[00:40:58,290 --> 00:41:01,930] could also label some of the data as positives or negatives
+[00:41:01,930 --> 00:41:04,170] as well, and use that to continue
+[00:41:04,170 --> 00:41:06,370] to update your classifier.
+[00:41:06,370 --> 00:41:08,230] And so that's also a very valid approach.
+[00:41:08,230 --> 00:41:10,558] And there's ways to label only some of the data
+[00:41:10,558 --> 00:41:12,850] so that you don't have to label every single trajectory
+[00:41:12,850 --> 00:41:14,930] that the policy is doing.
+[00:41:14,930 --> 00:41:17,560] And that could also help stabilize the training.
+[00:41:20,530 --> 00:41:25,650] One example of using this kind of approach in robotics
+[00:41:25,650 --> 00:41:29,790] is a paper that took 50 demonstrations.
+[00:41:29,790 --> 00:41:33,770] It used the final states as successes
+[00:41:33,770 --> 00:41:36,290] for training the classifier.
+[00:41:36,290 --> 00:41:40,250] It initializes a replay buffer with the demonstrations.
+[00:41:40,250 --> 00:41:42,780] And if you directly imitate the demonstrations,
+[00:41:42,780 --> 00:41:47,940] the success rate is around 26%, because 50 demonstrations is not
+[00:41:47,940 --> 00:41:48,597] that much.
+[00:41:48,597 --> 00:41:50,180] And even if you collect more, it would
+[00:41:50,180 --> 00:41:52,820] be hard to get to 100% success.
+[00:41:52,820 --> 00:41:57,780] And then if instead you use this initialization and run
+[00:41:57,780 --> 00:42:00,700] RL with a classifier learned in this way,
+[00:42:00,700 --> 00:42:06,380] then you get a policy that has, in this case, a 62% success
+[00:42:06,380 --> 00:42:07,020] rate.
+[00:42:07,020 --> 00:42:10,020] Not awesome yet, but something that's
+[00:42:10,020 --> 00:42:12,060] substantially higher than the success
+[00:42:12,060 --> 00:42:13,850] rate of imitation learning.
+[00:42:16,957 --> 00:42:19,540] And one thing that we found that we talked about that was also
+[00:42:19,540 --> 00:42:22,020] we found in this research is that it's actually
+[00:42:22,020 --> 00:42:24,780] very important to regularize the classifier
+[00:42:24,780 --> 00:42:30,540] to help it not overfit to just the positive, the 50
+[00:42:30,540 --> 00:42:33,160] positive examples that were provided at the beginning.
+[00:42:36,740 --> 00:42:37,240] OK.
+[00:42:37,240 --> 00:42:41,240] And as aside, this is how GANs work.
+[00:42:41,240 --> 00:42:43,400] The generative adversarial networks
+[00:42:43,400 --> 00:42:45,420] are a form of generative model.
+[00:42:45,420 --> 00:42:49,560] They've often been used for image generation.
+[00:42:49,560 --> 00:42:51,480] And the key idea is to train a classifier
+[00:42:51,480 --> 00:42:55,240] between the real examples, like the real positives,
+[00:42:55,240 --> 00:42:59,400] and the generated data, like the states that the policy visits.
+[00:42:59,400 --> 00:43:05,922] And you try to train a generator that this classifier--
+[00:43:05,922 --> 00:43:07,880] tried to generate such that it generates things
+[00:43:07,880 --> 00:43:10,600] that the classifier thinks is real.
+[00:43:10,600 --> 00:43:14,580] GANs have been used in a variety of places.
+[00:43:14,580 --> 00:43:17,960] Here are some examples of images generated by a GAN.
+[00:43:17,960 --> 00:43:23,480] Here's a cool video of an astronaut dancing on Mars,
+[00:43:23,480 --> 00:43:26,878] and later walking his dog on Mars that also uses
+[00:43:26,878 --> 00:43:28,170] generative adversarial network.
+[00:43:32,660 --> 00:43:33,160] Cool.
+[00:43:37,000 --> 00:43:42,000] Now as a recap, we talked about training classifiers.
+[00:43:42,000 --> 00:43:43,540] These classifiers can be exploited
+[00:43:43,540 --> 00:43:45,700] when you optimize against them.
+[00:43:45,700 --> 00:43:50,020] And the solution is that during the RL process, if we update
+[00:43:50,020 --> 00:43:55,020] the classifier using negatives visited by the policy, then
+[00:43:55,020 --> 00:43:59,900] you can avoid it being exploited.
+[00:43:59,900 --> 00:44:01,580] One of the things that didn't quite
+[00:44:01,580 --> 00:44:04,157] have-- that I wanted to skip today, because we don't have
+[00:44:04,157 --> 00:44:06,240] too much time and need to talk about preferences--
+[00:44:06,240 --> 00:44:11,560] but you can also actually learn not just goal classifiers.
+[00:44:11,560 --> 00:44:14,700] But you can actually learn full reward functions.
+[00:44:14,700 --> 00:44:18,940] If you use all of the states in the demo as positive examples
+[00:44:18,940 --> 00:44:21,860] and all of the states in your policy rollouts as negatives,
+[00:44:21,860 --> 00:44:26,205] then you can show that that's actually--
+[00:44:26,205 --> 00:44:27,580] we'll be trying to learn a reward
+[00:44:27,580 --> 00:44:29,500] function over state distributions
+[00:44:29,500 --> 00:44:30,850] rather than just goal states.
+[00:44:34,440 --> 00:44:34,940] Cool.
+[00:44:34,940 --> 00:44:37,360] On the upside, this is a very practical framework.
+[00:44:37,360 --> 00:44:40,540] Adversarial training, this adding these as negatives.
+[00:44:40,540 --> 00:44:42,280] It can be unstable.
+[00:44:42,280 --> 00:44:44,760] There are a variety of regularization tricks.
+[00:44:44,760 --> 00:44:47,520] You can actually take them just directly from the GAN literature
+[00:44:47,520 --> 00:44:49,480] and apply them.
+[00:44:49,480 --> 00:44:51,760] And that is quite helpful.
+[00:44:51,760 --> 00:44:53,800] And then one other big downside here
+[00:44:53,800 --> 00:44:56,840] is that this requires examples of what the goal is,
+[00:44:56,840 --> 00:44:58,960] like what the desired behavior is.
+[00:44:58,960 --> 00:45:01,920] And sometimes generating those examples
+[00:45:01,920 --> 00:45:06,200] can be challenging or time-consuming.
+[00:45:06,200 --> 00:45:08,430] OK.
+[00:45:08,430 --> 00:45:11,740] So that's learning from example goals.
+[00:45:11,740 --> 00:45:15,420] Now let's talk about learning from preferences.
+[00:45:18,937 --> 00:45:20,520] And this is specifically-- we're going
+[00:45:20,520 --> 00:45:22,280] to talk less about goal classifiers
+[00:45:22,280 --> 00:45:24,440] and talk more about scenarios where we don't just
+[00:45:24,440 --> 00:45:27,020] want to reach states within some goal set,
+[00:45:27,020 --> 00:45:30,280] but we actually want to potentially learn
+[00:45:30,280 --> 00:45:32,580] like good behavior versus bad behavior.
+[00:45:32,580 --> 00:45:34,900] And that might encapsulate something
+[00:45:34,900 --> 00:45:39,340] beyond just reaching a good state.
+[00:45:39,340 --> 00:45:43,360] And instead of requiring example demonstrations or example goals
+[00:45:43,360 --> 00:45:47,380] or in addition to that, we might want to provide feedback
+[00:45:47,380 --> 00:45:50,963] on the full rollout.
+[00:45:50,963 --> 00:45:52,380] Now one option that we could do is
+[00:45:52,380 --> 00:45:57,020] we could just ask how good is this trajectory.
+[00:45:57,020 --> 00:46:00,920] So say that you wanted to start at this blue dot,
+[00:46:00,920 --> 00:46:05,900] and you want to reach the star as efficiently as possible.
+[00:46:05,900 --> 00:46:08,300] So it's actually hard.
+[00:46:08,300 --> 00:46:11,100] Now another way to frame this question
+[00:46:11,100 --> 00:46:13,040] is, which trajectory is better?
+[00:46:13,040 --> 00:46:16,140] So who thinks the blue trajectory is better
+[00:46:16,140 --> 00:46:18,672] than the pink trajectory?
+[00:46:18,672 --> 00:46:19,880] OK, everyone thinks the blue.
+[00:46:19,880 --> 00:46:22,580] So that's a much easier question to answer, right?
+[00:46:22,580 --> 00:46:25,860] So these kind of relative preferences
+[00:46:25,860 --> 00:46:30,100] are often easier to provide than evaluating absolute performance
+[00:46:30,100 --> 00:46:31,540] of a trajectory.
+[00:46:31,540 --> 00:46:34,780] And this is true for lines in 2D,
+[00:46:34,780 --> 00:46:38,880] but it's also true in other use cases,
+[00:46:38,880 --> 00:46:42,720] many real-world use cases as well.
+[00:46:42,720 --> 00:46:45,040] So maybe we can use these kind of preferences
+[00:46:45,040 --> 00:46:46,390] to get a reward function.
+[00:46:49,320 --> 00:46:53,120] So say that we--
+[00:46:53,120 --> 00:46:55,960] human told us that one trajectory was better
+[00:46:55,960 --> 00:46:58,480] than another trajectory.
+[00:46:58,480 --> 00:47:02,920] Then probably one way to think about what they're saying
+[00:47:02,920 --> 00:47:09,000] is that the sum of rewards for the states in that
+[00:47:09,000 --> 00:47:13,800] trajectory-- so for the states and actions in the better
+[00:47:13,800 --> 00:47:15,760] trajectory.
+[00:47:15,760 --> 00:47:20,520] This should probably be larger than the sum of rewards
+[00:47:20,520 --> 00:47:24,920] for the states and actions in the trajectory that
+[00:47:24,920 --> 00:47:28,120] was said to be worse.
+[00:47:28,120 --> 00:47:31,850] And I'm using W and L to refer to the winning trajectory
+[00:47:31,850 --> 00:47:33,190] and the losing trajectory.
+[00:47:36,130 --> 00:47:39,568] And maybe we'll write this as the--
+[00:47:39,568 --> 00:47:41,610] when we say that the winning trajectory is better
+[00:47:41,610 --> 00:47:43,650] than the losing trajectory, we'll
+[00:47:43,650 --> 00:47:47,460] write this with this notation.
+[00:47:50,250 --> 00:47:54,970] So any individual preference label that's binary saying A
+[00:47:54,970 --> 00:47:57,250] is better than B tells us a little bit of information
+[00:47:57,250 --> 00:47:59,570] about the reward.
+[00:47:59,570 --> 00:48:02,570] And from there, we want to figure out
+[00:48:02,570 --> 00:48:07,770] how to aggregate a number of these preference labels
+[00:48:07,770 --> 00:48:09,880] to learn a reward function.
+[00:48:09,880 --> 00:48:11,630] And so we'll assume that we have some data
+[00:48:11,630 --> 00:48:21,310] set of these pairs where we have a pair of trajectories.
+[00:48:21,310 --> 00:48:24,010] We are told which one is the good one and which one is--
+[00:48:24,010 --> 00:48:28,158] or which one is better than the other one.
+[00:48:28,158 --> 00:48:29,950] And we want to be able to use this data set
+[00:48:29,950 --> 00:48:33,230] to learn a reward function.
+[00:48:33,230 --> 00:48:37,990] And one perhaps simple way to do this is we want to model--
+[00:48:37,990 --> 00:48:40,990] we need some way to write down an objective for a reward
+[00:48:40,990 --> 00:48:42,230] function.
+[00:48:42,230 --> 00:48:45,590] Let's also say that our reward function--
+[00:48:45,590 --> 00:48:47,290] let's model it as a neural network.
+[00:48:47,290 --> 00:48:50,790] So our reward function will have some parameters.
+[00:48:50,790 --> 00:48:53,590] And then you can think of it as taking
+[00:48:53,590 --> 00:49:03,220] as input a state and action and outputting a scalar reward
+[00:49:03,220 --> 00:49:03,720] value.
+[00:49:06,768 --> 00:49:09,310] So if you want to write down an objective for this, one thing
+[00:49:09,310 --> 00:49:10,390] we could do--
+[00:49:10,390 --> 00:49:13,767] let's say that this is used similar shorthand
+[00:49:13,767 --> 00:49:14,850] to what we've used before.
+[00:49:14,850 --> 00:49:19,630] This is the reward of the trajectory.
+[00:49:19,630 --> 00:49:21,350] This expression right here.
+[00:49:21,350 --> 00:49:28,170] Then maybe we could say that if we took the reward of the better
+[00:49:28,170 --> 00:49:34,330] trajectory and subtracted the reward of the trajectory that's
+[00:49:34,330 --> 00:49:37,950] worse, then we want this quantity to be positive.
+[00:49:41,530 --> 00:49:43,110] So that's one starting point.
+[00:49:43,110 --> 00:49:45,690] And from there, we could--
+[00:49:45,690 --> 00:49:47,390] we like to do maximum likelihood.
+[00:49:47,390 --> 00:49:48,410] We like to think about probabilities
+[00:49:48,410 --> 00:49:50,570] and do maximum likelihood training in machine learning,
+[00:49:50,570 --> 00:49:51,190] in general.
+[00:49:51,190 --> 00:49:56,810] So we could try to represent the probability that a trajectory is
+[00:49:56,810 --> 00:49:58,428] better than--
+[00:49:58,428 --> 00:50:00,470] one trajectory is better than another trajectory.
+[00:50:00,470 --> 00:50:02,450] And so we could do is we could take this.
+[00:50:02,450 --> 00:50:05,010] We could pass this into a sigmoid function, which
+[00:50:05,010 --> 00:50:10,250] will squash it between 0 and 1, and then represent that
+[00:50:10,250 --> 00:50:19,930] as the probability that the winning trajectory is
+[00:50:19,930 --> 00:50:25,210] better than the trajectory that was marked as inferior.
+[00:50:25,210 --> 00:50:29,390] And then if we did this, then we could
+[00:50:29,390 --> 00:50:34,490] try to maximize the probability under our reward function.
+[00:50:34,490 --> 00:50:38,190] So we could try to then optimize a reward
+[00:50:38,190 --> 00:50:42,750] function such that the prob--
+[00:50:42,750 --> 00:50:46,530] such that you're maximizing this probability.
+[00:50:46,530 --> 00:50:52,843] So this would be then summed over the trajectory pairs
+[00:50:52,843 --> 00:50:53,510] in our data set.
+[00:50:56,750 --> 00:51:00,310] And so specifically, we would take each of the pairs,
+[00:51:00,310 --> 00:51:03,830] take the sum of rewards.
+[00:51:03,830 --> 00:51:06,390] For each of these, subtract them, take a sigmoid,
+[00:51:06,390 --> 00:51:09,840] and then try to maximize that by running gradient descent.
+[00:51:14,830 --> 00:51:18,030] It's also worth mentioning these taus.
+[00:51:18,030 --> 00:51:19,830] You could do it on a full trajectory,
+[00:51:19,830 --> 00:51:22,790] but in some scenarios, if a full trajectory
+[00:51:22,790 --> 00:51:29,410] is driving from Palo Alto to San Francisco or cleaning a kitchen,
+[00:51:29,410 --> 00:51:32,395] then there's many different subcomponents of that.
+[00:51:32,395 --> 00:51:33,270] And it might be hard.
+[00:51:33,270 --> 00:51:35,290] There might be some parts of that trajectory that are better
+[00:51:35,290 --> 00:51:36,730] and some parts that are worse.
+[00:51:36,730 --> 00:51:38,982] And so you could also do this on partial trajectories
+[00:51:38,982 --> 00:51:40,690] and say like this part of this trajectory
+[00:51:40,690 --> 00:51:43,370] is better than this part.
+[00:51:43,370 --> 00:51:46,250] So you don't have to do it on full trajectories.
+[00:51:46,250 --> 00:51:52,530] We want to reward such that the sum of rewards for the better
+[00:51:52,530 --> 00:51:55,570] trajectory is higher than the sum of the rewards for the worst
+[00:51:55,570 --> 00:51:57,268] trajectory.
+[00:51:57,268 --> 00:51:59,310] Humans are classifying which trajectory's better.
+[00:51:59,310 --> 00:52:01,930] We want the reward to be discriminative of which
+[00:52:01,930 --> 00:52:05,010] trajectory is better.
+[00:52:05,010 --> 00:52:08,450] And so we define this probability
+[00:52:08,450 --> 00:52:11,290] that one trajectory is better than another trajectory.
+[00:52:11,290 --> 00:52:13,130] And then with this probability, we
+[00:52:13,130 --> 00:52:17,490] can try to maximize the reward parameters such
+[00:52:17,490 --> 00:52:19,170] that this is true.
+[00:52:19,170 --> 00:52:20,890] Yeah, so the question was the human
+[00:52:20,890 --> 00:52:23,700] isn't telling us how much better a trajectory is.
+[00:52:23,700 --> 00:52:27,100] And you could have a scenario where maybe one trajectory is
+[00:52:27,100 --> 00:52:31,780] like this, one trajectory is like this,
+[00:52:31,780 --> 00:52:34,900] and then a third trajectory is like--
+[00:52:34,900 --> 00:52:37,660] I don't know-- going all the way over here or something.
+[00:52:37,660 --> 00:52:43,340] And this objective isn't taking into account
+[00:52:43,340 --> 00:52:46,260] the fact that the preference of this over this
+[00:52:46,260 --> 00:52:49,530] is a smaller preference than the preference of this over this.
+[00:52:52,532 --> 00:52:55,180] When you end up optimizing this objective,
+[00:52:55,180 --> 00:52:57,860] oftentimes, it will actually turn out
+[00:52:57,860 --> 00:53:01,140] that it will assign something.
+[00:53:01,140 --> 00:53:03,840] Well, so I guess a couple of things here.
+[00:53:03,840 --> 00:53:07,940] So if you have a lot of data, then it
+[00:53:07,940 --> 00:53:14,740] will also tell you that this, the solid green one,
+[00:53:14,740 --> 00:53:17,300] is better than this one.
+[00:53:17,300 --> 00:53:21,360] And so you could actually get lots of pairwise preferences
+[00:53:21,360 --> 00:53:22,060] on them.
+[00:53:22,060 --> 00:53:24,733] And so because of those pairwise preferences,
+[00:53:24,733 --> 00:53:26,900] you'll see a ranking, like this is better than this.
+[00:53:26,900 --> 00:53:27,600] This is better than this.
+[00:53:27,600 --> 00:53:28,642] This is better than this.
+[00:53:28,642 --> 00:53:31,320] And when you do that, that'll force the reward function
+[00:53:31,320 --> 00:53:33,960] to assign a much higher reward value to this one
+[00:53:33,960 --> 00:53:35,600] compared to this one.
+[00:53:35,600 --> 00:53:39,320] So it will already do what you want.
+[00:53:39,320 --> 00:53:42,840] You could also-- there's a couple other ways
+[00:53:42,840 --> 00:53:44,260] to get this information.
+[00:53:44,260 --> 00:53:48,500] Sometimes when you actually ask humans for preferences,
+[00:53:48,500 --> 00:53:50,280] sometimes you also just give them a batch
+[00:53:50,280 --> 00:53:52,140] and tell them to rank as well.
+[00:53:52,140 --> 00:53:58,680] And that would make this even more explicit.
+[00:53:58,680 --> 00:54:01,440] So the complete algorithm for what this looks like is you
+[00:54:01,440 --> 00:54:03,560] have some data set of trajectories.
+[00:54:03,560 --> 00:54:06,880] You're going to sample batches of k trajectories.
+[00:54:06,880 --> 00:54:09,820] And then ask a human to rank those k trajectories.
+[00:54:12,840 --> 00:54:15,240] For language models when you do this-- so
+[00:54:15,240 --> 00:54:17,600] this is actually a common way to learn reward functions
+[00:54:17,600 --> 00:54:18,980] for language models.
+[00:54:18,980 --> 00:54:23,980] And you'll often actually use the same prompt and sample k
+[00:54:23,980 --> 00:54:27,780] responses and then ask them to rank those k responses.
+[00:54:27,780 --> 00:54:31,660] And this is useful because these trajectories all
+[00:54:31,660 --> 00:54:33,880] start from some initial point.
+[00:54:33,880 --> 00:54:36,180] You can think of this as starting from the same prompt.
+[00:54:36,180 --> 00:54:37,597] But you might have other responses
+[00:54:37,597 --> 00:54:40,940] that are like starting from a different prompt over here.
+[00:54:40,940 --> 00:54:44,080] And for a different prompt or from a different starting place,
+[00:54:44,080 --> 00:54:47,100] it's a lot harder to talk about like, is this better--
+[00:54:47,100 --> 00:54:49,280] like, is this black one better than this green one?
+[00:54:49,280 --> 00:54:51,420] It got there-- maybe got here faster,
+[00:54:51,420 --> 00:54:55,825] but it also had-- it was an easier starting point.
+[00:54:55,825 --> 00:54:57,885] And so oftentimes, we'll try to sample
+[00:54:57,885 --> 00:54:59,260] a batch of trajectories that have
+[00:54:59,260 --> 00:55:03,140] a similar starting position.
+[00:55:03,140 --> 00:55:06,680] Then we will compute the rewards under our current reward model,
+[00:55:06,680 --> 00:55:08,740] essentially do a forward pass, and sum
+[00:55:08,740 --> 00:55:10,540] over the states and actions.
+[00:55:10,540 --> 00:55:12,600] And then we can compute the gradient,
+[00:55:12,600 --> 00:55:16,700] do a backward pass using our objective,
+[00:55:16,700 --> 00:55:22,320] where this is for every pair of--
+[00:55:22,320 --> 00:55:25,520] for each pair within the ranking.
+[00:55:25,520 --> 00:55:30,360] So there's k choose 2 different combinations of pairs.
+[00:55:30,360 --> 00:55:34,520] And if you have a ranking, then you'll have a full set of k
+[00:55:34,520 --> 00:55:35,310] choose 2 labels.
+[00:55:38,560 --> 00:55:42,000] Then you can update theta using the computed gradient.
+[00:55:42,000 --> 00:55:44,670] And then you can also repeat this process.
+[00:55:44,670 --> 00:55:48,640] And repeating this just corresponds to doing
+[00:55:48,640 --> 00:55:52,040] gradient descent on your objective on a single data set.
+[00:55:55,320 --> 00:55:57,040] Now one thing that you can also do
+[00:55:57,040 --> 00:56:01,840] is you can also do this in the loop of reinforcement learning.
+[00:56:01,840 --> 00:56:07,080] So you have your samples from your policy.
+[00:56:07,080 --> 00:56:13,320] And then you can ask for humans to rank them and then update
+[00:56:13,320 --> 00:56:14,640] your rewards.
+[00:56:14,640 --> 00:56:19,660] And then after you have your updated reward model,
+[00:56:19,660 --> 00:56:21,800] then maybe your reward model is more accurate.
+[00:56:21,800 --> 00:56:26,260] And maybe you want to be going like here, for example, instead
+[00:56:26,260 --> 00:56:27,380] of going here.
+[00:56:27,380 --> 00:56:31,540] Then you could then reupdate your reward function
+[00:56:31,540 --> 00:56:34,220] and then update your policy again, and then get new rollouts
+[00:56:34,220 --> 00:56:35,240] for your policy.
+[00:56:35,240 --> 00:56:37,380] Ask a human to label those rollouts,
+[00:56:37,380 --> 00:56:39,350] reupdate your reward function, and repeat.
+[00:56:42,620 --> 00:56:44,340] OK.
+[00:56:44,340 --> 00:56:48,326] So that's how we can learn from preferences.
+[00:56:48,326 --> 00:56:49,640] There's a few examples of this.
+[00:56:49,640 --> 00:56:50,580] So the first time--
+[00:56:50,580 --> 00:56:51,955] or some of the first times people
+[00:56:51,955 --> 00:56:56,480] have learned from preferences were in some simulated settings.
+[00:56:56,480 --> 00:57:00,500] So in this case, if you want to get this simulated thing
+[00:57:00,500 --> 00:57:01,980] to do a backflip.
+[00:57:01,980 --> 00:57:05,820] It's very hard to write a reward function for doing a backflip.
+[00:57:05,820 --> 00:57:09,640] And so they used 900 queries.
+[00:57:09,640 --> 00:57:12,902] They asked humans 900 times like, is this better than this?
+[00:57:12,902 --> 00:57:15,360] They actually did it in the loop of reinforcement learning.
+[00:57:15,360 --> 00:57:19,445] And they got a policy that is able to learn
+[00:57:19,445 --> 00:57:21,320] how to do a backflip, and in the process also
+[00:57:21,320 --> 00:57:28,320] learn a reward function for a human-preferred backflip.
+[00:57:28,320 --> 00:57:31,220] Also, in driving, it's very hard to get reward functions.
+[00:57:31,220 --> 00:57:33,720] And so there was work that used this kind of approach
+[00:57:33,720 --> 00:57:36,080] to learn things like how much does
+[00:57:36,080 --> 00:57:38,120] it matter to stay within your lane,
+[00:57:38,120 --> 00:57:40,463] keep a certain speed, collision avoidance,
+[00:57:40,463 --> 00:57:41,380] those sorts of things.
+[00:57:41,380 --> 00:57:43,840] And you would imagine that collision avoidance
+[00:57:43,840 --> 00:57:48,260] is much, much more important than keeping a certain speed,
+[00:57:48,260 --> 00:57:49,600] for example.
+[00:57:49,600 --> 00:57:52,300] And you can learn a reward function that way.
+[00:57:52,300 --> 00:57:52,800] Cool.
+[00:57:52,800 --> 00:57:54,420] And then there's also language models.
+[00:57:54,420 --> 00:57:56,800] So this has been a very popular way
+[00:57:56,800 --> 00:57:58,580] to learn rewards for language models.
+[00:57:58,580 --> 00:58:01,880] And you can have some prompt like, how do I cook an omelet?
+[00:58:01,880 --> 00:58:04,080] Then you can sample from your language model
+[00:58:04,080 --> 00:58:07,600] two different responses for that prompt.
+[00:58:07,600 --> 00:58:11,817] Then we ask a person which response is better.
+[00:58:11,817 --> 00:58:13,650] When we're doing training, we might actually
+[00:58:13,650 --> 00:58:16,050] pay people to label our data.
+[00:58:16,050 --> 00:58:17,170] You might have also--
+[00:58:17,170 --> 00:58:18,630] if you've interacted with ChatGPT,
+[00:58:18,630 --> 00:58:20,963] sometimes it might have asked you these sorts of things.
+[00:58:20,963 --> 00:58:25,610] You're providing labels to give OpenAI the ability
+[00:58:25,610 --> 00:58:31,210] to learn a reward function that is better for your preferences.
+[00:58:31,210 --> 00:58:33,630] And then once you have the things that are better,
+[00:58:33,630 --> 00:58:35,130] then you can train a reward model
+[00:58:35,130 --> 00:58:38,300] that judges how good a response y is for a given prompt.
+[00:58:42,250 --> 00:58:46,890] And so then in terms of what the kind of full language model
+[00:58:46,890 --> 00:58:51,130] pipeline is, if you wanted to train something like ChatGPT,
+[00:58:51,130 --> 00:58:53,370] first, you'll do some large-scale pre-training
+[00:58:53,370 --> 00:59:00,850] on very, very large mixed quality data.
+[00:59:00,850 --> 00:59:02,750] With just predicting the next token,
+[00:59:02,750 --> 00:59:04,610] then you typically have a second stage,
+[00:59:04,610 --> 00:59:08,530] which is to fine-tune on higher quality data.
+[00:59:08,530 --> 00:59:12,870] And in particular, after step one,
+[00:59:12,870 --> 00:59:15,990] before you do any kind of supervised fine-tuning
+[00:59:15,990 --> 00:59:17,390] or reinforcement learning, you'll
+[00:59:17,390 --> 00:59:20,070] get a reward, a language model that knows a lot of things,
+[00:59:20,070 --> 00:59:22,030] but is not easy to control or to get it
+[00:59:22,030 --> 00:59:23,593] to do what you want it to do.
+[00:59:23,593 --> 00:59:25,010] And it might not answer questions.
+[00:59:25,010 --> 00:59:26,210] It might not do what you requested.
+[00:59:26,210 --> 00:59:28,190] It might just predict reasonable next tokens
+[00:59:28,190 --> 00:59:29,630] that come after that.
+[00:59:29,630 --> 00:59:31,788] Whereas in supervised fine-tuning,
+[00:59:31,788 --> 00:59:33,330] we can generate a higher quality data
+[00:59:33,330 --> 00:59:36,910] set that has for a given prompt, this is how you should reply.
+[00:59:36,910 --> 00:59:39,030] And so we do some kind of imitation
+[00:59:39,030 --> 00:59:41,730] learning on that data set.
+[00:59:41,730 --> 00:59:43,230] And then there's a third step, which
+[00:59:43,230 --> 00:59:46,310] is to use the human feedback and then fine-tune
+[00:59:46,310 --> 00:59:49,270] the model that you got from supervised fine-tuning
+[00:59:49,270 --> 00:59:53,597] on higher quality preference data.
+[00:59:53,597 --> 00:59:55,430] And what this third step looks like is first
+[00:59:55,430 --> 00:59:57,230] you gather the preference data.
+[00:59:57,230 --> 00:59:59,290] There are also actually existing preference data
+[00:59:59,290 --> 01:00:00,862] sets that you can use as well.
+[01:00:00,862 --> 01:00:03,070] You don't have to necessarily-- you don't necessarily
+[01:00:03,070 --> 01:00:08,730] have to collect it on using your model.
+[01:00:08,730 --> 01:00:11,570] Second, you'll train a reward model
+[01:00:11,570 --> 01:00:15,183] that is judging how good a response is.
+[01:00:15,183 --> 01:00:16,850] And then lastly, you'll do reinforcement
+[01:00:16,850 --> 01:00:19,810] learning to maximize that reward function.
+[01:00:19,810 --> 01:00:22,290] We will talk more about preference learning on Wednesday
+[01:00:22,290 --> 01:00:23,450] next week.
+[01:00:23,450 --> 01:00:26,010] But one somewhat common approach is
+[01:00:26,010 --> 01:00:30,490] to use PPO to maximize the reward.
+[01:00:30,490 --> 01:00:32,930] The question is, is x just the prompt,
+[01:00:32,930 --> 01:00:34,890] or is it the whole history?
+[01:00:34,890 --> 01:00:37,290] Oftentimes, it's the whole history.
+[01:00:37,290 --> 01:00:40,845] And you can sort of--
+[01:00:40,845 --> 01:00:42,490] yeah, oftentimes, when you-- generally,
+[01:00:42,490 --> 01:00:44,950] also when you formulate RL problems for language models,
+[01:00:44,950 --> 01:00:47,830] you will have--
+[01:00:47,830 --> 01:00:50,490] you can model it as a sequential problem.
+[01:00:50,490 --> 01:00:53,530] But you can also--
+[01:00:53,530 --> 01:00:55,050] there's a way to--
+[01:00:55,050 --> 01:00:57,017] a simpler but more crude way to model
+[01:00:57,017 --> 01:00:58,850] it, which is to use all the history and just
+[01:00:58,850 --> 01:01:00,690] treat the next response as the thing
+[01:01:00,690 --> 01:01:03,010] that you're optimizing over.
+[01:01:03,010 --> 01:01:05,570] So the question is, how do we go from preference rankings
+[01:01:05,570 --> 01:01:07,950] to this probability right here?
+[01:01:07,950 --> 01:01:10,790] So in our preferences, we're saying
+[01:01:10,790 --> 01:01:13,550] that we might have a ranking saying
+[01:01:13,550 --> 01:01:16,370] like A is better than B which is better than C.
+[01:01:16,370 --> 01:01:19,830] If we have a ranking of k trajectories,
+[01:01:19,830 --> 01:01:24,950] then we can formulate k choose 2 pairs where--
+[01:01:24,950 --> 01:01:28,570] and within each pair we'll have an A is better than B,
+[01:01:28,570 --> 01:01:30,070] or B is better than A.
+[01:01:30,070 --> 01:01:35,510] We're using tau w to represent the response or the trajectory
+[01:01:35,510 --> 01:01:37,350] that was preferred, and tau l to represent
+[01:01:37,350 --> 01:01:38,990] the one that was dispreferred.
+[01:01:38,990 --> 01:01:44,030] And then we sample one of those pairs, one of those k
+[01:01:44,030 --> 01:01:45,190] choose pairs.
+[01:01:45,190 --> 01:01:48,710] And then we plug it into this equation right here.
+[01:01:48,710 --> 01:01:51,030] So you're asking, what is the sigma function or--?
+[01:01:51,030 --> 01:01:54,270] yeah, so the sigma function here--
+[01:01:54,270 --> 01:01:55,910] this is a sigmoid.
+[01:01:55,910 --> 01:02:01,110] So it is basically a function that squashes
+[01:02:01,110 --> 01:02:03,750] the values between 0 and 1.
+[01:02:03,750 --> 01:02:07,490] And so it's just a very simple function that--
+[01:02:07,490 --> 01:02:08,270] I can't remember.
+[01:02:08,270 --> 01:02:15,050] I think it looks something like this, where this is 1.
+[01:02:15,050 --> 01:02:17,070] So yeah, I'm just using sigma.
+[01:02:17,070 --> 01:02:18,950] This is sigma right here.
+[01:02:18,950 --> 01:02:21,690] So it's just this function right here.
+[01:02:21,690 --> 01:02:22,410] OK.
+[01:02:22,410 --> 01:02:26,530] One other thing you can do is instead of using human feedback,
+[01:02:26,530 --> 01:02:28,730] you could also have an AI model.
+[01:02:28,730 --> 01:02:32,070] You could ask a strong model like, is this better than this?
+[01:02:35,370 --> 01:02:37,410] One thing that I'll note is when you
+[01:02:37,410 --> 01:02:40,530] are thinking about what is preferred and dispreferred,
+[01:02:40,530 --> 01:02:42,330] there are a variety of different axes
+[01:02:42,330 --> 01:02:45,330] in which something might be preferred or dispreferred.
+[01:02:45,330 --> 01:02:46,370] And so you could--
+[01:02:46,370 --> 01:02:49,250] in some cases, you might be able to ask for certain things
+[01:02:49,250 --> 01:02:52,365] that you care about from the model.
+[01:02:52,365 --> 01:02:54,490] This is often referred to as reinforcement learning
+[01:02:54,490 --> 01:02:56,570] with AI feedback.
+[01:02:56,570 --> 01:03:01,810] As one example of a use case, the people
+[01:03:01,810 --> 01:03:03,750] have used this to try to prevent models
+[01:03:03,750 --> 01:03:07,630] from producing harmful content.
+[01:03:07,630 --> 01:03:11,510] And so they will feed two responses into the model
+[01:03:11,510 --> 01:03:15,750] and ask the model which response is less harmful.
+[01:03:15,750 --> 01:03:18,150] One insight here is that critique is
+[01:03:18,150 --> 01:03:20,255] often easier than generation.
+[01:03:20,255 --> 01:03:21,630] And so this is one of the reasons
+[01:03:21,630 --> 01:03:26,390] why you might be able to get a stronger model with AI feedback
+[01:03:26,390 --> 01:03:27,550] than otherwise.
+[01:03:27,550 --> 01:03:30,150] And there have been some works that
+[01:03:30,150 --> 01:03:34,450] show that if you use this kind of feedback, this AI feedback,
+[01:03:34,450 --> 01:03:38,070] you can get an improvement in model performance
+[01:03:38,070 --> 01:03:39,480] on different axes.
+[01:03:42,950 --> 01:03:43,936] OK.
+[01:03:43,936 --> 01:03:45,990] So a summary of reward learning--
+[01:03:45,990 --> 01:03:49,590] rewards cannot be taken for granted.
+[01:03:49,590 --> 01:03:51,370] We've talked about learning from goals.
+[01:03:51,370 --> 01:03:54,190] We talked about learning from human preferences.
+[01:03:54,190 --> 01:03:56,990] For goals, it's quite practical.
+[01:03:56,990 --> 01:04:00,640] Adversarial training can be a little bit tricky to optimize,
+[01:04:00,640 --> 01:04:03,520] and it requires examples of desired behavior.
+[01:04:03,520 --> 01:04:05,400] With preferences, pairwise preferences
+[01:04:05,400 --> 01:04:06,820] are really easy to provide.
+[01:04:06,820 --> 01:04:10,680] It doesn't require example goals or example demonstrations.
+[01:04:10,680 --> 01:04:13,680] It has been deployed at really, really large scales
+[01:04:13,680 --> 01:04:15,480] with language models.
+[01:04:15,480 --> 01:04:18,000] It may require some supervision in the loop
+[01:04:18,000 --> 01:04:19,550] of reinforcement learning.
+[01:04:22,347 --> 01:04:24,680] One other thing that I encourage everyone to think about
+[01:04:24,680 --> 01:04:29,320] is goals and human preferences, those are some form of feedback,
+[01:04:29,320 --> 01:04:31,320] but there's a lot of other ways that we
+[01:04:31,320 --> 01:04:35,000] might be able to provide supervision to agents
+[01:04:35,000 --> 01:04:37,000] that are trying to learn.
+[01:04:37,000 --> 01:04:39,120] You could even verbally tell it some information
+[01:04:39,120 --> 01:04:41,120] like, that was good, or that was helpful,
+[01:04:41,120 --> 01:04:45,840] or that was helpful but mean, or something like that.
+[01:04:45,840 --> 01:04:48,460] And you could think of other ways of providing supervision.
+[01:04:48,460 --> 01:04:52,465] And I think that this is an area of research that--
+[01:04:52,465 --> 01:04:53,840] yeah-- where I think that there's
+[01:04:53,840 --> 01:04:56,000] more things that could be done.
+[01:04:56,000 --> 01:04:57,480] One other thing that I'll mention
+[01:04:57,480 --> 01:05:01,260] is there's also some cool work in the reinforcement learning
+[01:05:01,260 --> 01:05:05,110] research landscape, where you can potentially
+[01:05:05,110 --> 01:05:06,860] have reinforcement learning agents propose
+[01:05:06,860 --> 01:05:11,540] their own goals rather than having a human provide a goal.
+[01:05:11,540 --> 01:05:14,660] This is often referred to as this area
+[01:05:14,660 --> 01:05:17,780] of unsupervised reinforcement learning, where human is not
+[01:05:17,780 --> 01:05:19,920] telling the agent what it should do.
+[01:05:19,920 --> 01:05:24,380] Instead, the agent should have its own sort of curiosity.
+[01:05:24,380 --> 01:05:26,460] One example of this is you can have
+[01:05:26,460 --> 01:05:29,020] one agent setting a goal, another agent trying
+[01:05:29,020 --> 01:05:30,380] to reach the goal.
+[01:05:30,380 --> 01:05:32,820] And you can formulate this as a game between these two
+[01:05:32,820 --> 01:05:34,980] different agents.
+[01:05:34,980 --> 01:05:40,220] And there's, yeah, some cool work that
+[01:05:40,220 --> 01:05:42,540] shows that you can have that--
+[01:05:42,540 --> 01:05:44,700] if you have these two different agents that
+[01:05:44,700 --> 01:05:47,540] are trying to play against each other, where one is the goal
+[01:05:47,540 --> 01:05:49,460] setter, one is trying to reach the goals,
+[01:05:49,460 --> 01:05:53,310] you can get some kind of cool behavior as a result.

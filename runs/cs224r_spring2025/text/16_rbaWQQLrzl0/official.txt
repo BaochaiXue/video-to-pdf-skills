@@ -1,0 +1,572 @@
+RL for Robots
+
+: Autonomous Learning
+
+CS224R: Deep Reinforcement Learning
+
+Reminders
+- Project milestone due tonight
+- HW4 due next Friday
+
+Plan for Today
+- Why aren’t robots autonomous already?
+- Defining the problem: autonomous RL
+- Developing the algorithms
+- Learning policies without human intervention
+- Single life RL
+
+Goal: Build autonomous agents that can learn and interact in the real world
+
+Plan for Today
+- Why aren’t robots autonomous already?
+- Defining the problem: autonomous RL
+- Developing the algorithms
+- Learning policies without human intervention
+- Single life RL
+
+Reinforcement Learning = Trial-and-Error
+Learn a policy π to go from ρ0 to ρg
+
+..
+.
+
+Slide adapted from Archit Sharma
+
+Repeat:
+Execute actions from the policy π
+Observe data from the environment
+Update the policy π
+
+Standard Reinforcement Learning
+
+How does this happen?
+[Code snippet from https://gym.openai.com/]
+
+Only in simulation!
+Slide adapted from Archit Sharma
+
+The Continual Real World
+
+“Grasp the mug”
+
+“Navigate to the basketball court”
+
+Several
+thousands of
+trials!
+Slide adapted from Archit Sharma
+
+“Learn how to shelf a book”
+
+[Collective Robot Reinforcement Learning with Distributed
+Asynchronous Guided Policy Search, Yahya et al. 2016]
+
+[Combining model-based and model-free updates for
+trajectory-centric reinforcement learning, Chebotar et al. 2017]
+[Self-Improving Robots: End-to-End Autonomous
+Visuomotor Reinforcement Learning, Sharma et al. 2023]
+
+Slide adapted from Archit Sharma
+
+Plan for Today
+- Why aren’t robots autonomous already?
+- Defining the problem: autonomous RL
+- Developing the algorithms
+- Learning policies without human intervention
+- Single life RL
+
+Reset Environment
+
+Problem: this requires human supervision
+
+What if we increase H?
+Fewer environment resets, less human supervision
+
+Slide adapted from Archit Sharma
+
+Autonomous RL: Definition
+Agent interacts autonomously
+
+No environment resets*
+Initialize once at the beginning
+
+Slide adapted from Archit Sharma
+
+*can relax this constraint to reset occasionally, or at low frequency
+
+Autonomous RL: Evaluation
+
+We might care about two different things:
+- The amount of reward recovered over the course of its life (ex: Mars rover)
+- The quality of the learned policy (ex: robot chef)
+
+Slide adapted from Archit Sharma
+
+Autonomous RL: Evaluation
+Deployed Policy Evaluation
+
+Continuing Policy Evaluation*
+
+= Quality of policy learned
+
+= Reward accumulated over lifetime
+
+<latexit sha1_base64="jTbh8CMqlpjKRjtVEvlUNWVdl5k=">AAACcHicbVHRatswFJW9duuybsvWl0E7qi0MkjKCXUq3l0FpKZQ+tbAkhcgz14qciEq2ka4Hwfh5/7e3fcRe9gWTkwzSdhcER+fcI10dJYWSFoPgl+c/2th8/GTraevZ9vMXL9uvXg9tXhouBjxXublJwAolMzFAiUrcFEaATpQYJbdnjT76LoyVefYV54WINEwzmUoO6Ki4/eOyywrZo18o04CzJKnO67ha4rSydRwyKzUtuutU7yP9t4U6xqbDHVJTpkSKY8psqWOkbApawzekZt2Md709ZuR0hlHc7gT9YFH0IQhXoENWdRW3f7JJzkstMuQKrB2HQYFRBQYlV6JusdKKAvgtTMXYwQy0sFG1CKymHxwzoWlu3MqQLth1RwXa2rlOXGczq72vNeT/tHGJ6eeokllRosj48qK0VBRz2qRPJ9IIjmruAHAj3ayUz8AAR/dHLRdCeP/JD8HwsB8e94+vjzonp6s4tsgueU+6JCSfyAm5IFdkQDj57e14e95b74//xt/33y1bfW/l2SF3yj/4C8LsvWk=</latexit>
+
+J(⇡) = Es1 ⇠p(s1 ),at ⇠⇡
+Start from initial
+state distribution
+
+"
+
+Take actions
+according to π
+
+X
+
+t
+
+t
+
+r(st , at )
+
+#
+
+Total reward over
+the episode
+
+Average over reward accumulated in
+the lifetime
+
+We’ll look at algorithms for both!
+
+Slide adapted from Archit Sharma
+
+*average reward RL
+
+Why is autonomous RL important?
+Robotics <-> Autonomy
+- We want robots to operate with minimal human supervision
+- We want robots to *train* with minimal human supervision
+RL on real robots is promising path towards high success rate, reliability.
+Autonomy unlocks more data, more data may unlock greater generalization.
+
+Slide adapted from Archit Sharma
+
+Plan for Today
+- Why aren’t robots autonomous already?
+- Defining the problem: autonomous RL
+- Developing the algorithms
+- Learning policies without human intervention
+- Single life RL
+
+What about standard RL algorithms?
+What happens when episode length increases?
+
+1000 steps
+2000 steps
+10,000 steps
+50,000 steps
+100,000 steps
+
+Note: this measures the deployed
+policy evaluation.
+
+The Challenge of Learning Autonomously
+Episodic Learning
+
+Non-Episodic Learning
+
+..
+.
+
+Can always retry the
+task from initial state
+distribution
+Slide adapted from Archit Sharma
+
+Challenge 2: state
+distribution collapse
+
+The agent never learns a good policy
+Challenge 1: exploration
+can cause the agent to drift
+far away
+
+How to autonomously learn an effective policy?
+
+Learns successfully if allowed to frequently
+retry from the initial state distribution
+
+Key idea: learn a policy to reset?
+
+Slide adapted from Archit Sharma
+
+Algorithm: Forward-Backward RL
+Forward-Backward RL (FBRL)
+
+Define rb(s, a)
+for reaching ρ0
+
+1. Initialize forward policy πf and backward policy πb
+2. Repeat:
+1. Roll out πf for H steps
+
+2. Update πf using rf (s, a)
+
+Forward Policy
+
+3. Roll out πb for H steps
+4. Update πb using rb(s, a)
+
+Backward
+Policy
+
+5. No reset or very infrequent reset
+Test time: Discard πb. Deploy πf
+
++ simple
+[Han et al. Learning Compound Multi-Step Controllers under Unknown Dynamics]
+[Eysenbach et al. Leave no Trace: Learning to Reset for Safe and Autonomous Reinforcement Learning]
+
+- backward policy is ultimately discarded
+
+Alternatives to Forward-Backward RL?
+1. Learn to reset to expert state distribution (forward-backward with modified
+backward reward)
+
+2. Practice cycle of different tasks
+3. Set up task that can be done repetitively (“forward-forward RL”?)
+
+Alternatives to Forward-Backward RL?
+1. Learn to reset to expert state distribution (forward-backward with modified
+backward reward)
+
+2. Practice cycle of different tasks
+3. Set up task that can be done repetitively (“forward-forward RL”?)
+
+Algorithm: Modified backward policy reward
+Matching Expert Distributions for Autonomous Learning (MEDAL)
+Modified reward rb(s, a): learned reward for matching state distribution in demos.
+0. Given a small set of demonstrations
+
+1. Initialize forward policy πf and backward policy πb
+2. Repeat:
+1. Roll out πf for H steps
+
+2. Update πf using rf (s, a)
+
+Forward Policy
+
+Backward
+Policy
+
+3. Roll out πb for H steps
+4. Update πb using rb(s, a)
+5. No reset or very infrequent reset
+6. Update learned reward rb(s, a)
+
+Test time: Discard πb. Deploy πf
+
+Autonomous Learning via MEDAL
+
+Addressing challenge 2:
+backward policy avoids
+collapse of state distribution
+
+Matching Expert Distributions for
+Autonomous Learning
+
+demonstrations
+
+Forward Policy
+
+Backward
+Policy
+
+Addressing challenge 1: agent
+doesn’t drift away
+
+Pro: Forward policy tries the task from wide set of initial states, both
+easy and hard, improving the sample efficiency [1]
+[1] Kakade & Langford. Approximately Optimal Approximate Reinforcement Learning. ICML 2002.
+
+Forward backward results
+
+VaPRL
+(goal
+curriculum)
+
+EARL Benchmark
+Training: reset every 200k steps
+Evaluation: policy performance from ρ0
+
+MEDAL
+
+FBRL
+(reach
+)
+
+R3L
+(state
+novelty)
+oracle SAC
+(episodic)
+
+SAC (nonepisodic,
+no backward
+policy)
+
+EARL: Sharma*, Xu* et al. Autonomous Reinforcement Learning: Formalism and Benchmarking, ICLR 2022.
+VaPRL: Sharma et al. Autonomous Reinforcement Learning via Subgoal Curricula. NeurIPS 2021.
+FBRL: Han et al. Learning Compound Multi-Step Controllers under Unknown Dynamics. IROS 2015.
+R3L: Zhu et al. The Ingredients of Real-World Robotic Reinforcement Learning. ICLR 2020.
+
+MEDAL
+
+Forward backward results
+EARL Benchmark
+Training: reset every 200k steps
+Evaluation: policy performance from ρ0
+
+oracle SAC
+(episodic)
+
+FBRL
+(reach
+)
+
+R3L
+(state
+novelty)
+
+SAC (nonepisodic,
+no backward
+policy)
+
+Door Closing
+EARL: Sharma*, Xu* et al. Autonomous Reinforcement Learning: Formalism and Benchmarking, ICLR 2022.
+FBRL: Han et al. Learning Compound Multi-Step Controllers under Unknown Dynamics. IROS 2015.
+R3L: Zhu et al. The Ingredients of Real-World Robotic Reinforcement Learning. ICLR 2020.
+
+Forward-backward RL on real robots
+
+Vanilla FBRL
+Demo initialized, VLM-provided rewards
+
+MEDAL
+Demo initialized, learned rewards
+
+Alternatives to Forward-Backward RL?
+1. Learn to reset to expert state distribution (forward-backward with modified
+backward reward)
+
+2. Practice cycle of different tasks
+3. Set up task that can be done repetitively (“forward-forward RL”?)
+
+Autonomous RL with task cycles
+Task 1: put cup in coffee machine
+
+Task 1
+cc
+su
+
+il
+fa
+
+ee
+
+Task 2: pick up cup
+
+d
+
+Task 2
+Task 3
+
+il
+fa
+Task 4
+
+Task 3: replace cup
+Task 4: clean up spill from cup…
+
+28
+
+Algorithm: Autonomous RL with task cycles
+
+Task 1
+cc
+su
+
+il
+fa
+
+ee
+d
+
+Task 2
+Task 3
+
+il
+fa
+
+1. Initialize task-conditioned policy π( ⋅ | s, z)
+2. Repeat:
+1. Propose task zi to practice based on s
+2. Roll out π( ⋅ | s, zi) for H steps
+3. Update π using r(s, a, z)
+4. No reset or very infrequent reset
+
+Task 4
+
+Test time: Deploy π
+
+Example: autonomous RL with task cycles
+
+Gupta, Yu, Zhao, Kumar, Rovinsky, Xu, Devlin, Levine. Reset-Free Reinforcement Learning via MultiTask Learning: Learning Dexterous Manipulation Behaviors without Human Intervention. 2021.
+
+30
+
+Example: autonomous RL with task cycles
+
+Laura Smith, J. Chase Kew, Xue Bin Peng, Sehoon Ha, Jie Tan,
+Sergey Levine. Legged Robots that Keep on Learning: FineTuning Locomotion Policies in the Real World. 2021.
+
+Han, Levine, Abbeel. Learning Compound Multi-Step
+Controllers under Unknown Dynamics.
+
+How to identify which task to collect data for?
+In general: an open research question
+
+One idea: Ask a vision language model.
+
+Zhou*, Atreya*, Lee, Walke, Mees, Levine. SOAR: Autonomous Improvement of Instruction Following Skills via Foundation Models.
+
+32
+
+Alternatives to Forward-Backward RL?
+1. Learn to reset to expert state distribution (forward-backward with modified
+backward reward)
+
+2. Practice cycle of different tasks
+3. Set up task that can be done repetitively (“forward-forward RL”?)
+
+Source: x.com/JasonMa2020/status/1917255026751553629
+
+Plan for Today
+- Why aren’t robots autonomous already?
+- Defining the problem: autonomous RL
+- Developing the algorithms
+- Learning policies without human intervention
+- Single life RL
+
+So far…
+We’ve looked at learning policies without resets:
+- Can improve the quality of the policy through autonomous practice
+What happens after we deploy the policy?
+Obviously, everything works perfectly and nothing ever goes wrong.
+
+So far…
+We’ve looked at learning policies without resets:
+- Can improve the quality of the policy through autonomous practice
+What happens after we deploy the policy?
+Obviously, everything works perfectly and nothing ever goes wrong.
+The natural world is complex, and something likely will go wrong, despite
+preparation.
+
+Even humans make mistakes and adapt
+
+Even humans make mistakes and adapt
+
+Even humans make mistakes and adapt
+
+Single-Life Reinforcement Learning (SLRL)
+Reset-free reinforcement learning
+
+test
+
+test
+
+…
+
+train
+
+Single life reinforcement learning
+
+prior training
+data
+
+train
+
+Episodic reinforcement learning
+
+Given prior data in train env, agent has one “life” to
+autonomously complete task in novel scenario.
+
+training experience
+
+Can we run RL in a single episode at test time?
+Chen, Sharma, Levine, Finn. You Only Live Once: Single-Life Reinforcement Learning, NeurIPS ‘22
+
+test environment
+
+Single-Life Reinforcement Learning (SLRL)
+Single life reinforcement learning
+
+prior training
+data
+
+Given prior data in train env(s), agent has one “life” to
+autonomously complete task in novel, OOD scenario.
+training experience
+
+test environment
+
+Can we fine-tune with RL in a single episode at test time?
+
+Chen, Sharma, Levine, Finn. You Only Live Once: Single-Life Reinforcement Learning, NeurIPS ‘22
+
+How to approach single-life RL?
+Can we fine-tune with vanilla reinforcement learning, but at test time?
+
+Agent fails to handle or recover from out-of-distribution states without interventions.
+
+Chen, Sharma, Levine, Finn. You Only Live Once: Single-Life Reinforcement Learning, NeurIPS ‘22
+
+How to approach single-life RL?
+A few useful ideas:
+- Guide the learning process towards good, familiar states to avoid getting stuck
+- Leverage pre-training
+- Pre-trained skills can allow for adaptation in skill space rather than in action space
+- Pre-trained LLMs may be able to reason through how to adapt
+Example of guiding policy towards good states in prior data:
+
+Chen, Sharma, Levine, Finn. You Only Live Once: Single-Life Reinforcement Learning, NeurIPS ‘22
+
+How to approach single-life RL?
+Adaptation in low-level action space
+
+Adaptation in high-level skill space
+
+Kumar, Fu, Pathak, Malik. RMA: Rapid Motor Adaptation for Legged Robots.
+RSS 2021
+
+Chen, Lessing, Tang, Chada, Smith, Levine, Finn. Commonsense Reasoning
+for Legged Robot Adaptation with Vision-Language Models. ICRA 2025
+
+Summary
+- Why aren’t robots autonomous already?
+- Defining the problem: autonomous RL
+- Developing the algorithms
+- Learning policies without human intervention
+- Single life RL
+
+Reminders
+Project milestone due tonight
+Homework 4 due next Friday
+
+Next time
+Guest lecture from Ashish Kumar
+(Tesla Optimus)
+
+

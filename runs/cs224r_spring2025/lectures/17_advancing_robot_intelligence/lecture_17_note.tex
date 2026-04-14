@@ -1,0 +1,237 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS224R 课程笔记：Lecture 17 Advancing Robot Intelligence}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-13}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{讲次日期 2025-05-28；YouTube 上传 2025-12-08}
+\newcommand{\videoduration}{49:48}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=Hp1WBWghrak}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{从 imitation learning 到 reinforcement learning：为什么机器人仍需要 RL}
+
+讲者开场没有直接进入机器人系统，而是先比较 imitation learning 与 reinforcement learning。这个对比很重要，因为它解释了为什么即使今天 VLM、视频生成和很多视觉任务都高度依赖模仿学习，机器人智能的进一步突破仍然需要 RL。
+
+在讲者的归纳里，两者最重要的差别不是“一个好一个坏”，而是数据来源和优化目标不同：
+\begin{itemize}
+\item imitation learning 主要依赖 off-policy 的好样本，更容易产出 generalist；
+\item reinforcement learning 更多使用 on-policy 数据，正样本和负样本都能成为学习信号，更容易把系统压到高精度 specialist 行为。
+\end{itemize}
+
+这也是 AlphaGo、LLM reasoning、机器人灵巧运动这些案例共同展示的规律：RL 的强项在于，当奖励定义清楚、评估可规模化时，它能够在长时程控制问题上超越纯粹模仿。
+
+\subsection{机器人侧的两个前提：奖励与评估}
+
+对于机器人，RL 真正能跑起来往往依赖两个前提。第一，奖励至少要能程序化计算，而不是每一步都靠人打分。第二，策略评估必须可规模化，而这几乎天然把我们带向仿真。仿真能提供大量试错机会，也能避免真实机器人上的硬件损耗和人工成本。
+
+\subsection{本章小结}
+
+这部分把问题框住了：机器人领域并不是否定 imitation learning，而是把它当作 warm start；真正负责把行为压到高可靠、高精度区间的，往往还是 RL。
+
+\section{One Policy to Walk Them All：从结果倒推系统结构}
+
+讲者先给结论，再解释方法。最有冲击力的结果是，同一个四足机器人策略可以跨越室内木板、草地、沙地、岩石和坑洼地形，不依赖为每个场景单独调参。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{pdf_pages/page-08.png}
+\caption{“One Policy to Walk Them All”强调的是同一策略跨多种地形和扰动条件的统一部署能力。}
+\end{figure}
+
+这张图传达的核心不是“机器人会走路”，而是“一个策略”在多场景下都能工作。也就是说，目标不是学一个在单一摩擦系数、单一地面高度上工作的窄策略，而是学一个能够适配外部条件变化的 generalist locomotion policy。
+
+\subsection{在仿真里把变化因素显式参数化}
+
+实现这一点的第一步是在仿真中显式随机化外部条件，例如：
+\begin{itemize}
+\item 质量和质心位置；
+\item 摩擦系数；
+\item 地形高度；
+\item 电机强度。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-10.png}
+\caption{训练结构：仿真环境提供可控外参，环境因子编码器把这些变量压成隐变量，再交给 base policy。}
+\end{figure}
+
+这样得到的不是只会在一个世界里走的策略，而是能条件化于外参隐变量 \(z_t\) 的策略。训练时，policy 见过足够丰富的外参组合，就更可能在现实中处理没完全见过、但接近训练支持集的情形。
+
+\subsection{奖励函数不是附属品，而是系统设计的一部分}
+
+这套工作之所以成功，还因为奖励函数明确地把“能走”“省能耗”“少撞击”“少伤硬件”放在一起优化。讲者特别提到，reward 不只奖励前进速度，也惩罚地面冲击和做功。这与单纯让机器人尽快向前冲完全不同，因为真正的部署指标是稳定、耐久和可复现，而不是一两次看起来很猛的运动轨迹。
+
+\subsection{本章小结}
+
+这一部分说明：强结果背后不是神秘技巧，而是清晰的目标分解。先在仿真里把真实世界会变化的因素显式建模，再让策略在多条件分布上学习，这才有可能得到跨环境的一体化控制器。
+
+\section{Sim-to-Real 的关键鸿沟：训练时知道外参，部署时却不知道}
+
+即使训练阶段能够访问外参，部署时仍然存在一个根本矛盾：真实世界里的质量、摩擦、地形等变量并不会显式告诉策略。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{pdf_pages/page-11.png}
+\caption{部署阶段的核心难点：训练时可见的 extrinsics 在现实世界中不可直接获得。}
+\end{figure}
+
+如果继续把外参当作已知输入，sim-to-real 会立刻断裂。因为真实机器人并没有一个“摩擦传感器”告诉你地面今天更滑，或一个“地形高度真值模块”告诉你面前木板高出几厘米。
+
+\subsection{核心洞见：从观测历史中在线估计外参}
+
+讲者提出的关键设计是 adaptation module。它不直接读取未知外参，而是读取最近一段观测和动作历史，从机器人“期待的运动”和“实际测到的运动”的差异中反推出外部条件。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{pdf_pages/page-12.png}
+\caption{关键思想：通过近期观测与动作历史在线估计隐含外参，再把估计结果提供给 base policy。}
+\end{figure}
+
+这个设计的直觉非常自然。如果同样的腿部命令在平地、草地和沙地上产生了不同速度与姿态响应，那么历史轨迹本身已经包含了地面条件的信息。adaptation module 的工作，就是把这种差异压缩成一个可供控制器使用的隐变量。
+
+\subsection{两阶段训练与测试时执行}
+
+训练流程可以概括为两阶段：
+\begin{enumerate}
+\item 先在仿真里用真实外参训练一个 teacher 式的 base policy；
+\item 再用 DAgger 风格的方式训练 student adaptation module，使其只靠历史去回归出有用的隐变量。
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-14.png}
+\caption{测试时执行图：低频 adaptation module 负责估计环境，高频 base policy 负责控制。}
+\end{figure}
+
+测试时，adaptation module 以较低频率更新环境表征，base policy 以更高频率输出动作。这种解耦很重要，因为它把“环境识别”和“稳定控制”分成了不同时间尺度的问题。
+
+\subsection{本章小结}
+
+sim-to-real 的本质不是“仿真不真实”，而是“训练时可见的信息在部署时不可见”。通过让模型从观测历史中反演这些隐变量，系统才能真正把仿真里学到的结构迁移到真实机器人上。
+
+\section{为什么这套方法有效：适应、泛化与视觉扩展}
+
+\subsection{适应模块带来的不是魔法，而是 online system identification}
+
+讲者特别强调，adaptation module 并不是神秘的黑箱，而更像在线系统辨识。它持续估计当前环境属于哪类动力学条件，从而让同一个控制器在不同场景下切换到合适的行为模式。这也解释了为什么同一个策略能在草地、沙地、碎石和木板上保持稳定。
+
+\subsection{与简单 domain randomization 的差别}
+
+如果只是盲目随机化环境，再训练一个完全不知道外参的 robust policy，也能得到一定鲁棒性，但往往会更保守。因为它只能学一种对各种情况都“差不多能活下来”的平均行为，而 adaptation-based 方法能针对当前地形做更细粒度的在线调整，因此既更稳，也更高效。
+
+\subsection{是否需要视觉}
+
+讲座后半段开始讨论视觉。对于简单地形，盲走策略有时已经足够；但一旦遇到大台阶、分布外障碍或需要提前规划落脚点的场景，视觉就不再是锦上添花，而是决定性信息源。讲者的态度很务实：视觉的价值在于提供对未来地形的前瞻，而不是取代本体感觉和历史适应。
+
+\subsection{从四足走向更广的机器人智能}
+
+讲者还把同样的思想延伸到更复杂系统，包括视觉导航、灵巧操作和 humanoid。这里真正值得记住的不是某个单独 demo，而是一种方法论：
+\begin{itemize}
+\item 尽量在仿真中训练；
+\item 用可随机化的因素覆盖现实变化；
+\item 让部署系统依靠可观测历史而非不可得真值；
+\item 把模型设计成可以实时、板载运行。
+\end{itemize}
+
+\begin{importantbox}{这讲最强的工程启示}
+成功的 sim-to-real 不是“一次性把仿真做得无比真实”，而是把训练结构设计成即使面对未知真实外参，也能通过历史快速辨认并适应。
+\end{importantbox}
+
+\subsection{本章小结}
+
+这部分把系统成功的原因讲清楚了：不是简单依赖 domain randomization，也不是完全靠视觉，而是通过在线估计隐变量，把 robust control 和 adaptive control 结合在一起。
+
+\section{总结与延伸}
+
+Lecture 17 的主线非常清楚：RL 在机器人中的真正价值，不是把模仿学习替换掉，而是在明确奖励和可规模化评估的前提下，把系统从“会做”推进到“稳定做、跨场景做、持续做”。四足机器人 walking 只是载体，更一般的结论是：\textbf{训练时显式建模变化，部署时在线辨认变化}。
+
+如果把这讲拆成三个层面，可以得到下面的总结：
+\begin{itemize}
+\item 在任务层，RL 擅长把行为优化到 specialist 级别的高精度区域。
+\item 在系统层，sim-to-real 成功依赖环境随机化、奖励设计和历史适应模块。
+\item 在研究层，未来机器人智能要继续推进，必须把 locomotion、vision、manipulation 与更强的在线适应整合起来。
+\end{itemize}
+
+这也解释了为什么讲者最后把问题指向 humanoids 和更一般的 robot intelligence。只要现实世界外参仍然不可直接观测，adaptation 就不会是局部技巧，而会是下一代机器人系统的常驻组件。
+
+\end{document}

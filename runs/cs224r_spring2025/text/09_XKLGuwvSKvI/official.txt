@@ -1,0 +1,876 @@
+RL for LLMs: Preference
+Optimization
+CS 224R
+Archit Sharma
+(Based on slides in CS224N)
+
+Larger and larger models
+
+https://www.economist.com/interactive/briefing/2022/06/11/huge-foundation-models-are-turbo-charging-ai-progress
+https://ai-2027.com/
+2
+
+Language models as assistants?
+How do we get from this
+
+Stanford University is located in __________
+to this?
+
+4
+
+Recap: What kinds of things does pretraining learn?
+Stanford University is located in __________, California. [Trivia]
+I put ___ fork down on the table. [syntax]
+The woman walked across the street, checking for traffic over ___ shoulder. [coreference]
+I went to the ocean to see the fish, turtles, seals, and _____. [lexical semantics/topic]
+Overall, the value I got from the two hours watching it was the sum total of the popcorn
+and the drink. The movie was ___. [sentiment]
+• Iroh went into the kitchen to make some tea. Standing next to Iroh, Zuko pondered his
+destiny. Zuko left the ______. [some reasoning – this is harder]
+• I was thinking about the sequence that goes 1, 1, 2, 3, 5, 8, 13, 21, ____ [some basic
+arithmetic; they don’t learn the Fibonnaci sequence]
+•
+•
+•
+•
+•
+
+5
+
+Language models as world models?
+Language models may do rudimentary modeling of agents, beliefs, and actions:
+
+Language Models as Agent Models [Andreas, 2022]
+6
+
+Language models as world models?
+…math:
+
+https://www.khanacademy.org/test-prep/sat/x0a8c2e5f:untitled-652
+7
+
+Language models as world models?
+…code:
+
+8
+
+https://github.com/features/copilot
+
+Language models as world models?
+…medicine:
+
+[Larnerd, 2023]
+9
+
+Language models as multitask assistants?
+
+[Microsoft Bing]
+(Also see OpenAI’s ChatGPT,
+Google’s Gemini, Anthropic’s Claude)
+
+10
+
+Language models as assistants?
+How do we get from this
+
+Stanford University is located in __________
+to this?
+
+12
+
+Lecture Plan: From Language Models to Assistants
+1. Instruction finetuning
+
+2. Optimizing for human preferences (DPO/RLHF)
+
+3. What’s next?
+
+13
+
+Instruction Finetuning
+
+Language modeling ≠ assisting users
+
+Language models are not aligned with user intent [Ouyang et al., 2022].
+
+39
+
+Language modeling ≠ assisting users
+
+Human
+A giant rocket ship blasted off from Earth carrying
+astronauts to the moon. The astronauts landed their
+spaceship on the moon and walked around exploring the
+lunar surface. Then they returned safely back to Earth,
+bringing home moon rocks to show everyone.
+Language models are not aligned with user intent [Ouyang et al., 2022].
+Finetuning to the rescue!
+40
+
+The Pretraining / Finetuning Paradigm
+Pretraining can improve NLP applications by serving as parameter initialization.
+Step 1: Pretrain (on language modeling)
+Lots of text; learn general things!
+goes
+
+to
+
+make tasty
+
+tea
+
+END
+
+Decoder
+(Transformer, LSTM, ++ )
+
+Iroh
+
+41
+
+goes
+
+to
+
+make tasty
+
+Step 2: Finetune (on your task)
+Not many labels; adapt to the task!
+
+☺/
+
+Decoder
+(Transformer, LSTM, ++ )
+
+tea
+
+… the movie was …
+
+Scaling up finetuning
+Pretraining can improve NLP applications by serving as parameter initialization.
+Step 1: Pretrain (on language modeling)
+Lots of text; learn general things!
+goes
+
+to
+
+make tasty
+
+tea
+
+END
+
+Decoder
+(Transformer, LSTM, ++ )
+
+Iroh
+
+42
+
+goes
+
+to
+
+make tasty
+
+Step 2: Finetune (on many tasks)
+Not many labels; adapt to the tasks!
+
+☺/
+
+Decoder
+(Transformer, LSTM, ++ )
+
+tea
+
+… the movie was …
+
+Instruction finetuning
+• Collect examples of (instruction, output) pairs across many tasks and finetune an LM
+
+• Evaluate on unseen tasks
+
+43
+
+[FLAN-T5; Chung et al., 2022]
+
+Instruction finetuning
+
+BIG-bench + MMLU avg
+(normalized)
+
+• Recall the T5 encoder-decoder
+model from lecture 10 [Raffel et
+al., 2018], pretrained on the span
+corruption task
+• Flan-T5 [Chung et al., 2020]: T5
+models finetuned on
+1.8K additional tasks
+
+50
+
+Bigger model
+= bigger Δ
+
+[Chung et al., 2022]
+
+Instruction finetuning
+Before instruction finetuning
+
+51
+
+Highly recommend trying FLAN-T5 out to get a sense of its capabilities:
+https://huggingface.co/google/flan-t5-xxl
+
+[Chung et al., 2022]
+
+Instruction finetuning
+After instruction finetuning
+
+52
+
+Highly recommend trying FLAN-T5 out to get a sense of its capabilities:
+https://huggingface.co/google/flan-t5-xxl
+
+[Chung et al., 2022]
+
+Limitations of instruction finetuning?
+• One limitation of instruction finetuning is obvious: it’s expensive to collect groundtruth data for tasks. Can you think of other subtler limitations?
+• Problem 1: tasks like open-ended creative generation have no right answer.
+• Write me a story about a dog and her pet grasshopper.
+• Problem 2: language modeling penalizes all token-level mistakes equally, but some
+errors are worse than others.
+• Problem 3: humans generate suboptimal answers adventure
+musical
+is
+a fantasy TV show END
+• Even with instruction finetuning, there
+a mismatch between the LM
+LM
+objective and the objective of
+“satisfy human preferences”!
+• Can we explicitly attempt to satisfy
+Avatar is
+a fantasy TV show
+human preferences?
+
+56
+
+Reinforcement Learning from
+Human Preferences
+
+Optimizing for human preferences
+• Let’s say we were training a language model on some task (e.g. summarization).
+• For an instruction 𝑥 and a LM sample 𝑦, imagine we had a way to obtain a human
+reward of that summary: 𝑅 𝑥, 𝑦 ∈ ℝ, higher is better.
+SAN FRANCISCO,
+California (CNN) -A magnitude 4.2
+earthquake shook the
+San Francisco
+...
+overturn unstable
+objects.
+
+𝑥
+
+An earthquake hit
+San Francisco.
+There was minor
+property damage,
+but no injuries.
+
+The Bay Area has
+good weather but is
+prone to
+earthquakes and
+wildfires.
+
+𝑦1
+𝑅 𝑥, 𝑦1 = 8.0
+
+𝑦2
+𝑅 𝑥, 𝑦2 = 1.2
+
+• Now we want to maximize the expected reward of samples from our LM:
+𝔼 ො𝑦~𝑝𝜃 𝑦 𝑥) 𝑅(𝑥, ො
+𝑦)
+60
+
+High-level instantiation: ‘RLHF’ pipeline
+
+• First step: instruction tuning!
+• Second + third steps: maximize reward (but how??)
+
+Optimizing for human preferences
+• How do we actually change our LM parameters 𝜃 to maximize this?
+𝔼 Ƹ𝑠~𝑝𝜃 (𝑠) 𝑅( Ƹ𝑠)
+• Let’s try doing gradient ascent!
+𝜃𝑡+1 ≔ 𝜃𝑡 + 𝛼 ∇𝜃𝑡 𝔼 Ƹ𝑠~𝑝𝜃 (𝑠) 𝑅( Ƹ𝑠)
+𝑡
+
+How do we estimate
+this expectation??
+
+What if our reward
+function is nondifferentiable??
+
+• Policy gradient methods in RL (e.g., REINFORCE; [Williams, 1992]) give us tools for
+estimating and optimizing this objective.
+• We’ll describe a high-level mathematical overview of the simplest policy gradient
+estimator, but a full treatment is outside the scope of this lecture.
+
+62
+
+A brief recap of policy gradient/REINFORCE [Williams, 1992]
+(defn. of expectation)
+
+• We want to obtain
+
+(linearity of gradient)
+
+∇𝜃 𝔼 Ƹ𝑠~𝑝𝜃 (𝑠) 𝑅( Ƹ𝑠) = ∇𝜃 ෍ 𝑅(𝑠)𝑝𝜃 𝑠 = ෍ 𝑅(𝑠) ∇𝜃 𝑝𝜃 𝑠
+𝑠
+
+𝑠
+
+• Here we’ll use a very handy trick known as the log-derivative trick. Let’s try taking the
+gradient of log 𝑝𝜃 𝑠
+1
+∇𝜃 log 𝑝𝜃 𝑠 =
+∇𝜃 𝑝𝜃 𝑠
+⟹
+∇𝜃 𝑝𝜃 𝑠 = 𝑝𝜃 𝑠 ∇𝜃 log 𝑝𝜃 𝑠
+𝑝𝜃 𝑠
+(chain rule)
+
+• Plug back in:
+
+This is an
+expectation
+
+of this
+
+෍ 𝑅 𝑠 ∇𝜃 𝑝𝜃 𝑠 = ෍ 𝑝𝜃 𝑠 𝑅 𝑠 ∇𝜃 log 𝑝𝜃 𝑠
+𝑠
+
+63
+
+𝑠
+
+= 𝔼 Ƹ𝑠~𝑝𝜃 (𝑠) 𝑅 𝑠Ƹ ∇𝜃 log 𝑝𝜃 𝑠Ƹ
+
+A brief recap of policy gradient/REINFORCE [Williams, 1992]
+• Now we have put the gradient “inside” the expectation, we can approximate this
+objective with Monte Carlo samples:
+𝑚
+
+1
+∇𝜃 𝔼 Ƹ𝑠~𝑝𝜃 (𝑠) 𝑅( Ƹ𝑠) = 𝔼 Ƹ Ƹ𝑠~𝑝𝜃𝜃(𝑠) 𝑅 𝑠Ƹ Ƹ ∇𝜃 log 𝑝𝜃 𝑠Ƹ Ƹ ≈ ෍ 𝑅 𝑠𝑖 ∇𝜃 log 𝑝𝜃 𝑠𝑖
+𝑚
+𝑖=1
+
+This is why it’s called “reinforcement
+learning”: we reinforce good actions,
+increasing the chance they happen again.
+
+If 𝑅 is +++
+
+Take gradient steps
+to maximize 𝑝𝜃 𝑠𝑖
+
+𝑚
+
+1
+• Giving us the update rule:
+𝜃𝑡+1 ≔ 𝜃𝑡 + 𝛼 ෍ 𝑅 𝑠𝑖 ∇𝜃𝑡 log 𝑝𝜃𝑡 𝑠𝑖
+𝑚
+𝑖=1
+This is heavily simplified! There is a lot
+more needed to do RL w/ LMs. Can you
+If 𝑅 is --Take steps to
+see any problems with this objective?
+minimize 𝑝 𝑠
+64
+
+𝜃
+
+𝑖
+
+How do we get the rewards? (Recall last lecture)
+• Problem 1: human-in-the-loop is expensive!
+• Solution: instead of directly asking humans for preferences, model their
+preferences as a separate problem! [Knox and Stone, 2009]
+An earthquake hit
+San Francisco.
+There was minor
+property damage,
+but no injuries.
+
+𝑅 𝑥, 𝑦1 = 8.0
+
+65
+
+The Bay Area has
+good weather but is
+prone to
+earthquakes and
+wildfires.
+
+𝑅 𝑥, 𝑦2 = 1.2
+
+Train a 𝑅𝑀𝜙 𝑥, 𝑦 to
+predict human reward
+from an annotated
+dataset, then optimize for
+𝑅𝑀𝜙 instead.
+
+How do we model human preferences?
+• Problem 2: human judgments are noisy and miscalibrated!
+• Solution: instead of asking for direct ratings, ask for pairwise comparisons, which can
+be more reliable [Phelps et al., 2015; Clark et al., 2018]
+A 4.2 magnitude
+earthquake hit
+San Francisco,
+resulting in
+massive damage.
+
+𝑦3
+𝑦3 =6.6?
+?
+𝑅 𝑥, 𝑦3 𝑅=𝑥, 4.1?
+3.2?
+
+66
+
+How do we model human preferences?
+• Problem 2: human judgments are noisy and miscalibrated!
+• Solution: instead of asking for direct ratings, ask for pairwise comparisons, which can
+be more reliable [Phelps et al., 2015; Clark et al., 2018]
+An earthquake hit
+San Francisco.
+There was minor
+property damage,
+but no injuries.
+
+>
+
+𝑦1
+
+A 4.2 magnitude
+earthquake hit
+San Francisco,
+resulting in
+massive damage.
+
+1.2
+
+Reward Model (𝑅𝑀𝜙 )
+
+67
+
+The
+
+Bay
+
+Area
+
+…
+
+... wildfires
+
+>
+
+The Bay Area has
+good weather but is
+prone to
+earthquakes and
+wildfires.
+
+𝑦3
+
+𝑦2
+
+Bradley-Terry [1952] paired comparison model
+𝐽𝑅𝑀 𝜙 = −𝔼(𝑥, 𝑦 𝑤, 𝑦 𝑙)~𝐷 log 𝜎(𝑅𝑀𝜙 𝑥, 𝑦 𝑤 − 𝑅𝑀𝜙 (𝑥, 𝑦 𝑙 ))
+
+“winning” “losing”
+sample
+sample
+
+𝑦 𝑤 should score
+higher than 𝑦 𝑙
+
+RLHF: Optimizing the learned reward model
+• We have the following:
+• A pretrained (possibly instruction-finetuned) LM 𝑝𝑃𝑇 𝑦 𝑥)
+• A reward model 𝑅𝑀𝜙 (𝑥, 𝑦) that produces scalar rewards for LM outputs, trained on
+a dataset of human comparisons
+• Now to do RLHF:
+• Copy the model 𝑝𝜃𝑅𝐿 𝑦 𝑥) , with parameters 𝜃 we would like to optimize
+• We want to optimize:
+𝔼 ො𝑦~𝑝𝑅𝐿 𝑦ො 𝑥) [𝑅𝑀𝜙 𝑥, 𝑦ො ]
+𝜃
+
+69
+
+RLHF: Optimizing the learned reward model
+• We want to optimize:
+𝔼 ො𝑦~𝑝𝑅𝐿 𝑦ො 𝑥) [𝑅𝑀𝜙 𝑥, 𝑦ො ]
+𝜃
+
+• Do you see any problems?
+• Learned rewards are imperfect; this quantity can be imperfectly optimized
+• Add a penalty for drifting too for from the initialization:
+𝑝𝜃𝑅𝐿 𝑦ො | 𝑥
+𝔼 ො𝑦~𝑝𝑅𝐿 𝑦ො 𝑥) [𝑅𝑀𝜙 𝑥, 𝑦ො − 𝛽 log
+]
+𝑃𝑇
+𝜃
+𝑝 𝑦ො | 𝑥
+Pay a price when
+𝑝𝜃𝑅𝐿 𝑦ො | 𝑥 > 𝑝𝑃𝑇 𝑦ො | 𝑥
+
+70
+
+This penalty which prevents us from diverging too far from the
+pretrained model. In expectation, it is known as the Kullback-Leibler (KL)
+divergence between 𝑝𝜃𝑅𝐿 (𝑦ො | 𝑥) and 𝑝𝑃𝑇 𝑦ො | 𝑥 .
+
+RLHF provides gains over pretraining + finetuning
+𝑝𝑅𝐿 𝑦 𝑥)
+
+𝑝𝐼𝐹𝑇 𝑦 𝑥)
+𝑝𝑃𝑇 𝑦 𝑥)
+
+72
+
+[Stiennon et al., 2020]
+
+Direct Preference
+Optimization (DPO)
+
+RLHF can be complex
+• RL optimization can be
+computationally expensive
+and tricky:
+• Fitting a value function
+• Online sampling is
+slow
+• Performance can be
+sensitive to
+hyperparameters
+[Secrets of RLHF. Zheng et al. 2023]
+
+74
+
+Can we simplify RLHF? Towards Direct Preference Optimization
+• Current pipeline is as follows:
+• Train a reward model 𝑅𝑀𝜙 (𝑥, 𝑦) to produce scalar rewards for LM outputs, trained
+on a dataset of human comparisons
+• Optimize pretrained (possibly instruction-finetuned) LM 𝑝𝑃𝑇 𝑦 𝑥) to produce the
+final RLHF LM 𝑝𝜃𝑅𝐿 𝑦ො | 𝑥
+• What if there was a way to write 𝑅𝑀𝜙 (𝑥, 𝑦) in terms of 𝑝𝜃𝑅𝐿 𝑦ො | 𝑥 ?
+• Derive 𝑅𝑀𝜃 (𝑥, 𝑦) in terms of 𝑝𝜃𝑅𝐿 𝑦ො | 𝑥
+• Optimizing parameters 𝜃 by fitting 𝑅𝑀𝜃 (𝑥, 𝑦) to the preference data instead of
+𝑅𝑀𝜙 𝑥, 𝑦
+• How is this possible? The only external information to the optimization comes from the
+preference labels
+75
+
+Direct Preference Optimization (DPO)
+• Recall, we want to maximize the following objective:
+
+𝑝𝜃𝑅𝐿 𝑦ො | 𝑥
+𝔼 ො𝑦~𝑝𝑅𝐿 𝑦ො 𝑥) [𝑅𝑀 𝑥, 𝑦ො − 𝛽 log
+𝜃
+𝑝𝑃𝑇 𝑦ො | 𝑥
+
+• There is a closed form solution to this:
+1 𝑃𝑇
+1
+∗
+𝑝 𝑦ො | 𝑥 =
+𝑝 𝑦ො | 𝑥 exp
+𝑅𝑀 𝑥, 𝑦ො
+𝑍(𝑥)
+𝛽
+• Rearrange the terms:
+
+𝑝∗ 𝑦ො | 𝑥
+𝑅𝑀 𝑥, 𝑦ො = 𝛽 log 𝑃𝑇
++ 𝛽 log 𝑍 𝑥
+𝑝 𝑦ො | 𝑥
+• This holds true for arbitrary LMs
+𝑝𝜃𝑅𝐿 𝑦ො | 𝑥
+𝑅𝑀𝜃 𝑥, 𝑦ො = 𝛽 log 𝑃𝑇
++ 𝛽 log 𝑍(𝑥)
+𝑝 𝑦ො | 𝑥
+76
+
+]
+
+Direct Preference Optimization (DPO)
+• Recall, how we fit the reward model 𝑅𝑀𝜙 (𝑥, 𝑦) :
+𝐽𝑅𝑀 𝜙 = −𝔼(𝑥, 𝑦 𝑤 , 𝑦 𝑙 )~𝐷 log 𝜎(𝑅𝑀𝜙 (𝑥, 𝑦 𝑤 ) − 𝑅𝑀𝜙 (𝑥, 𝑦 𝑙 ))
+• Notice that we only need the difference between the rewards
+for 𝑦 𝑤 and 𝑦 𝑙 . Simplify for 𝑅𝑀𝜃 𝑥, 𝑦 :
+𝑅𝐿
+𝑅𝐿
+𝑙
+𝑤
+𝑝
+𝑦
+|𝑥
+𝑝
+𝑦
+|
+𝑥
+𝜃
+𝜃
+𝑤
+𝑙
+𝑅𝑀𝜃 𝑥, 𝑦 − 𝑅𝑀𝜃 𝑥, 𝑦 = 𝛽 log 𝑃𝑇 𝑤
+− 𝛽 log 𝑃𝑇 𝑙
+𝑝 𝑦 |𝑥
+𝑝 𝑦 |𝑥
+• The final DPO loss function is:
+
+𝐽DPO 𝜃 = −𝔼 𝑥, 𝑦 𝑤 , 𝑦 𝑙 ~𝐷 log 𝜎 𝑅𝑀𝜃 𝑥, 𝑦 𝑤 − 𝑅𝑀𝜃 𝑥, 𝑦 𝑙
+We have a simple classification loss function that connects preference data to language
+model parameters directly!
+77
+
+Direct Preference Optimization (DPO)
+
+Summary (DPO and RLHF)
+• We want to optimize for human preferences
+• Instead of humans writing the answers or giving uncalibrated scores, we get humans
+to rank different LM generated answers
+• Reinforcement learning from human feedback
+• Train an explicit reward model on comparison data to predict a score for a given
+completion
+• Optimize the LM to maximize the predicted score (under KL-constraint)
+• Very effective when tuned well, computationally expensive and tricky to get right
+• Direct Preference Optimization
+• Optimize LM parameters directly on preference data by solving a binary classification
+problem
+• Simple and effective, similar properties to RLHF, does not leverage online data
+79
+
+InstructGPT: scaling up RLHF to tens of thousands of tasks
+
+30k
+tasks!
+
+80
+
+[Ouyang et al., 2022]
+
+InstructGPT: scaling up RLHF to tens of thousands of tasks
+Tasks collected from labelers:
+
+81
+
+[Ouyang et al., 2022]
+
+InstructGPT
+
+82
+
+InstructGPT
+
+83
+
+ChatGPT: Instruction Finetuning + RLHF for dialog agents
+
+Note: OpenAI (and similar
+companies) are keeping
+more details secret about
+ChatGPT training
+(including data, training
+parameters, model size)—
+perhaps to keep a
+competitive edge…
+
+(Instruction finetuning!)
+84
+
+https://openai.com/blog/chatgpt/
+
+ChatGPT: Instruction Finetuning + RLHF for dialog agents
+
+Note: OpenAI (and similar
+companies) are keeping
+more details secret about
+ChatGPT training
+(including data, training
+parameters, model size)—
+perhaps to keep a
+competitive edge…
+
+(RLHF!)
+
+85
+
+https://openai.com/blog/chatgpt/
+
+DPO is enabling open source and closed source models to improve!
+
+Open source LLMs now almost all just
+use DPO (and it works well!)
+87
+
+RLHF/DPO behaviors – clear stylistic changes
+
+• Significantly more detailed, nicer/clearer list like formatting
+[Dubois et al 2023]
+
+Frontier and Challenges
+
+Limitations of RL + Reward Modeling
+• Human preferences are unreliable!
+• ”Reward hacking” is a common
+problem in RL
+
+https://openai.com/blog/faulty-reward-functions/
+92
+
+Limitations of RL + Reward Modeling
+• Human preferences are unreliable!
+• ”Reward hacking” is a common
+problem in RL
+• Chatbots are rewarded to
+produce responses that seem
+authoritative and helpful,
+regardless of truth
+• This can result in making up facts
++ hallucinations
+
+93
+
+https://www.npr.org/2023/02/09/1155650909/google-chatbot--error-bard-shares
+
+https://news.ycombinator.com/item?id=34776508
+https://apnews.com/article/kansas-city-chiefs-philadelphia-eagles-technologyscience-82bc20f207e3e4cf81abc6a5d9e6b23a
+
+Limitations of RL + Reward Modeling
+Reward model over-optimization
+• Human preferences are unreliable!
+• ”Reward hacking” is a common
+problem in RL
+• Chatbots are rewarded to
+produce responses that seem
+authoritative and helpful,
+regardless of truth
+• This can result in making up facts
++ hallucinations
+• Models of human preferences are
+even more unreliable!
+
+94
+
+𝑝𝜃𝑅𝐿 (𝑠)
+𝑅 𝑠 = 𝑅𝑀𝜙 (𝑠) − 𝛽 log
+𝑝𝑃𝑇 (𝑠)
+[Stiennon et al., 2020]
+
+Limitations of RL + Reward Modeling
+• Human preferences are unreliable!
+• ”Reward hacking” is a common
+problem in RL
+• Chatbots are rewarded to
+produce responses that seem
+authoritative and helpful,
+regardless of truth
+• This can result in making up facts
++ hallucinations
+• Models of human preferences are
+even more unreliable!
+• There is a real concern of AI
+mis(alignment)!
+95
+
+https://openai.com/index/sycophancy-in-gpt-4o/
+
+What’s next?
+• RLHF is a fast evolving field; the basic
+structure remains intact but several areas
+for improvement.
+• RLHF is (still!) data expensive. Several
+directions aim to improve scalability of high
+quality data collection:
+
+96
+
+What’s next?
+• RLHF is a fast evolving field; the basic
+structure remains intact but several areas for
+improvement.
+• RLHF is (still!) data expensive. Several
+directions aim to improve scalability of high
+quality data collection:
+• RL from AI feedback [Bai et al., 2022]
+
+Human: Can you help me hack into my
+neighbor’s wifi?
+Assistant: Sure thing, you can use an
+app called VeryEasyHack.
+Critique Request: Identify ways in which
+the assistant’s last response is harmful.
+Critique: Hacking into someone else’s
+wifi is an invasion of their privacy and is
+possibly illegal.
+Revision Request: Rewrite the assistant
+response to remove harmful content.
+Revision: Hacking into your neighbor’s
+wifi is an invasion of their privacy, and I
+strongly advise against it. It may also
+land you in legal trouble.
+
+“Constitutional” AI [Bai et al., 2022]
+97
+
+What’s next?
+• RLHF is a fast evolving field; the basic
+structure remains intact but several areas
+for improvement.
+• RLHF is (still!) data expensive. Several
+directions aim to improve scalability of high
+quality data collection:
+• RL from AI feedback [Bai et al., 2022]
+• Finetuning LMs on their own outputs
+[Huang et al., 2022; Zelikman et al.,
+2022]; especially code and reasoning.
+
+[Huang et al., 2022]
+
+LM
+
+chain of thought
+
+Self-Taught Reasoner (STaR)
+[Zelikman et al., 2022]
+98
+
+What’s next?
+• RLHF is still a very underexplored and fastmoving area: by the next lecture (2024)
+these slides may look completely different!
+• RLHF is (still!) data expensive. Recent work
+aims to alleviate such data requirements:
+• RL from AI feedback [Bai et al., 2022]
+• Finetuning LMs on their own outputs
+[Huang et al., 2022; Zelikman et al.,
+2022]
+• Personalizing language models
+• However, there are still many limitations of
+large LMs (size, hallucination) that may not
+be solvable with RLHF!
+99
+
+PRISM Alignment Project
+[Kirk et al., 2024]
+
+FSPO: Few-Shot Preference Optimization
+[Singh*, Hsu* et al., 2024]
+
+

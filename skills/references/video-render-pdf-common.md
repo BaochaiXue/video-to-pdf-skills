@@ -88,7 +88,14 @@ Log every substantive omission.
 5. Keep all source artifacts local when practical.
    Typical working artifacts include metadata, cover image, subtitles or ASR output, official materials, local video, extracted frames, and any generated figures.
 
-6. For long videos and always in `course mode`, create `source_manifest.json`.
+6. Before writing prose, build a structured evidence layer whenever practical.
+   Prefer machine-readable files such as:
+   - `transcript.jsonl` with one subtitle span per row and concrete `loc.start` / `loc.end`
+   - `slides.jsonl` with one slide page per row and concrete page numbers plus asset paths
+   - `segments.jsonl` with segment boundaries and the source-unit ids assigned to each segment
+   Keep `transcript.txt` or `official.txt` only as debug artifacts; do not treat them as the authoritative source once structured evidence exists.
+
+7. For long videos and always in `course mode`, create `source_manifest.json`.
    At minimum record:
    - `source_id`
    - `source_type`
@@ -104,6 +111,8 @@ For longer videos or multi-source lectures, use a two-pass coverage workflow rat
 
 - If the video is longer than 20 minutes, the subtitle file contains more than 300 entries, or `course mode` is active, split the work into segments.
 - Prefer chapter boundaries first. If those are unavailable or too uneven, split by coherent time windows, subtitle ranges, slide page ranges, or code regions.
+- Segmentation is mandatory even when no parallel subagents are authorized.
+- If subagents are unavailable, process segments serially instead of collapsing back to one monolithic writing pass.
 
 ## Subagent Recommendation
 
@@ -121,6 +130,7 @@ For long videos, multi-part uploads, playlists, or `course mode`, strongly prefe
 ### Pass 1: Extraction and Coverage Accounting
 
 For each segment, extract coverage units rather than polished prose.
+Do not start note writing until the segment coverage ledger exists.
 
 Coverage units should capture:
 
@@ -145,6 +155,7 @@ Each segment result should include:
 ### Pass 2: Writing and Integration
 
 - Reconstruct a coherent teaching narrative from the coverage units.
+- The writer should consume `coverage_units.jsonl` plus structured evidence such as `transcript.jsonl`, `slides.jsonl`, and `segments.jsonl`, not just flattened debug text files.
 - Reordering is allowed, but every required unit must map to a final section or `omission_log.jsonl`.
 - Before delivery, verify that no substantive subtitle span, slide page, official source chunk, or code block remains unclassified.
 
@@ -224,6 +235,9 @@ Keep substantive closing remarks when they contain synthesis, limitations, trade
 
 For long videos and always in `course mode`, create these sidecars when practical:
 
+- `transcript.jsonl`
+- `slides.jsonl`
+- `segments.jsonl`
 - `source_manifest.json`
 - `coverage_units.jsonl`
 - `omission_log.jsonl`
@@ -302,6 +316,7 @@ Do not add decorative graphics.
 
 Before delivery, verify all of the following:
 
+- the structured evidence layer exists and is non-empty when the run uses subtitles or slides
 - no substantive source remains unclassified
 - no required coverage unit remains unmapped to a final section or `omission_log.jsonl`
 - no dense subtitle interval, slide page, or official code block has been collapsed into a high-level takeaway without checking for unique detail
@@ -326,6 +341,9 @@ Deliver all of the following:
 - the final `.tex` file
 - the downloaded cover image
 - any extracted or generated figure assets
+- `transcript.jsonl`
+- `slides.jsonl`
+- `segments.jsonl` when segmentation is required
 - `source_manifest.json`
 - `coverage_units.jsonl`
 - `omission_log.jsonl`

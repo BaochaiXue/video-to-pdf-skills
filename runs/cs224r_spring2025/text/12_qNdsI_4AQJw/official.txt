@@ -1,0 +1,789 @@
+Model-Based RL and
+^
+
+Multi-Task and Goal-Conditioned
+Reinforcement Learning
+CS 224R
+
+1
+
+Course reminders
+- Homework 3 due next Friday, May 16
+- Project milestone due Friday, May 23
+
+2
+
+The plan for today
+1. Model-based reinforcement learning
+a. Using a learned model via synthetic data generation
+b. When to use model-based RL
+2. Multi-task imitation and reinforcement learning
+a. Task conditioning
+
+} Part of homework 4!
+
+b. Goal-reaching tasks
+c. Hindsight relabeling
+
+3
+
+Recap: Planning with learned models
+1. Can plan a1, …, aH with gradient-based or sampling-based optimization
+2. Update the model using data collected with planning
+3. Replan periodically to help account for mistakes.
++ Simple
+
+- Compute intensive at test time
+
++ Easy to plug in different goals / rewards - Only practical for short-horizon problems
+(possibly even at test time!)
+(or very shaped reward functions)
+Why only short horizons?
+
+(a) too compute expensive to make long plans
+(b) model is not accurate for long horizons
+
+Can we train a policy using a learned model?
+4
+
+Model-based policy optimization
+Key idea: augment data with model-simulated roll-outs.
+Example real trajectory
+s6
+
+s3
+s2
+
+s4
+
+s5
+
+How to augment?
+-
+
+generate full trajectories from initial states?
+-
+
+-
+
+model may not be accurate for long horizons
+
+generate partial trajectories from initial states?
+-
+
+may not get good coverage of later states
+
+s1
+
+5
+
+Model-based policy optimization
+Key idea: augment data with model-simulated roll-outs.
+Example real trajectory
+s6
+
+s3
+
+s4
+
+s5
+
+How to augment?
+-
+
+-
+
+s2
+s1
+
+generate full trajectories from initial states?
+generate partial trajectories from initial states?
+-
+
+Augmented data
+
+-
+
+model may not be accurate for long horizons
+may not get good coverage of later states
+
+generate partial trajectories from all states in the data 💡
+
+6
+
+Model-based policy optimization
+Key idea: augment data with model-simulated roll-outs.
+Full algorithm
+1. Collect data using current policy πθ, add to Denv
+2. Update model pψ (s′| s, a) using Denv
+3. Collect short synthetic roll-outs using πθ in model pψ from states in Denv; add to Dmodel
+4. Update policy πθ (and critic Qϕ) using Denv
+-
+
+compatible with variety of model-free RL methods (step 4)
+
+-
+
+could additionally use Denv in policy update
+
+￼
+
+Notes:
+
+⋃
+
+Dmodel
+
+7
+
+When to use model-based RL?
+Big upsides and big downsides
++ Immensely useful, far more data ef cient if model is easy to learn
++ Model can be trained on data without reward labels (fully self-supervised)
++ Model is somewhat task-agnostic (can sometimes be transferred across rewards)
+- Models don’t optimize for task performance
+- Sometimes harder to learn than a policy
+- Another thing to train, more hyperparameters, more compute intensive
+
+Whether to use a model depends on how hard it is to learn!
+
+fi
+
+8
+
+Other kinds of models
+So far: modeling p(st+1 | st, at)
+Many alternatives
+-
+
+inverse model p(at | st, st+1)
+
+-
+
+multi-step inverse model p(at | st, st+n) or p(at:t+n | st, st+n)
+
+-
+
+future prediction without actions p(st+1:t+n | st)
+
+-
+
+video interpolation p(st+1:t+n | st, st+n+1)
+
+-
+
+transition distribution p(st, at, st+1)
+These kinds of models can be useful too! Have various purposes.
+9
+
+The plan for today
+1. Model-based reinforcement learning
+a. Using a learned model via synthetic data generation
+b. When to use model-based RL
+2. Multi-task imitation and reinforcement learning
+a. Task conditioning
+
+} Part of homework 4!
+
+b. Goal-reaching tasks
+c. Hindsight relabeling
+
+10
+
+What is multi-task RL?
+Can we train generalist policies to do many “tasks”, not just one?
+Examples: Generalist LLM assistant: travel booking, grocery shopping, …
+Legged robot: walk, run, dance, crouch, …
+Mobile manipulator: hang up a towel, unload a dishwasher, wipe a spill, …
+Music recommender system: personalization to many distinct users
+Game player: play Flappy bird, Pokemon, Pinball, …
+
+May have different reward functions, different dynamics, different action spaces, …!
+Key idea will be to condition on the task.
+11
+
+Why multi-task RL?
+Can we train generalist policies to do many “tasks”, not just one?
+Fundamentals of CS224r so far:
+• Imitation
+• On-policy, off-policy and offline RL
+• Model-free and model-based RL
+• Reward functions
+
+Biggest challenge so far?
+Data efficiency
+
+Can we amortize the data complexity across many tasks & scenarios?
+Plenty of learnings can be shared across tasks!
+LLM assistant: grammar Legged robots: balance Personal recommenders: user similarities
+There’s also a
+deeper motivation.
+
+Generalist ML systems are often more
+reliable, performant than specialists.
+
+12
+
+Different tasks can just be different MDPs!
+action space
+
+≜{ ,
+
+A task:
+
+dynamics
+
+, ( 1), ( ′| , ), ( , )}
+
+state initial state
+space distribution
+
+reward
+
+𝐚
+
+𝐬
+
+𝑖
+𝑟
+
+𝐚
+
+𝐬
+
+￼
+
+𝐬
+
+𝑖
+𝑝
+
+𝐬
+
+𝑖
+𝑝
+
+𝑖
+𝒜
+
+𝑖
+
+𝑖
+
+Note: This allows for much more variety than the semantic meaning of “task”!
+𝒮
+
+𝒯
+
+How do we formalize what different “tasks” are?
+
+13
+
+A Few Examples Task Distributions
+A task:
+
+i,
+
+i, pi(s1), pi(s′| s, a), ri(s, a)}
+
+Personalized recommendations: pi(s′| s, a), ri(s, a) vary across tasks
+Character animation:
+
+across maneuvers
+ri(s, a) vary
+across garments &
+initial states
+pi(s1), pi(s′| s, a) vary
+
+￼
+￼
+
+𝒜
+￼
+
+￼
+
+𝒜
+
+𝒮
+
+Multi-robot RL:
+
+𝒯
+𝒮
+
+i≜{
+
+i,
+
+i, pi(s1), pi(s′| s, a) vary
+
+14
+
+Different tasks can just be different MDPs!
+action space
+
+≜{ ,
+
+A task:
+
+state
+space
+
+dynamics
+
+, ( 1), ( ′| , ), ( , )}
+initial state
+distribution
+
+reward
+
+How can do we identify one task from another?
+Assign task index (e.g. task 0, task 1, …)
+Language description
+
+𝐚
+
+𝐬
+
+𝑖
+𝑟
+
+𝐚
+
+𝐬
+
+￼
+
+𝐬
+
+𝑖
+𝑝
+
+𝐬
+
+𝑖
+𝑝
+
+𝑖
+𝒜
+
+𝑖
+
+𝑖
+
+Video illustration of what to do
+𝒮
+
+𝒯
+
+How do we formalize what different “tasks” are?
+
+}
+
+These are task
+identifiers, zi
+15
+
+Different tasks can just be different MDPs!
+action space
+
+≜{ ,
+
+A task:
+
+state
+space
+
+dynamics
+
+, ( 1), ( ′| , ), ( , )}
+initial state
+distribution
+
+An alternative view: A task identifier is part of the state:
+
+reward
+
+=( , )
+
+𝑖
+
+𝑖
+
+𝑖
+
+𝑖
+
+𝑖
+
+𝐚
+
+𝐬
+
+𝑟
+
+𝐚
+
+𝐬
+
+￼
+
+𝐬
+
+𝑝
+
+𝐬
+
+𝑝
+
+𝒜
+
+𝒮
+
+𝐳
+
+𝑖
+
+𝑖
+
+original state
+𝐬
+
+𝐬
+𝒯
+
+How do we formalize what different “tasks” are?
+
+16
+
+The goal of multi-task reinforcement learning
+
+Multi-task RL
+
+What is the reward?
+The same as before
+Or, for goal-conditioned RL:
+
+The same as before, except:
+a task identifier is part of the state: s = (s̄, zi)
+e.g. one-hot task ID
+language description
+desired goal state, zi = sg
+
+r(s) = r(s̄, sg) = − d(s̄, sg)
+
+“goal-conditioned RL”
+
+If it's still a standard Markov decision process,
+then, why not apply standard RL algorithms?
+
+You can!
+
+Distance function d examples:
+- Euclidean ℓ2
+- sparse 0/1
+You can do better in some cases.
+17
+
+Let’s start with multi-task imitation learning
+Single task imitation learning
+
+Multi-task imitation learning
+
+One useful trick from multi-task supervised learning: strati ed sampling
+Construct each minibatch with data from each task.
+-> lower variance gradients
+
+fi
+
+18
+
+How to condition on the task in practice?
+
+Jang et al. BC-Z: Zero-Shot Task Generalization with Robotic Imitation Learning CoRL 2021.
+
+19
+
+How to condition on the task in practice?
+Modern policy architectures
+
+Task identi er zi passed as prompt into a ( ne-tuned) LLM
+fi
+
+fi
+
+Kim et al. OpenVLA: An Open-Source Vision-Language-Action Model. CoRL 2024.
+
+20
+
+Example of multi-task imitation learning
+zi
+
+Two tasks:
+
+z1 = ” atten the towel”
+z2 = ”hang the towel”
+
+fl
+
+Pi Team et al. π0.5: A Vision-Language-Action Model with Open-World Generalization arXiv 2025.
+
+21
+
+Example of multi-task imitation learning
+zi
+Many tasks:
+z1 = ”put the plate in the drawer”
+z2 = ”close the microwave”
+z3 = ”drive base backward”
+z4 = ”rotate base left”
+z5 = ”throw the napkin away”
+z6 = ”put the cup in the sink”
+z7 = ”lift torso up”
+z8 = ”clean the spill”
+…
+
+What about high-level, long-horizon tasks like “clean the kitchen”? -> Lecture on hierarchy
+22
+
+Multi-Task RL Algorithms
+The basics
+Policy: πθ(a | s̄) —> πθ(a | s̄, zi)
+Q-func on: Qϕ(s̄, a) —> Qϕ(s̄, a, zi)
+Consider per-task replay buffer for strati ed sampling.
+
+Can we share data across tasks?
+
+If we collect policy data when conditioning on z1,
+can we reuse that data to learn something for task 2?
+Would require relabeling the data with z2!
+
+fi
+
+ti
+
+23
+
+An example
+Task 1: passing
+
+Task 2: shoo ng goals
+
+What if you accidentally perform a good pass when trying to shoot a goal?
+
+ti
+
+Store experience as normal.
+
+*and* Relabel experience with task 2 ID & reward and store.
+“hindsight
+relabeling”
+"hindsight
+experience
+replay”
+(HER)
+24
+
+1. Collect data
+
+k = {(s1:T , a1:T , zi, r1:T )} using some policy
+
+←
+
+2. Store data in replay buffer
+k++
+
+∪
+
+k
+
+3. Perform hindsight relabeling:
+
+<— Which task
+
+a. Relabel experience in
+
+k for task
+j:
+′k = {(s1:T, a1:T, zj, r′1:T} where r′t = rj(st)
+
+b. Store relabeled data in replay buffer
+
+←
+
+-
+
+∪
+
+′k
+
+4. Update policy using replay buffer
+
+-
+
+-
+
+reward func on form is known, evaluatable
+dynamics consistent across goals/tasks
+using an o -policy algorithm*
+
+￼
+
+￼
+
+ti
+
+𝒟
+
+𝒟
+
+ff
+
+𝒟
+
+𝒟
+
+￼
+
+Kaelbling. Learning to Achieve Goals. IJCAI ‘93
+Andrychowicz et al. Hindsight Experience Replay. NeurIPS ‘17
+
+25
+
+j to choose?
+
+randomly
+task(s) in which the
+trajectory gets high reward
+
+When can we apply relabeling?
+
+￼
+
+𝒯
+𝒟
+
+𝒟
+
+𝒯
+
+𝒟
+
+𝒟
+
+𝒟
+
+𝒟
+
+Multi-task RL with relabeling
+
+1. Collect data
+
+k = {(s1:T , a1:T , sg, r1:T )} using some policy
+
+←
+
+2. Store data in replay buffer
+k++
+
+∪
+
+k
+
+3. Perform hindsight relabeling:
+a. Relabel experience in
+
+k using last state as goal:
+
+′k = {(s1:T, a1:T, sT, r′1:T} where r′t = − d(st, sT )
+
+b. Store relabeled data in replay buffer
+
+←
+
+∪
+
+<— Other relabeling strategies?
+use any state from the trajectory
+
+′k
+
+4. Update policy using replay buffer
+
+Result: explora on challenges alleviated
+
+￼
+
+ti
+
+￼
+
+𝒟
+
+𝒟
+
+𝒟
+
+𝒟
+
+￼
+
+Kaelbling. Learning to Achieve Goals. IJCAI ‘93
+Andrychowicz et al. Hindsight Experience Replay. NeurIPS ‘17
+￼
+
+𝒟
+
+𝒟
+
+𝒟
+
+𝒟
+
+𝒟
+
+𝒟
+
+Goal-conditioned RL with hindsight relabeling
+
+26
+
+You will implement hindsight
+relabeling in homework 4!
+
+Hindsight relabeling for goal-conditioned RL
+Example: goal-condi oned RL, simulated robot manipula on
+
+27
+ti
+
+ti
+
+Kaelbling. Learning to Achieve Goals. IJCAI ‘93
+Andrychowicz et al. Hindsight Experience Replay. NeurIPS ‘17
+
+The plan for today
+1. Model-based reinforcement learning
+a. Using a learned model via synthetic data generation
+b. When to use model-based RL
+2. Multi-task imitation and reinforcement learning
+a. Task conditioning
+
+} Part of homework 4!
+
+b. Goal-reaching tasks
+c. Hindsight relabeling
+
+28
+
+Course reminders
+- Homework 3 due next Friday, May 16
+- Project milestone due Friday, May 23
+
+Next Time
+Can we quickly adapt to new tasks?
+(e.g. in-context learning for RL)
+29
+
+

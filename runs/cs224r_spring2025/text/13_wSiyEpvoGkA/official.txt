@@ -1,0 +1,1103 @@
+Meta Reinforcement Learning
+CS 224R
+
+1
+
+Reminders
+Homework 3 due Friday
+Project milestone due next Friday
+
+Announcements
+More evening o ce hours!
+(Andy and Marcel moving to evening times)
+
+ffi
+
+2
+
+Recap: Multi-task learning
+Multi-task RL as single-task RL in a joint MDP
+
+s = (s̄, zi)
+p1(s̄1)
+
+s̄1
+
+π(a | s̄1, z2)
+
+s̄2
+
+etc..
+
+MDP 1
+
+s̄2
+
+etc..
+
+MDP 2
+
+s̄2
+
+etc..
+
+MDP N
+
+…
+
+Sample task i
+
+p2(s̄1)
+
+s̄1
+
+π(a | s̄1, z1)
+
+pN(s̄1)
+
+s̄1
+
+π(a | s̄1, zN )
+
+This is going to be a bit different for meta-RL!
+
+Recap: Goal-conditioned learning
+Special case of multi-task RL, where zi = sg
+Each task aims to reach some goal state sg
+
+r(s, a, sg) = δ(s = sg) for discrete states
+r(s, a, sg) = δ(∥s − sg∥ ≤ ϵ) for continuous states
+
++ No need to define reward (self-supervised!)
++ Many tasks can be formed as goal reaching tasks
+- Can be pretty hard to train
+
+Plan for Today
+1. Meta-RL problem statement
+2. Black-box meta-RL methods
+
+part of HW4
+
+Next time: Exploration + Learning to explore.
+
+Lecture
+goals:
+
+-
+
+Understand the meta-RL problem statement & set-up
+Understand the basics & challenges of black-box meta RL algorithms
+5
+
+What is the problem?
+Say you wanted to learn to make coffee with a new espresso machine.
+Training a robot to do this with PPO
+would take millions of attempts.
+With some instruction or prior coffee experience,
+a person could learn in minutes.
+
+People aren’t starting from scratch!
+Experience with similar tasks, either espresso-making on other machines or general motor control.
+Can also learn to solve a challenging math problem more quickly using past problem solving experience!
+
+Can RL algorithms leverage experience from previous tasks when learning a new task?
+Framing transfer learning problems
+1. Forward transfer: learn policies that transfer effectively
+a)
+
+Train on source task, then fine-tune on target task
+
+2. Multi-task transfer: train on many tasks, transfer to a new task
+a) Task prompt/descriptor zi needs to capture task structure for zero-shot transfer
+3. Meta-learning: learn to learn on many tasks
+a)
+b)
+
+Accounts for the fact that we’ll be adapting to a new task during training!
+The “task descriptor” is a few data examples provided in-context
+
+For (1): Source and target tasks must be similar
+For (2) and (3): Target task must be similar to the distribution of training tasks
+Slide adapted from Sergey Levine
+
+What does few-shot learning look like outside of RL?
+training data
+Braque
+Cezanne
+
+test datapoint
+
+8
+
+By Braque or Cezanne?
+
+What does few-shot learning look like outside of RL?
+
+Few-shot image
+classi cation
+
+Braque
+
+ŷ = Braque
+
+Cezanne
+
+Dtrain
+
+In-context learning
+in LLMs
+
+x
+
+Dtrain
+x
+ŷ
+
+fi
+
+Train a model ŷ = f(x, Dtrain) to be able to make predictions using on a few examples
+
+Meta-RL Example: Maze Naviga on
+Collect small amount of
+experience in new MDP
+
+Learn policy that
+solves that MDP
+
+Goal:
+
+Collect
+
+tr
+
+exp
+∼π
+
+tr
+
+task
+→π
+
+𝒟
+
+Exploration-exploitation trade-off is a unique part of meta-RL!
+ti
+
+𝒟
+
+diagram adapted from Duan et al. ‘17
+
+Meta-RL Example: Maze Naviga on
+Meta-Train Time:
+
+Meta-Test Time:
+
+Learn how to e ciently
+explore & solve many MDPs:
+
+Collect small amount of
+experience in new MDP
+
+…
+
+Learn policy that
+solves that MDP
+
+meta-training
+tasks
+
+exp
+task
+Meta-train π , π
+
+Collect
+
+tr
+
+exp
+∼π
+
+task
+→
+π
+tr
+
+Key assump on: Meta-tes ng MDPs come from same task distribu on as meta-training MDPs.
+𝒟
+
+(so that we can expect generaliza on)
+ti
+
+ti
+
+ti
+
+ti
+
+ffi
+
+ti
+
+𝒟
+
+diagram adapted from Duan et al. ‘17
+
+Meta-reinforcement learning task distribu ons
+Examples of meta-RL tasks
+Navigation through different mazes
+
+Locomotion on different terrains, slopes
+
+…
+
+…
+Dialog with different users w/
+different preferences
+
+ti
+
+Object manipulation with different objects, goals
+
+More Formal Problem Se ngs
+Mul -Task Learning
+
+,
+⋯,
+1
+
+Solve mul ple tasks
+
+min
+θ
+
+T
+
+∑
+i=1
+
+ℒi(θ,
+
+Transfer Learning
+
+i)
+
+The Meta-Learning Problem
+
+Given data from
+
+1, …,
+
+ac on space
+
+A reinforcement
+learning task:
+
+i≜{
+
+i, pi(s1), pi(s′| s, a), ri(s, a)}
+
+reward
+
+￼
+
+𝒟
+𝒯
+𝒯
+
+tti
+
+ft
+
+ti
+
+ti
+
+ti
+
+ti
+
+test
+
+dynamics
+
+13
+
+𝒯
+
+ti
+
+n , quickly solve new task
+
+state ini al state
+space distribu on
+
+𝒜
+
+𝒮
+
+𝒯
+𝒯
+
+𝒯
+
+𝒯
+
+i,
+
+𝒯
+
+𝒯
+
+Solve target task b a er solving source task a
+by transferring knowledge learned from a
+
+at
+once.
+T
+
+Meta-reinforcement learning
+= meta-learning with RL tasks
+
+The Meta Reinforcement Learning Problem
+Inputs:
+
+{
+
+Episodic Variant
+
+Outputs:
+
+exp
+k rollouts from π
+
+task
+a∼π
+( ⋅ | s, D
+
+)
+train
+
+Outputs:
+
+{
+
+Online Variant
+
+Inputs:
+
+can view as a
+task identifier zi
+
+exp
+1…k timesteps from π
+
+task
+a∼π
+( ⋅ | s, D
+
+)
+train
+
+exp
+task
+Note: exploration policy π
+and adaptation policy π
+could share parameters.
+14
+
+Plan for Today
+1. Meta-RL problem statement
+2. Black-box meta-RL methods
+Next time: Exploration + Learning to explore.
+
+15
+
+part of HW4
+
+Black-Box Meta-RL: Overview
+a1
+
+a2
+
+<latexit sha1_base64="ZHV0v8dvLV8mwmNaXA6KzcmkB0c=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ75dr7ZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skieGXegXvIzK7KOZIhUVkSkR4vtluW0d26fv0JTKnfgazf1Z6gObId85TuFhKSDaC1BbVwkBF1cE5yV1RnleIImKE4wh8bKCoZLftObxF0tSTYl3yxvhmrps5XCsBCKPIE4REiViZX1E8j52geg0tHI833XNV6uKayr5bMhUGbeABFxWjwDFjwGhIeLfTJtQmQwpAFFiMMSepVQ8jM+4fQVpFNCIjf6lqHOStv/D4SfXatwUlSrzQy+/dLANxLeB6/7xdTJF1Jd0qtECi7FyxIOZiEsA5ctZImvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIG5Jna99c3OTme8YNFwJ8amM1n73vpPEsQsDXmETFKtu24nwV5GFQomuU2eap5QdkoHvGvNiIZc97Lx8LQzynoCsCe1T4Qw9s7vyGio9Sj0LTKvUVdjuXNZrJti/20vE1GS2h5lBVE/lWAvdj6JIRCKM5Qja1BmO1kwYEOqKEM7rxtWBLd65EXj6OWOa+3Przb3vnwv5FhzHjtPnZbjOm+cPeeTs+8cOmz1d+1JrVVr1/7Un9W36tsF9MbKRMJHTmnVX/8FKTQ79A==</latexit>
+
+at
+
+a3
+
+<latexit sha1_base64="K2m7U0UYLL9lIpgeq/J9VVJNg54=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikiisECFSpEhw4FtGXlA3Rer1OVl0/tDsujdyt+A38NG78FC6IdR5N7ETqDVayPJ75dr7ZzzvjJVJobLd/razeWqtUb6/fqd29d//Bw43NR8c6ThXjRyyWsTr1qOZSRPwIBUp+mihOQ0/yE+/sQx4/OedKizg6xGHCuyHtRyIQjKJ19TbXftRJ1iAhxYEXZNr08CVMv+joS827LCDDbdc0gZhanSQC6g3C/DiH4IAjbVrvNRbqPYL8AjPkGs0skieGPQjGvIzK7KOZIhUVkSkQ4vtluW0drbN3aArlTny1+sEs9aHNkO8cpehhISCaC1BbVwEBl9cEFwV1hnleIImKE4wh6WVjhlJ+05jHXy5JNSXeK26EG+qylcOJEog8gjhFSJSIlfURyQPsANFpaOV4seear1YV15Ty2ZApM24D8bksHwHGPwaEhoh/M01CZTKgAESJ/gC7llLxMD7n9uWnkU8jNvyXos5J2vwPh59cq1FTlKrMD7380kELiGcDN/3jm2SKqCfpVKMFFmPliPszEZcAipezQNaEqysSxIpKWSxq1oSLNRUadC6mRq3pmlIDm3y6jANzTbzb29hq77RHCxYNd2JsOZN10Nv4SfyYpSGPkEmqdcdtJ9jNqELBJLfJU80Tys5on3esGdGQ6242Gp52RlmPD/ak9okQRt75HRkNtR6GnkXmNepyLHcui3VSDN52MxElqe1RNiYKUgn2YueTGHyhOEM5tAZltpMFAzagijK087pmRXDLR140jnd3XGt/frW1/+X7WI5154nzzGk4rvPG2Xc+OQfOkcPWfleeVhqVZuVP9Xl1u9oaQ1dXJhI+dgqr+vovKrg79Q==</latexit>
+
+<latexit sha1_base64="01uEX3EyH1JsZXN6ugMPPfpWsMc=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ759pvZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skhPDLvSLvIzK7KOZIhUVkSklxPfLuG0d26fv0JTKnfgazf0Z9YFlyHeOKTwsBUR7AWrrKiHg4irBeUmdUc4LJFFxgjEkXlZkqPCb1jz+YgnVNPFueSNcU5etHI6VQOQRxClCokSsrI9I3scuEJ2GVo7nu675alVxTYXPhkw14xaQgMvqEaD4MSA0RPybaRMqkyEFIEoMhtizKRUP4zNuX0EaBTRio38p6pyk7f9w+Mm1GjdFpcr80MsvHWwD8W3gun98nUwR9SWdarSQxVg54sFMxCWA8uUsJWvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIH50eCtb3Z2OuMFi4Y7MTadydr31n+SIGZpyCNkkmrddTsJ9jKqUDDJLXmqeULZKR3wrjUjGnLdy8bD084o6wnAntQ+EcLYO78jo6HWo9C3yLxGXY3lzmWxbor9t71MRElqe5QVifqpBHux80kMgVCcoRxZgzLbyYIBG1JFGdp53bAiuNUjLxpHL3dca39+tbn35Xshx5rz2HnqtBzXeePsOZ+cfefQYau/a09qrVq79qf+rL5V3y6gN1YmEj5ySqv++i+OwDw3</latexit>
+
+<latexit sha1_base64="mm2Sx8wqXjSEL3tSW0vBs4eAtMs=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikigEBAlWqBAeORfQlZUO03mySVdcP7Y5LI3crfgM/jRs/hQtibSdN7ETqDVayPJ75dr7ZzzvjRVJobLd/razeWKtUb67fqt2+c/fe/Y3NB0c6jBXjhyyUoTrxqOZSBPwQBUp+EilOfU/yY+/0Qxo/PuNKizA4wHHEuz4dBmIgGEXr6m2u/aiTpEF8iiNvkGjTw+cw/aLZl5p3WUCC265pAjG1OokE1BuE9cMUgiOOtGm9V1io9wjyc0yQazSzSJoYdmGQ8zIqk49milRUBKZAiO+X5bZ1tE7foSmUO/HV6vuz1Ac2Q7ozS9HDQkA0F6C2rgICLq4IzgvqjNO8QCIVRhhC1EtyhlJ+05jHXyxJNSXeLW6Ea+qylcOxEog8gDBGiJQIlfURyQfYAaJj38rxbNc1X60qrinlsyFTZtwG0ueyfATIfwwIDQH/ZpqEymhEAYgSwxF2LaXifnjG7asfB30asPG/FHVO0uZ/OPzkWmVNUaoyPfTySwctIJ4NXPePr5MpoJ6kU40WWIyVIxzORFwCKF7OAlkTLi/JIFRUymJRsyZcrKnQoHMxlbWma0oNbNLpkgfmmvhlb2OrvdPOFiwa7sTYciZrv7fxk/RDFvs8QCap1h23HWE3oQoFk9wmjzWPKDulQ96xZkB9rrtJNjztjLKePtiT2idAyLzzOxLqaz32PYtMa9TlWOpcFuvEOHjbTUQQxbZHWU40iCXYi51OYugLxRnKsTUos50sGLARVZShndc1K4JbPvKicfRix7X251dbe1++53KsO4+cJ07DcZ03zp7zydl3Dh229rvyuNKoNCt/qk+r29VWDl1dmUj40Cms6uu/LDw79g==</latexit>
+
+Black-box neural net
+(Transformer, NN with memory)
+
+…
+
+task
+a∼π
+( ⋅ | s, D
+
+)
+train
+
+s2 , r1
+
+s1 , 0
+
+<latexit sha1_base64="btbHCfPUqYArHKJYv47MV26n95A=">AAAGaHicxVRbaxNBFN7WJtbUS+oFEV8OLcGE2pItgqIUCvrgY8XeIBPD7GSSDJm9MHO2Nmy3+Bt98wf44q/wbC5NNgn0TQeWPXvON+c78+2c40VaWazXf62s3lkrFO+u3ytt3H/w8FF58/GpDWMj5IkIdWjOPW6lVoE8QYVankdGct/T8szrf8ziZxfSWBUGxziIZNPn3UB1lOBIrtbm2nWFJVXmc+x5ncSmLXwNky8+/DKzLgIkuOOmNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpNJIlhgPojHgF18mndII0XAVpjhA/LMtNdez232OaK3fsK1WOpqmPKUO2c5iihbmAqi1Aqa4cAq5uCC5z6gyyvMAiE0YYQtRKRgxz+dPqLP5qSaoJ8UF+I9xSF1UOZ0YhygDCGCEyKjTkY1p2sAHMxj7J8erATb+RKm46l49C6TzjDrC21PNHgNGPAWUhkN/TGuM66nEAZlS3h02iNNIPLyS92nHQ5oEY/EtRZySt/YfDj6/VsCnmqswOvfzSwS4wjwK3/ePbZAq4p/lEowWWlOQIu1MRlwDylzNHVoPra9YJDdc6X9S0CRdryjXoTMwMW9NNSzPh/Wy0uK3ydn2vPlywaLhjY9sZr6NW+SdrhyL2ZYBCc2sbbj3CZsINKqElMcRWRlz0eVc2yAy4L20zGQ5KmkfkaQOdip4AYeid3ZFw39qB7xEyK9TOxzLnslgjxs67ZqKCKKZ+FCOiTqyBLnE2daGtjBSoB2RwQV2rBIgeN1wgzeYSieDOH3nRON3fc8n+8mb78OuPkRzrzktny6k6rvPWOXQ+O0fOiSPWfhc2Ck8Lzwp/iuXi8+KLEXR1ZSzhEye3ilt/Ab2mM3M=</latexit>
+
+<latexit sha1_base64="ck8pdC+ekZH4nUmSP+ZG7r8lEyk=">AAAB2XicbZDNSgMxFIXv1L86Vq1rN8EiuCozbnQpuHFZwbZCO5RM5k4bmskMyR2hDH0BF25EfC93vo3pz0JbDwQ+zknIvSculLQUBN9ebWd3b/+gfugfNfzjk9Nmo2fz0gjsilzl5jnmFpXU2CVJCp8LgzyLFfbj6f0i77+gsTLXTzQrMMr4WMtUCk7O6oyaraAdLMW2IVxDC9YaNb+GSS7KDDUJxa0dhEFBUcUNSaFw7g9LiwUXUz7GgUPNM7RRtRxzzi6dk7A0N+5oYkv394uKZ9bOstjdzDhN7Ga2MP/LBiWlt1EldVESarH6KC0Vo5wtdmaJNChIzRxwYaSblYkJN1yQa8Z3HYSbG29D77odOn4MoA7ncAFXEMIN3MEDdKALAhJ4hXdv4r15H6uuat66tDP4I+/zBzjGijg=</latexit>
+sha1_base64="J4dAYlmblTwCBuDeaY9tORmjfzY=">AAAGZnicxVRLb9NAEHZLE9oApQ8hDlxGVBGJ+lCMkECgSpXgwLGIvqRsiNbrTbLq+qHdcWnkuuI3cuPMhZ/BOI8mTiL1BitZHs98O9/M5531Yq0sNhq/lpYfrJTKD1fXKo8eP1l/urG5dWajxAh5KiIdmQuPW6lVKE9RoZYXsZE88LQ89y4/5vHzK2msisIT7MeyFfBuqDpKcCRXe3PlpsrSGgs49rxOarM27sH4iw++zLSLACnuulkdWFapslhBtcaEH+UQ7EnkdfLeYaHaZiivMUVpMZtE8sRwCJ0hr+A6/ZSNkYarMCsQ4odFuamO/cv3mBXKHfkq1eNJ6hPKkO8cpGhjIaDqc1Cqq4CAmzuC64I6/TwvsNhEMUYQt9Mhw0z+rDaNv1mQakx8WNwI99RFlcO5UYgyhChBiI2KDPmYlh1sArNJQHK8OnSzb6SKm83ko1A2y7gLzJd6tgUY/hhQFkL5PaszruMeB2BGdXvYIkojg+hK0stPQp+Hov8vRZ2StP4fmh8dq8FQzFSZN7340ME+MI8C9/3j+2QKuaf5WKM5lozkiLoTERcAioezQFaH21vWiQzXuljUZAjnayoM6FTMDEbTzSpTYXcPGu2NncZBY7Bg3nBHxo4zWsftjZ/Mj0QSyBCF5tY23UaMrZQbVEJLyp9YGXNxybuySWbIA2lb6eCapNuIPD5QT/SECAPv9I6UB9b2A4+QeZl2NpY7F8WaCXbetVIVxglNoxgSdRINdITzOxd8ZaRA3SeDC5pZJUD0uOEC6WaukAjubMvzxtnrA5fsL292jr7+GMqx6rxwXjo1x3XeOkfOZ+fYOXXEyu/SWmmrtF36U14vPys/H0KXl0YSbjuFVYa/2mcyjA==</latexit>
+sha1_base64="SqJUGX4STG7MfeygDCHgqoQtY9A=">AAAGZnicxVRLb9NAEHZLE9oAfQpx4DKiikjUh2IuIFClSnDgWERfUjZE6806WXX90O64NHJd8Ru5cebCz2CcRxMnkXqDlSyPZ76db+bzznqxVhYbjV9Ly49WSuXHq2uVJ0+frW9sbm2f2ygxQp6JSEfm0uNWahXKM1So5WVsJA88LS+8q495/OJaGqui8BT7sWwFvBsqXwmO5GpvrdxWWVpjAcee56c2a+M+jL/44MtMuwiQ4p6b1YFllSqLFVRrTHSiHII9ibxO3nssVNsM5Q2mKC1mk0ieGI7AH/IKrtNP2RhpuAqzAiF+WJSb6ji4eo9ZodyRr1I9maQ+pQz5zkGKNhYCqj4HpboKCLi9J7gpqNPP8wKLTRRjBHE7HTLM5M9q0/jbBanGxEfFjfBAXVQ5XBiFKEOIEoTYqMiQj2npYxOYTQKS4/WRm30jVdxsJh+FslnGPWAdqWdbgOGPAWUhlN+zOuM67nEAZlS3hy2iNDKIriW9OknY4aHo/0tRpySt/4fmR8dqMBQzVeZNLz50cADMo8BD//ghmULuaT7WaI4lIzmi7kTEBYDi4SyQ1eHujvmR4VoXi5oM4XxNhQGdipnBaLpZZSrs7kOjvbnbOGwMFswb7sjYdUbrpL35k3UikQQyRKG5tU23EWMr5QaV0JLyJ1bGXFzxrmySGfJA2lY6uCbpNiJPB6gnekKEgXd6R8oDa/uBR8i8TDsby52LYs0E/XetVIVxQtMohkR+ooGOcH7nQkcZKVD3yeCCZlYJED1uuEC6mSskgjvb8rxx/ubQJftLY/f464+hHKvOS+eVU3Nc561z7Hx2TpwzR6z8Lq2Vtks7pT/l9fLz8oshdHlpJOGOU1hl+AvZJzKI</latexit>
+sha1_base64="yrcY6bEuE3B+Refg3BEhWI1cxjU=">AAAGW3icxVRLb9NAEHZLE9pQSluEOHAZUUUk6kMxFxCoEhIcOBapLykbovVmk6y6fmh3XBq57o/kxpkLP4OxkzSxE6k3WMnyeGb2+2Y+76wXaWWx1fq1svporVJ9vL5Re7L5dOvZ9s7muQ1jI+SZCHVoLj1upVaBPEOFWl5GRnLf0/LCu/qcxS+upbEqDE5xFMmOzweB6ivBkVzdnbXbOksazOc49PqJTbt4ANMvnn+ZeRclJLjvpk1gaa3OIgX1BhO9MEvBoUTeJO99LtS7DOUNJigtprNIBgzH0B/zCq6TL+k003AVpAVC/LgMm+o4vPqAaaHcia9WP5lBnxJCtjOH6GIhoJoLqVRXIQNu7wluCuqMMlxgkQkjDCHqJmOGEn7amM+/XQI1JT4uboQH6qLK4cIoRBlAGCNERoWGfEzLPraB2dgnOd4cu+l3UsVNS3gUSsuM+8B6UpdbgPGPAWUhkD/SJuM6GnIAZtRgiB2iNNIPryW9enHQ44EY/UtR5yRt/ofmJ8cqH4pSlVnTyw8dHALzKPDQP35IpoB7mk81WmBJSY5wMBNxSULxcBbImnB3x/qh4VoXi5oN4WJNhQGdi5l8NN20Nhd2D6DV3d5rHbXyBYuGOzH2nMk66W7/ZL1QxL4MUGhubdttRdhJuEEltCT82MqIiys+kG0yA+5L20nya5JuI/L0gHqiJ0DIvfM7Eu5bO/I9yszKtOVY5lwWa8fYf99JVBDFNI1iTNSPNdARzu5c6CkjBeoRGVzQzCoBYsgNF0g3c41EcMstLxrnb49csr+1nHXnlfPaaTiu88755Hx1TpwzR6z9rmxUdivPK3+qW9UXY7lWVya67TqFVX35F2F8MSU=</latexit>
+
+s3 , r2
+<latexit sha1_base64="JhLj964/MxQ6bk12MZPunj3XdKk=">AAAGaHicxVTbbtNAEHVLE0oKNOUihHgZtYpIVFrFBQkEqlQJHngsojcpG6L1ZpOsur5od1waua74Rt74AF74Csa5NHESqW+wkuXxzNk5s8c740VaWazXfy0t31kpFO+u3iut3X/wcL288ejEhrER8liEOjRnHrdSq0Aeo0ItzyIjue9peeqdf8zipxfSWBUGR9iPZNPn3UB1lOBIrtbGynWFJVXmc+x5ncSmLXwF4y8++DLTLgIkuO2mNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpJJIlhn3oDHkF18mndIw0XAVpjhA/LMpNdeycv8c0V+7IV6ocTlIfUYZs5yBFC3MBVZuDUl05BFzdEFzm1OlneYFFJowwhKiVDBlm8qfVafzVglRj4v38RrilLqocTo1ClAGEMUJkVGjIx7TsYAOYjX2S4+W+m34jVdx0Jh+F0lnGbWBtqWePAMMfA8pCIL+nNcZ11OMAzKhuD5tEaaQfXkh6teOgzQPR/5eiTkla+w+HH12rQVPMVJkdevGlgx1gHgVu+8e3yRRwT/OxRnMsKckRdiciLgDkL2eOrAbX16wTGq51vqhJE87XlGvQqZgZtKablqbCr7PRstcqb9V364MF84Y7Mrac0TpslX+ydihiXwYoNLe24dYjbCbcoBJaEkNsZcTFOe/KBpkB96VtJoNBSfOIPG2gU9ETIAy80zsS7lvb9z1CZoXa2VjmXBRrxNh510xUEMXUj2JI1Ik10CXOpi60lZECdZ8MLqhrlQDR44YLpNlcIhHc2SPPGyd7uy7ZX95sHXz9MZRj1XnhbDpVx3XeOgfOZ+fQOXbEyu/CWuFJ4WnhT7FcfFZ8PoQuL40kfOzkVnHzL8CzM3U=</latexit>
+
+Dtrain context/training set
+
+st , rt 1
+<latexit sha1_base64="ouwoGB/cY8bcc/q52xQDb6Zqhcc=">AAAGbnicxVRLb9NAEHZLE0p4tAWJAxViRBWRqLSKERIIVKkSHDgW0ZeUDdZ6s05WXT+0Oy6N3K048Au58Ru48BNYO0kTJ5F6g5Usj2e+nW/28874iRQaW61fS8u3VirV26t3anfv3X+wtr7x8FjHqWL8iMUyVqc+1VyKiB+hQMlPE8Vp6Et+4p99yOMn51xpEUeHOEh4J6S9SASCUbQub2PlR51kDRJS7PtBpo2HL2H8RYsvNe2ygAy3XdMEYmp1kgioNwjrxjkE+xxp03qvsVD3CPILzJBrNJNInhj2IBjyMiqzj2aMVFREpkSI7xfltnXsnL1DUyp35KvVDyapD22GfGeRwsNSQDTnoLauEgIurwkuSuoM8rxAEhUnGEPiZUOGmfymMY2/XJBqTLxX3gg31GUrhxMlEHkEcYqQKBEr6yOSB9gGotPQyvFizzVfrSqumclnQ2aWcRtIl8vZI8Dwx4DQEPFvpkmoTPoUgCjR62PHUioexufcvrpp1KURG/xLUackbf6Hw4+uVdEUM1Xmh1586WAHiG8DN/3jm2SKqC/pWKM5FmPliHsTERcAypezRNaEqysSxIpKWS5q0oTzNZUadCqmitZ0Ta3UvyYfLoXfW99q7baKBfOGOzK2nNE68NZ/km7M0pBHyCTVuu22EuxkVKFgklueVPOEsjPa421rRjTkupMV49JOJevpgj2bfSKEwju9I6Oh1oPQt8i8XD0by52LYu0Ug7edTERJaruSDYmCVIK9yvnsha5QnKEcWIMy27uCAetTRRnaCV2zIrizR543jl/tutb+/Hpr/8v3oRyrzqbz3Gk4rvPG2Xc+OQfOkcNWflc2Kk8qm5U/1cfVp9VnQ+jy0kjCR05pVRt/Af64NoI=</latexit>
+
+current
+state
+
+gets larger over time
+
+Question: How is this different from simply doing RL with a recurrent policy?
+Reward is passed as input
+(& trained across multiple MDPs)
+
+Hidden state maintained
+across episodes within a task!
+16
+
+a1
+
+a1
+
+a2
+
+<latexit sha1_base64="ZHV0v8dvLV8mwmNaXA6KzcmkB0c=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ75dr7ZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skieGXegXvIzK7KOZIhUVkSkR4vtluW0d26fv0JTKnfgazf1Z6gObId85TuFhKSDaC1BbVwkBF1cE5yV1RnleIImKE4wh8bKCoZLftObxF0tSTYl3yxvhmrps5XCsBCKPIE4REiViZX1E8j52geg0tHI833XNV6uKayr5bMhUGbeABFxWjwDFjwGhIeLfTJtQmQwpAFFiMMSepVQ8jM+4fQVpFNCIjf6lqHOStv/D4SfXatwUlSrzQy+/dLANxLeB6/7xdTJF1Jd0qtECi7FyxIOZiEsA5ctZImvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIG5Jna99c3OTme8YNFwJ8amM1n73vpPEsQsDXmETFKtu24nwV5GFQomuU2eap5QdkoHvGvNiIZc97Lx8LQzynoCsCe1T4Qw9s7vyGio9Sj0LTKvUVdjuXNZrJti/20vE1GS2h5lBVE/lWAvdj6JIRCKM5Qja1BmO1kwYEOqKEM7rxtWBLd65EXj6OWOa+3Przb3vnwv5FhzHjtPnZbjOm+cPeeTs+8cOmz1d+1JrVVr1/7Un9W36tsF9MbKRMJHTmnVX/8FKTQ79A==</latexit>
+
+a2
+
+<latexit sha1_base64="ZHV0v8dvLV8mwmNaXA6KzcmkB0c=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ75dr7ZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skieGXegXvIzK7KOZIhUVkSkR4vtluW0d26fv0JTKnfgazf1Z6gObId85TuFhKSDaC1BbVwkBF1cE5yV1RnleIImKE4wh8bKCoZLftObxF0tSTYl3yxvhmrps5XCsBCKPIE4REiViZX1E8j52geg0tHI833XNV6uKayr5bMhUGbeABFxWjwDFjwGhIeLfTJtQmQwpAFFiMMSepVQ8jM+4fQVpFNCIjf6lqHOStv/D4SfXatwUlSrzQy+/dLANxLeB6/7xdTJF1Jd0qtECi7FyxIOZiEsA5ctZImvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIG5Jna99c3OTme8YNFwJ8amM1n73vpPEsQsDXmETFKtu24nwV5GFQomuU2eap5QdkoHvGvNiIZc97Lx8LQzynoCsCe1T4Qw9s7vyGio9Sj0LTKvUVdjuXNZrJti/20vE1GS2h5lBVE/lWAvdj6JIRCKM5Qja1BmO1kwYEOqKEM7rxtWBLd65EXj6OWOa+3Przb3vnwv5FhzHjtPnZbjOm+cPeeTs+8cOmz1d+1JrVVr1/7Un9W36tsF9MbKRMJHTmnVX/8FKTQ79A==</latexit>
+
+<latexit sha1_base64="K2m7U0UYLL9lIpgeq/J9VVJNg54=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikiisECFSpEhw4FtGXlA3Rer1OVl0/tDsujdyt+A38NG78FC6IdR5N7ETqDVayPJ75dr7ZzzvjJVJobLd/razeWqtUb6/fqd29d//Bw43NR8c6ThXjRyyWsTr1qOZSRPwIBUp+mihOQ0/yE+/sQx4/OedKizg6xGHCuyHtRyIQjKJ19TbXftRJ1iAhxYEXZNr08CVMv+joS827LCDDbdc0gZhanSQC6g3C/DiH4IAjbVrvNRbqPYL8AjPkGs0skieGPQjGvIzK7KOZIhUVkSkQ4vtluW0drbN3aArlTny1+sEs9aHNkO8cpehhISCaC1BbVwEBl9cEFwV1hnleIImKE4wh6WVjhlJ+05jHXy5JNSXeK26EG+qylcOJEog8gjhFSJSIlfURyQPsANFpaOV4seear1YV15Ty2ZApM24D8bksHwHGPwaEhoh/M01CZTKgAESJ/gC7llLxMD7n9uWnkU8jNvyXos5J2vwPh59cq1FTlKrMD7380kELiGcDN/3jm2SKqCfpVKMFFmPliPszEZcAipezQNaEqysSxIpKWSxq1oSLNRUadC6mRq3pmlIDm3y6jANzTbzb29hq77RHCxYNd2JsOZN10Nv4SfyYpSGPkEmqdcdtJ9jNqELBJLfJU80Tys5on3esGdGQ6242Gp52RlmPD/ak9okQRt75HRkNtR6GnkXmNepyLHcui3VSDN52MxElqe1RNiYKUgn2YueTGHyhOEM5tAZltpMFAzagijK087pmRXDLR140jnd3XGt/frW1/+X7WI5154nzzGk4rvPG2Xc+OQfOkcPWfleeVhqVZuVP9Xl1u9oaQ1dXJhI+dgqr+vovKrg79Q==</latexit>
+
+s1 , 0
+<latexit sha1_base64="ck8pdC+ekZH4nUmSP+ZG7r8lEyk=">AAAB2XicbZDNSgMxFIXv1L86Vq1rN8EiuCozbnQpuHFZwbZCO5RM5k4bmskMyR2hDH0BF25EfC93vo3pz0JbDwQ+zknIvSculLQUBN9ebWd3b/+gfugfNfzjk9Nmo2fz0gjsilzl5jnmFpXU2CVJCp8LgzyLFfbj6f0i77+gsTLXTzQrMMr4WMtUCk7O6oyaraAdLMW2IVxDC9YaNb+GSS7KDDUJxa0dhEFBUcUNSaFw7g9LiwUXUz7GgUPNM7RRtRxzzi6dk7A0N+5oYkv394uKZ9bOstjdzDhN7Ga2MP/LBiWlt1EldVESarH6KC0Vo5wtdmaJNChIzRxwYaSblYkJN1yQa8Z3HYSbG29D77odOn4MoA7ncAFXEMIN3MEDdKALAhJ4hXdv4r15H6uuat66tDP4I+/zBzjGijg=</latexit>
+sha1_base64="J4dAYlmblTwCBuDeaY9tORmjfzY=">AAAGZnicxVRLb9NAEHZLE9oApQ8hDlxGVBGJ+lCMkECgSpXgwLGIvqRsiNbrTbLq+qHdcWnkuuI3cuPMhZ/BOI8mTiL1BitZHs98O9/M5531Yq0sNhq/lpYfrJTKD1fXKo8eP1l/urG5dWajxAh5KiIdmQuPW6lVKE9RoZYXsZE88LQ89y4/5vHzK2msisIT7MeyFfBuqDpKcCRXe3PlpsrSGgs49rxOarM27sH4iw++zLSLACnuulkdWFapslhBtcaEH+UQ7EnkdfLeYaHaZiivMUVpMZtE8sRwCJ0hr+A6/ZSNkYarMCsQ4odFuamO/cv3mBXKHfkq1eNJ6hPKkO8cpGhjIaDqc1Cqq4CAmzuC64I6/TwvsNhEMUYQt9Mhw0z+rDaNv1mQakx8WNwI99RFlcO5UYgyhChBiI2KDPmYlh1sArNJQHK8OnSzb6SKm83ko1A2y7gLzJd6tgUY/hhQFkL5PaszruMeB2BGdXvYIkojg+hK0stPQp+Hov8vRZ2StP4fmh8dq8FQzFSZN7340ME+MI8C9/3j+2QKuaf5WKM5lozkiLoTERcAioezQFaH21vWiQzXuljUZAjnayoM6FTMDEbTzSpTYXcPGu2NncZBY7Bg3nBHxo4zWsftjZ/Mj0QSyBCF5tY23UaMrZQbVEJLyp9YGXNxybuySWbIA2lb6eCapNuIPD5QT/SECAPv9I6UB9b2A4+QeZl2NpY7F8WaCXbetVIVxglNoxgSdRINdITzOxd8ZaRA3SeDC5pZJUD0uOEC6WaukAjubMvzxtnrA5fsL292jr7+GMqx6rxwXjo1x3XeOkfOZ+fYOXXEyu/SWmmrtF36U14vPys/H0KXl0YSbjuFVYa/2mcyjA==</latexit>
+sha1_base64="SqJUGX4STG7MfeygDCHgqoQtY9A=">AAAGZnicxVRLb9NAEHZLE9oAfQpx4DKiikjUh2IuIFClSnDgWERfUjZE6806WXX90O64NHJd8Ru5cebCz2CcRxMnkXqDlSyPZ76db+bzznqxVhYbjV9Ly49WSuXHq2uVJ0+frW9sbm2f2ygxQp6JSEfm0uNWahXKM1So5WVsJA88LS+8q495/OJaGqui8BT7sWwFvBsqXwmO5GpvrdxWWVpjAcee56c2a+M+jL/44MtMuwiQ4p6b1YFllSqLFVRrTHSiHII9ibxO3nssVNsM5Q2mKC1mk0ieGI7AH/IKrtNP2RhpuAqzAiF+WJSb6ji4eo9ZodyRr1I9maQ+pQz5zkGKNhYCqj4HpboKCLi9J7gpqNPP8wKLTRRjBHE7HTLM5M9q0/jbBanGxEfFjfBAXVQ5XBiFKEOIEoTYqMiQj2npYxOYTQKS4/WRm30jVdxsJh+FslnGPWAdqWdbgOGPAWUhlN+zOuM67nEAZlS3hy2iNDKIriW9OknY4aHo/0tRpySt/4fmR8dqMBQzVeZNLz50cADMo8BD//ghmULuaT7WaI4lIzmi7kTEBYDi4SyQ1eHujvmR4VoXi5oM4XxNhQGdipnBaLpZZSrs7kOjvbnbOGwMFswb7sjYdUbrpL35k3UikQQyRKG5tU23EWMr5QaV0JLyJ1bGXFzxrmySGfJA2lY6uCbpNiJPB6gnekKEgXd6R8oDa/uBR8i8TDsby52LYs0E/XetVIVxQtMohkR+ooGOcH7nQkcZKVD3yeCCZlYJED1uuEC6mSskgjvb8rxx/ubQJftLY/f464+hHKvOS+eVU3Nc561z7Hx2TpwzR6z8Lq2Vtks7pT/l9fLz8oshdHlpJOGOU1hl+AvZJzKI</latexit>
+sha1_base64="yrcY6bEuE3B+Refg3BEhWI1cxjU=">AAAGW3icxVRLb9NAEHZLE9pQSluEOHAZUUUk6kMxFxCoEhIcOBapLykbovVmk6y6fmh3XBq57o/kxpkLP4OxkzSxE6k3WMnyeGb2+2Y+76wXaWWx1fq1svporVJ9vL5Re7L5dOvZ9s7muQ1jI+SZCHVoLj1upVaBPEOFWl5GRnLf0/LCu/qcxS+upbEqDE5xFMmOzweB6ivBkVzdnbXbOksazOc49PqJTbt4ANMvnn+ZeRclJLjvpk1gaa3OIgX1BhO9MEvBoUTeJO99LtS7DOUNJigtprNIBgzH0B/zCq6TL+k003AVpAVC/LgMm+o4vPqAaaHcia9WP5lBnxJCtjOH6GIhoJoLqVRXIQNu7wluCuqMMlxgkQkjDCHqJmOGEn7amM+/XQI1JT4uboQH6qLK4cIoRBlAGCNERoWGfEzLPraB2dgnOd4cu+l3UsVNS3gUSsuM+8B6UpdbgPGPAWUhkD/SJuM6GnIAZtRgiB2iNNIPryW9enHQ44EY/UtR5yRt/ofmJ8cqH4pSlVnTyw8dHALzKPDQP35IpoB7mk81WmBJSY5wMBNxSULxcBbImnB3x/qh4VoXi5oN4WJNhQGdi5l8NN20Nhd2D6DV3d5rHbXyBYuGOzH2nMk66W7/ZL1QxL4MUGhubdttRdhJuEEltCT82MqIiys+kG0yA+5L20nya5JuI/L0gHqiJ0DIvfM7Eu5bO/I9yszKtOVY5lwWa8fYf99JVBDFNI1iTNSPNdARzu5c6CkjBeoRGVzQzCoBYsgNF0g3c41EcMstLxrnb49csr+1nHXnlfPaaTiu88755Hx1TpwzR6z9rmxUdivPK3+qW9UXY7lWVya67TqFVX35F2F8MSU=</latexit>
+
+s2 , r1
+
+…
+
+s2 , r1
+
+s1 , 0
+
+<latexit sha1_base64="btbHCfPUqYArHKJYv47MV26n95A=">AAAGaHicxVRbaxNBFN7WJtbUS+oFEV8OLcGE2pItgqIUCvrgY8XeIBPD7GSSDJm9MHO2Nmy3+Bt98wf44q/wbC5NNgn0TQeWPXvON+c78+2c40VaWazXf62s3lkrFO+u3ytt3H/w8FF58/GpDWMj5IkIdWjOPW6lVoE8QYVankdGct/T8szrf8ziZxfSWBUGxziIZNPn3UB1lOBIrtbm2nWFJVXmc+x5ncSmLXwNky8+/DKzLgIkuOOmNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpNJIlhgPojHgF18mndII0XAVpjhA/LMtNdez232OaK3fsK1WOpqmPKUO2c5iihbmAqi1Aqa4cAq5uCC5z6gyyvMAiE0YYQtRKRgxz+dPqLP5qSaoJ8UF+I9xSF1UOZ0YhygDCGCEyKjTkY1p2sAHMxj7J8erATb+RKm46l49C6TzjDrC21PNHgNGPAWUhkN/TGuM66nEAZlS3h02iNNIPLyS92nHQ5oEY/EtRZySt/YfDj6/VsCnmqswOvfzSwS4wjwK3/ePbZAq4p/lEowWWlOQIu1MRlwDylzNHVoPra9YJDdc6X9S0CRdryjXoTMwMW9NNSzPh/Wy0uK3ydn2vPlywaLhjY9sZr6NW+SdrhyL2ZYBCc2sbbj3CZsINKqElMcRWRlz0eVc2yAy4L20zGQ5KmkfkaQOdip4AYeid3ZFw39qB7xEyK9TOxzLnslgjxs67ZqKCKKZ+FCOiTqyBLnE2daGtjBSoB2RwQV2rBIgeN1wgzeYSieDOH3nRON3fc8n+8mb78OuPkRzrzktny6k6rvPWOXQ+O0fOiSPWfhc2Ck8Lzwp/iuXi8+KLEXR1ZSzhEye3ilt/Ab2mM3M=</latexit>
+
+<latexit sha1_base64="ck8pdC+ekZH4nUmSP+ZG7r8lEyk=">AAAB2XicbZDNSgMxFIXv1L86Vq1rN8EiuCozbnQpuHFZwbZCO5RM5k4bmskMyR2hDH0BF25EfC93vo3pz0JbDwQ+zknIvSculLQUBN9ebWd3b/+gfugfNfzjk9Nmo2fz0gjsilzl5jnmFpXU2CVJCp8LgzyLFfbj6f0i77+gsTLXTzQrMMr4WMtUCk7O6oyaraAdLMW2IVxDC9YaNb+GSS7KDDUJxa0dhEFBUcUNSaFw7g9LiwUXUz7GgUPNM7RRtRxzzi6dk7A0N+5oYkv394uKZ9bOstjdzDhN7Ga2MP/LBiWlt1EldVESarH6KC0Vo5wtdmaJNChIzRxwYaSblYkJN1yQa8Z3HYSbG29D77odOn4MoA7ncAFXEMIN3MEDdKALAhJ4hXdv4r15H6uuat66tDP4I+/zBzjGijg=</latexit>
+sha1_base64="J4dAYlmblTwCBuDeaY9tORmjfzY=">AAAGZnicxVRLb9NAEHZLE9oApQ8hDlxGVBGJ+lCMkECgSpXgwLGIvqRsiNbrTbLq+qHdcWnkuuI3cuPMhZ/BOI8mTiL1BitZHs98O9/M5531Yq0sNhq/lpYfrJTKD1fXKo8eP1l/urG5dWajxAh5KiIdmQuPW6lVKE9RoZYXsZE88LQ89y4/5vHzK2msisIT7MeyFfBuqDpKcCRXe3PlpsrSGgs49rxOarM27sH4iw++zLSLACnuulkdWFapslhBtcaEH+UQ7EnkdfLeYaHaZiivMUVpMZtE8sRwCJ0hr+A6/ZSNkYarMCsQ4odFuamO/cv3mBXKHfkq1eNJ6hPKkO8cpGhjIaDqc1Cqq4CAmzuC64I6/TwvsNhEMUYQt9Mhw0z+rDaNv1mQakx8WNwI99RFlcO5UYgyhChBiI2KDPmYlh1sArNJQHK8OnSzb6SKm83ko1A2y7gLzJd6tgUY/hhQFkL5PaszruMeB2BGdXvYIkojg+hK0stPQp+Hov8vRZ2StP4fmh8dq8FQzFSZN7340ME+MI8C9/3j+2QKuaf5WKM5lozkiLoTERcAioezQFaH21vWiQzXuljUZAjnayoM6FTMDEbTzSpTYXcPGu2NncZBY7Bg3nBHxo4zWsftjZ/Mj0QSyBCF5tY23UaMrZQbVEJLyp9YGXNxybuySWbIA2lb6eCapNuIPD5QT/SECAPv9I6UB9b2A4+QeZl2NpY7F8WaCXbetVIVxglNoxgSdRINdITzOxd8ZaRA3SeDC5pZJUD0uOEC6WaukAjubMvzxtnrA5fsL292jr7+GMqx6rxwXjo1x3XeOkfOZ+fYOXXEyu/SWmmrtF36U14vPys/H0KXl0YSbjuFVYa/2mcyjA==</latexit>
+sha1_base64="SqJUGX4STG7MfeygDCHgqoQtY9A=">AAAGZnicxVRLb9NAEHZLE9oAfQpx4DKiikjUh2IuIFClSnDgWERfUjZE6806WXX90O64NHJd8Ru5cebCz2CcRxMnkXqDlSyPZ76db+bzznqxVhYbjV9Ly49WSuXHq2uVJ0+frW9sbm2f2ygxQp6JSEfm0uNWahXKM1So5WVsJA88LS+8q495/OJaGqui8BT7sWwFvBsqXwmO5GpvrdxWWVpjAcee56c2a+M+jL/44MtMuwiQ4p6b1YFllSqLFVRrTHSiHII9ibxO3nssVNsM5Q2mKC1mk0ieGI7AH/IKrtNP2RhpuAqzAiF+WJSb6ji4eo9ZodyRr1I9maQ+pQz5zkGKNhYCqj4HpboKCLi9J7gpqNPP8wKLTRRjBHE7HTLM5M9q0/jbBanGxEfFjfBAXVQ5XBiFKEOIEoTYqMiQj2npYxOYTQKS4/WRm30jVdxsJh+FslnGPWAdqWdbgOGPAWUhlN+zOuM67nEAZlS3hy2iNDKIriW9OknY4aHo/0tRpySt/4fmR8dqMBQzVeZNLz50cADMo8BD//ghmULuaT7WaI4lIzmi7kTEBYDi4SyQ1eHujvmR4VoXi5oM4XxNhQGdipnBaLpZZSrs7kOjvbnbOGwMFswb7sjYdUbrpL35k3UikQQyRKG5tU23EWMr5QaV0JLyJ1bGXFzxrmySGfJA2lY6uCbpNiJPB6gnekKEgXd6R8oDa/uBR8i8TDsby52LYs0E/XetVIVxQtMohkR+ooGOcH7nQkcZKVD3yeCCZlYJED1uuEC6mSskgjvb8rxx/ubQJftLY/f464+hHKvOS+eVU3Nc561z7Hx2TpwzR6z8Lq2Vtks7pT/l9fLz8oshdHlpJOGOU1hl+AvZJzKI</latexit>
+sha1_base64="yrcY6bEuE3B+Refg3BEhWI1cxjU=">AAAGW3icxVRLb9NAEHZLE9pQSluEOHAZUUUk6kMxFxCoEhIcOBapLykbovVmk6y6fmh3XBq57o/kxpkLP4OxkzSxE6k3WMnyeGb2+2Y+76wXaWWx1fq1svporVJ9vL5Re7L5dOvZ9s7muQ1jI+SZCHVoLj1upVaBPEOFWl5GRnLf0/LCu/qcxS+upbEqDE5xFMmOzweB6ivBkVzdnbXbOksazOc49PqJTbt4ANMvnn+ZeRclJLjvpk1gaa3OIgX1BhO9MEvBoUTeJO99LtS7DOUNJigtprNIBgzH0B/zCq6TL+k003AVpAVC/LgMm+o4vPqAaaHcia9WP5lBnxJCtjOH6GIhoJoLqVRXIQNu7wluCuqMMlxgkQkjDCHqJmOGEn7amM+/XQI1JT4uboQH6qLK4cIoRBlAGCNERoWGfEzLPraB2dgnOd4cu+l3UsVNS3gUSsuM+8B6UpdbgPGPAWUhkD/SJuM6GnIAZtRgiB2iNNIPryW9enHQ44EY/UtR5yRt/ofmJ8cqH4pSlVnTyw8dHALzKPDQP35IpoB7mk81WmBJSY5wMBNxSULxcBbImnB3x/qh4VoXi5oN4WJNhQGdi5l8NN20Nhd2D6DV3d5rHbXyBYuGOzH2nMk66W7/ZL1QxL4MUGhubdttRdhJuEEltCT82MqIiys+kG0yA+5L20nya5JuI/L0gHqiJ0DIvfM7Eu5bO/I9yszKtOVY5lwWa8fYf99JVBDFNI1iTNSPNdARzu5c6CkjBeoRGVzQzCoBYsgNF0g3c41EcMstLxrnb49csr+1nHXnlfPaaTiu88755Hx1TpwzR6z9rmxUdivPK3+qW9UXY7lWVya67TqFVX35F2F8MSU=</latexit>
+
+<latexit sha1_base64="btbHCfPUqYArHKJYv47MV26n95A=">AAAGaHicxVRbaxNBFN7WJtbUS+oFEV8OLcGE2pItgqIUCvrgY8XeIBPD7GSSDJm9MHO2Nmy3+Bt98wf44q/wbC5NNgn0TQeWPXvON+c78+2c40VaWazXf62s3lkrFO+u3ytt3H/w8FF58/GpDWMj5IkIdWjOPW6lVoE8QYVankdGct/T8szrf8ziZxfSWBUGxziIZNPn3UB1lOBIrtbm2nWFJVXmc+x5ncSmLXwNky8+/DKzLgIkuOOmNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpNJIlhgPojHgF18mndII0XAVpjhA/LMtNdez232OaK3fsK1WOpqmPKUO2c5iihbmAqi1Aqa4cAq5uCC5z6gyyvMAiE0YYQtRKRgxz+dPqLP5qSaoJ8UF+I9xSF1UOZ0YhygDCGCEyKjTkY1p2sAHMxj7J8erATb+RKm46l49C6TzjDrC21PNHgNGPAWUhkN/TGuM66nEAZlS3h02iNNIPLyS92nHQ5oEY/EtRZySt/YfDj6/VsCnmqswOvfzSwS4wjwK3/ePbZAq4p/lEowWWlOQIu1MRlwDylzNHVoPra9YJDdc6X9S0CRdryjXoTMwMW9NNSzPh/Wy0uK3ydn2vPlywaLhjY9sZr6NW+SdrhyL2ZYBCc2sbbj3CZsINKqElMcRWRlz0eVc2yAy4L20zGQ5KmkfkaQOdip4AYeid3ZFw39qB7xEyK9TOxzLnslgjxs67ZqKCKKZ+FCOiTqyBLnE2daGtjBSoB2RwQV2rBIgeN1wgzeYSieDOH3nRON3fc8n+8mb78OuPkRzrzktny6k6rvPWOXQ+O0fOiSPWfhc2Ck8Lzwp/iuXi8+KLEXR1ZSzhEye3ilt/Ab2mM3M=</latexit>
+
+Episode 1
+1. Sample task
+
+Episode 2
+
+i
+
+tr
+2. Roll-out policy π(a | s, i ) for N episodes
+3. Store sequence in replay buffer for task
+
+i.
+
+(under dynamics pi(s′| s, a) and
+reward ri(s, a))
+
+4. Update policy to maximize discounted return for all tasks.
+𝒟
+
+a1
+
+<latexit sha1_base64="K2m7U0UYLL9lIpgeq/J9VVJNg54=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikiisECFSpEhw4FtGXlA3Rer1OVl0/tDsujdyt+A38NG78FC6IdR5N7ETqDVayPJ75dr7ZzzvjJVJobLd/razeWqtUb6/fqd29d//Bw43NR8c6ThXjRyyWsTr1qOZSRPwIBUp+mihOQ0/yE+/sQx4/OedKizg6xGHCuyHtRyIQjKJ19TbXftRJ1iAhxYEXZNr08CVMv+joS827LCDDbdc0gZhanSQC6g3C/DiH4IAjbVrvNRbqPYL8AjPkGs0skieGPQjGvIzK7KOZIhUVkSkQ4vtluW0drbN3aArlTny1+sEs9aHNkO8cpehhISCaC1BbVwEBl9cEFwV1hnleIImKE4wh6WVjhlJ+05jHXy5JNSXeK26EG+qylcOJEog8gjhFSJSIlfURyQPsANFpaOV4seear1YV15Ty2ZApM24D8bksHwHGPwaEhoh/M01CZTKgAESJ/gC7llLxMD7n9uWnkU8jNvyXos5J2vwPh59cq1FTlKrMD7380kELiGcDN/3jm2SKqCfpVKMFFmPliPszEZcAipezQNaEqysSxIpKWSxq1oSLNRUadC6mRq3pmlIDm3y6jANzTbzb29hq77RHCxYNd2JsOZN10Nv4SfyYpSGPkEmqdcdtJ9jNqELBJLfJU80Tys5on3esGdGQ6242Gp52RlmPD/ak9okQRt75HRkNtR6GnkXmNepyLHcui3VSDN52MxElqe1RNiYKUgn2YueTGHyhOEM5tAZltpMFAzagijK087pmRXDLR140jnd3XGt/frW1/+X7WI5154nzzGk4rvPG2Xc+OQfOkcPWfleeVhqVZuVP9Xl1u9oaQ1dXJhI+dgqr+vovKrg79Q==</latexit>
+
+…
+
+￼
+
+𝒯
+
+𝒯
+
+Black-Box Meta-RL: Algorithm
+
+17
+
+s1 , 0
+<latexit sha1_base64="yrcY6bEuE3B+Refg3BEhWI1cxjU=">AAAGW3icxVRLb9NAEHZLE9pQSluEOHAZUUUk6kMxFxCoEhIcOBapLykbovVmk6y6fmh3XBq57o/kxpkLP4OxkzSxE6k3WMnyeGb2+2Y+76wXaWWx1fq1svporVJ9vL5Re7L5dOvZ9s7muQ1jI+SZCHVoLj1upVaBPEOFWl5GRnLf0/LCu/qcxS+upbEqDE5xFMmOzweB6ivBkVzdnbXbOksazOc49PqJTbt4ANMvnn+ZeRclJLjvpk1gaa3OIgX1BhO9MEvBoUTeJO99LtS7DOUNJigtprNIBgzH0B/zCq6TL+k003AVpAVC/LgMm+o4vPqAaaHcia9WP5lBnxJCtjOH
+sha1_base64="J4dAYlmblTwCBuDeaY9tORmjfzY=">AAAGZnicxVRLb9NAEHZLE9oApQ8hDlxGVBGJ+lCMkECgSpXgwLGIvqRsiNbrTbLq+qHdcWnkuuI3cuPMhZ/BOI8mTiL1BitZHs98O9/M5531Yq0sNhq/lpYfrJTKD1fXKo8eP1l/urG5dWajxAh5KiIdmQuPW6lVKE9RoZYXsZE88LQ89y4/5vHzK2msisIT7MeyFfBuqDpKcCRXe3PlpsrSGgs49rxOarM27sH4iw++zLSLACnuulkdWFapslhBtcaEH+UQ7EnkdfLeYaHaZiivMUVpMZtE8sRwCJ0hr+A6/ZSNkYarMCsQ4odFuamO/cv3mBXKHfkq1eNJ6hPKkO8cpGhjIaDqc1Cqq4CAmzuC64I6/TwvsNhEMUYQt9Mhw0z+rDaNv1mQakx8WNwI99RFlcO5UYgyhChBiI2KDPmYlh1sArNJQHK8OnSzb6SKm83ko1A2y7gLzJd6tgUY/hhQFkL5PaszruMeB2BGdXvYIkojg+hK0stPQp+Hov8vRZ2StP4fmh8dq8FQzFSZN7340ME+MI8C9/3j+2QKuaf5WKM5lozkiLoTERcAioezQFaH21vWiQzXuljUZAjnayoM6FTMDEbTzSpTYXcPGu2NncZBY7Bg3nBHxo4zWsftjZ/Mj0QSyBCF5tY23UaMrZQbVEJLyp9YGXNxybuySWbIA2lb6eCapNuIPD5QT/SECAPv9I6UB9b2A4+QeZl2NpY7F8WaCXbetVIVxglNoxgSdRINdITzOxd8ZaRA3SeDC5pZJUD0uOEC6WaukAjubMvzxtnrA5fsL292jr7+GMqx6rxwXjo1x3XeOkfOZ+fYOXXEyu/SWmmrtF36U14vPys/H0KXl0YSbjuFVYa/2mcyjA==</latexit>
+sha1_base64="ck8pdC+ekZH4nUmSP+ZG7r8lEyk=">AAAB2XicbZDNSgMxFIXv1L86Vq1rN8EiuCozbnQpuHFZwbZCO5RM5k4bmskMyR2hDH0BF25EfC93vo3pz0JbDwQ+zknIvSculLQUBN9ebWd3b/+gfugfNfzjk9Nmo2fz0gjsilzl5jnmFpXU2CVJCp8LgzyLFfbj6f0i77+gsTLXTzQrMMr4WMtUCk7O6oyaraAdLMW2IVxDC9YaNb+GSS7KDDUJxa0dhEFBUcUNSaFw7g9LiwUXUz7GgUPNM7RRtRxzzi6dk7A0N+5oYkv394uKZ9bOstjdzDhN7Ga2MP/LBiWlt1EldVESarH6KC0Vo5wtdmaJNChIzRxwYaSblYkJN1yQa8Z3HYSbG29D77odOn4MoA7ncAFXEMIN3MEDdKALAhJ4hXdv4r15H6uuat66tDP4I+/zBzjGijg=</latexit>
+
+Meta-Training
+1. Sample task
+
+i
+
+tr
+2. Roll-out policy π(a | s, i ) for N episodes
+3. Store sequence in replay buffer for task
+
+i.
+
+(under dynamics pi(s′| s, a) and
+reward ri(s, a))
+
+4. Update policy to maximize discounted return for all tasks.
+Meta-Test Time
+1. Sample new task
+
+j
+
+𝒟
+
+𝒟
+
+tr
+2. Roll-out policy π(a | s, j ) for up to N episodes
+￼
+
+𝒯
+
+𝒯
+
+𝒯
+
+Black-Box Meta-RL: Algorithm
+
+18
+
+Black-Box Meta-RL: Architectures & Optimizers
+RNN architecture TRPO/A3C (similar to PPO)
+
+Attention + 1D conv
+TRPO (similar to PPO)
+Mishra, Rohaninejad, Chen, Abbeel. A
+Simple Neural Attentive Meta-Learner.
+ICLR 2018
+
+Duan, Schulman, Chen, Bartlett, Sutskever, Abbeel. RL2: Fast Reinforcement
+Learning via Slow Reinforcement Learning. 2017
+Wang, Kurth-Nelson, Tirumala, Soyer, Leibo, Munos, Blundell, Kumaran, Botvinick.
+Learning to Reinforcement Learn. CogSci 2017
+
+Feedforward + average SAC (o -policy with replay bu er)
+
+ff
+
+ff
+
+ffi
+
+ff
+
+Rakelly, Zhou, Quillen, Finn, Levine. E cient O -Policy Meta-Reinforcement Learning via Probabilistic Context Variables. ICML 2019.
+
+Meta-RL Example #1
+From: Mishra, Rohaninejad, Chen, Abbeel. A Simple Neural Attentive Meta-Learner. ICLR 2018
+
+Experiment: Learning to visually navigate a maze
+- train on 1000 small mazes
+- test on held-out small mazes and large mazes
+
+20
+
+Meta-RL Example #1
+From: Mishra, Rohaninejad, Chen, Abbeel. A Simple Neural Attentive Meta-Learner. ICLR 2018
+
+Experiment: Learning to visually navigate a maze
+- train on 1000 small mazes
+- test on held-out small mazes and large mazes
+
+21
+
+Meta-RL Example #2
+Qu, Yang, Setlur, Tunstall, Beeching, Salakhutdinov, Kumar. Optimizing Test-Time Compute via Meta Reinforcement Finetuning. ICML 2019.
+
+solving di erent
+Tasks:
+math problems
+
+Explore di erent strategies for solving the problem &
+then produce answer based on best strategy.
+
+DeepSeek R1
+
+Math 500
+
+Key idea: Can we optimize test-time compute?
+ff
+
+ff
+
+22
+
+Higher performance with same # of tokens
+Same accuracy with 1.6x fewer tokens
+
+Digression: Connection to Multi-Task Policies
+multi-task policy: πθ(a | s, zi)
+
+zi: stack location
+
+task identi er zi
+
+zi: walking direction
+
+Multi-task policy with experience as task identi er.
+
+fi
+
+fi
+
+What about goal-conditioned policies?
+- rewards are a strict generalization of goals
+- meta-RL objective is to adapt new tasks vs. generalize to new goals
+(k-shot vs. 0-shot)
+
+Another way to look at it
+a1
+
+a2
+
+<latexit sha1_base64="ZHV0v8dvLV8mwmNaXA6KzcmkB0c=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ75dr7ZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skieGXegXvIzK7KOZIhUVkSkR4vtluW0d26fv0JTKnfgazf1Z6gObId85TuFhKSDaC1BbVwkBF1cE5yV1RnleIImKE4wh8bKCoZLftObxF0tSTYl3yxvhmrps5XCsBCKPIE4REiViZX1E8j52geg0tHI833XNV6uKayr5bMhUGbeABFxWjwDFjwGhIeLfTJtQmQwpAFFiMMSepVQ8jM+4fQVpFNCIjf6lqHOStv/D4SfXatwUlSrzQy+/dLANxLeB6/7xdTJF1Jd0qtECi7FyxIOZiEsA5ctZImvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIG5Jna99c3OTme8YNFwJ8amM1n73vpPEsQsDXmETFKtu24nwV5GFQomuU2eap5QdkoHvGvNiIZc97Lx8LQzynoCsCe1T4Qw9s7vyGio9Sj0LTKvUVdjuXNZrJti/20vE1GS2h5lBVE/lWAvdj6JIRCKM5Qja1BmO1kwYEOqKEM7rxtWBLd65EXj6OWOa+3Przb3vnwv5FhzHjtPnZbjOm+cPeeTs+8cOmz1d+1JrVVr1/7Un9W36tsF9MbKRMJHTmnVX/8FKTQ79A==</latexit>
+
+at
+
+a3
+
+<latexit sha1_base64="K2m7U0UYLL9lIpgeq/J9VVJNg54=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikiisECFSpEhw4FtGXlA3Rer1OVl0/tDsujdyt+A38NG78FC6IdR5N7ETqDVayPJ75dr7ZzzvjJVJobLd/razeWqtUb6/fqd29d//Bw43NR8c6ThXjRyyWsTr1qOZSRPwIBUp+mihOQ0/yE+/sQx4/OedKizg6xGHCuyHtRyIQjKJ19TbXftRJ1iAhxYEXZNr08CVMv+joS827LCDDbdc0gZhanSQC6g3C/DiH4IAjbVrvNRbqPYL8AjPkGs0skieGPQjGvIzK7KOZIhUVkSkQ4vtluW0drbN3aArlTny1+sEs9aHNkO8cpehhISCaC1BbVwEBl9cEFwV1hnleIImKE4wh6WVjhlJ+05jHXy5JNSXeK26EG+qylcOJEog8gjhFSJSIlfURyQPsANFpaOV4seear1YV15Ty2ZApM24D8bksHwHGPwaEhoh/M01CZTKgAESJ/gC7llLxMD7n9uWnkU8jNvyXos5J2vwPh59cq1FTlKrMD7380kELiGcDN/3jm2SKqCfpVKMFFmPliPszEZcAipezQNaEqysSxIpKWSxq1oSLNRUadC6mRq3pmlIDm3y6jANzTbzb29hq77RHCxYNd2JsOZN10Nv4SfyYpSGPkEmqdcdtJ9jNqELBJLfJU80Tys5on3esGdGQ6242Gp52RlmPD/ak9okQRt75HRkNtR6GnkXmNepyLHcui3VSDN52MxElqe1RNiYKUgn2YueTGHyhOEM5tAZltpMFAzagijK087pmRXDLR140jnd3XGt/frW1/+X7WI5154nzzGk4rvPG2Xc+OQfOkcPWfleeVhqVZuVP9Xl1u9oaQ1dXJhI+dgqr+vovKrg79Q==</latexit>
+
+<latexit sha1_base64="01uEX3EyH1JsZXN6ugMPPfpWsMc=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ759pvZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skhPDLvSLvIzK7KOZIhUVkSklxPfLuG0d26fv0JTKnfgazf0Z9YFlyHeOKTwsBUR7AWrrKiHg4irBeUmdUc4LJFFxgjEkXlZkqPCb1jz+YgnVNPFueSNcU5etHI6VQOQRxClCokSsrI9I3scuEJ2GVo7nu675alVxTYXPhkw14xaQgMvqEaD4MSA0RPybaRMqkyEFIEoMhtizKRUP4zNuX0EaBTRio38p6pyk7f9w+Mm1GjdFpcr80MsvHWwD8W3gun98nUwR9SWdarSQxVg54sFMxCWA8uUsJWvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIH50eCtb3Z2OuMFi4Y7MTadydr31n+SIGZpyCNkkmrddTsJ9jKqUDDJLXmqeULZKR3wrjUjGnLdy8bD084o6wnAntQ+EcLYO78jo6HWo9C3yLxGXY3lzmWxbor9t71MRElqe5QVifqpBHux80kMgVCcoRxZgzLbyYIBG1JFGdp53bAiuNUjLxpHL3dca39+tbn35Xshx5rz2HnqtBzXeePsOZ+cfefQYau/a09qrVq79qf+rL5V3y6gN1YmEj5ySqv++i+OwDw3</latexit>
+
+<latexit sha1_base64="mm2Sx8wqXjSEL3tSW0vBs4eAtMs=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikigEBAlWqBAeORfQlZUO03mySVdcP7Y5LI3crfgM/jRs/hQtibSdN7ETqDVayPJ75dr7ZzzvjRVJobLd/razeWKtUb67fqt2+c/fe/Y3NB0c6jBXjhyyUoTrxqOZSBPwQBUp+EilOfU/yY+/0Qxo/PuNKizA4wHHEuz4dBmIgGEXr6m2u/aiTpEF8iiNvkGjTw+cw/aLZl5p3WUCC265pAjG1OokE1BuE9cMUgiOOtGm9V1io9wjyc0yQazSzSJoYdmGQ8zIqk49milRUBKZAiO+X5bZ1tE7foSmUO/HV6vuz1Ac2Q7ozS9HDQkA0F6C2rgICLq4IzgvqjNO8QCIVRhhC1EtyhlJ+05jHXyxJNSXeLW6Ea+qylcOxEog8gDBGiJQIlfURyQfYAaJj38rxbNc1X60qrinlsyFTZtwG0ueyfATIfwwIDQH/ZpqEymhEAYgSwxF2LaXifnjG7asfB30asPG/FHVO0uZ/OPzkWmVNUaoyPfTySwctIJ4NXPePr5MpoJ6kU40WWIyVIxzORFwCKF7OAlkTLi/JIFRUymJRsyZcrKnQoHMxlbWma0oNbNLpkgfmmvhlb2OrvdPOFiwa7sTYciZrv7fxk/RDFvs8QCap1h23HWE3oQoFk9wmjzWPKDulQ96xZkB9rrtJNjztjLKePtiT2idAyLzzOxLqaz32PYtMa9TlWOpcFuvEOHjbTUQQxbZHWU40iCXYi51OYugLxRnKsTUos50sGLARVZShndc1K4JbPvKicfRix7X251dbe1++53KsO4+cJ07DcZ03zp7zydl3Dh229rvyuNKoNCt/qk+r29VWDl1dmUj40Cms6uu/LDw79g==</latexit>
+
+…
+s1 , 0
+<latexit sha1_base64="ck8pdC+ekZH4nUmSP+ZG7r8lEyk=">AAAB2XicbZDNSgMxFIXv1L86Vq1rN8EiuCozbnQpuHFZwbZCO5RM5k4bmskMyR2hDH0BF25EfC93vo3pz0JbDwQ+zknIvSculLQUBN9ebWd3b/+gfugfNfzjk9Nmo2fz0gjsilzl5jnmFpXU2CVJCp8LgzyLFfbj6f0i77+gsTLXTzQrMMr4WMtUCk7O6oyaraAdLMW2IVxDC9YaNb+GSS7KDDUJxa0dhEFBUcUNSaFw7g9LiwUXUz7GgUPNM7RRtRxzzi6dk7A0N+5oYkv394uKZ9bOstjdzDhN7Ga2MP/LBiWlt1EldVESarH6KC0Vo5wtdmaJNChIzRxwYaSblYkJN1yQa8Z3HYSbG29D77odOn4MoA7ncAFXEMIN3MEDdKALAhJ4hXdv4r15H6uuat66tDP4I+/zBzjGijg=</latexit>
+sha1_base64="J4dAYlmblTwCBuDeaY9tORmjfzY=">AAAGZnicxVRLb9NAEHZLE9oApQ8hDlxGVBGJ+lCMkECgSpXgwLGIvqRsiNbrTbLq+qHdcWnkuuI3cuPMhZ/BOI8mTiL1BitZHs98O9/M5531Yq0sNhq/lpYfrJTKD1fXKo8eP1l/urG5dWajxAh5KiIdmQuPW6lVKE9RoZYXsZE88LQ89y4/5vHzK2msisIT7MeyFfBuqDpKcCRXe3PlpsrSGgs49rxOarM27sH4iw++zLSLACnuulkdWFapslhBtcaEH+UQ7EnkdfLeYaHaZiivMUVpMZtE8sRwCJ0hr+A6/ZSNkYarMCsQ4odFuamO/cv3mBXKHfkq1eNJ6hPKkO8cpGhjIaDqc1Cqq4CAmzuC64I6/TwvsNhEMUYQt9Mhw0z+rDaNv1mQakx8WNwI99RFlcO5UYgyhChBiI2KDPmYlh1sArNJQHK8OnSzb6SKm83ko1A2y7gLzJd6tgUY/hhQFkL5PaszruMeB2BGdXvYIkojg+hK0stPQp+Hov8vRZ2StP4fmh8dq8FQzFSZN7340ME+MI8C9/3j+2QKuaf5WKM5lozkiLoTERcAioezQFaH21vWiQzXuljUZAjnayoM6FTMDEbTzSpTYXcPGu2NncZBY7Bg3nBHxo4zWsftjZ/Mj0QSyBCF5tY23UaMrZQbVEJLyp9YGXNxybuySWbIA2lb6eCapNuIPD5QT/SECAPv9I6UB9b2A4+QeZl2NpY7F8WaCXbetVIVxglNoxgSdRINdITzOxd8ZaRA3SeDC5pZJUD0uOEC6WaukAjubMvzxtnrA5fsL292jr7+GMqx6rxwXjo1x3XeOkfOZ+fYOXXEyu/SWmmrtF36U14vPys/H0KXl0YSbjuFVYa/2mcyjA==</latexit>
+sha1_base64="SqJUGX4STG7MfeygDCHgqoQtY9A=">AAAGZnicxVRLb9NAEHZLE9oAfQpx4DKiikjUh2IuIFClSnDgWERfUjZE6806WXX90O64NHJd8Ru5cebCz2CcRxMnkXqDlSyPZ76db+bzznqxVhYbjV9Ly49WSuXHq2uVJ0+frW9sbm2f2ygxQp6JSEfm0uNWahXKM1So5WVsJA88LS+8q495/OJaGqui8BT7sWwFvBsqXwmO5GpvrdxWWVpjAcee56c2a+M+jL/44MtMuwiQ4p6b1YFllSqLFVRrTHSiHII9ibxO3nssVNsM5Q2mKC1mk0ieGI7AH/IKrtNP2RhpuAqzAiF+WJSb6ji4eo9ZodyRr1I9maQ+pQz5zkGKNhYCqj4HpboKCLi9J7gpqNPP8wKLTRRjBHE7HTLM5M9q0/jbBanGxEfFjfBAXVQ5XBiFKEOIEoTYqMiQj2npYxOYTQKS4/WRm30jVdxsJh+FslnGPWAdqWdbgOGPAWUhlN+zOuM67nEAZlS3hy2iNDKIriW9OknY4aHo/0tRpySt/4fmR8dqMBQzVeZNLz50cADMo8BD//ghmULuaT7WaI4lIzmi7kTEBYDi4SyQ1eHujvmR4VoXi5oM4XxNhQGdipnBaLpZZSrs7kOjvbnbOGwMFswb7sjYdUbrpL35k3UikQQyRKG5tU23EWMr5QaV0JLyJ1bGXFzxrmySGfJA2lY6uCbpNiJPB6gnekKEgXd6R8oDa/uBR8i8TDsby52LYs0E/XetVIVxQtMohkR+ooGOcH7nQkcZKVD3yeCCZlYJED1uuEC6mSskgjvb8rxx/ubQJftLY/f464+hHKvOS+eVU3Nc561z7Hx2TpwzR6z8Lq2Vtks7pT/l9fLz8oshdHlpJOGOU1hl+AvZJzKI</latexit>
+sha1_base64="yrcY6bEuE3B+Refg3BEhWI1cxjU=">AAAGW3icxVRLb9NAEHZLE9pQSluEOHAZUUUk6kMxFxCoEhIcOBapLykbovVmk6y6fmh3XBq57o/kxpkLP4OxkzSxE6k3WMnyeGb2+2Y+76wXaWWx1fq1svporVJ9vL5Re7L5dOvZ9s7muQ1jI+SZCHVoLj1upVaBPEOFWl5GRnLf0/LCu/qcxS+upbEqDE5xFMmOzweB6ivBkVzdnbXbOksazOc49PqJTbt4ANMvnn+ZeRclJLjvpk1gaa3OIgX1BhO9MEvBoUTeJO99LtS7DOUNJigtprNIBgzH0B/zCq6TL+k003AVpAVC/LgMm+o4vPqAaaHcia9WP5lBnxJCtjOH6GIhoJoLqVRXIQNu7wluCuqMMlxgkQkjDCHqJmOGEn7amM+/XQI1JT4uboQH6qLK4cIoRBlAGCNERoWGfEzLPraB2dgnOd4cu+l3UsVNS3gUSsuM+8B6UpdbgPGPAWUhkD/SJuM6GnIAZtRgiB2iNNIPryW9enHQ44EY/UtR5yRt/ofmJ8cqH4pSlVnTyw8dHALzKPDQP35IpoB7mk81WmBJSY5wMBNxSULxcBbImnB3x/qh4VoXi5oN4WJNhQGdi5l8NN20Nhd2D6DV3d5rHbXyBYuGOzH2nMk66W7/ZL1QxL4MUGhubdttRdhJuEEltCT82MqIiys+kG0yA+5L20nya5JuI/L0gHqiJ0DIvfM7Eu5bO/I9yszKtOVY5lwWa8fYf99JVBDFNI1iTNSPNdARzu5c6CkjBeoRGVzQzCoBYsgNF0g3c41EcMstLxrnb49csr+1nHXnlfPaaTiu88755Hx1TpwzR6z9rmxUdivPK3+qW9UXY7lWVya67TqFVX35F2F8MSU=</latexit>
+
+s2 , r1
+<latexit sha1_base64="btbHCfPUqYArHKJYv47MV26n95A=">AAAGaHicxVRbaxNBFN7WJtbUS+oFEV8OLcGE2pItgqIUCvrgY8XeIBPD7GSSDJm9MHO2Nmy3+Bt98wf44q/wbC5NNgn0TQeWPXvON+c78+2c40VaWazXf62s3lkrFO+u3ytt3H/w8FF58/GpDWMj5IkIdWjOPW6lVoE8QYVankdGct/T8szrf8ziZxfSWBUGxziIZNPn3UB1lOBIrtbm2nWFJVXmc+x5ncSmLXwNky8+/DKzLgIkuOOmNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpNJIlhgPojHgF18mndII0XAVpjhA/LMtNdez232OaK3fsK1WOpqmPKUO2c5iihbmAqi1Aqa4cAq5uCC5z6gyyvMAiE0YYQtRKRgxz+dPqLP5qSaoJ8UF+I9xSF1UOZ0YhygDCGCEyKjTkY1p2sAHMxj7J8erATb+RKm46l49C6TzjDrC21PNHgNGPAWUhkN/TGuM66nEAZlS3h02iNNIPLyS92nHQ5oEY/EtRZySt/YfDj6/VsCnmqswOvfzSwS4wjwK3/ePbZAq4p/lEowWWlOQIu1MRlwDylzNHVoPra9YJDdc6X9S0CRdryjXoTMwMW9NNSzPh/Wy0uK3ydn2vPlywaLhjY9sZr6NW+SdrhyL2ZYBCc2sbbj3CZsINKqElMcRWRlz0eVc2yAy4L20zGQ5KmkfkaQOdip4AYeid3ZFw39qB7xEyK9TOxzLnslgjxs67ZqKCKKZ+FCOiTqyBLnE2daGtjBSoB2RwQV2rBIgeN1wgzeYSieDOH3nRON3fc8n+8mb78OuPkRzrzktny6k6rvPWOXQ+O0fOiSPWfhc2Ck8Lzwp/iuXi8+KLEXR1ZSzhEye3ilt/Ab2mM3M=</latexit>
+
+s3 , r2
+<latexit sha1_base64="JhLj964/MxQ6bk12MZPunj3XdKk=">AAAGaHicxVTbbtNAEHVLE0oKNOUihHgZtYpIVFrFBQkEqlQJHngsojcpG6L1ZpOsur5od1waua74Rt74AF74Csa5NHESqW+wkuXxzNk5s8c740VaWazXfy0t31kpFO+u3iut3X/wcL288ejEhrER8liEOjRnHrdSq0Aeo0ItzyIjue9peeqdf8zipxfSWBUGR9iPZNPn3UB1lOBIrtbGynWFJVXmc+x5ncSmLXwF4y8++DLTLgIkuO2mNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpJJIlhn3oDHkF18mndIw0XAVpjhA/LMpNdeycv8c0V+7IV6ocTlIfUYZs5yBFC3MBVZuDUl05BFzdEFzm1OlneYFFJowwhKiVDBlm8qfVafzVglRj4v38RrilLqocTo1ClAGEMUJkVGjIx7TsYAOYjX2S4+W+m34jVdx0Jh+F0lnGbWBtqWePAMMfA8pCIL+nNcZ11OMAzKhuD5tEaaQfXkh6teOgzQPR/5eiTkla+w+HH12rQVPMVJkdevGlgx1gHgVu+8e3yRRwT/OxRnMsKckRdiciLgDkL2eOrAbX16wTGq51vqhJE87XlGvQqZgZtKablqbCr7PRstcqb9V364MF84Y7Mrac0TpslX+ydihiXwYoNLe24dYjbCbcoBJaEkNsZcTFOe/KBpkB96VtJoNBSfOIPG2gU9ETIAy80zsS7lvb9z1CZoXa2VjmXBRrxNh510xUEMXUj2JI1Ik10CXOpi60lZECdZ8MLqhrlQDR44YLpNlcIhHc2SPPGyd7uy7ZX95sHXz9MZRj1XnhbDpVx3XeOgfOZ+fQOXbEyu/CWuFJ4WnhT7FcfFZ8PoQuL40kfOzkVnHzL8CzM3U=</latexit>
+
+st , rt 1
+<latexit sha1_base64="ouwoGB/cY8bcc/q52xQDb6Zqhcc=">AAAGbnicxVRLb9NAEHZLE0p4tAWJAxViRBWRqLSKERIIVKkSHDgW0ZeUDdZ6s05WXT+0Oy6N3K048Au58Ru48BNYO0kTJ5F6g5Usj2e+nW/28874iRQaW61fS8u3VirV26t3anfv3X+wtr7x8FjHqWL8iMUyVqc+1VyKiB+hQMlPE8Vp6Et+4p99yOMn51xpEUeHOEh4J6S9SASCUbQub2PlR51kDRJS7PtBpo2HL2H8RYsvNe2ygAy3XdMEYmp1kgioNwjrxjkE+xxp03qvsVD3CPILzJBrNJNInhj2IBjyMiqzj2aMVFREpkSI7xfltnXsnL1DUyp35KvVDyapD22GfGeRwsNSQDTnoLauEgIurwkuSuoM8rxAEhUnGEPiZUOGmfymMY2/XJBqTLxX3gg31GUrhxMlEHkEcYqQKBEr6yOSB9gGotPQyvFizzVfrSqumclnQ2aWcRtIl8vZI8Dwx4DQEPFvpkmoTPoUgCjR62PHUioexufcvrpp1KURG/xLUackbf6Hw4+uVdEUM1Xmh1586WAHiG8DN/3jm2SKqC/pWKM5FmPliHsTERcAypezRNaEqysSxIpKWS5q0oTzNZUadCqmitZ0Ta3UvyYfLoXfW99q7baKBfOGOzK2nNE68NZ/km7M0pBHyCTVuu22EuxkVKFgklueVPOEsjPa421rRjTkupMV49JOJevpgj2bfSKEwju9I6Oh1oPQt8i8XD0by52LYu0Ug7edTERJaruSDYmCVIK9yvnsha5QnKEcWIMy27uCAetTRRnaCV2zIrizR543jl/tutb+/Hpr/8v3oRyrzqbz3Gk4rvPG2Xc+OQfOkcNWflc2Kk8qm5U/1cfVp9VnQ+jy0kjCR05pVRt/Af64NoI=</latexit>
+
+When zi isn’t in the state, there’s ambiguity about the MDP.
+Policy needs to infer zi from its experience.
+
+What information is passed here?
+
+Another way to look at it
+a1
+
+a2
+
+<latexit sha1_base64="ZHV0v8dvLV8mwmNaXA6KzcmkB0c=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ75dr7ZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skieGXegXvIzK7KOZIhUVkSkR4vtluW0d26fv0JTKnfgazf1Z6gObId85TuFhKSDaC1BbVwkBF1cE5yV1RnleIImKE4wh8bKCoZLftObxF0tSTYl3yxvhmrps5XCsBCKPIE4REiViZX1E8j52geg0tHI833XNV6uKayr5bMhUGbeABFxWjwDFjwGhIeLfTJtQmQwpAFFiMMSepVQ8jM+4fQVpFNCIjf6lqHOStv/D4SfXatwUlSrzQy+/dLANxLeB6/7xdTJF1Jd0qtECi7FyxIOZiEsA5ctZImvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIG5Jna99c3OTme8YNFwJ8amM1n73vpPEsQsDXmETFKtu24nwV5GFQomuU2eap5QdkoHvGvNiIZc97Lx8LQzynoCsCe1T4Qw9s7vyGio9Sj0LTKvUVdjuXNZrJti/20vE1GS2h5lBVE/lWAvdj6JIRCKM5Qja1BmO1kwYEOqKEM7rxtWBLd65EXj6OWOa+3Przb3vnwv5FhzHjtPnZbjOm+cPeeTs+8cOmz1d+1JrVVr1/7Un9W36tsF9MbKRMJHTmnVX/8FKTQ79A==</latexit>
+
+at
+
+a3
+
+<latexit sha1_base64="K2m7U0UYLL9lIpgeq/J9VVJNg54=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikiisECFSpEhw4FtGXlA3Rer1OVl0/tDsujdyt+A38NG78FC6IdR5N7ETqDVayPJ75dr7ZzzvjJVJobLd/razeWqtUb6/fqd29d//Bw43NR8c6ThXjRyyWsTr1qOZSRPwIBUp+mihOQ0/yE+/sQx4/OedKizg6xGHCuyHtRyIQjKJ19TbXftRJ1iAhxYEXZNr08CVMv+joS827LCDDbdc0gZhanSQC6g3C/DiH4IAjbVrvNRbqPYL8AjPkGs0skieGPQjGvIzK7KOZIhUVkSkQ4vtluW0drbN3aArlTny1+sEs9aHNkO8cpehhISCaC1BbVwEBl9cEFwV1hnleIImKE4wh6WVjhlJ+05jHXy5JNSXeK26EG+qylcOJEog8gjhFSJSIlfURyQPsANFpaOV4seear1YV15Ty2ZApM24D8bksHwHGPwaEhoh/M01CZTKgAESJ/gC7llLxMD7n9uWnkU8jNvyXos5J2vwPh59cq1FTlKrMD7380kELiGcDN/3jm2SKqCfpVKMFFmPliPszEZcAipezQNaEqysSxIpKWSxq1oSLNRUadC6mRq3pmlIDm3y6jANzTbzb29hq77RHCxYNd2JsOZN10Nv4SfyYpSGPkEmqdcdtJ9jNqELBJLfJU80Tys5on3esGdGQ6242Gp52RlmPD/ak9okQRt75HRkNtR6GnkXmNepyLHcui3VSDN52MxElqe1RNiYKUgn2YueTGHyhOEM5tAZltpMFAzagijK087pmRXDLR140jnd3XGt/frW1/+X7WI5154nzzGk4rvPG2Xc+OQfOkcPWfleeVhqVZuVP9Xl1u9oaQ1dXJhI+dgqr+vovKrg79Q==</latexit>
+
+<latexit sha1_base64="01uEX3EyH1JsZXN6ugMPPfpWsMc=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ759pvZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skhPDLvSLvIzK7KOZIhUVkSklxPfLuG0d26fv0JTKnfgazf0Z9YFlyHeOKTwsBUR7AWrrKiHg4irBeUmdUc4LJFFxgjEkXlZkqPCb1jz+YgnVNPFueSNcU5etHI6VQOQRxClCokSsrI9I3scuEJ2GVo7nu675alVxTYXPhkw14xaQgMvqEaD4MSA0RPybaRMqkyEFIEoMhtizKRUP4zNuX0EaBTRio38p6pyk7f9w+Mm1GjdFpcr80MsvHWwD8W3gun98nUwR9SWdarSQxVg54sFMxCWA8uUsJWvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIH50eCtb3Z2OuMFi4Y7MTadydr31n+SIGZpyCNkkmrddTsJ9jKqUDDJLXmqeULZKR3wrjUjGnLdy8bD084o6wnAntQ+EcLYO78jo6HWo9C3yLxGXY3lzmWxbor9t71MRElqe5QVifqpBHux80kMgVCcoRxZgzLbyYIBG1JFGdp53bAiuNUjLxpHL3dca39+tbn35Xshx5rz2HnqtBzXeePsOZ+cfefQYau/a09qrVq79qf+rL5V3y6gN1YmEj5ySqv++i+OwDw3</latexit>
+
+<latexit sha1_base64="mm2Sx8wqXjSEL3tSW0vBs4eAtMs=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikigEBAlWqBAeORfQlZUO03mySVdcP7Y5LI3crfgM/jRs/hQtibSdN7ETqDVayPJ75dr7ZzzvjRVJobLd/razeWKtUb67fqt2+c/fe/Y3NB0c6jBXjhyyUoTrxqOZSBPwQBUp+EilOfU/yY+/0Qxo/PuNKizA4wHHEuz4dBmIgGEXr6m2u/aiTpEF8iiNvkGjTw+cw/aLZl5p3WUCC265pAjG1OokE1BuE9cMUgiOOtGm9V1io9wjyc0yQazSzSJoYdmGQ8zIqk49milRUBKZAiO+X5bZ1tE7foSmUO/HV6vuz1Ac2Q7ozS9HDQkA0F6C2rgICLq4IzgvqjNO8QCIVRhhC1EtyhlJ+05jHXyxJNSXeLW6Ea+qylcOxEog8gDBGiJQIlfURyQfYAaJj38rxbNc1X60qrinlsyFTZtwG0ueyfATIfwwIDQH/ZpqEymhEAYgSwxF2LaXifnjG7asfB30asPG/FHVO0uZ/OPzkWmVNUaoyPfTySwctIJ4NXPePr5MpoJ6kU40WWIyVIxzORFwCKF7OAlkTLi/JIFRUymJRsyZcrKnQoHMxlbWma0oNbNLpkgfmmvhlb2OrvdPOFiwa7sTYciZrv7fxk/RDFvs8QCap1h23HWE3oQoFk9wmjzWPKDulQ96xZkB9rrtJNjztjLKePtiT2idAyLzzOxLqaz32PYtMa9TlWOpcFuvEOHjbTUQQxbZHWU40iCXYi51OYugLxRnKsTUos50sGLARVZShndc1K4JbPvKicfRix7X251dbe1++53KsO4+cJ07DcZ03zp7zydl3Dh229rvyuNKoNCt/qk+r29VWDl1dmUj40Cms6uu/LDw79g==</latexit>
+
+zî
+s1 , 0
+<latexit sha1_base64="ck8pdC+ekZH4nUmSP+ZG7r8lEyk=">AAAB2XicbZDNSgMxFIXv1L86Vq1rN8EiuCozbnQpuHFZwbZCO5RM5k4bmskMyR2hDH0BF25EfC93vo3pz0JbDwQ+zknIvSculLQUBN9ebWd3b/+gfugfNfzjk9Nmo2fz0gjsilzl5jnmFpXU2CVJCp8LgzyLFfbj6f0i77+gsTLXTzQrMMr4WMtUCk7O6oyaraAdLMW2IVxDC9YaNb+GSS7KDDUJxa0dhEFBUcUNSaFw7g9LiwUXUz7GgUPNM7RRtRxzzi6dk7A0N+5oYkv394uKZ9bOstjdzDhN7Ga2MP/LBiWlt1EldVESarH6KC0Vo5wtdmaJNChIzRxwYaSblYkJN1yQa8Z3HYSbG29D77odOn4MoA7ncAFXEMIN3MEDdKALAhJ4hXdv4r15H6uuat66tDP4I+/zBzjGijg=</latexit>
+sha1_base64="J4dAYlmblTwCBuDeaY9tORmjfzY=">AAAGZnicxVRLb9NAEHZLE9oApQ8hDlxGVBGJ+lCMkECgSpXgwLGIvqRsiNbrTbLq+qHdcWnkuuI3cuPMhZ/BOI8mTiL1BitZHs98O9/M5531Yq0sNhq/lpYfrJTKD1fXKo8eP1l/urG5dWajxAh5KiIdmQuPW6lVKE9RoZYXsZE88LQ89y4/5vHzK2msisIT7MeyFfBuqDpKcCRXe3PlpsrSGgs49rxOarM27sH4iw++zLSLACnuulkdWFapslhBtcaEH+UQ7EnkdfLeYaHaZiivMUVpMZtE8sRwCJ0hr+A6/ZSNkYarMCsQ4odFuamO/cv3mBXKHfkq1eNJ6hPKkO8cpGhjIaDqc1Cqq4CAmzuC64I6/TwvsNhEMUYQt9Mhw0z+rDaNv1mQakx8WNwI99RFlcO5UYgyhChBiI2KDPmYlh1sArNJQHK8OnSzb6SKm83ko1A2y7gLzJd6tgUY/hhQFkL5PaszruMeB2BGdXvYIkojg+hK0stPQp+Hov8vRZ2StP4fmh8dq8FQzFSZN7340ME+MI8C9/3j+2QKuaf5WKM5lozkiLoTERcAioezQFaH21vWiQzXuljUZAjnayoM6FTMDEbTzSpTYXcPGu2NncZBY7Bg3nBHxo4zWsftjZ/Mj0QSyBCF5tY23UaMrZQbVEJLyp9YGXNxybuySWbIA2lb6eCapNuIPD5QT/SECAPv9I6UB9b2A4+QeZl2NpY7F8WaCXbetVIVxglNoxgSdRINdITzOxd8ZaRA3SeDC5pZJUD0uOEC6WaukAjubMvzxtnrA5fsL292jr7+GMqx6rxwXjo1x3XeOkfOZ+fYOXXEyu/SWmmrtF36U14vPys/H0KXl0YSbjuFVYa/2mcyjA==</latexit>
+sha1_base64="SqJUGX4STG7MfeygDCHgqoQtY9A=">AAAGZnicxVRLb9NAEHZLE9oAfQpx4DKiikjUh2IuIFClSnDgWERfUjZE6806WXX90O64NHJd8Ru5cebCz2CcRxMnkXqDlSyPZ76db+bzznqxVhYbjV9Ly49WSuXHq2uVJ0+frW9sbm2f2ygxQp6JSEfm0uNWahXKM1So5WVsJA88LS+8q495/OJaGqui8BT7sWwFvBsqXwmO5GpvrdxWWVpjAcee56c2a+M+jL/44MtMuwiQ4p6b1YFllSqLFVRrTHSiHII9ibxO3nssVNsM5Q2mKC1mk0ieGI7AH/IKrtNP2RhpuAqzAiF+WJSb6ji4eo9ZodyRr1I9maQ+pQz5zkGKNhYCqj4HpboKCLi9J7gpqNPP8wKLTRRjBHE7HTLM5M9q0/jbBanGxEfFjfBAXVQ5XBiFKEOIEoTYqMiQj2npYxOYTQKS4/WRm30jVdxsJh+FslnGPWAdqWdbgOGPAWUhlN+zOuM67nEAZlS3hy2iNDKIriW9OknY4aHo/0tRpySt/4fmR8dqMBQzVeZNLz50cADMo8BD//ghmULuaT7WaI4lIzmi7kTEBYDi4SyQ1eHujvmR4VoXi5oM4XxNhQGdipnBaLpZZSrs7kOjvbnbOGwMFswb7sjYdUbrpL35k3UikQQyRKG5tU23EWMr5QaV0JLyJ1bGXFzxrmySGfJA2lY6uCbpNiJPB6gnekKEgXd6R8oDa/uBR8i8TDsby52LYs0E/XetVIVxQtMohkR+ooGOcH7nQkcZKVD3yeCCZlYJED1uuEC6mSskgjvb8rxx/ubQJftLY/f464+hHKvOS+eVU3Nc561z7Hx2TpwzR6z8Lq2Vtks7pT/l9fLz8oshdHlpJOGOU1hl+AvZJzKI</latexit>
+sha1_base64="yrcY6bEuE3B+Refg3BEhWI1cxjU=">AAAGW3icxVRLb9NAEHZLE9pQSluEOHAZUUUk6kMxFxCoEhIcOBapLykbovVmk6y6fmh3XBq57o/kxpkLP4OxkzSxE6k3WMnyeGb2+2Y+76wXaWWx1fq1svporVJ9vL5Re7L5dOvZ9s7muQ1jI+SZCHVoLj1upVaBPEOFWl5GRnLf0/LCu/qcxS+upbEqDE5xFMmOzweB6ivBkVzdnbXbOksazOc49PqJTbt4ANMvnn+ZeRclJLjvpk1gaa3OIgX1BhO9MEvBoUTeJO99LtS7DOUNJigtprNIBgzH0B/zCq6TL+k003AVpAVC/LgMm+o4vPqAaaHcia9WP5lBnxJCtjOH6GIhoJoLqVRXIQNu7wluCuqMMlxgkQkjDCHqJmOGEn7amM+/XQI1JT4uboQH6qLK4cIoRBlAGCNERoWGfEzLPraB2dgnOd4cu+l3UsVNS3gUSsuM+8B6UpdbgPGPAWUhkD/SJuM6GnIAZtRgiB2iNNIPryW9enHQ44EY/UtR5yRt/ofmJ8cqH4pSlVnTyw8dHALzKPDQP35IpoB7mk81WmBJSY5wMBNxSULxcBbImnB3x/qh4VoXi5oN4WJNhQGdi5l8NN20Nhd2D6DV3d5rHbXyBYuGOzH2nMk66W7/ZL1QxL4MUGhubdttRdhJuEEltCT82MqIiys+kG0yA+5L20nya5JuI/L0gHqiJ0DIvfM7Eu5bO/I9yszKtOVY5lwWa8fYf99JVBDFNI1iTNSPNdARzu5c6CkjBeoRGVzQzCoBYsgNF0g3c41EcMstLxrnb49csr+1nHXnlfPaaTiu88755Hx1TpwzR6z9rmxUdivPK3+qW9UXY7lWVya67TqFVX35F2F8MSU=</latexit>
+
+s2 , r1
+<latexit sha1_base64="btbHCfPUqYArHKJYv47MV26n95A=">AAAGaHicxVRbaxNBFN7WJtbUS+oFEV8OLcGE2pItgqIUCvrgY8XeIBPD7GSSDJm9MHO2Nmy3+Bt98wf44q/wbC5NNgn0TQeWPXvON+c78+2c40VaWazXf62s3lkrFO+u3ytt3H/w8FF58/GpDWMj5IkIdWjOPW6lVoE8QYVankdGct/T8szrf8ziZxfSWBUGxziIZNPn3UB1lOBIrtbm2nWFJVXmc+x5ncSmLXwNky8+/DKzLgIkuOOmNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpNJIlhgPojHgF18mndII0XAVpjhA/LMtNdez232OaK3fsK1WOpqmPKUO2c5iihbmAqi1Aqa4cAq5uCC5z6gyyvMAiE0YYQtRKRgxz+dPqLP5qSaoJ8UF+I9xSF1UOZ0YhygDCGCEyKjTkY1p2sAHMxj7J8erATb+RKm46l49C6TzjDrC21PNHgNGPAWUhkN/TGuM66nEAZlS3h02iNNIPLyS92nHQ5oEY/EtRZySt/YfDj6/VsCnmqswOvfzSwS4wjwK3/ePbZAq4p/lEowWWlOQIu1MRlwDylzNHVoPra9YJDdc6X9S0CRdryjXoTMwMW9NNSzPh/Wy0uK3ydn2vPlywaLhjY9sZr6NW+SdrhyL2ZYBCc2sbbj3CZsINKqElMcRWRlz0eVc2yAy4L20zGQ5KmkfkaQOdip4AYeid3ZFw39qB7xEyK9TOxzLnslgjxs67ZqKCKKZ+FCOiTqyBLnE2daGtjBSoB2RwQV2rBIgeN1wgzeYSieDOH3nRON3fc8n+8mb78OuPkRzrzktny6k6rvPWOXQ+O0fOiSPWfhc2Ck8Lzwp/iuXi8+KLEXR1ZSzhEye3ilt/Ab2mM3M=</latexit>
+
+zî
+
+s3 , r2
+<latexit sha1_base64="JhLj964/MxQ6bk12MZPunj3XdKk=">AAAGaHicxVTbbtNAEHVLE0oKNOUihHgZtYpIVFrFBQkEqlQJHngsojcpG6L1ZpOsur5od1waua74Rt74AF74Csa5NHESqW+wkuXxzNk5s8c740VaWazXfy0t31kpFO+u3iut3X/wcL288ejEhrER8liEOjRnHrdSq0Aeo0ItzyIjue9peeqdf8zipxfSWBUGR9iPZNPn3UB1lOBIrtbGynWFJVXmc+x5ncSmLXwF4y8++DLTLgIkuO2mNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpJJIlhn3oDHkF18mndIw0XAVpjhA/LMpNdeycv8c0V+7IV6ocTlIfUYZs5yBFC3MBVZuDUl05BFzdEFzm1OlneYFFJowwhKiVDBlm8qfVafzVglRj4v38RrilLqocTo1ClAGEMUJkVGjIx7TsYAOYjX2S4+W+m34jVdx0Jh+F0lnGbWBtqWePAMMfA8pCIL+nNcZ11OMAzKhuD5tEaaQfXkh6teOgzQPR/5eiTkla+w+HH12rQVPMVJkdevGlgx1gHgVu+8e3yRRwT/OxRnMsKckRdiciLgDkL2eOrAbX16wTGq51vqhJE87XlGvQqZgZtKablqbCr7PRstcqb9V364MF84Y7Mrac0TpslX+ydihiXwYoNLe24dYjbCbcoBJaEkNsZcTFOe/KBpkB96VtJoNBSfOIPG2gU9ETIAy80zsS7lvb9z1CZoXa2VjmXBRrxNh510xUEMXUj2JI1Ik10CXOpi60lZECdZ8MLqhrlQDR44YLpNlcIhHc2SPPGyd7uy7ZX95sHXz9MZRj1XnhbDpVx3XeOgfOZ+fQOXbEyu/CWuFJ4WnhT7FcfFZ8PoQuL40kfOzkVnHzL8CzM3U=</latexit>
+
+st , rt 1
+<latexit sha1_base64="ouwoGB/cY8bcc/q52xQDb6Zqhcc=">AAAGbnicxVRLb9NAEHZLE0p4tAWJAxViRBWRqLSKERIIVKkSHDgW0ZeUDdZ6s05WXT+0Oy6N3K048Au58Ru48BNYO0kTJ5F6g5Usj2e+nW/28874iRQaW61fS8u3VirV26t3anfv3X+wtr7x8FjHqWL8iMUyVqc+1VyKiB+hQMlPE8Vp6Et+4p99yOMn51xpEUeHOEh4J6S9SASCUbQub2PlR51kDRJS7PtBpo2HL2H8RYsvNe2ygAy3XdMEYmp1kgioNwjrxjkE+xxp03qvsVD3CPILzJBrNJNInhj2IBjyMiqzj2aMVFREpkSI7xfltnXsnL1DUyp35KvVDyapD22GfGeRwsNSQDTnoLauEgIurwkuSuoM8rxAEhUnGEPiZUOGmfymMY2/XJBqTLxX3gg31GUrhxMlEHkEcYqQKBEr6yOSB9gGotPQyvFizzVfrSqumclnQ2aWcRtIl8vZI8Dwx4DQEPFvpkmoTPoUgCjR62PHUioexufcvrpp1KURG/xLUackbf6Hw4+uVdEUM1Xmh1586WAHiG8DN/3jm2SKqC/pWKM5FmPliHsTERcAypezRNaEqysSxIpKWS5q0oTzNZUadCqmitZ0Ta3UvyYfLoXfW99q7baKBfOGOzK2nNE68NZ/km7M0pBHyCTVuu22EuxkVKFgklueVPOEsjPa421rRjTkupMV49JOJevpgj2bfSKEwju9I6Oh1oPQt8i8XD0by52LYu0Ug7edTERJaruSDYmCVIK9yvnsha5QnKEcWIMy27uCAetTRRnaCV2zIrizR543jl/tutb+/Hpr/8v3oRyrzqbz3Gk4rvPG2Xc+OQfOkcNWflc2Kk8qm5U/1cfVp9VnQ+jy0kjCR05pVRt/Af64NoI=</latexit>
+
+When zi isn’t in the state, there’s ambiguity about the MDP.
+Policy needs to infer zi from its experience.
+
+Meta-RL as exploring to infer the unknown task, and then performing the task.
+A special kind of partially observed Markov decision process (POMDP)
+
+Meta-RL Example #3
+Rakelly, Zhou, Quillen, Finn, Levine. E cient O -Policy Meta-Reinforcement Learning via Probabilistic Context Variables. ICML 2019.
+
+Experiment: Continuous control problems
+
+-
+
+di erent directions, velocities
+di erent physical dynamics
+
+Meta-RL algos are very e cient at new tasks.
+But, what about meta-training e ciency?
+Question: Do you expect o -policy meta-RL to be
+more or less e cient than on-policy meta-RL?
+ff
+
+ffi
+
+ffi
+
+ff
+
+ffi
+
+ffi
+
+ff
+
+ff
+
+26
+
+Black-box:
+Opt-based:
+
+Summary So Far
+a1
+
+a2
+
+<latexit sha1_base64="ZHV0v8dvLV8mwmNaXA6KzcmkB0c=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ75dr7ZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skieGXegXvIzK7KOZIhUVkSkR4vtluW0d26fv0JTKnfgazf1Z6gObId85TuFhKSDaC1BbVwkBF1cE5yV1RnleIImKE4wh8bKCoZLftObxF0tSTYl3yxvhmrps5XCsBCKPIE4REiViZX1E8j52geg0tHI833XNV6uKayr5bMhUGbeABFxWjwDFjwGhIeLfTJtQmQwpAFFiMMSepVQ8jM+4fQVpFNCIjf6lqHOStv/D4SfXatwUlSrzQy+/dLANxLeB6/7xdTJF1Jd0qtECi7FyxIOZiEsA5ctZImvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIG5Jna99c3OTme8YNFwJ8amM1n73vpPEsQsDXmETFKtu24nwV5GFQomuU2eap5QdkoHvGvNiIZc97Lx8LQzynoCsCe1T4Qw9s7vyGio9Sj0LTKvUVdjuXNZrJti/20vE1GS2h5lBVE/lWAvdj6JIRCKM5Qja1BmO1kwYEOqKEM7rxtWBLd65EXj6OWOa+3Przb3vnwv5FhzHjtPnZbjOm+cPeeTs+8cOmz1d+1JrVVr1/7Un9W36tsF9MbKRMJHTmnVX/8FKTQ79A==</latexit>
+
+at
+
+a3
+
+<latexit sha1_base64="K2m7U0UYLL9lIpgeq/J9VVJNg54=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikiisECFSpEhw4FtGXlA3Rer1OVl0/tDsujdyt+A38NG78FC6IdR5N7ETqDVayPJ75dr7ZzzvjJVJobLd/razeWqtUb6/fqd29d//Bw43NR8c6ThXjRyyWsTr1qOZSRPwIBUp+mihOQ0/yE+/sQx4/OedKizg6xGHCuyHtRyIQjKJ19TbXftRJ1iAhxYEXZNr08CVMv+joS827LCDDbdc0gZhanSQC6g3C/DiH4IAjbVrvNRbqPYL8AjPkGs0skieGPQjGvIzK7KOZIhUVkSkQ4vtluW0drbN3aArlTny1+sEs9aHNkO8cpehhISCaC1BbVwEBl9cEFwV1hnleIImKE4wh6WVjhlJ+05jHXy5JNSXeK26EG+qylcOJEog8gjhFSJSIlfURyQPsANFpaOV4seear1YV15Ty2ZApM24D8bksHwHGPwaEhoh/M01CZTKgAESJ/gC7llLxMD7n9uWnkU8jNvyXos5J2vwPh59cq1FTlKrMD7380kELiGcDN/3jm2SKqCfpVKMFFmPliPszEZcAipezQNaEqysSxIpKWSxq1oSLNRUadC6mRq3pmlIDm3y6jANzTbzb29hq77RHCxYNd2JsOZN10Nv4SfyYpSGPkEmqdcdtJ9jNqELBJLfJU80Tys5on3esGdGQ6242Gp52RlmPD/ak9okQRt75HRkNtR6GnkXmNepyLHcui3VSDN52MxElqe1RNiYKUgn2YueTGHyhOEM5tAZltpMFAzagijK087pmRXDLR140jnd3XGt/frW1/+X7WI5154nzzGk4rvPG2Xc+OQfOkcPWfleeVhqVZuVP9Xl1u9oaQ1dXJhI+dgqr+vovKrg79Q==</latexit>
+
+<latexit sha1_base64="01uEX3EyH1JsZXN6ugMPPfpWsMc=">AAAGfHicxVRLb9NAEHahCSW8WjhyYESJSFRaxQgBAlWqBAeORfQlZYO1Xm+SVdcP7Y5LI3crfgM/jRs/hQtiHSdN7ETqDVayPJ759pvZzzvjJ1Jo7HR+rdy4uVqr31q73bhz9979B+sbD490nCrGD1ksY3XiU82liPghCpT8JFGchr7kx/7phzx+fMaVFnF0gKOE90I6iERfMIrW5W2s/miSrEVCikO/n2nj4QuYftHxl5p3WUCGW65pAzGNJkkENFuEBXEOwSFH2rbeKyw0PYL8HDPkGs0skhPDLvSLvIzK7KOZIhUVkSklxPfLuG0d26fv0JTKnfgazf0Z9YFlyHeOKTwsBUR7AWrrKiHg4irBeUmdUc4LJFFxgjEkXlZkqPCb1jz+YgnVNPFueSNcU5etHI6VQOQRxClCokSsrI9I3scuEJ2GVo7nu675alVxTYXPhkw14xaQgMvqEaD4MSA0RPybaRMqkyEFIEoMhtizKRUP4zNuX0EaBTRio38p6pyk7f9w+Mm1GjdFpcr80MsvHWwD8W3gun98nUwR9SWdarSQxVg54sFMxCWA8uUsJWvD5SXpx4pKWS5q1oSLNZUadC6mxq3pmkoDm3y6FIH50eCtb3Z2OuMFi4Y7MTadydr31n+SIGZpyCNkkmrddTsJ9jKqUDDJLXmqeULZKR3wrjUjGnLdy8bD084o6wnAntQ+EcLYO78jo6HWo9C3yLxGXY3lzmWxbor9t71MRElqe5QVifqpBHux80kMgVCcoRxZgzLbyYIBG1JFGdp53bAiuNUjLxpHL3dca39+tbn35Xshx5rz2HnqtBzXeePsOZ+cfefQYau/a09qrVq79qf+rL5V3y6gN1YmEj5ySqv++i+OwDw3</latexit>
+
+<latexit sha1_base64="mm2Sx8wqXjSEL3tSW0vBs4eAtMs=">AAAGfHicxVRLb9NAEHZLE0p4tXDkwIgSkaikigEBAlWqBAeORfQlZUO03mySVdcP7Y5LI3crfgM/jRs/hQtibSdN7ETqDVayPJ75dr7ZzzvjRVJobLd/razeWKtUb67fqt2+c/fe/Y3NB0c6jBXjhyyUoTrxqOZSBPwQBUp+EilOfU/yY+/0Qxo/PuNKizA4wHHEuz4dBmIgGEXr6m2u/aiTpEF8iiNvkGjTw+cw/aLZl5p3WUCC265pAjG1OokE1BuE9cMUgiOOtGm9V1io9wjyc0yQazSzSJoYdmGQ8zIqk49milRUBKZAiO+X5bZ1tE7foSmUO/HV6vuz1Ac2Q7ozS9HDQkA0F6C2rgICLq4IzgvqjNO8QCIVRhhC1EtyhlJ+05jHXyxJNSXeLW6Ea+qylcOxEog8gDBGiJQIlfURyQfYAaJj38rxbNc1X60qrinlsyFTZtwG0ueyfATIfwwIDQH/ZpqEymhEAYgSwxF2LaXifnjG7asfB30asPG/FHVO0uZ/OPzkWmVNUaoyPfTySwctIJ4NXPePr5MpoJ6kU40WWIyVIxzORFwCKF7OAlkTLi/JIFRUymJRsyZcrKnQoHMxlbWma0oNbNLpkgfmmvhlb2OrvdPOFiwa7sTYciZrv7fxk/RDFvs8QCap1h23HWE3oQoFk9wmjzWPKDulQ96xZkB9rrtJNjztjLKePtiT2idAyLzzOxLqaz32PYtMa9TlWOpcFuvEOHjbTUQQxbZHWU40iCXYi51OYugLxRnKsTUos50sGLARVZShndc1K4JbPvKicfRix7X251dbe1++53KsO4+cJ07DcZ03zp7zydl3Dh229rvyuNKoNCt/qk+r29VWDl1dmUj40Cms6uu/LDw79g==</latexit>
+
+Black-box neural net
+(Transformer, NN with memory)
+
+task
+a∼π
+( ⋅ | s, Dtrain)
+
+…
+
+s2 , r1
+
+s1 , 0
+
+<latexit sha1_base64="btbHCfPUqYArHKJYv47MV26n95A=">AAAGaHicxVRbaxNBFN7WJtbUS+oFEV8OLcGE2pItgqIUCvrgY8XeIBPD7GSSDJm9MHO2Nmy3+Bt98wf44q/wbC5NNgn0TQeWPXvON+c78+2c40VaWazXf62s3lkrFO+u3ytt3H/w8FF58/GpDWMj5IkIdWjOPW6lVoE8QYVankdGct/T8szrf8ziZxfSWBUGxziIZNPn3UB1lOBIrtbm2nWFJVXmc+x5ncSmLXwNky8+/DKzLgIkuOOmNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpNJIlhgPojHgF18mndII0XAVpjhA/LMtNdez232OaK3fsK1WOpqmPKUO2c5iihbmAqi1Aqa4cAq5uCC5z6gyyvMAiE0YYQtRKRgxz+dPqLP5qSaoJ8UF+I9xSF1UOZ0YhygDCGCEyKjTkY1p2sAHMxj7J8erATb+RKm46l49C6TzjDrC21PNHgNGPAWUhkN/TGuM66nEAZlS3h02iNNIPLyS92nHQ5oEY/EtRZySt/YfDj6/VsCnmqswOvfzSwS4wjwK3/ePbZAq4p/lEowWWlOQIu1MRlwDylzNHVoPra9YJDdc6X9S0CRdryjXoTMwMW9NNSzPh/Wy0uK3ydn2vPlywaLhjY9sZr6NW+SdrhyL2ZYBCc2sbbj3CZsINKqElMcRWRlz0eVc2yAy4L20zGQ5KmkfkaQOdip4AYeid3ZFw39qB7xEyK9TOxzLnslgjxs67ZqKCKKZ+FCOiTqyBLnE2daGtjBSoB2RwQV2rBIgeN1wgzeYSieDOH3nRON3fc8n+8mb78OuPkRzrzktny6k6rvPWOXQ+O0fOiSPWfhc2Ck8Lzwp/iuXi8+KLEXR1ZSzhEye3ilt/Ab2mM3M=</latexit>
+
+<latexit sha1_base64="ck8pdC+ekZH4nUmSP+ZG7r8lEyk=">AAAB2XicbZDNSgMxFIXv1L86Vq1rN8EiuCozbnQpuHFZwbZCO5RM5k4bmskMyR2hDH0BF25EfC93vo3pz0JbDwQ+zknIvSculLQUBN9ebWd3b/+gfugfNfzjk9Nmo2fz0gjsilzl5jnmFpXU2CVJCp8LgzyLFfbj6f0i77+gsTLXTzQrMMr4WMtUCk7O6oyaraAdLMW2IVxDC9YaNb+GSS7KDDUJxa0dhEFBUcUNSaFw7g9LiwUXUz7GgUPNM7RRtRxzzi6dk7A0N+5oYkv394uKZ9bOstjdzDhN7Ga2MP/LBiWlt1EldVESarH6KC0Vo5wtdmaJNChIzRxwYaSblYkJN1yQa8Z3HYSbG29D77odOn4MoA7ncAFXEMIN3MEDdKALAhJ4hXdv4r15H6uuat66tDP4I+/zBzjGijg=</latexit>
+sha1_base64="J4dAYlmblTwCBuDeaY9tORmjfzY=">AAAGZnicxVRLb9NAEHZLE9oApQ8hDlxGVBGJ+lCMkECgSpXgwLGIvqRsiNbrTbLq+qHdcWnkuuI3cuPMhZ/BOI8mTiL1BitZHs98O9/M5531Yq0sNhq/lpYfrJTKD1fXKo8eP1l/urG5dWajxAh5KiIdmQuPW6lVKE9RoZYXsZE88LQ89y4/5vHzK2msisIT7MeyFfBuqDpKcCRXe3PlpsrSGgs49rxOarM27sH4iw++zLSLACnuulkdWFapslhBtcaEH+UQ7EnkdfLeYaHaZiivMUVpMZtE8sRwCJ0hr+A6/ZSNkYarMCsQ4odFuamO/cv3mBXKHfkq1eNJ6hPKkO8cpGhjIaDqc1Cqq4CAmzuC64I6/TwvsNhEMUYQt9Mhw0z+rDaNv1mQakx8WNwI99RFlcO5UYgyhChBiI2KDPmYlh1sArNJQHK8OnSzb6SKm83ko1A2y7gLzJd6tgUY/hhQFkL5PaszruMeB2BGdXvYIkojg+hK0stPQp+Hov8vRZ2StP4fmh8dq8FQzFSZN7340ME+MI8C9/3j+2QKuaf5WKM5lozkiLoTERcAioezQFaH21vWiQzXuljUZAjnayoM6FTMDEbTzSpTYXcPGu2NncZBY7Bg3nBHxo4zWsftjZ/Mj0QSyBCF5tY23UaMrZQbVEJLyp9YGXNxybuySWbIA2lb6eCapNuIPD5QT/SECAPv9I6UB9b2A4+QeZl2NpY7F8WaCXbetVIVxglNoxgSdRINdITzOxd8ZaRA3SeDC5pZJUD0uOEC6WaukAjubMvzxtnrA5fsL292jr7+GMqx6rxwXjo1x3XeOkfOZ+fYOXXEyu/SWmmrtF36U14vPys/H0KXl0YSbjuFVYa/2mcyjA==</latexit>
+sha1_base64="SqJUGX4STG7MfeygDCHgqoQtY9A=">AAAGZnicxVRLb9NAEHZLE9oAfQpx4DKiikjUh2IuIFClSnDgWERfUjZE6806WXX90O64NHJd8Ru5cebCz2CcRxMnkXqDlSyPZ76db+bzznqxVhYbjV9Ly49WSuXHq2uVJ0+frW9sbm2f2ygxQp6JSEfm0uNWahXKM1So5WVsJA88LS+8q495/OJaGqui8BT7sWwFvBsqXwmO5GpvrdxWWVpjAcee56c2a+M+jL/44MtMuwiQ4p6b1YFllSqLFVRrTHSiHII9ibxO3nssVNsM5Q2mKC1mk0ieGI7AH/IKrtNP2RhpuAqzAiF+WJSb6ji4eo9ZodyRr1I9maQ+pQz5zkGKNhYCqj4HpboKCLi9J7gpqNPP8wKLTRRjBHE7HTLM5M9q0/jbBanGxEfFjfBAXVQ5XBiFKEOIEoTYqMiQj2npYxOYTQKS4/WRm30jVdxsJh+FslnGPWAdqWdbgOGPAWUhlN+zOuM67nEAZlS3hy2iNDKIriW9OknY4aHo/0tRpySt/4fmR8dqMBQzVeZNLz50cADMo8BD//ghmULuaT7WaI4lIzmi7kTEBYDi4SyQ1eHujvmR4VoXi5oM4XxNhQGdipnBaLpZZSrs7kOjvbnbOGwMFswb7sjYdUbrpL35k3UikQQyRKG5tU23EWMr5QaV0JLyJ1bGXFzxrmySGfJA2lY6uCbpNiJPB6gnekKEgXd6R8oDa/uBR8i8TDsby52LYs0E/XetVIVxQtMohkR+ooGOcH7nQkcZKVD3yeCCZlYJED1uuEC6mSskgjvb8rxx/ubQJftLY/f464+hHKvOS+eVU3Nc561z7Hx2TpwzR6z8Lq2Vtks7pT/l9fLz8oshdHlpJOGOU1hl+AvZJzKI</latexit>
+sha1_base64="yrcY6bEuE3B+Refg3BEhWI1cxjU=">AAAGW3icxVRLb9NAEHZLE9pQSluEOHAZUUUk6kMxFxCoEhIcOBapLykbovVmk6y6fmh3XBq57o/kxpkLP4OxkzSxE6k3WMnyeGb2+2Y+76wXaWWx1fq1svporVJ9vL5Re7L5dOvZ9s7muQ1jI+SZCHVoLj1upVaBPEOFWl5GRnLf0/LCu/qcxS+upbEqDE5xFMmOzweB6ivBkVzdnbXbOksazOc49PqJTbt4ANMvnn+ZeRclJLjvpk1gaa3OIgX1BhO9MEvBoUTeJO99LtS7DOUNJigtprNIBgzH0B/zCq6TL+k003AVpAVC/LgMm+o4vPqAaaHcia9WP5lBnxJCtjOH6GIhoJoLqVRXIQNu7wluCuqMMlxgkQkjDCHqJmOGEn7amM+/XQI1JT4uboQH6qLK4cIoRBlAGCNERoWGfEzLPraB2dgnOd4cu+l3UsVNS3gUSsuM+8B6UpdbgPGPAWUhkD/SJuM6GnIAZtRgiB2iNNIPryW9enHQ44EY/UtR5yRt/ofmJ8cqH4pSlVnTyw8dHALzKPDQP35IpoB7mk81WmBJSY5wMBNxSULxcBbImnB3x/qh4VoXi5oN4WJNhQGdi5l8NN20Nhd2D6DV3d5rHbXyBYuGOzH2nMk66W7/ZL1QxL4MUGhubdttRdhJuEEltCT82MqIiys+kG0yA+5L20nya5JuI/L0gHqiJ0DIvfM7Eu5bO/I9yszKtOVY5lwWa8fYf99JVBDFNI1iTNSPNdARzu5c6CkjBeoRGVzQzCoBYsgNF0g3c41EcMstLxrnb49csr+1nHXnlfPaaTiu88755Hx1TpwzR6z9rmxUdivPK3+qW9UXY7lWVya67TqFVX35F2F8MSU=</latexit>
+
+s3 , r2
+<latexit sha1_base64="JhLj964/MxQ6bk12MZPunj3XdKk=">AAAGaHicxVTbbtNAEHVLE0oKNOUihHgZtYpIVFrFBQkEqlQJHngsojcpG6L1ZpOsur5od1waua74Rt74AF74Csa5NHESqW+wkuXxzNk5s8c740VaWazXfy0t31kpFO+u3iut3X/wcL288ejEhrER8liEOjRnHrdSq0Aeo0ItzyIjue9peeqdf8zipxfSWBUGR9iPZNPn3UB1lOBIrtbGynWFJVXmc+x5ncSmLXwF4y8++DLTLgIkuO2mNWBpqcIiBZUqE+0wg2BPIq+R9wYLlRZDeYkJSovpJJIlhn3oDHkF18mndIw0XAVpjhA/LMpNdeycv8c0V+7IV6ocTlIfUYZs5yBFC3MBVZuDUl05BFzdEFzm1OlneYFFJowwhKiVDBlm8qfVafzVglRj4v38RrilLqocTo1ClAGEMUJkVGjIx7TsYAOYjX2S4+W+m34jVdx0Jh+F0lnGbWBtqWePAMMfA8pCIL+nNcZ11OMAzKhuD5tEaaQfXkh6teOgzQPR/5eiTkla+w+HH12rQVPMVJkdevGlgx1gHgVu+8e3yRRwT/OxRnMsKckRdiciLgDkL2eOrAbX16wTGq51vqhJE87XlGvQqZgZtKablqbCr7PRstcqb9V364MF84Y7Mrac0TpslX+ydihiXwYoNLe24dYjbCbcoBJaEkNsZcTFOe/KBpkB96VtJoNBSfOIPG2gU9ETIAy80zsS7lvb9z1CZoXa2VjmXBRrxNh510xUEMXUj2JI1Ik10CXOpi60lZECdZ8MLqhrlQDR44YLpNlcIhHc2SPPGyd7uy7ZX95sHXz9MZRj1XnhbDpVx3XeOgfOZ+fQOXbEyu/CWuFJ4WnhT7FcfFZ8PoQuL40kfOzkVnHzL8CzM3U=</latexit>
+
++ general & expressive
++ a variety of design choices in architecture
+-- hard to optimize
+~ inherits sample efficiency from outer RL optimizer
+
+27
+
+st , rt 1
+<latexit sha1_base64="ouwoGB/cY8bcc/q52xQDb6Zqhcc=">AAAGbnicxVRLb9NAEHZLE0p4tAWJAxViRBWRqLSKERIIVKkSHDgW0ZeUDdZ6s05WXT+0Oy6N3K048Au58Ru48BNYO0kTJ5F6g5Usj2e+nW/28874iRQaW61fS8u3VirV26t3anfv3X+wtr7x8FjHqWL8iMUyVqc+1VyKiB+hQMlPE8Vp6Et+4p99yOMn51xpEUeHOEh4J6S9SASCUbQub2PlR51kDRJS7PtBpo2HL2H8RYsvNe2ygAy3XdMEYmp1kgioNwjrxjkE+xxp03qvsVD3CPILzJBrNJNInhj2IBjyMiqzj2aMVFREpkSI7xfltnXsnL1DUyp35KvVDyapD22GfGeRwsNSQDTnoLauEgIurwkuSuoM8rxAEhUnGEPiZUOGmfymMY2/XJBqTLxX3gg31GUrhxMlEHkEcYqQKBEr6yOSB9gGotPQyvFizzVfrSqumclnQ2aWcRtIl8vZI8Dwx4DQEPFvpkmoTPoUgCjR62PHUioexufcvrpp1KURG/xLUackbf6Hw4+uVdEUM1Xmh1586WAHiG8DN/3jm2SKqC/pWKM5FmPliHsTERcAypezRNaEqysSxIpKWS5q0oTzNZUadCqmitZ0Ta3UvyYfLoXfW99q7baKBfOGOzK2nNE68NZ/km7M0pBHyCTVuu22EuxkVKFgklueVPOEsjPa421rRjTkupMV49JOJevpgj2bfSKEwju9I6Oh1oPQt8i8XD0by52LYu0Ug7edTERJaruSDYmCVIK9yvnsha5QnKEcWIMy27uCAetTRRnaCV2zIrizR543jl/tutb+/Hpr/8v3oRyrzqbz3Gk4rvPG2Xc+OQfOkcNWflc2Kk8qm5U/1cfVp9VnQ+jy0kjCR05pVRt/Af64NoI=</latexit>
+
+How should we think about exploration in meta-RL?
+
+How Do We Learn to Explore?
+Solution #1: Optimize for Exploration &
+Exploitation End-to-End w.r.t. Reward
+(Duan et al., 2016, Wang et al., 2016, Mishra et al., 2017, Stadie et
+al., 2018, Zintgraf et al., 2019, Kamienny et al., 2020)
+
++ simple
++ in principle, it yields optimal
+
+exploration-exploitation trade-off
+-- challenging optimization when
+
+exploration is hard
+
+A simple, running example
+Hallway 1
+
+Hallway 2
+
+Hallway N
+
+…
+
+ti
+
+ff
+
+ti
+
+ff
+
+informa on on
+where to go
+
+agent
+
+Di erent tasks: naviga ng to
+the ends of di erent hallways
+
+𝒟
+
+How Do We Learn to Explore?
+Solution #1: Optimize for Exploration &
+Exploitation End-to-End w.r.t. Task Reward
+(Duan et al., 2016, Wang et al., 2016, Mishra et al., 2017, Stadie et
+al., 2018, Zintgraf et al., 2019, Kamienny et al., 2020)
+
+Example episodes during meta-training:
+agent goes to the end of the correct hallway
+
+- gets positive reward for current task,
+tr
+but i won’t be different than for any other task
+
+agent goes to wrong hallway then correct hallway
+
++/- provides signal on a suboptimal
+exploration + exploitation strategy
+
+agent looks at the instructions
+
+- good exploratory behavior, but won’t
+get any reward for this behavior
+
+It’s hard to learn exploration & exploitation at the same time!
+
+Another Example of a Hard Exploration Meta-RL Problem
+Learned cooking tasks in previous kitchens
+
+meta-training
+
+Goal: Quickly learn tasks in a new kitchen.
+
+meta-testing
+
+Why is End-to-End Training Hard in This Example?
+End-to-end approach: optimize exploration and execution episode behaviors end-to-end to
+maximize reward of execution
+
+🥚
+
+🐔
+
+Learning to cook
+(execution)
+
+Learning to find ingredients
+(exploration)
+
+Ingredient not found
+(bad exploration)
+
+Cannot learn to cook
+(bad execution)
+
+Cannot cook
+(bad execution)
+
+Low reward for any
+exploration
+
+Coupling problem: learning exploration and execution depend on each other
+—> can lead to poor local optima, poor sample efficiency
+fi
+
+Liu, Raghunathan, Liang, Finn. Decoupling Exploration and Exploitation for Meta-Reinforcement Learning without Sacri ces. ICML 2021
+
+How Do We Learn to Explore?
+Solution #1: Optimize for Exploration &
+Exploitation End-to-End w.r.t. Task Reward
+(Duan et al., 2016, Wang et al., 2016, Mishra et al., 2017, Stadie et
+al., 2018, Zintgraf et al., 2019, Kamienny et al., 2020)
+
++ simple
++ leads to optimal strategy
+
+in principle
+
+-- challenging optimization
+
+when exploration is hard
+
+Solution #2: Leverage Alternative Exploration Strategies
+2a. Use posterior sampling
+
+PEARL (Rakelly, Zhou, Quillen, Finn, Levine. ICML ’19)
+
+(also called Thompson sampling)
+
+i. Learn distribution over latent task variable p(z), q(z |
+
+tr) and corresponding task policies π(a | s, z)
+
+ii. Sample z from current posterior and sample from policy π(a | s, z)
+
+z ∼ p(z)
+𝒟
+
+When might posterior sampling be bad? Eg. Goals far away & sign on wall that tells you the correct goal.
+
+𝒟
+
+Solution #2: Leverage Alternative Exploration Strategies
+2a. Use posterior sampling
+
+PEARL (Rakelly, Zhou, Quillen, Finn, Levine. ICML ’19)
+
+(also called Thompson sampling)
+
+i. Learn distribution over latent task variable p(z), q(z |
+
+tr) and corresponding task policies π(a | s, z)
+
+ii. Sample z from current posterior and sample from policy π(a | s, z)
+
+2b. Use intrinsic rewards
+
+MAME (Gurumurthy, Kumar, Sycara. CoRL ’19)
+
+2c. Task dynamics & reward prediction
+
+MetaCURE (Zhang, Wang, Hu, Chen, Fan, Zhang. ‘20)
+
+i. Train model f(s′, r | s, a,
+
+train)
+
+ii. Collect
+
+train so that model is accurate.
+
+When might this be bad?
+
+𝒟
+
+￼
+
+𝒟
+
+Lots of distractors,
+or complex, high-dim state dynamics
+
+𝒟
+
+Solution #2: Leverage Alternative Exploration Strategies
+2a. Use posterior sampling
+
+PEARL (Rakelly, Zhou, Quillen, Finn, Levine. ICML ’19)
+
+(also called Thompson sampling)
+
+i. Learn distribution over latent task variable p(z), q(z |
+
+tr) and corresponding task policies π(a | s, z)
+
+ii. Sample z from current posterior and sample from policy π(a | s, z)
+
+2b. Use intrinsic rewards
+
+MAME (Gurumurthy, Kumar, Sycara. CoRL ’19)
+
+2c. Task dynamics & reward prediction
+
+MetaCURE (Zhang, Wang, Hu, Chen, Fan, Zhang. ‘20)
+
+i. Train model f(s′, r | s, a,
+
+train)
+
++ easy to optimize
++ many based on
+𝒟
+
+￼
+
+𝒟
+
+principled strategies
+
+ii. Collect
+
+train so that model is accurate.
+
+-- suboptimal by arbitrarily large
+
+amount in some environments.
+
+Plan for Today
+1. Meta-RL problem statement
+2. Black-box meta-RL methods
+
+part of HW4
+
+Next time: Exploration + Learning to explore.
+
+Lecture
+goals:
+
+-
+
+Understand the meta-RL problem statement & set-up
+Understand the basics & challenges of black-box meta RL algorithms
+38
+
+Next time
+
+Reminders
+
+Today: meta-RL basics
+Friday: exploration & meta-exploration
+
+Homework 3 due Friday
+Project milestone due next Friday
+
+39
+
+

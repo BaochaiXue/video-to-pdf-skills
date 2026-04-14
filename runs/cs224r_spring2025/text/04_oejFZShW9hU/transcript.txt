@@ -1,0 +1,1103 @@
+[00:00:05,940 --> 00:00:08,480] Let's get started for today.
+[00:00:08,480 --> 00:00:10,962] Let's start with a recap of what we covered last time
+[00:00:10,962 --> 00:00:12,920] because we're going to be building very heavily
+[00:00:12,920 --> 00:00:16,120] on Wednesday's concepts.
+[00:00:16,120 --> 00:00:18,480] So we talked about online reinforcement
+[00:00:18,480 --> 00:00:21,600] learning where we collect a batch of data with some policy
+[00:00:21,600 --> 00:00:24,840] by running that policy in the environment,
+[00:00:24,840 --> 00:00:28,440] and then we try to use that data to improve our policy,
+[00:00:28,440 --> 00:00:33,560] and then we repeat this process in order to continue
+[00:00:33,560 --> 00:00:36,303] to improve from practice.
+[00:00:36,303 --> 00:00:38,720] We talked about an online reinforcement learning algorithm
+[00:00:38,720 --> 00:00:40,640] called policy gradients.
+[00:00:40,640 --> 00:00:44,040] And the update for our policy looks something
+[00:00:44,040 --> 00:00:49,060] like this, where we first take samples from our policy.
+[00:00:49,060 --> 00:00:51,600] This will give us N different trajectories
+[00:00:51,600 --> 00:00:53,880] sampled from our policy.
+[00:00:53,880 --> 00:00:57,460] We will evaluate the log likelihood of the policy.
+[00:00:57,460 --> 00:00:59,980] And so this pi here is representing a distribution
+[00:00:59,980 --> 00:01:02,160] over actions given states.
+[00:01:02,160 --> 00:01:03,900] And so this is looking like the gradient
+[00:01:03,900 --> 00:01:09,380] of the log probability of the actions under the policy.
+[00:01:09,380 --> 00:01:13,380] And this log likelihood is weighted by the reward
+[00:01:13,380 --> 00:01:15,240] that the agent got.
+[00:01:15,240 --> 00:01:17,940] And so if you have higher rewards
+[00:01:17,940 --> 00:01:20,580] as an outcome of your actions in the future,
+[00:01:20,580 --> 00:01:23,020] then you're going to be encouraging the policy
+[00:01:23,020 --> 00:01:26,620] to increase the likelihood of those actions.
+[00:01:26,620 --> 00:01:30,660] And then lastly, we introduced a baseline,
+[00:01:30,660 --> 00:01:33,100] which we could define to be the average reward, such
+[00:01:33,100 --> 00:01:36,220] that we're increasing the likelihood on futures that
+[00:01:36,220 --> 00:01:39,020] were above average reward and decreasing
+[00:01:39,020 --> 00:01:43,740] the likelihood on actions that led to futures
+[00:01:43,740 --> 00:01:47,180] that were below average reward.
+[00:01:47,180 --> 00:01:50,500] So you can think of this as encouraging the policy
+[00:01:50,500 --> 00:01:52,360] to do more of the above average stuff,
+[00:01:52,360 --> 00:01:54,100] less of the below average stuff, and then
+[00:01:54,100 --> 00:01:59,290] repeating that process to get better and better.
+[00:01:59,290 --> 00:02:00,690] Cool.
+[00:02:00,690 --> 00:02:04,530] We also talked about how this algorithm is fully on-policy.
+[00:02:04,530 --> 00:02:08,370] So in order to evaluate this, we actually
+[00:02:08,370 --> 00:02:12,075] need to have samples from pi theta from our current policy.
+[00:02:12,075 --> 00:02:13,450] And this meant that we could only
+[00:02:13,450 --> 00:02:17,050] take one gradient step per batch of data, which is disappointing
+[00:02:17,050 --> 00:02:19,610] because then we'd have to collect ton of data
+[00:02:19,610 --> 00:02:21,370] in order to improve.
+[00:02:21,370 --> 00:02:23,690] This brings up this notion of having on-policy
+[00:02:23,690 --> 00:02:26,610] versus off-policy algorithms that can reuse data
+[00:02:26,610 --> 00:02:29,050] from other past policies.
+[00:02:29,050 --> 00:02:34,690] And we started to look at ways to make an algorithm off-policy.
+[00:02:34,690 --> 00:02:37,730] And in particular, we talked about using importance weights,
+[00:02:37,730 --> 00:02:41,930] where if we weight the objective by the probability
+[00:02:41,930 --> 00:02:45,170] of the actions of the new policy divided
+[00:02:45,170 --> 00:02:48,130] by the probability of the actions under the old policy,
+[00:02:48,130 --> 00:02:52,090] this is a way to get a estimate of the gradient
+[00:02:52,090 --> 00:02:53,660] for the new policy.
+[00:02:56,370 --> 00:02:59,270] I should also mention importance weights.
+[00:02:59,270 --> 00:03:02,510] The math behind it is very simple and very nice.
+[00:03:02,510 --> 00:03:05,990] But it's important to remember that this isn't a silver bullet.
+[00:03:05,990 --> 00:03:09,430] This approach is only suitable when the policies are
+[00:03:09,430 --> 00:03:11,110] very similar to one another.
+[00:03:11,110 --> 00:03:12,930] And if the policies are very different,
+[00:03:12,930 --> 00:03:16,390] then this ratio will get very large or very small,
+[00:03:16,390 --> 00:03:19,520] and you'll also just have a worse estimate of your gradient.
+[00:03:22,390 --> 00:03:24,310] So today we're going to be talking
+[00:03:24,310 --> 00:03:27,830] about a form of algorithms called actor-critic methods that
+[00:03:27,830 --> 00:03:29,590] build on policy gradients.
+[00:03:32,215 --> 00:03:33,590] As part of this, we'll be talking
+[00:03:33,590 --> 00:03:35,830] about how to estimate the value of a policy,
+[00:03:35,830 --> 00:03:38,830] and then we'll introduce an off-policy variant
+[00:03:38,830 --> 00:03:40,950] of the algorithm.
+[00:03:40,950 --> 00:03:44,710] And these actor-critic methods are the basis
+[00:03:44,710 --> 00:03:47,270] for algorithms like PPO, which are
+[00:03:47,270 --> 00:03:50,150] used to train language models, and that
+[00:03:50,150 --> 00:03:57,130] are used to train humanoids and simulation and so forth.
+[00:03:57,130 --> 00:04:00,702] So very, very useful RL algorithms.
+[00:04:00,702 --> 00:04:02,410] And then the key learning goals for today
+[00:04:02,410 --> 00:04:05,330] is how to estimate how good a state and action is
+[00:04:05,330 --> 00:04:06,850] for a policy.
+[00:04:06,850 --> 00:04:09,410] This is called policy evaluation.
+[00:04:09,410 --> 00:04:12,770] It's a critical aspect of actor-critic methods
+[00:04:12,770 --> 00:04:14,690] but also useful more broadly.
+[00:04:14,690 --> 00:04:16,290] And then also talk about how to use
+[00:04:16,290 --> 00:04:18,850] those estimates to form a better reinforcement learning
+[00:04:18,850 --> 00:04:19,550] algorithm.
+[00:04:24,370 --> 00:04:25,650] So let's get started.
+[00:04:25,650 --> 00:04:27,590] And to talk about these algorithms,
+[00:04:27,590 --> 00:04:32,370] we need to revisit some very useful objects that we talked
+[00:04:32,370 --> 00:04:35,010] about in the first lecture, and specifically, this
+[00:04:35,010 --> 00:04:36,970] is value functions.
+[00:04:36,970 --> 00:04:41,090] And so a value function is representing
+[00:04:41,090 --> 00:04:45,490] how good a state is if you're going
+[00:04:45,490 --> 00:04:48,610] to follow a policy starting from that state.
+[00:04:48,610 --> 00:04:51,290] And you can think of it as the sum
+[00:04:51,290 --> 00:04:55,830] of rewards used to writing gradients
+[00:04:55,830 --> 00:04:57,690] starting from some state.
+[00:04:57,690 --> 00:05:02,102] So we'll write this as V pi of S.
+[00:05:02,102 --> 00:05:04,310] This means that we're going to be starting at state S
+[00:05:04,310 --> 00:05:06,070] and then running pi.
+[00:05:06,070 --> 00:05:14,290] And for a given state, this is equal to the sum of rewards
+[00:05:14,290 --> 00:05:22,670] if we were to start at state t and go
+[00:05:22,670 --> 00:05:24,750] to the end of the trajectory.
+[00:05:24,750 --> 00:05:29,590] And here's the sum of rewards.
+[00:05:29,590 --> 00:05:33,870] Now, this sum of rewards is going
+[00:05:33,870 --> 00:05:37,510] to differ depending on what state we start at
+[00:05:37,510 --> 00:05:39,730] and depending on what policy that we're running.
+[00:05:39,730 --> 00:05:49,590] And so this is going to be an expectation under our policy.
+[00:05:49,590 --> 00:05:52,937] Actually maybe it's easier to write this as expectation
+[00:05:52,937 --> 00:05:53,520] on the inside.
+[00:05:53,520 --> 00:05:59,660] So this is an expectation over the states St prime
+[00:05:59,660 --> 00:06:05,940] and actions at prime that will be visited under our policy
+[00:06:05,940 --> 00:06:14,060] and conditioned on the fact that we're starting at state St.
+[00:06:14,060 --> 00:06:17,700] So we can think about the value function as this.
+[00:06:17,700 --> 00:06:20,900] Just in terms of math, what you can think about this as is--
+[00:06:20,900 --> 00:06:24,420] or just in terms of conceptually or in terms of intuition,
+[00:06:24,420 --> 00:06:26,580] if you have some trajectory, and you're
+[00:06:26,580 --> 00:06:30,500] thinking about the value of this state, you can think of it as--
+[00:06:30,500 --> 00:06:33,140] if we were to collect a lot of different trajectories
+[00:06:33,140 --> 00:06:36,740] starting from that state from our policy, and then
+[00:06:36,740 --> 00:06:41,880] we just summed up the rewards from this time step to the end,
+[00:06:41,880 --> 00:06:43,980] and then averaged over these trajectories,
+[00:06:43,980 --> 00:06:47,140] that would define the value of this state
+[00:06:47,140 --> 00:06:51,640] or how good the state is for the policy.
+[00:06:51,640 --> 00:06:55,200] Another useful quantity that will be making use of
+[00:06:55,200 --> 00:06:56,448] is called the Q function.
+[00:06:56,448 --> 00:06:58,740] And this is slightly different from the value function,
+[00:06:58,740 --> 00:07:00,600] but very closely related.
+[00:07:00,600 --> 00:07:03,520] And the difference is that instead of just thinking
+[00:07:03,520 --> 00:07:05,195] about the value of a given state,
+[00:07:05,195 --> 00:07:07,320] we're going to be thinking about a value of a given
+[00:07:07,320 --> 00:07:09,560] state and action.
+[00:07:09,560 --> 00:07:15,640] And what this is referring to is instead of starting at S
+[00:07:15,640 --> 00:07:18,320] and then running pi from there, if instead we
+[00:07:18,320 --> 00:07:21,500] were to start at S, take a particular action a,
+[00:07:21,500 --> 00:07:27,600] and then run the policy, what is our expected sum of rewards?
+[00:07:27,600 --> 00:07:29,760] And so then you can think of this as--
+[00:07:29,760 --> 00:07:34,720] instead of a picture like this, say
+[00:07:34,720 --> 00:07:38,120] we had some State s that we considered--
+[00:07:38,120 --> 00:07:40,915] first we're going to take some given action.
+[00:07:40,915 --> 00:07:43,040] This may or may not have been what the policy would
+[00:07:43,040 --> 00:07:46,160] have been likely to choose.
+[00:07:46,160 --> 00:07:49,326] This action could actually also lead to different states
+[00:07:49,326 --> 00:07:54,500] because the environment is stochastic,
+[00:07:54,500 --> 00:08:03,700] and then it's the sum of these rewards on average.
+[00:08:03,700 --> 00:08:06,380] So this is what V looks like.
+[00:08:06,380 --> 00:08:10,250] This is what Q looks like for a given action.
+[00:08:13,980 --> 00:08:16,120] So here are some pictures on the slide.
+[00:08:16,120 --> 00:08:19,060] So if we start from state s, run our policy,
+[00:08:19,060 --> 00:08:22,780] we compute the expected sum of the rewards
+[00:08:22,780 --> 00:08:25,220] along these trajectories, then that
+[00:08:25,220 --> 00:08:28,340] gets us the value of a state.
+[00:08:28,340 --> 00:08:32,740] And then if instead we take action a first and then run pi,
+[00:08:32,740 --> 00:08:36,900] then we get the Q values, and it's just the sum of the rewards
+[00:08:36,900 --> 00:08:38,600] if we had started with action a.
+[00:08:42,380 --> 00:08:46,220] Now, one thing that's useful to think about in terms
+[00:08:46,220 --> 00:08:47,820] of how these two relate to each other
+[00:08:47,820 --> 00:08:51,840] is you can think of the value of a state as--
+[00:08:51,840 --> 00:08:53,840] if you take an expectation over the actions
+[00:08:53,840 --> 00:08:55,480] that the policy would have taken,
+[00:08:55,480 --> 00:08:59,080] you can think of it as the average or the expectation
+[00:08:59,080 --> 00:09:01,400] of the Q values over all the actions
+[00:09:01,400 --> 00:09:04,920] that the policy would have taken.
+[00:09:04,920 --> 00:09:09,240] And then one last object that we'll use today
+[00:09:09,240 --> 00:09:13,440] is thinking about how good is a particular action
+[00:09:13,440 --> 00:09:18,040] relative to other actions that we might take.
+[00:09:18,040 --> 00:09:22,520] And for this, we can think about,
+[00:09:22,520 --> 00:09:28,960] if you consider the Q value minus the value function, that's
+[00:09:28,960 --> 00:09:31,040] going to tell you, how good is it to take action
+[00:09:31,040 --> 00:09:35,000] a versus following the policy at a given state.
+[00:09:35,000 --> 00:09:37,520] And this is what is the advantage
+[00:09:37,520 --> 00:09:42,717] of taking one action versus following the policy.
+[00:09:42,717 --> 00:09:43,300] Good question.
+[00:09:43,300 --> 00:09:50,010] So the question was, is there a normalization between V and Q?
+[00:09:52,550 --> 00:09:55,910] You can think of an expectation as an average.
+[00:09:55,910 --> 00:09:58,070] And so in that sense, there is going
+[00:09:58,070 --> 00:10:00,990] to be a normalization because if you were to,
+[00:10:00,990 --> 00:10:04,110] for example, try to estimate this expectation with samples,
+[00:10:04,110 --> 00:10:06,370] you would take some number of samples.
+[00:10:06,370 --> 00:10:08,830] If you only use these two samples to estimate Q,
+[00:10:08,830 --> 00:10:10,810] then you would divide by 2, versus here,
+[00:10:10,810 --> 00:10:13,910] if you're using five samples, you would divide by 5.
+[00:10:13,910 --> 00:10:16,310] Is there a way that you can get from this equation
+[00:10:16,310 --> 00:10:18,350] to the useful relation on the slide?
+[00:10:18,350 --> 00:10:20,810] Is that what you're asking?
+[00:10:20,810 --> 00:10:21,310] Yeah.
+[00:10:28,790 --> 00:10:31,170] We can write out first what Q pi looks like.
+[00:10:31,170 --> 00:10:40,410] So Q pi I of a given state and action.
+[00:10:40,410 --> 00:10:44,710] We're going to condition on St, at because that's
+[00:10:44,710 --> 00:10:45,870] where we're starting.
+[00:10:45,870 --> 00:10:49,430] And then this is the expected sum of rewards if we--
+[00:10:52,530 --> 00:10:57,760] So a sum over t prime equals t to T.
+[00:10:57,760 --> 00:11:00,010] And then we're going to have an expectation of running
+[00:11:00,010 --> 00:11:07,980] the policy here, and then a sum of rewards.
+[00:11:12,690 --> 00:11:24,225] And then in terms of seeing how to get between these two things,
+[00:11:24,225 --> 00:11:27,290] you can think of this as a sum of rewards
+[00:11:27,290 --> 00:11:34,890] under at future actions sampled from pi,
+[00:11:34,890 --> 00:11:38,550] whereas this one at is not sampled from pi,
+[00:11:38,550 --> 00:11:40,810] but all future actions are sampled from pi.
+[00:11:40,810 --> 00:11:45,270] In this case, we're conditioning on the action
+[00:11:45,270 --> 00:11:46,810] that's provided as input.
+[00:11:46,810 --> 00:11:49,330] And in this case, we're sampling from the policy.
+[00:11:49,330 --> 00:11:56,110] And so if instead you sample the action from the policy
+[00:11:56,110 --> 00:12:05,190] and then feed that in to here, then you'll get this right here.
+[00:12:05,190 --> 00:12:08,670] So to help you start thinking about some of these quantities,
+[00:12:08,670 --> 00:12:10,550] let's look at an example.
+[00:12:10,550 --> 00:12:15,110] And so say that you are this person right here.
+[00:12:15,110 --> 00:12:19,150] You really want to learn how to play the drums.
+[00:12:19,150 --> 00:12:26,510] And your reward is 1 if you can play the music in a month, and 0
+[00:12:26,510 --> 00:12:27,210] otherwise.
+[00:12:27,210 --> 00:12:29,870] So capital T is a month from now.
+[00:12:29,870 --> 00:12:33,630] And you have three different possible actions
+[00:12:33,630 --> 00:12:34,950] in your action space.
+[00:12:34,950 --> 00:12:37,510] One action is to sit on the beach.
+[00:12:37,510 --> 00:12:40,950] Another action is to watch TV.
+[00:12:40,950 --> 00:12:45,740] And another action is to practice playing the drums.
+[00:12:45,740 --> 00:12:48,540] And say that your current policy right now is just
+[00:12:48,540 --> 00:12:54,140] to sit on the beach, and you do that for all states.
+[00:12:54,140 --> 00:12:56,660] Now, my question for you to think about
+[00:12:56,660 --> 00:13:02,680] is, what are each of these quantities for the action of a1,
+[00:13:02,680 --> 00:13:05,640] for the action of a2, and for the action of a3.
+[00:13:05,640 --> 00:13:09,210] And so specifically you want to think about,
+[00:13:09,210 --> 00:13:11,780] what is the value function of your current state
+[00:13:11,780 --> 00:13:15,100] for this policy?
+[00:13:15,100 --> 00:13:18,420] What is your Q function if you were
+[00:13:18,420 --> 00:13:22,380] to follow each of these actions once and then follow
+[00:13:22,380 --> 00:13:23,660] this policy?
+[00:13:23,660 --> 00:13:29,020] And then what is your advantage function for the current state
+[00:13:29,020 --> 00:13:33,060] that you're in and for each of these actions?
+[00:13:33,060 --> 00:13:36,500] And you can assume that in the current state that you're in,
+[00:13:36,500 --> 00:13:40,020] you do not know how to play the drums.
+[00:13:40,020 --> 00:13:42,733] What was described as for the value function,
+[00:13:42,733 --> 00:13:44,400] for this particular policy that's always
+[00:13:44,400 --> 00:13:47,000] sitting on the beach, the value is 0
+[00:13:47,000 --> 00:13:51,100] because the person would not learn to play the drums,
+[00:13:51,100 --> 00:13:53,680] so that's the sum of expected rewards for this policy,
+[00:13:53,680 --> 00:13:55,640] for V pi.
+[00:13:55,640 --> 00:13:59,360] For the Q function, if you sit on the beach at the current time
+[00:13:59,360 --> 00:14:04,050] step or watch TV, the Q function will be 0 for those actions.
+[00:14:06,920 --> 00:14:10,480] The Q function for playing the drums at the current time step
+[00:14:10,480 --> 00:14:15,140] would be 1 if that amount of practicing is sufficient.
+[00:14:15,140 --> 00:14:17,420] It's also possible that it would be a bit lower than 1
+[00:14:17,420 --> 00:14:20,720] if you, for example, practice for an hour
+[00:14:20,720 --> 00:14:23,380] and then sit on the beach by following the policy afterwards,
+[00:14:23,380 --> 00:14:29,160] it depends a little bit on how long a given time step is.
+[00:14:29,160 --> 00:14:33,020] And then the advantage function is going to be Q minus V,
+[00:14:33,020 --> 00:14:35,520] and so it's going to be a positive number
+[00:14:35,520 --> 00:14:37,640] for the action of practicing, and it'll
+[00:14:37,640 --> 00:14:41,380] be 0 for the other two actions.
+[00:14:41,380 --> 00:14:44,260] So the question is, if practicing is not
+[00:14:44,260 --> 00:14:47,000] enough to actually learn, would it be 1?
+[00:14:47,000 --> 00:14:48,240] Would it be between 0 and 1?
+[00:14:48,240 --> 00:14:50,540] Would it be 0?
+[00:14:50,540 --> 00:14:53,620] It basically actually represents the probability
+[00:14:53,620 --> 00:14:56,380] in which you would be able to play this, given that you had
+[00:14:56,380 --> 00:14:57,820] practiced for that amount of time,
+[00:14:57,820 --> 00:15:01,800] and that probability it could be 0.
+[00:15:01,800 --> 00:15:05,763] Maybe this is really, really hard after just practicing once.
+[00:15:05,763 --> 00:15:07,180] It could also be maybe for someone
+[00:15:07,180 --> 00:15:08,720] who's extremely talented.
+[00:15:08,720 --> 00:15:10,260] They only need to practice once.
+[00:15:10,260 --> 00:15:12,135] And so that could be a bit higher for someone
+[00:15:12,135 --> 00:15:14,140] that's a bit more talented.
+[00:15:14,140 --> 00:15:17,860] It depends on various factors like that.
+[00:15:17,860 --> 00:15:20,860] Along those lines, if you think about the value function,
+[00:15:20,860 --> 00:15:24,180] if you're playing a game of chess, for example,
+[00:15:24,180 --> 00:15:26,260] the value function is the probability
+[00:15:26,260 --> 00:15:31,700] that you're going to win for a given person
+[00:15:31,700 --> 00:15:33,000] and for a given game state.
+[00:15:33,000 --> 00:15:35,860] So it's evaluating how good is the state
+[00:15:35,860 --> 00:15:38,118] for a particular person.
+[00:15:38,118 --> 00:15:39,660] That's another way to think about it.
+[00:15:43,860 --> 00:15:47,320] So those are the objects that we're going
+[00:15:47,320 --> 00:15:49,480] to be using quite a bit today.
+[00:15:49,480 --> 00:15:52,200] Now let's go back to policy gradients
+[00:15:52,200 --> 00:15:54,080] and see how we can use value functions
+[00:15:54,080 --> 00:15:57,120] to make this algorithm better.
+[00:15:57,120 --> 00:15:59,360] So we talked about a couple examples
+[00:15:59,360 --> 00:16:04,280] on Wednesday of some scenarios that we're dissatisfying
+[00:16:04,280 --> 00:16:06,080] about policy gradients.
+[00:16:06,080 --> 00:16:10,160] And the first was that if we are trying to learn how to walk
+[00:16:10,160 --> 00:16:12,560] and we have a policy that takes a small step forwards
+[00:16:12,560 --> 00:16:16,400] and then falls backwards, we will push down
+[00:16:16,400 --> 00:16:18,880] the likelihood of taking a step forward
+[00:16:18,880 --> 00:16:20,960] because we don't necessarily know that might
+[00:16:20,960 --> 00:16:23,440] have led it to fall backwards.
+[00:16:23,440 --> 00:16:26,120] Now, if we actually had some understanding
+[00:16:26,120 --> 00:16:28,400] that taking a small step forward was making progress,
+[00:16:28,400 --> 00:16:31,080] was actually good, was advantageous,
+[00:16:31,080 --> 00:16:33,560] then we might be able to actually increase
+[00:16:33,560 --> 00:16:35,280] the likelihood of that, and so this
+[00:16:35,280 --> 00:16:37,270] is starting to hint at some of the intuition
+[00:16:37,270 --> 00:16:40,870] behind actor-critic methods.
+[00:16:40,870 --> 00:16:43,510] And likewise, we talked about this example
+[00:16:43,510 --> 00:16:45,390] of trying to fold a jacket.
+[00:16:45,390 --> 00:16:49,990] And we found that if you have a sparse reward
+[00:16:49,990 --> 00:16:52,670] and you only do part of the task by folding only the sleeves
+[00:16:52,670 --> 00:16:55,470] or flattening the jacket but not folding it,
+[00:16:55,470 --> 00:16:58,910] you aren't really utilizing the trajectories that
+[00:16:58,910 --> 00:17:01,910] are getting zero reward.
+[00:17:01,910 --> 00:17:06,150] And similar to this case, if we instead
+[00:17:06,150 --> 00:17:08,750] understood that these actions are advantageous for making
+[00:17:08,750 --> 00:17:10,750] progress on the task, then we might actually
+[00:17:10,750 --> 00:17:13,470] be able to figure out how to use these trajectories
+[00:17:13,470 --> 00:17:15,349] in a positive way.
+[00:17:15,349 --> 00:17:18,270] And so to summarize here, policy gradients
+[00:17:18,270 --> 00:17:20,630] don't always make an efficient use of data
+[00:17:20,630 --> 00:17:22,030] that we've collected.
+[00:17:22,030 --> 00:17:25,974] And if we can try to figure out what actions are advantageous
+[00:17:25,974 --> 00:17:27,349] versus not advantageous, we might
+[00:17:27,349 --> 00:17:30,870] be able to make better use of that data.
+[00:17:30,870 --> 00:17:36,230] So the question was, if a step forward is helpful or not,
+[00:17:36,230 --> 00:17:37,900] is that going to be negative or neutral?
+[00:17:41,250 --> 00:17:46,085] In case of this policy gradient algorithm, the trajectory
+[00:17:46,085 --> 00:17:48,210] that we considered here in the context of the batch
+[00:17:48,210 --> 00:17:52,130] of trajectories, net negative was below average
+[00:17:52,130 --> 00:17:55,230] because the reward to go is quite negative.
+[00:17:55,230 --> 00:18:01,330] It's actually making backwards progress in this trajectory.
+[00:18:01,330 --> 00:18:03,410] And so it actually is going to be pushing down
+[00:18:03,410 --> 00:18:05,970] the likelihood of taking a step forward
+[00:18:05,970 --> 00:18:09,810] because the future reward to go is negative.
+[00:18:09,810 --> 00:18:12,370] And what we'll talk about today is
+[00:18:12,370 --> 00:18:14,490] algorithms that in principle could actually
+[00:18:14,490 --> 00:18:16,850] increase the likelihood for taking the step forward
+[00:18:16,850 --> 00:18:19,150] and decrease the likelihood for falling backwards.
+[00:18:23,250 --> 00:18:26,570] So how do we do that?
+[00:18:26,570 --> 00:18:30,590] A lot of what we'll focus on today is this piece right here.
+[00:18:30,590 --> 00:18:32,507] This is what's actually telling us
+[00:18:32,507 --> 00:18:34,590] that we should push down the likelihood if we have
+[00:18:34,590 --> 00:18:35,882] negative rewards in the future.
+[00:18:38,710 --> 00:18:41,550] And this quantity, it's estimating the future
+[00:18:41,550 --> 00:18:47,510] rewards if we take action a in state s.
+[00:18:47,510 --> 00:18:50,590] And so we can think about it as--
+[00:18:50,590 --> 00:18:54,590] in this picture right here, it looks a lot like,
+[00:18:54,590 --> 00:18:58,430] what is the sum of rewards if we started right
+[00:18:58,430 --> 00:19:02,950] here with state s and action a.
+[00:19:02,950 --> 00:19:06,788] And then if we think about this picture,
+[00:19:06,788 --> 00:19:08,830] we were looking at this quantity in terms of what
+[00:19:08,830 --> 00:19:10,870] we observed in trajectories.
+[00:19:10,870 --> 00:19:15,250] But what would be an even better version of this quantity
+[00:19:15,250 --> 00:19:18,350] would be to actually use the Q function.
+[00:19:18,350 --> 00:19:21,230] And if we could replace this with the Q function,
+[00:19:21,230 --> 00:19:24,912] then we would be able to get a much better estimate of
+[00:19:24,912 --> 00:19:26,870] whether or not we should push up the likelihood
+[00:19:26,870 --> 00:19:29,070] or push down the likelihood.
+[00:19:29,070 --> 00:19:31,630] And so looking at the slides right now, what we do
+[00:19:31,630 --> 00:19:34,700] is, for a single trajectory, we sum together
+[00:19:34,700 --> 00:19:38,140] the rewards that we saw, which was, in the case of the example
+[00:19:38,140 --> 00:19:39,980] before, the rewards were negative
+[00:19:39,980 --> 00:19:43,820] because we took a small step forward and then fell backwards.
+[00:19:43,820 --> 00:19:48,580] But if instead what we could do is actually run the policy
+[00:19:48,580 --> 00:19:54,460] many, many times and get a Q function for the state,
+[00:19:54,460 --> 00:19:56,300] that would be the true expected rewards
+[00:19:56,300 --> 00:19:59,700] to go under the expectation of our policy,
+[00:19:59,700 --> 00:20:01,640] and this would be way better.
+[00:20:01,640 --> 00:20:06,740] We'd be able to get a much better sense for how good it
+[00:20:06,740 --> 00:20:09,160] was to take that action in that state.
+[00:20:12,900 --> 00:20:17,180] So essentially the form of the gradient
+[00:20:17,180 --> 00:20:19,323] would be able to get a much better gradient
+[00:20:19,323 --> 00:20:20,740] if the form of the gradient looked
+[00:20:20,740 --> 00:20:24,700] like this, where we increase the likelihood of the actions
+[00:20:24,700 --> 00:20:26,447] for things that have high Q values,
+[00:20:26,447 --> 00:20:28,780] and we decrease the likelihood of the actions for things
+[00:20:28,780 --> 00:20:30,630] that have low Q values.
+[00:20:33,760 --> 00:20:34,990] So that's a first step.
+[00:20:40,280 --> 00:20:42,840] We also talked about baselines in the previous lecture
+[00:20:42,840 --> 00:20:46,840] where the baseline was the average reward.
+[00:20:46,840 --> 00:20:49,240] Should we use a baseline here?
+[00:20:49,240 --> 00:20:52,480] So before the baselines were the average reward.
+[00:20:52,480 --> 00:20:55,400] And so in this case, if we were to introduce baselines,
+[00:20:55,400 --> 00:20:58,880] we could think about what we might use.
+[00:20:58,880 --> 00:21:03,460] And if we use the same thing that we used before,
+[00:21:03,460 --> 00:21:08,560] we could use the average Q value, in this case.
+[00:21:08,560 --> 00:21:14,200] So we could use an average--
+[00:21:14,200 --> 00:21:23,400] maybe we sample some Si and ai, and we average over those.
+[00:21:23,400 --> 00:21:27,200] And what we had talked about a few slides ago
+[00:21:27,200 --> 00:21:32,400] is this is actually looking a lot like the value function.
+[00:21:32,400 --> 00:21:35,780] So we talked about the value of a given state
+[00:21:35,780 --> 00:21:41,900] is an expectation over actions sampled
+[00:21:41,900 --> 00:21:47,380] from the policy for that given state of the Q
+[00:21:47,380 --> 00:21:53,020] function for those actions.
+[00:21:53,020 --> 00:21:54,860] This is V pi.
+[00:21:54,860 --> 00:21:57,820] And so a natural baseline would actually
+[00:21:57,820 --> 00:22:00,700] be to use the value function.
+[00:22:00,700 --> 00:22:05,820] And so instead of having this be Q values,
+[00:22:05,820 --> 00:22:10,100] we could actually use Q minus V. And Q minus V
+[00:22:10,100 --> 00:22:13,380] is what the advantage function is.
+[00:22:13,380 --> 00:22:16,060] And so putting this together, we would
+[00:22:16,060 --> 00:22:20,780] be increasing the likelihood for actions
+[00:22:20,780 --> 00:22:23,940] that have a high advantage and decreasing
+[00:22:23,940 --> 00:22:26,980] the likelihood for actions that have a low advantage.
+[00:22:26,980 --> 00:22:31,280] And so then if you think back to the example of learning
+[00:22:31,280 --> 00:22:36,840] to practice playing the drums, the action of practicing
+[00:22:36,840 --> 00:22:40,790] had a high advantage relative to the current policy.
+[00:22:40,790 --> 00:22:43,040] And so then we would choose to increase the likelihood
+[00:22:43,040 --> 00:22:47,573] for practicing and decrease the likelihood
+[00:22:47,573 --> 00:22:48,490] for the other actions.
+[00:22:52,200 --> 00:22:53,343] Cool.
+[00:22:53,343 --> 00:22:54,760] Another way to think about this is
+[00:22:54,760 --> 00:22:57,560] that better estimates of this advantage function
+[00:22:57,560 --> 00:22:59,840] will lead to less noisy gradient.
+[00:22:59,840 --> 00:23:02,380] And if we knew the true advantage function,
+[00:23:02,380 --> 00:23:06,165] then we would be able to get a very, very good gradient.
+[00:23:06,165 --> 00:23:08,540] Unfortunately, we don't know the true advantage function,
+[00:23:08,540 --> 00:23:12,160] and so the next question that we'll talk about
+[00:23:12,160 --> 00:23:15,400] over the next several slides is how can we estimate
+[00:23:15,400 --> 00:23:17,920] the advantage function.
+[00:23:17,920 --> 00:23:22,480] So the question was, how is this different from how
+[00:23:22,480 --> 00:23:25,860] we're sampling in the original policy gradient?
+[00:23:25,860 --> 00:23:31,950] And so what we're using before is we would take of one sample,
+[00:23:31,950 --> 00:23:38,710] and then for a given state and action in that trajectory,
+[00:23:38,710 --> 00:23:42,650] we would sum the rewards just for that individual thing.
+[00:23:45,928 --> 00:23:48,470] And this is going to be a very noisy estimate because we just
+[00:23:48,470 --> 00:23:49,512] have one trajectory here.
+[00:23:49,512 --> 00:23:52,335] We just have one data point to estimate these rewards.
+[00:23:52,335 --> 00:23:53,710] And now what we're saying here is
+[00:23:53,710 --> 00:23:56,070] that we're going to try to get a sense for what
+[00:23:56,070 --> 00:23:58,430] the advantage of this action is.
+[00:23:58,430 --> 00:24:01,550] Now, one way we'll actually start
+[00:24:01,550 --> 00:24:05,572] to talk about how we do that in a minute.
+[00:24:05,572 --> 00:24:07,030] But if you want to think about what
+[00:24:07,030 --> 00:24:09,230] is the true advantage of this action,
+[00:24:09,230 --> 00:24:15,150] conceptually, if you were to take this state and action
+[00:24:15,150 --> 00:24:18,510] and then roll out the policy an infinite number of times
+[00:24:18,510 --> 00:24:20,590] for this action versus for following
+[00:24:20,590 --> 00:24:22,710] the policy in other scenarios, that's
+[00:24:22,710 --> 00:24:25,690] what would give us the advantage.
+[00:24:25,690 --> 00:24:28,710] So the question is, in policy gradient
+[00:24:28,710 --> 00:24:32,010] we got to where we were by optimizing
+[00:24:32,010 --> 00:24:34,490] the expected sum of rewards.
+[00:24:34,490 --> 00:24:36,930] Does this also optimize some objective?
+[00:24:36,930 --> 00:24:39,552] So this is also optimizing the expected sum of rewards,
+[00:24:39,552 --> 00:24:41,760] and it's actually optimizing the same exact function.
+[00:24:45,210 --> 00:24:47,150] We haven't talked about how to get A yet.
+[00:24:47,150 --> 00:24:51,730] But if you had a perfect A, this would be giving you
+[00:24:51,730 --> 00:24:58,890] the correct gradient for that objective, the sampling here
+[00:24:58,890 --> 00:25:02,210] being used to sample states and actions.
+[00:25:02,210 --> 00:25:05,890] Is the baseline and average over the current or an average
+[00:25:05,890 --> 00:25:07,030] over all trajectories?
+[00:25:12,090 --> 00:25:15,930] So if we set it to be the value function V,
+[00:25:15,930 --> 00:25:19,453] that would be an infinite number of samples.
+[00:25:19,453 --> 00:25:21,370] We haven't yet talked about how we're actually
+[00:25:21,370 --> 00:25:25,270] going to estimate a or estimate Q versus V,
+[00:25:25,270 --> 00:25:27,910] so we'll talk about that in a minute.
+[00:25:27,910 --> 00:25:31,190] But yeah, for V, conceptually, that
+[00:25:31,190 --> 00:25:33,110] would be over an infinite number.
+[00:25:33,110 --> 00:25:36,270] But I'm talking about, this is the true value so far.
+[00:25:36,270 --> 00:25:39,950] We haven't talked about how to estimate the value yet.
+[00:25:39,950 --> 00:25:42,790] So the question is, is this unbiased?
+[00:25:42,790 --> 00:25:44,270] It isn't biased.
+[00:25:44,270 --> 00:25:45,550] You can go through the math.
+[00:25:45,550 --> 00:25:48,590] I won't go through that today for the sake of time.
+[00:25:48,590 --> 00:25:51,070] But yeah, this is an unbiased estimate of the gradient
+[00:25:51,070 --> 00:25:53,870] if you have the true advantage.
+[00:25:53,870 --> 00:25:57,790] Now, we will see things that are biased later today.
+[00:25:57,790 --> 00:26:01,910] So let's actually talk about how do we use this.
+[00:26:01,910 --> 00:26:04,550] And actually just as a quick overview
+[00:26:04,550 --> 00:26:09,750] of what the algorithm will look like for this form of algorithm.
+[00:26:09,750 --> 00:26:12,030] Before we had this loop between running the policy
+[00:26:12,030 --> 00:26:14,630] and improving the policy, now we're
+[00:26:14,630 --> 00:26:17,590] going to have an additional step where
+[00:26:17,590 --> 00:26:19,990] we're going to fit a model that's going to estimate
+[00:26:19,990 --> 00:26:20,930] the expected return.
+[00:26:20,930 --> 00:26:22,305] And essentially it's going to try
+[00:26:22,305 --> 00:26:26,530] to estimate this a right here.
+[00:26:26,530 --> 00:26:28,950] And so our new algorithm will have a few different steps.
+[00:26:28,950 --> 00:26:30,230] One is to run the policy.
+[00:26:30,230 --> 00:26:34,170] One is to try to estimate values.
+[00:26:34,170 --> 00:26:36,010] And then the last will be then to use
+[00:26:36,010 --> 00:26:39,050] that estimate and the data that was collected
+[00:26:39,050 --> 00:26:42,410] to improve the policy.
+[00:26:42,410 --> 00:26:45,490] And so this step will involve estimating either V pi Q
+[00:26:45,490 --> 00:26:47,290] pi or A pi.
+[00:26:47,290 --> 00:26:50,930] And this step will be similar to before
+[00:26:50,930 --> 00:26:54,270] except it's going to use these estimates right here.
+[00:26:57,570 --> 00:27:03,170] So how do we actually estimate these values?
+[00:27:03,170 --> 00:27:06,490] So we want to estimate this quantity right here.
+[00:27:06,490 --> 00:27:14,050] And to start out, we need to think about how
+[00:27:14,050 --> 00:27:16,930] we want to get to A pi.
+[00:27:16,930 --> 00:27:20,842] And we could try to directly fit A pi,
+[00:27:20,842 --> 00:27:22,800] although it's actually a little bit challenging
+[00:27:22,800 --> 00:27:26,960] to get direct supervision for the advantages.
+[00:27:26,960 --> 00:27:30,620] And so we're actually going to try to fit V pi.
+[00:27:30,620 --> 00:27:34,040] And the way that we're going to get there is--
+[00:27:36,680 --> 00:27:38,180] let's see, where do we want to go?
+[00:27:41,720 --> 00:27:55,000] We know that A pi of St, at is equal to the Q
+[00:27:55,000 --> 00:28:02,000] value minus the value.
+[00:28:02,000 --> 00:28:06,820] And so one option is we could try to estimate these two,
+[00:28:06,820 --> 00:28:09,800] although then we'd still have to estimate two objects.
+[00:28:09,800 --> 00:28:14,000] And there's actually a way to turn this into an equation that
+[00:28:14,000 --> 00:28:16,920] actually only depends on V pi.
+[00:28:16,920 --> 00:28:20,380] And that would be nice because then we could just only fit V pi
+[00:28:20,380 --> 00:28:25,500] and then derive A pi from there to get the gradient.
+[00:28:25,500 --> 00:28:32,420] And so to do this, we can think about Q pi right here.
+[00:28:32,420 --> 00:28:40,960] And this Q function, this is the value of starting at S taking a
+[00:28:40,960 --> 00:28:42,860] and then summing the rewards.
+[00:28:42,860 --> 00:28:50,060] And so you can think of it as the reward at the current time
+[00:28:50,060 --> 00:28:53,740] step that you got plus the rewards that
+[00:28:53,740 --> 00:28:55,740] would come after that.
+[00:28:55,740 --> 00:28:59,700] And in terms of the rewards that would come after that,
+[00:28:59,700 --> 00:29:03,980] you'll have some next state, St plus 1.
+[00:29:03,980 --> 00:29:05,370] And so you can think of it as--
+[00:29:08,420 --> 00:29:11,302] there's some next state.
+[00:29:11,302 --> 00:29:13,260] This next state could be a few different things
+[00:29:13,260 --> 00:29:15,360] depending on your environment.
+[00:29:15,360 --> 00:29:21,640] So this would be sampled from the dynamics of the environment.
+[00:29:21,640 --> 00:29:28,520] And then after this state, it's essentially
+[00:29:28,520 --> 00:29:32,160] going to be the sum of rewards starting at St plus 1
+[00:29:32,160 --> 00:29:33,340] and following your policy.
+[00:29:37,600 --> 00:29:39,260] Sorry, this should be St plus 1.
+[00:29:39,260 --> 00:29:42,720] The sum of rewards starting at St plus 1,
+[00:29:42,720 --> 00:29:46,760] that's equal to the value of St plus 1.
+[00:29:46,760 --> 00:29:56,040] So we can write this Q value as the reward at the current time
+[00:29:56,040 --> 00:30:02,000] step plus the value at the time step after that.
+[00:30:02,000 --> 00:30:04,880] Now, we can't sample from these dynamics.
+[00:30:04,880 --> 00:30:08,080] But when we ran our policy to collect data,
+[00:30:08,080 --> 00:30:12,320] we did actually see one outcome, one St plus 1.
+[00:30:12,320 --> 00:30:17,510] And so we can approximate this as the reward
+[00:30:17,510 --> 00:30:25,350] at the current time step plus the value at the next time step.
+[00:30:25,350 --> 00:30:27,410] And then if we want to estimate the advantage,
+[00:30:27,410 --> 00:30:31,070] we can write it as the reward at the current time
+[00:30:31,070 --> 00:30:32,710] step plus the value at the next time
+[00:30:32,710 --> 00:30:37,670] step minus the value at the current time step.
+[00:30:37,670 --> 00:30:42,190] And so maybe I'll do this in a different color
+[00:30:42,190 --> 00:30:43,170] to differentiate it.
+[00:30:43,170 --> 00:30:55,910] So now A pi of St, at can be approximated as r, the reward,
+[00:30:55,910 --> 00:30:59,870] that you saw plus the value at the next time
+[00:30:59,870 --> 00:31:05,350] step minus the value at the current time step.
+[00:31:05,350 --> 00:31:12,150] And so if we then have an estimate of V for our policy,
+[00:31:12,150 --> 00:31:14,630] then we can estimate the advantage,
+[00:31:14,630 --> 00:31:18,790] and we can just try to directly fit V.
+[00:31:18,790 --> 00:31:21,010] And so on the slides, what this looks like,
+[00:31:21,010 --> 00:31:26,825] we have Q. Q can be written as the expected future rewards
+[00:31:26,825 --> 00:31:28,450] which is the reward at the current time
+[00:31:28,450 --> 00:31:30,110] step plus the future rewards.
+[00:31:30,110 --> 00:31:33,570] These future rewards can be written as the value.
+[00:31:33,570 --> 00:31:36,290] And so we can think of Q as the reward at the current time
+[00:31:36,290 --> 00:31:39,300] step plus the value at the next time step.
+[00:31:43,370 --> 00:31:48,610] So why is this an approximation?
+[00:31:48,610 --> 00:31:52,410] The reason for this is that there's actually
+[00:31:52,410 --> 00:31:54,450] multiple possible next states.
+[00:31:54,450 --> 00:31:59,190] And we're just going to use one sample from this expectation,
+[00:31:59,190 --> 00:32:01,730] which is the sample that we saw when we rolled out
+[00:32:01,730 --> 00:32:04,010] the trajectory in our data.
+[00:32:04,010 --> 00:32:06,050] And if you want an exact thing, you
+[00:32:06,050 --> 00:32:08,050] would need to estimate this expectation
+[00:32:08,050 --> 00:32:10,050] with infinite samples.
+[00:32:10,050 --> 00:32:11,750] How good of an approximation is this?
+[00:32:11,750 --> 00:32:15,630] So it is going to be a single sample approximation.
+[00:32:15,630 --> 00:32:19,230] The good news is that later on we'll
+[00:32:19,230 --> 00:32:22,970] see ways to use lots of data to do this.
+[00:32:27,172 --> 00:32:28,630] Well, so I guess the first thing is
+[00:32:28,630 --> 00:32:30,982] that if this is very deterministic,
+[00:32:30,982 --> 00:32:33,190] first, it's going to be a good estimate because there
+[00:32:33,190 --> 00:32:35,293] aren't that many futures.
+[00:32:35,293 --> 00:32:36,710] If it's more stochastic, then it's
+[00:32:36,710 --> 00:32:38,950] going to be a worse estimate, and then we'll
+[00:32:38,950 --> 00:32:41,110] see ways in which we can use data and take
+[00:32:41,110 --> 00:32:44,950] lots of gradient steps in a way that makes it not too bad.
+[00:32:44,950 --> 00:32:47,510] So the question is, is there any new interaction
+[00:32:47,510 --> 00:32:48,650] with the environment?
+[00:32:48,650 --> 00:32:53,150] So I guess we haven't yet talked about how to fit V pi.
+[00:32:53,150 --> 00:32:56,470] So we will talk about that in the next slide.
+[00:32:56,470 --> 00:33:00,790] So if you have some trajectory this
+[00:33:00,790 --> 00:33:05,470] will be like the St, at and St plus 1 from the same trajectory.
+[00:33:05,470 --> 00:33:08,470] So you need to use the same trajectory for this.
+[00:33:08,470 --> 00:33:12,810] And sometimes I forget to put the pi on here.
+[00:33:12,810 --> 00:33:15,170] And there is a lot of reinforcement learning work that
+[00:33:15,170 --> 00:33:17,310] drops the pis just for simplicity,
+[00:33:17,310 --> 00:33:19,577] but it is actually, in some ways,
+[00:33:19,577 --> 00:33:21,410] very important to have A pi there because it
+[00:33:21,410 --> 00:33:23,930] is estimating a value for a particular policy,
+[00:33:23,930 --> 00:33:25,725] not for any policy.
+[00:33:25,725 --> 00:33:27,850] So the question is, why are we choosing to estimate
+[00:33:27,850 --> 00:33:30,290] V versus Q versus A?
+[00:33:30,290 --> 00:33:33,090] It's just a little bit simpler in practice.
+[00:33:33,090 --> 00:33:38,970] But there are also ways to directly estimate Q.
+[00:33:38,970 --> 00:33:42,050] And actually we'll talk about some of those ways next week
+[00:33:42,050 --> 00:33:42,590] as well.
+[00:33:49,690 --> 00:33:51,450] So we're just going to fit V pi.
+[00:33:51,450 --> 00:33:53,630] And then once we fit V pi we can get the advantage,
+[00:33:53,630 --> 00:33:58,450] and then plug that into our gradient for our policy.
+[00:33:58,450 --> 00:34:01,188] We can represent V pi as a neural network.
+[00:34:01,188 --> 00:34:02,730] And what this will look like is we'll
+[00:34:02,730 --> 00:34:06,250] pass as input a state and then it
+[00:34:06,250 --> 00:34:11,210] will output a single scalar value
+[00:34:11,210 --> 00:34:14,960] that represents the value of that state for that policy.
+[00:34:14,960 --> 00:34:18,639] This neural network will have some parameters.
+[00:34:18,639 --> 00:34:20,159] So how do we do this?
+[00:34:20,159 --> 00:34:24,980] So there's a few different ways to estimate V pi.
+[00:34:31,920 --> 00:34:33,800] So in the very, very initial version,
+[00:34:33,800 --> 00:34:35,639] like a vanilla policy gradient, we just
+[00:34:35,639 --> 00:34:39,080] used a single trajectory, a single sample.
+[00:34:39,080 --> 00:34:42,520] And instead of actually learning a model
+[00:34:42,520 --> 00:34:43,670] we just used that sample.
+[00:34:46,440 --> 00:34:50,749] In principle, we could also use many samples.
+[00:34:56,020 --> 00:34:58,960] Unfortunately, if you were to try to go to a particular state
+[00:34:58,960 --> 00:35:01,040] and then take many samples from that state,
+[00:35:01,040 --> 00:35:02,540] that means that you would have to be
+[00:35:02,540 --> 00:35:04,720] able to reset the world to that state
+[00:35:04,720 --> 00:35:10,020] and see what happens if you took many different rollouts
+[00:35:10,020 --> 00:35:12,100] from that same state.
+[00:35:12,100 --> 00:35:13,920] And unfortunately, in many scenarios,
+[00:35:13,920 --> 00:35:16,260] it's very hard to reset the state.
+[00:35:16,260 --> 00:35:19,320] If you are in simulated settings,
+[00:35:19,320 --> 00:35:21,830] sometimes you can actually reset the simulator.
+[00:35:21,830 --> 00:35:24,080] So there is sometimes scenarios where you can do this,
+[00:35:24,080 --> 00:35:27,530] but in practice, we typically don't do this.
+[00:35:31,540 --> 00:35:34,140] So since we can't directly reset and take
+[00:35:34,140 --> 00:35:37,060] lots of samples, what we can do is
+[00:35:37,060 --> 00:35:39,740] we can use multiple trajectories that we had sampled
+[00:35:39,740 --> 00:35:43,660] and just train a single model on the original single sample
+[00:35:43,660 --> 00:35:44,860] estimate.
+[00:35:44,860 --> 00:35:47,780] And because the trajectories that we have,
+[00:35:47,780 --> 00:35:51,380] they will have some states in them that are similar.
+[00:35:51,380 --> 00:36:00,960] You'll be able to essentially learn how to amortize the data.
+[00:36:00,960 --> 00:36:04,180] So you'll see some examples in the environment that
+[00:36:04,180 --> 00:36:06,700] have very similar states and have
+[00:36:06,700 --> 00:36:11,080] corresponding future rewards in them.
+[00:36:11,080 --> 00:36:14,160] And with that repetition in your data,
+[00:36:14,160 --> 00:36:18,080] a neural network can have a little bit more density
+[00:36:18,080 --> 00:36:23,000] in terms of the rewards that you'll see for a given state.
+[00:36:23,000 --> 00:36:25,960] And so what this is going to look like is
+[00:36:25,960 --> 00:36:34,840] you can take your data set, and you'll
+[00:36:34,840 --> 00:36:40,320] have I equals 1 to n trajectories.
+[00:36:40,320 --> 00:36:44,640] And each trajectory will have time steps in it.
+[00:36:44,640 --> 00:36:51,160] And for all of those trajectories and time steps,
+[00:36:51,160 --> 00:36:53,640] you'll also have some sum of rewards
+[00:36:53,640 --> 00:36:56,640] that you observe for that.
+[00:36:56,640 --> 00:36:59,560] So you'll have some sum of rewards
+[00:36:59,560 --> 00:37:11,910] that started at t to the end of the rewards of the states
+[00:37:11,910 --> 00:37:13,870] and actions that you visited.
+[00:37:13,870 --> 00:37:17,150] And if you aggregate all the trajectories in your data set,
+[00:37:17,150 --> 00:37:21,230] you can train a model to go from the state
+[00:37:21,230 --> 00:37:25,270] that you saw to the sum of rewards that was observed
+[00:37:25,270 --> 00:37:27,350] when you ran the policy.
+[00:37:27,350 --> 00:37:30,990] And with this, you can form a supervised learning
+[00:37:30,990 --> 00:37:38,710] data set where this is the label in the data set.
+[00:37:38,710 --> 00:37:40,310] And you can train with supervised
+[00:37:40,310 --> 00:37:43,510] learning a model to take as input this and output
+[00:37:43,510 --> 00:37:45,313] this quantity right here.
+[00:37:45,313 --> 00:37:47,230] And the number of data points in your data set
+[00:37:47,230 --> 00:37:48,870] will be the number of trajectories
+[00:37:48,870 --> 00:37:51,870] times the average number of time steps.
+[00:37:51,870 --> 00:37:54,210] So the question is, each time your policy changes,
+[00:37:54,210 --> 00:37:58,220] do you have to recollect the data and refit this?
+[00:37:58,220 --> 00:38:00,510] With this approach, yes.
+[00:38:00,510 --> 00:38:02,630] We will see approaches later.
+[00:38:02,630 --> 00:38:05,690] This is the simplest and dumbest approach you can
+[00:38:05,690 --> 00:38:08,930] use to fit a value function.
+[00:38:08,930 --> 00:38:12,872] And we will see approaches where you can reuse other data.
+[00:38:12,872 --> 00:38:14,330] So the question was, if we're going
+[00:38:14,330 --> 00:38:16,410] to be running a lot of simulations
+[00:38:16,410 --> 00:38:19,290] or rollouts of our policy, is it unreasonable to try
+[00:38:19,290 --> 00:38:21,570] to learn some estimate of future states
+[00:38:21,570 --> 00:38:23,240] given the current state and action?
+[00:38:27,970 --> 00:38:28,990] Two things here.
+[00:38:28,990 --> 00:38:33,210] If you have a very simple state space, a very small state space,
+[00:38:33,210 --> 00:38:36,930] you might be able to store some things
+[00:38:36,930 --> 00:38:39,563] and form an estimate just from storing things.
+[00:38:39,563 --> 00:38:41,730] You could also, in principle, train a neural network
+[00:38:41,730 --> 00:38:44,450] to predict what future states would be given current states
+[00:38:44,450 --> 00:38:46,210] and actions.
+[00:38:46,210 --> 00:38:48,953] There are a set of approaches that do that,
+[00:38:48,953 --> 00:38:51,370] and they're called model-based approaches and that they're
+[00:38:51,370 --> 00:38:53,930] learning a model of the world.
+[00:38:53,930 --> 00:38:56,680] And we will talk about those approaches in a few weeks.
+[00:39:00,970 --> 00:39:07,850] So this first approach, run a bunch of samples,
+[00:39:07,850 --> 00:39:12,270] aggregate a data set of our future rewards,
+[00:39:12,270 --> 00:39:16,310] and then run supervised learning to fit an estimated value
+[00:39:16,310 --> 00:39:21,990] function where you can form an L2 error
+[00:39:21,990 --> 00:39:27,950] between your predicted value and the observed sum of rewards,
+[00:39:27,950 --> 00:39:29,630] and then minimize that with respect
+[00:39:29,630 --> 00:39:32,300] to the parameters of your value function.
+[00:39:36,030 --> 00:39:41,550] And so what this objective looks like is minimizing
+[00:39:41,550 --> 00:39:44,310] with respect to your parameters the difference
+[00:39:44,310 --> 00:39:55,510] between your predicted value and the example
+[00:39:55,510 --> 00:39:57,030] or the sum of rewards that you saw
+[00:39:57,030 --> 00:40:01,310] in your data set for a given i.
+[00:40:01,310 --> 00:40:06,250] And you'll do this for all of the data points
+[00:40:06,250 --> 00:40:09,010] in your data set.
+[00:40:09,010 --> 00:40:11,490] And so this actually can also be a sum over i
+[00:40:11,490 --> 00:40:15,530] and t, just for completeness.
+[00:40:15,530 --> 00:40:17,607] So that will be the objective.
+[00:40:17,607 --> 00:40:19,690] And you can run gradient descent on this objective
+[00:40:19,690 --> 00:40:23,870] to fit a value function on your data point.
+[00:40:23,870 --> 00:40:26,370] Do we need to train a neural network for every gradient step
+[00:40:26,370 --> 00:40:27,230] in this case?
+[00:40:27,230 --> 00:40:29,816] So this is actually different from policy gradient where--
+[00:40:33,290 --> 00:40:35,770] the gradient steps here that we take
+[00:40:35,770 --> 00:40:37,890] are going to be trying to fit a value function.
+[00:40:37,890 --> 00:40:41,050] And the value function isn't changing the policy.
+[00:40:41,050 --> 00:40:43,050] And so you can actually take many gradient steps
+[00:40:43,050 --> 00:40:47,250] on this objective to learn a value function without having
+[00:40:47,250 --> 00:40:48,720] to recollect your data.
+[00:40:51,930 --> 00:40:54,750] So this is the simplest approach for training a value function.
+[00:40:54,750 --> 00:40:57,010] It's called Monte Carlo estimation
+[00:40:57,010 --> 00:41:01,940] where essentially you're just running lots of simulations,
+[00:41:01,940 --> 00:41:05,320] running lots of rollouts, and then trying
+[00:41:05,320 --> 00:41:08,670] to learn how to predict the outcome of the future rewards.
+[00:41:11,440 --> 00:41:14,920] Now, there's actually an approach
+[00:41:14,920 --> 00:41:18,400] that's better than this.
+[00:41:18,400 --> 00:41:23,320] And in particular, when we think about these sum of rewards,
+[00:41:23,320 --> 00:41:25,620] maybe it's helpful to draw a picture in this case.
+[00:41:25,620 --> 00:41:35,920] So we have a bunch of trajectories that we've sampled.
+[00:41:35,920 --> 00:41:44,160] And in this case, what we're doing is when we have a state
+[00:41:44,160 --> 00:41:51,040] right here, we are summing the rewards here as the value.
+[00:41:51,040 --> 00:41:55,600] And as we're learning this, we're
+[00:41:55,600 --> 00:42:01,820] starting to learn what the value of a given state is.
+[00:42:01,820 --> 00:42:05,980] And this means that maybe halfway
+[00:42:05,980 --> 00:42:10,460] through training when we're regressing to future rewards--
+[00:42:10,460 --> 00:42:14,180] and if we start to get what is a good value of this state right
+[00:42:14,180 --> 00:42:16,580] here, then we could actually try to use
+[00:42:16,580 --> 00:42:21,660] our own estimate of this value as the supervision target.
+[00:42:21,660 --> 00:42:25,340] And in particular, if we know that we
+[00:42:25,340 --> 00:42:30,140] got a reward at this time step right here to then get to here,
+[00:42:30,140 --> 00:42:35,020] then we could actually use that reward plus our estimate
+[00:42:35,020 --> 00:42:39,740] as the supervision target rather than just using
+[00:42:39,740 --> 00:42:43,180] the sum of future rewards.
+[00:42:43,180 --> 00:42:48,340] And so in particular, the ideal target
+[00:42:48,340 --> 00:42:52,260] is the true sum of expected rewards.
+[00:42:52,260 --> 00:42:55,620] This is equal to the reward at the current time
+[00:42:55,620 --> 00:42:59,180] step plus the expected rewards at the next time step.
+[00:43:05,578 --> 00:43:07,120] The sum of rewards that the next time
+[00:43:07,120 --> 00:43:09,910] step is equal to the value of the next state.
+[00:43:12,840 --> 00:43:15,000] And so in principle, what we could
+[00:43:15,000 --> 00:43:19,400] do is instead of trying to regress to future rewards,
+[00:43:19,400 --> 00:43:24,640] we could regress to the reward at the current time
+[00:43:24,640 --> 00:43:30,480] step plus the value at the next time step.
+[00:43:30,480 --> 00:43:32,580] And so we're actually going to be, in this case,
+[00:43:32,580 --> 00:43:36,520] using our estimate of the value at the next time step
+[00:43:36,520 --> 00:43:38,940] as part of the supervision target.
+[00:43:38,940 --> 00:43:44,420] So these are all for a given trajectory,
+[00:43:44,420 --> 00:43:55,160] and this would be your new label for your data set for a given
+[00:43:55,160 --> 00:43:57,140] state.
+[00:43:57,140 --> 00:44:00,940] So the question is, how often do you update these V pi's?
+[00:44:00,940 --> 00:44:06,780] In practice, you can update them every single iteration.
+[00:44:06,780 --> 00:44:08,600] If it's really expensive to update them,
+[00:44:08,600 --> 00:44:10,642] you could update them less frequently if you have
+[00:44:10,642 --> 00:44:12,100] a really huge neural network.
+[00:44:12,100 --> 00:44:13,980] But in practice, typically, we update them
+[00:44:13,980 --> 00:44:17,260] every single gradient step.
+[00:44:17,260 --> 00:44:19,622] So we have these bootstrapped estimates.
+[00:44:19,622 --> 00:44:21,580] We refer to this as bootstrapping because we're
+[00:44:21,580 --> 00:44:24,260] actually bootstrapping off of our own estimate of the value
+[00:44:24,260 --> 00:44:28,700] function as part of the learning process.
+[00:44:28,700 --> 00:44:30,240] We formulate our training data.
+[00:44:30,240 --> 00:44:32,500] We're then going to use the same exact objective
+[00:44:32,500 --> 00:44:33,960] to fit a value function.
+[00:44:33,960 --> 00:44:35,440] Just regressing to these targets,
+[00:44:35,440 --> 00:44:39,500] we just have different labels in our data set now.
+[00:44:39,500 --> 00:44:47,100] And these labels are changing as we run gradient descent
+[00:44:47,100 --> 00:44:48,040] on our objective.
+[00:44:48,040 --> 00:44:50,860] And so you often will update your labels
+[00:44:50,860 --> 00:44:53,495] every single gradient update.
+[00:44:53,495 --> 00:44:55,620] So the question is, is this based on one trajectory
+[00:44:55,620 --> 00:44:59,210] or is this based on multiple trajectories
+[00:44:59,210 --> 00:45:02,010] where things are close together?
+[00:45:02,010 --> 00:45:04,690] So this data set will be over multiple trajectories
+[00:45:04,690 --> 00:45:06,930] where i is indexing over trajectories
+[00:45:06,930 --> 00:45:11,480] and t is indexing over time inside those trajectories.
+[00:45:11,480 --> 00:45:15,210] In terms of this label, this will be for a given data point.
+[00:45:19,450 --> 00:45:22,370] And you're not going to be running multiple simulations
+[00:45:22,370 --> 00:45:24,650] from that data point, but you're going
+[00:45:24,650 --> 00:45:28,630] to be estimating what would have happened from your future state
+[00:45:28,630 --> 00:45:30,570] rather than a single sample of what
+[00:45:30,570 --> 00:45:32,515] happened in that trajectory.
+[00:45:32,515 --> 00:45:33,890] And so with this, you're actually
+[00:45:33,890 --> 00:45:36,890] able to get a better estimate of all of the possible outcomes
+[00:45:36,890 --> 00:45:39,510] that might have happened at the next state,
+[00:45:39,510 --> 00:45:41,810] rather than just one outcome.
+[00:45:41,810 --> 00:45:45,490] So you're asking, why is the input to the value function
+[00:45:45,490 --> 00:45:50,490] just S and not including previous time steps?
+[00:45:50,490 --> 00:45:50,990] Oh.
+[00:45:58,510 --> 00:46:02,110] The ideal target for our value function
+[00:46:02,110 --> 00:46:03,950] is the sum of future rewards.
+[00:46:03,950 --> 00:46:06,230] And you can think about this sum of future rewards
+[00:46:06,230 --> 00:46:09,910] as the reward at the current time step, which
+[00:46:09,910 --> 00:46:16,790] is a deterministic quantity plus the future rewards conditioned
+[00:46:16,790 --> 00:46:18,612] on our current state.
+[00:46:18,612 --> 00:46:20,570] And so this is conditioned on the current state
+[00:46:20,570 --> 00:46:24,870] because the future rewards is a function of where we are right
+[00:46:24,870 --> 00:46:27,470] now, and it's actually only a function
+[00:46:27,470 --> 00:46:30,545] of where we are right now and not anything else.
+[00:46:30,545 --> 00:46:32,670] So the question is, does this require that you have
+[00:46:32,670 --> 00:46:35,750] a good initial value estimate?
+[00:46:35,750 --> 00:46:37,990] Because if it's really bad at the beginning,
+[00:46:37,990 --> 00:46:42,390] then your targets will be really bad.
+[00:46:42,390 --> 00:46:44,930] There are some considerations when initializing it,
+[00:46:44,930 --> 00:46:46,670] although oftentimes you don't need
+[00:46:46,670 --> 00:46:49,130] to do anything super fancy to initialize it,
+[00:46:49,130 --> 00:46:52,355] and you can just get started training on this directly.
+[00:46:52,355 --> 00:46:54,730] You probably don't want to initialize your neural network
+[00:46:54,730 --> 00:46:58,570] such that the values are like negative 1000 or something, that
+[00:46:58,570 --> 00:46:59,670] would be bad.
+[00:46:59,670 --> 00:47:02,170] But usually we don't initialize our neural networks that way
+[00:47:02,170 --> 00:47:02,670] anyway.
+[00:47:07,022 --> 00:47:11,690] I don't know if I've in practice seen any issues with this.
+[00:47:11,690 --> 00:47:14,290] But in principle, you could also start with a Monte Carlo
+[00:47:14,290 --> 00:47:16,410] objective just to get it in the right ballpark
+[00:47:16,410 --> 00:47:20,730] and then continue with this update after that.
+[00:47:20,730 --> 00:47:22,430] So is this part of backpropagation,
+[00:47:22,430 --> 00:47:24,370] and is there a better way to than updating
+[00:47:24,370 --> 00:47:25,870] the labels every step?
+[00:47:25,870 --> 00:47:29,090] So we'll be using backpropagation
+[00:47:29,090 --> 00:47:31,370] to optimize that objective right there.
+[00:47:31,370 --> 00:47:34,450] You could also think about this as propagating information
+[00:47:34,450 --> 00:47:38,890] backwards in time, which is distinct from propagating
+[00:47:38,890 --> 00:47:42,490] gradients through the network.
+[00:47:42,490 --> 00:47:44,890] One other name for this is called temporal difference
+[00:47:44,890 --> 00:47:47,450] learning where we're looking at the difference
+[00:47:47,450 --> 00:47:53,536] between the future time step and the current time step.
+[00:47:53,536 --> 00:47:56,960] But generally propagating information through time
+[00:47:56,960 --> 00:47:59,180] is fairly distinct from back propagation.
+[00:48:01,847 --> 00:48:03,680] To summarize what we've talked about so far,
+[00:48:03,680 --> 00:48:06,900] Monte Carlo were supervising with the rollout summed rewards,
+[00:48:06,900 --> 00:48:08,920] whereas bootstrapping were supervising
+[00:48:08,920 --> 00:48:11,800] using the reward plus the current value
+[00:48:11,800 --> 00:48:15,040] estimate of the next state.
+[00:48:15,040 --> 00:48:18,360] And if we look at an example--
+[00:48:18,360 --> 00:48:23,840] and actually, yeah, I'll give another exercise for you
+[00:48:23,840 --> 00:48:24,500] to figure out.
+[00:48:24,500 --> 00:48:25,667] So let's look at an example.
+[00:48:25,667 --> 00:48:27,400] So we run the policy.
+[00:48:27,400 --> 00:48:28,900] Maybe we just have two trajectories.
+[00:48:28,900 --> 00:48:30,483] In practice we'll have more than this.
+[00:48:30,483 --> 00:48:32,520] But say we have two trajectories.
+[00:48:32,520 --> 00:48:36,080] One of these trajectories the final reward was negative 1.
+[00:48:36,080 --> 00:48:39,280] The other trajectory the final reward was one.
+[00:48:39,280 --> 00:48:42,720] And along this directory, before the final state,
+[00:48:42,720 --> 00:48:45,800] the reward is 0.
+[00:48:45,800 --> 00:48:51,540] My question for you is, what estimate
+[00:48:51,540 --> 00:48:55,260] would we get for two different states for the value function?
+[00:48:55,260 --> 00:48:59,660] And in particular, if we were training on just these two
+[00:48:59,660 --> 00:49:02,740] trajectories, and we use Monte Carlo versus using
+[00:49:02,740 --> 00:49:05,380] temporal difference or bootstrap learning,
+[00:49:05,380 --> 00:49:07,660] what would we estimate the value to be
+[00:49:07,660 --> 00:49:10,120] for the blue state for these two?
+[00:49:10,120 --> 00:49:11,620] And what would we estimate the value
+[00:49:11,620 --> 00:49:14,980] to be for the pink state for these two?
+[00:49:14,980 --> 00:49:17,580] So for Monte Carlo in the blue state,
+[00:49:17,580 --> 00:49:20,580] it's going to average out the minus 1 and the 1,
+[00:49:20,580 --> 00:49:25,300] and so this prediction will be 0.
+[00:49:25,300 --> 00:49:28,440] Does anyone want to share another one?
+[00:49:28,440 --> 00:49:28,940] Yeah.
+[00:49:28,940 --> 00:49:30,700] So for the Monte Carlo for this one,
+[00:49:30,700 --> 00:49:33,540] this will be negative 1 because it
+[00:49:33,540 --> 00:49:36,420] will be supervised to predict the sum of rewards
+[00:49:36,420 --> 00:49:39,540] for the future for this trajectory.
+[00:49:39,540 --> 00:49:42,780] Anyone want to share?
+[00:49:42,780 --> 00:49:44,540] Before we do that, let's talk about--
+[00:49:44,540 --> 00:49:46,140] do you want to do this one?
+[00:49:46,140 --> 00:49:50,500] This is a little bit more intuitive to go this way.
+[00:49:50,500 --> 00:49:53,320] Yeah, so this will also be 0.
+[00:49:53,320 --> 00:49:56,440] And then does anyone want to do the back part?
+[00:49:56,440 --> 00:50:00,260] Yeah, so for this one, it'll see this blue one in the future.
+[00:50:00,260 --> 00:50:03,000] This will have a 0, and then this will also
+[00:50:03,000 --> 00:50:06,280] be assigned the hat of 0.
+[00:50:06,280 --> 00:50:08,280] And so this is an example of where
+[00:50:08,280 --> 00:50:11,360] Monte Carlo and the bootstrap estimate
+[00:50:11,360 --> 00:50:12,880] are going to be different.
+[00:50:12,880 --> 00:50:16,240] And arguably, we get a more accurate estimate
+[00:50:16,240 --> 00:50:19,320] from the bootstrap value because it's
+[00:50:19,320 --> 00:50:22,720] able to look at its estimate of the value
+[00:50:22,720 --> 00:50:25,480] and actually aggregate information across trajectories
+[00:50:25,480 --> 00:50:28,320] more effectively.
+[00:50:28,320 --> 00:50:31,440] Why the Monte Carlo is minus 1 by the top right?
+[00:50:31,440 --> 00:50:34,700] So the value for this one is going to be minus 1
+[00:50:34,700 --> 00:50:37,000] because the Monte Carlo objective is supervising
+[00:50:37,000 --> 00:50:39,120] to the sum of future rewards that are
+[00:50:39,120 --> 00:50:40,660] observed for each trajectory.
+[00:50:40,660 --> 00:50:43,020] And so for this trajectory, which is black,
+[00:50:43,020 --> 00:50:47,840] it only sees the sum of future rewards along this trajectory.
+[00:50:47,840 --> 00:50:49,620] So it only sees negative 1.
+[00:50:49,620 --> 00:50:53,660] And anything over here, along this trajectory for Monte Carlo,
+[00:50:53,660 --> 00:50:56,060] would have a target of one because it only
+[00:50:56,060 --> 00:50:59,100] sees the future trajectories here
+[00:50:59,100 --> 00:51:02,220] because it doesn't bootstrap off of its estimate that was
+[00:51:02,220 --> 00:51:04,420] using all of the trajectories.
+[00:51:04,420 --> 00:51:07,620] So the Monte Carlo blue state, it's going to be--
+[00:51:07,620 --> 00:51:09,420] that exact state is in the buffer
+[00:51:09,420 --> 00:51:14,240] or is in your data set for both trajectories.
+[00:51:14,240 --> 00:51:17,940] And so it's going to average the reward for them.
+[00:51:17,940 --> 00:51:19,500] But this is like the only scenario
+[00:51:19,500 --> 00:51:23,675] where Monte Carlo is going to get information
+[00:51:23,675 --> 00:51:25,300] from both trajectories because you have
+[00:51:25,300 --> 00:51:27,580] the same exact state in your data set
+[00:51:27,580 --> 00:51:29,700] with two different labels.
+[00:51:29,700 --> 00:51:32,820] Why is the bootstrap blue state 0?
+[00:51:32,820 --> 00:51:36,000] So this is also going to be averaging the future rewards.
+[00:51:36,000 --> 00:51:38,220] It doesn't have anything necessarily special
+[00:51:38,220 --> 00:51:40,020] to bootstrap off of.
+[00:51:40,020 --> 00:51:44,300] And so for the same reason that Monte Carlo is 0,
+[00:51:44,300 --> 00:51:46,770] this will also be V0.
+[00:51:46,770 --> 00:51:49,250] So basically everything after the blue state
+[00:51:49,250 --> 00:51:52,110] will have a value estimate of negative 1 here.
+[00:51:52,110 --> 00:51:55,490] And everything after the blue state on the block
+[00:51:55,490 --> 00:52:00,210] trajectory is going to have an estimate of negative ones.
+[00:52:00,210 --> 00:52:03,730] We should move on.
+[00:52:03,730 --> 00:52:09,850] So one question you might ask looking at this is--
+[00:52:09,850 --> 00:52:11,590] there might also be a middle ground.
+[00:52:11,590 --> 00:52:16,290] So Monte Carlo is going to have high variance,
+[00:52:16,290 --> 00:52:18,530] but it is completely unbiased.
+[00:52:18,530 --> 00:52:22,570] Whereas the bootstrap estimate has much lower variance,
+[00:52:22,570 --> 00:52:25,610] but it actually can be incorrect because your current estimate
+[00:52:25,610 --> 00:52:28,170] of the value function is going to have inevitably
+[00:52:28,170 --> 00:52:31,450] at least a small amount of error in it.
+[00:52:31,450 --> 00:52:38,050] And so there might be a way to potentially balance this bias
+[00:52:38,050 --> 00:52:41,370] and variance a bit more.
+[00:52:41,370 --> 00:52:43,730] And one way that we can think about this
+[00:52:43,730 --> 00:52:46,430] is if we have our trajectories, we
+[00:52:46,430 --> 00:52:47,990] can think of the Monte Carlo version
+[00:52:47,990 --> 00:52:50,830] as using the sum of rewards averaged
+[00:52:50,830 --> 00:52:54,270] over those trajectories, whereas the Tt version
+[00:52:54,270 --> 00:52:57,230] is going to be looking at the first reward
+[00:52:57,230 --> 00:52:59,810] plus the value right after that.
+[00:52:59,810 --> 00:53:04,350] So it's r plus V for just like a temporal difference of just one
+[00:53:04,350 --> 00:53:06,750] time step.
+[00:53:06,750 --> 00:53:10,330] And you can actually interpolate between these two estimates.
+[00:53:10,330 --> 00:53:12,730] And instead of using just one time step,
+[00:53:12,730 --> 00:53:14,370] you could use n time steps.
+[00:53:14,370 --> 00:53:18,950] So you could look at sum of the rewards for n time
+[00:53:18,950 --> 00:53:22,390] steps in the future before the variance has increased
+[00:53:22,390 --> 00:53:26,630] substantially, and then use your value estimate after those n
+[00:53:26,630 --> 00:53:28,830] time steps.
+[00:53:28,830 --> 00:53:32,830] And what this would look like is an equation like this,
+[00:53:32,830 --> 00:53:36,790] where instead of just using one reward right here,
+[00:53:36,790 --> 00:53:42,970] and instead of using all of the sum of rewards,
+[00:53:42,970 --> 00:53:48,170] you can sum over the next n minus 1 rewards,
+[00:53:48,170 --> 00:53:52,410] and then use your value estimate at t plus n.
+[00:53:52,410 --> 00:53:59,370] And so this looks like a sum over from t to t
+[00:53:59,370 --> 00:54:10,450] plus n minus 1 r of S, a, plus your estimate of the value
+[00:54:10,450 --> 00:54:13,590] at t plus n.
+[00:54:17,792 --> 00:54:19,250] In this case, this is going to have
+[00:54:19,250 --> 00:54:22,650] a lot less variance than the full Monte Carlo, especially
+[00:54:22,650 --> 00:54:25,650] if you have smaller n.
+[00:54:25,650 --> 00:54:28,210] And it's going to be potentially less
+[00:54:28,210 --> 00:54:31,370] biased than just using a one step temporal difference
+[00:54:31,370 --> 00:54:33,450] bootstrap.
+[00:54:33,450 --> 00:54:37,090] And so essentially you're going to have more information
+[00:54:37,090 --> 00:54:42,600] about the rewards that were directly observed.
+[00:54:42,600 --> 00:54:44,420] So this can be written as this.
+[00:54:44,420 --> 00:54:48,120] And in this case, this now becomes your target
+[00:54:48,120 --> 00:54:51,160] for supervised learning.
+[00:54:51,160 --> 00:54:54,800] And yeah, this is often called n step returns
+[00:54:54,800 --> 00:54:58,360] because you're summing over n time steps.
+[00:54:58,360 --> 00:55:05,320] In practice, the bootstrap version, if you set n equals t,
+[00:55:05,320 --> 00:55:07,560] this is full Monte Carlo.
+[00:55:07,560 --> 00:55:10,666] Oftentimes somewhere in between 1 and nt
+[00:55:10,666 --> 00:55:12,760] works the best in practice.
+[00:55:12,760 --> 00:55:15,440] And this can be especially useful in scenarios
+[00:55:15,440 --> 00:55:17,440] where you have very small time steps
+[00:55:17,440 --> 00:55:19,240] because if your time step is, I don't know,
+[00:55:19,240 --> 00:55:20,680] 10 milliseconds or something like
+[00:55:20,680 --> 00:55:26,920] that, then very little will have happened in between those time
+[00:55:26,920 --> 00:55:28,120] steps.
+[00:55:28,120 --> 00:55:30,820] If you have a very long time trajectory,
+[00:55:30,820 --> 00:55:34,090] can you use both of these, you're asking?
+[00:55:36,840 --> 00:55:37,620] Oh, yeah.
+[00:55:44,300 --> 00:55:48,300] You could add all of these to your data set in principle.
+[00:55:48,300 --> 00:55:55,020] I think that typically the high variance like labels,
+[00:55:55,020 --> 00:55:56,420] the things that are high variance
+[00:55:56,420 --> 00:56:02,000] can deteriorate learning because it leads to more stochasticity.
+[00:56:02,000 --> 00:56:05,960] And likewise, if your values are not very good,
+[00:56:05,960 --> 00:56:08,523] then this can also be a challenge.
+[00:56:08,523 --> 00:56:09,940] And so in practice, you'll usually
+[00:56:09,940 --> 00:56:14,660] just pick one of these versions and supervise with that.
+[00:56:14,660 --> 00:56:18,160] In principle, you could combine them.
+[00:56:18,160 --> 00:56:20,320] But yeah, in practice usually you don't.
+[00:56:23,110 --> 00:56:24,960] One aside here.
+[00:56:24,960 --> 00:56:28,160] So far we've been summing rewards.
+[00:56:28,160 --> 00:56:31,340] And we actually talked in the first lecture
+[00:56:31,340 --> 00:56:34,460] about how, in some cases, we might not
+[00:56:34,460 --> 00:56:37,320] want to just blindly sum all rewards in the future.
+[00:56:37,320 --> 00:56:39,800] And in particular, if you think about scenarios
+[00:56:39,800 --> 00:56:44,780] where the length of the episode is infinite or very,
+[00:56:44,780 --> 00:56:49,240] very long, then your estimate of the value
+[00:56:49,240 --> 00:56:53,000] can get very large in those cases,
+[00:56:53,000 --> 00:56:55,080] and so you might not want to just
+[00:56:55,080 --> 00:56:58,840] be summing over all of the rewards in the future.
+[00:56:58,840 --> 00:57:02,198] And so a simple trick to handle the fact
+[00:57:02,198 --> 00:57:04,240] that your estimates of the value can get very big
+[00:57:04,240 --> 00:57:10,400] is to weight your objective, weight the sum of rewards
+[00:57:10,400 --> 00:57:14,280] to be biased towards the earlier rewards.
+[00:57:14,280 --> 00:57:16,960] And the way that you can write this
+[00:57:16,960 --> 00:57:24,160] is, instead of having r plus V, you can add a coefficient right
+[00:57:24,160 --> 00:57:25,820] here.
+[00:57:25,820 --> 00:57:28,560] If this coefficient is 1, it's the same as before.
+[00:57:28,560 --> 00:57:32,140] But you can set it to something like 0.9 or 0.99.
+[00:57:32,140 --> 00:57:33,640] And what this is going to do is it's
+[00:57:33,640 --> 00:57:36,080] going to say that I care more about the rewards
+[00:57:36,080 --> 00:57:39,540] at the current time step and less about the rewards
+[00:57:39,540 --> 00:57:40,890] at the future time steps.
+[00:57:47,100 --> 00:57:50,100] Adding this discount factor that's
+[00:57:50,100 --> 00:57:52,180] discounting future rewards is actually
+[00:57:52,180 --> 00:57:56,660] can be viewed as changing the decision process slightly.
+[00:57:56,660 --> 00:57:58,740] So it's actually equivalent to saying
+[00:57:58,740 --> 00:58:04,940] that there is some probability that the agent will
+[00:58:04,940 --> 00:58:07,460] die at any given point in time.
+[00:58:07,460 --> 00:58:09,180] And so this is equivalent to saying
+[00:58:09,180 --> 00:58:13,660] that with some probability-- so say
+[00:58:13,660 --> 00:58:21,140] gamma is like 0.99, in this case, using this form
+[00:58:21,140 --> 00:58:23,060] is equivalent to saying that there's
+[00:58:23,060 --> 00:58:26,660] a 1% chance that the agent will enter some state that has 0
+[00:58:26,660 --> 00:58:28,650] reward and stay there forever.
+[00:58:31,620 --> 00:58:35,540] And so if you have some original MDP right here,
+[00:58:35,540 --> 00:58:38,610] the way that this discount factor would change
+[00:58:38,610 --> 00:58:45,210] the MDP is it would say that with probability 1 minus gamma,
+[00:58:45,210 --> 00:58:50,330] you enter this death state where you can't
+[00:58:50,330 --> 00:58:52,370] do anything else after that.
+[00:58:52,370 --> 00:58:57,570] And the original probabilities in the rest of the MDP
+[00:58:57,570 --> 00:59:01,557] are all multiplied by gamma.
+[00:59:01,557 --> 00:59:03,890] The question is, is there any relationship between gamma
+[00:59:03,890 --> 00:59:05,850] and these n step things?
+[00:59:05,850 --> 00:59:08,950] If gamma is small, would that change like what you do?
+[00:59:12,297 --> 00:59:14,130] The way that you would modify this objective
+[00:59:14,130 --> 00:59:15,410] would be gamma to the n.
+[00:59:19,930 --> 00:59:22,003] Possibly, I mean, I think that they're all
+[00:59:22,003 --> 00:59:24,170] interconnected in the sense that the choice of gamma
+[00:59:24,170 --> 00:59:26,310] might depend on the environment.
+[00:59:26,310 --> 00:59:30,513] And, generally, if going to be looking further into the future,
+[00:59:30,513 --> 00:59:32,930] that's because you're going to be in an environment that's
+[00:59:32,930 --> 00:59:35,130] more deterministic or a smaller time steps,
+[00:59:35,130 --> 00:59:38,230] and that would also affect the choice of gamma.
+[00:59:38,230 --> 00:59:41,427] The question was, in terms of choosing how far you look ahead,
+[00:59:41,427 --> 00:59:43,510] does that affect whether you're prioritizing short
+[00:59:43,510 --> 00:59:45,670] versus long term?
+[00:59:45,670 --> 00:59:49,750] In this case, it is more a factor of--
+[00:59:49,750 --> 00:59:52,950] so it doesn't actually affect how greedy
+[00:59:52,950 --> 00:59:56,070] you are because the value function is representing
+[00:59:56,070 --> 00:59:57,130] the sum of rewards.
+[00:59:57,130 --> 00:59:59,950] And so these are still estimating
+[00:59:59,950 --> 01:00:02,390] the same exact quantity.
+[01:00:02,390 --> 01:00:05,790] It's more a factor of how far in the future
+[01:00:05,790 --> 01:00:07,930] are you looking ahead in terms of the rewards.
+[01:00:07,930 --> 01:00:11,570] And it's more a factor of how much is the variance increasing.
+[01:00:11,570 --> 01:00:15,170] And if the variance increases somewhat slowly,
+[01:00:15,170 --> 01:00:17,830] then you can look further ahead into the future.
+[01:00:17,830 --> 01:00:19,990] If it increases very, very quickly, then you
+[01:00:19,990 --> 01:00:22,050] might want to use a smaller n.
+[01:00:25,655 --> 01:00:27,530] So let's walk through the full algorithm now.
+[01:00:27,530 --> 01:00:31,310] So we talked about estimating value functions, now let's
+[01:00:31,310 --> 01:00:33,130] actually put this into practice.
+[01:00:33,130 --> 01:00:35,730] So what we can do is we can sample a batch of data
+[01:00:35,730 --> 01:00:40,170] from our policy, then we will fit our value estimate
+[01:00:40,170 --> 01:00:42,850] to the summed rewards in the data.
+[01:00:42,850 --> 01:00:48,330] And we can do this by looking at the rewards for a short period
+[01:00:48,330 --> 01:00:50,050] of time and then the value.
+[01:00:50,050 --> 01:00:53,130] So this would be the equation for n step returns.
+[01:00:53,130 --> 01:00:55,890] And then when we fit this we'll run multiple gradient
+[01:00:55,890 --> 01:00:58,690] steps on this objective that's trying to minimize
+[01:00:58,690 --> 01:01:00,370] the difference between our estimates
+[01:01:00,370 --> 01:01:02,120] and the observed future rewards.
+[01:01:04,770 --> 01:01:07,070] Then once we have our estimate of the value,
+[01:01:07,070 --> 01:01:09,890] then we can use that to estimate the advantage
+[01:01:09,890 --> 01:01:11,850] of a particular action by looking
+[01:01:11,850 --> 01:01:14,690] at the reward plus the value at the next time
+[01:01:14,690 --> 01:01:17,470] step minus the value at the current time step.
+[01:01:17,470 --> 01:01:20,490] So this is telling us according to our value function
+[01:01:20,490 --> 01:01:24,410] and the reward we saw, how good is the action that
+[01:01:24,410 --> 01:01:27,210] was taken in the data set.
+[01:01:27,210 --> 01:01:30,490] And then we can use this to get a gradient for our policy
+[01:01:30,490 --> 01:01:34,470] where we will be increasing the likelihood of actions that
+[01:01:34,470 --> 01:01:36,530] are estimated to be advantageous,
+[01:01:36,530 --> 01:01:38,310] and decreasing the likelihood for actions
+[01:01:38,310 --> 01:01:41,310] that are not advantageous.
+[01:01:41,310 --> 01:01:43,950] And then lastly, we update our policy
+[01:01:43,950 --> 01:01:48,652] by applying this gradient step to our policy parameters,
+[01:01:48,652 --> 01:01:50,110] and then we can repeat this process
+[01:01:50,110 --> 01:01:52,760] to then sample a new batch of data for our policy.
+[01:01:55,390 --> 01:01:57,450] Now, note here we have two neural networks.
+[01:01:57,450 --> 01:02:00,150] One is for the policy and one is for the value function.
+[01:02:00,150 --> 01:02:01,830] This is called an actor-critic algorithm
+[01:02:01,830 --> 01:02:04,870] because one of the networks is the actor, one of the networks
+[01:02:04,870 --> 01:02:06,750] is the value function, which can also
+[01:02:06,750 --> 01:02:10,030] be called a critic because it's criticizing
+[01:02:10,030 --> 01:02:16,950] how good a state and policy is, and that's our algorithm.
+[01:02:16,950 --> 01:02:18,990] And coming back to the examples that we
+[01:02:18,990 --> 01:02:20,630] saw before, this is something that's
+[01:02:20,630 --> 01:02:22,072] able to actually make use of data,
+[01:02:22,072 --> 01:02:24,030] for example, that takes a step forward and then
+[01:02:24,030 --> 01:02:27,610] falls backwards because you can actually learn from the data,
+[01:02:27,610 --> 01:02:29,670] especially when you use bootstrapped estimates,
+[01:02:29,670 --> 01:02:33,500] that taking a step forward is advantageous and has
+[01:02:33,500 --> 01:02:36,540] a positive advantage compared to other actions
+[01:02:36,540 --> 01:02:37,450] that you might take.
+[01:02:37,450 --> 01:02:39,700] And this is going to be making much more efficient use
+[01:02:39,700 --> 01:02:41,800] of the data that we've collected.
+[01:02:45,432 --> 01:02:46,140] So review so far.
+[01:02:46,140 --> 01:02:47,580] We've talked about policy gradients, which
+[01:02:47,580 --> 01:02:50,122] is trying to do more of the good stuff, less of the bad stuff
+[01:02:50,122 --> 01:02:51,460] based on what you observe.
+[01:02:51,460 --> 01:02:54,438] Actor-critic are learning to estimate what's good and bad,
+[01:02:54,438 --> 01:02:55,980] and then doing more of the good stuff
+[01:02:55,980 --> 01:02:59,220] according to your estimate.
+[01:02:59,220 --> 01:03:02,900] And we can get a better estimate by using a neural network
+[01:03:02,900 --> 01:03:06,660] to try to explicitly estimate the value function.
+[01:03:06,660 --> 01:03:08,580] And then we introduced this third step
+[01:03:08,580 --> 01:03:11,540] where we are fitting this model as part of the improvement
+[01:03:11,540 --> 01:03:13,200] process.
+[01:03:13,200 --> 01:03:14,700] We talked about three different ways
+[01:03:14,700 --> 01:03:16,580] to estimate value, either directly looking
+[01:03:16,580 --> 01:03:19,800] at some rewards, bootstrapping off the value function,
+[01:03:19,800 --> 01:03:21,380] and this hybrid.
+[01:03:21,380 --> 01:03:25,770] And this is often referred to as policy evaluation.

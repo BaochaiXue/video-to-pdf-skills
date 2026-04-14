@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import json
 import os
+import math
 import re
 import subprocess
 import urllib.request
 from pathlib import Path
+from typing import TypeVar
 
 
 RUN_ROOT = Path(__file__).resolve().parents[1]
@@ -236,10 +238,15 @@ def best_subtitle_path(item: dict) -> Path | None:
     return preferred[0][2]
 
 
-def srt_to_text(srt_path: Path) -> str:
+def clean_subtitle_payload(lines: list[str]) -> list[str]:
+    payload = [re.sub(r"<[^>]+>", "", line).strip() for line in lines]
+    return [line for line in payload if line]
+
+
+def parse_srt_entries(srt_path: Path) -> list[dict]:
     text = srt_path.read_text(errors="ignore")
     blocks = re.split(r"\n\s*\n", text.replace("\r\n", "\n"))
-    lines: list[str] = []
+    entries: list[dict] = []
     for block in blocks:
         raw_lines = [line.strip() for line in block.splitlines() if line.strip()]
         if len(raw_lines) < 2:
@@ -248,17 +255,135 @@ def srt_to_text(srt_path: Path) -> str:
         if "-->" not in maybe_ts:
             continue
         payload = raw_lines[2:] if raw_lines[0].isdigit() else raw_lines[1:]
-        payload = [re.sub(r"<[^>]+>", "", line).strip() for line in payload]
-        payload = [line for line in payload if line]
+        payload = clean_subtitle_payload(payload)
         if payload:
-            lines.append(f"[{maybe_ts}] {' '.join(payload)}")
+            start, end = [part.strip() for part in maybe_ts.split("-->", 1)]
+            entries.append(
+                {
+                    "start": start,
+                    "end": end,
+                    "text": " ".join(payload),
+                }
+            )
+    return entries
+
+
+def srt_to_text(srt_path: Path) -> str:
+    lines = []
+    for entry in parse_srt_entries(srt_path):
+        lines.append(f"[{entry['start']} --> {entry['end']}] {entry['text']}")
     return "\n".join(lines).strip() + "\n"
 
 
 def extract_slide_text(pdf_path: Path, out_path: Path) -> None:
-    if out_path.exists() and out_path.stat().st_size > 0:
-        return
     run(["pdftotext", str(pdf_path), str(out_path)])
+
+
+def extract_slide_pages(pdf_path: Path) -> list[str]:
+    proc = subprocess.run(
+        ["pdftotext", "-layout", str(pdf_path), "-"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    pages = proc.stdout.replace("\r\n", "\n").split("\f")
+    cleaned: list[str] = []
+    for page in pages:
+        page = re.sub(r"[ \t]+\n", "\n", page)
+        page = re.sub(r"\n{3,}", "\n\n", page.strip())
+        cleaned.append(page)
+    while cleaned and not cleaned[-1]:
+        cleaned.pop()
+    return cleaned
+
+
+def write_jsonl(path: Path, rows: list[dict]) -> None:
+    payload = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    path.write_text(payload + ("\n" if payload else ""))
+
+
+def build_transcript_units(subtitle_path: Path) -> list[dict]:
+    entries = parse_srt_entries(subtitle_path)
+    return [
+        {
+            "unit_id": f"sub_{idx:04d}",
+            "source_type": "subtitle_span",
+            "source_id": "subtitle_srt",
+            "loc": {
+                "start": entry["start"],
+                "end": entry["end"],
+            },
+            "text": entry["text"],
+            "required": True,
+        }
+        for idx, entry in enumerate(entries, start=1)
+    ]
+
+
+def build_slide_units(slide_pages: list[str], lecture_dir_path: Path) -> list[dict]:
+    units: list[dict] = []
+    for idx, page_text in enumerate(slide_pages, start=1):
+        asset_path = lecture_dir_path / "pdf_pages" / f"page-{idx:02d}.png"
+        units.append(
+            {
+                "unit_id": f"slide_{idx:04d}",
+                "source_type": "slide_page",
+                "source_id": "slides_pdf",
+                "loc": {
+                    "page": idx,
+                },
+                "text": page_text,
+                "asset_path": str(asset_path.relative_to(lecture_dir_path)),
+                "required": bool(page_text.strip()),
+            }
+        )
+    return units
+
+
+T = TypeVar("T")
+
+
+def slice_evenly(items: list[T], parts: int) -> list[list[T]]:
+    if parts <= 0:
+        return [items]
+    if not items:
+        return [[] for _ in range(parts)]
+    chunk_size = math.ceil(len(items) / parts)
+    chunks = [items[idx : idx + chunk_size] for idx in range(0, len(items), chunk_size)]
+    while len(chunks) < parts:
+        chunks.append([])
+    return chunks[:parts]
+
+
+def build_segments(item: dict, transcript_units: list[dict], slide_units: list[dict]) -> list[dict]:
+    topic_hints = item.get("topics") or []
+    segment_count = max(1, len(topic_hints), math.ceil(max(1, len(transcript_units)) / 150))
+
+    transcript_chunks = slice_evenly(transcript_units, segment_count)
+    slide_chunks = slice_evenly([unit for unit in slide_units if unit["required"]], segment_count)
+
+    segments: list[dict] = []
+    for idx in range(segment_count):
+        transcript_chunk = transcript_chunks[idx] if idx < len(transcript_chunks) else []
+        slide_chunk = slide_chunks[idx] if idx < len(slide_chunks) else []
+        source_unit_ids = [unit["unit_id"] for unit in transcript_chunk] + [unit["unit_id"] for unit in slide_chunk]
+        if transcript_chunk:
+            start = transcript_chunk[0]["loc"]["start"]
+            end = transcript_chunk[-1]["loc"]["end"]
+        else:
+            start = None
+            end = None
+        target_hint = topic_hints[idx] if idx < len(topic_hints) else f"Segment {idx + 1}"
+        segments.append(
+            {
+                "segment_id": f"seg_{idx + 1:02d}",
+                "start": start,
+                "end": end,
+                "source_unit_ids": source_unit_ids,
+                "target_section_hint": target_hint,
+            }
+        )
+    return segments
 
 
 def render_slide_pages(pdf_path: Path, out_dir: Path) -> None:
@@ -279,7 +404,7 @@ def write_text_bundle(item: dict) -> None:
     tdir.mkdir(parents=True, exist_ok=True)
     subtitle = best_subtitle_path(item)
     transcript_path = tdir / "transcript.txt"
-    if subtitle and not transcript_path.exists():
+    if subtitle:
         transcript_path.write_text(srt_to_text(subtitle))
 
     official_text = tdir / "official.txt"
@@ -297,16 +422,25 @@ def write_lecture_dir(item: dict) -> None:
     ldir = lecture_dir(item)
     ldir.mkdir(parents=True, exist_ok=True)
 
+    subtitle_path = best_subtitle_path(item)
+    course_mode = True
+    segmentation_required = True
+
     meta = {
         **item,
         "course_id": COURSE_ID,
+        "course_mode": course_mode,
+        "segmentation_required": segmentation_required,
         "playlist_url": PLAYLIST_URL,
         "syllabus_url": SYLLABUS_URL,
         "thumbnail": str(next(raw_dir(item).glob("*.jpg")).relative_to(RUN_ROOT)) if list(raw_dir(item).glob("*.jpg")) else None,
-        "subtitle": str(best_subtitle_path(item).relative_to(RUN_ROOT)) if best_subtitle_path(item) else None,
+        "subtitle": str(subtitle_path.relative_to(RUN_ROOT)) if subtitle_path else None,
         "material": str(lecture_slide_pdf(item).relative_to(RUN_ROOT)),
         "transcript_text": str((text_dir(item) / "transcript.txt").relative_to(RUN_ROOT)) if (text_dir(item) / "transcript.txt").exists() else None,
         "official_text": str((text_dir(item) / "official.txt").relative_to(RUN_ROOT)),
+        "transcript_jsonl": str((ldir / "transcript.jsonl").relative_to(RUN_ROOT)),
+        "slides_jsonl": str((ldir / "slides.jsonl").relative_to(RUN_ROOT)),
+        "segments_jsonl": str((ldir / "segments.jsonl").relative_to(RUN_ROOT)),
         "slide_pages_dir": str((ldir / "pdf_pages").relative_to(RUN_ROOT)),
     }
     (ldir / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
@@ -321,6 +455,14 @@ def write_lecture_dir(item: dict) -> None:
     ensure_symlink(RUN_ROOT / meta["material"], ldir / "slides.pdf")
     pages_src = ldir / "pdf_pages"
     render_slide_pages(lecture_slide_pdf(item), pages_src)
+
+    transcript_units = build_transcript_units(RUN_ROOT / meta["subtitle"]) if meta["subtitle"] else []
+    slide_units = build_slide_units(extract_slide_pages(lecture_slide_pdf(item)), ldir)
+    segments = build_segments(item, transcript_units, slide_units)
+
+    write_jsonl(ldir / "transcript.jsonl", transcript_units)
+    write_jsonl(ldir / "slides.jsonl", slide_units)
+    write_jsonl(ldir / "segments.jsonl", segments)
 
     for name in ["coverage_units.jsonl", "omission_log.jsonl"]:
         path = ldir / name
@@ -340,6 +482,9 @@ def write_lecture_dir(item: dict) -> None:
         f"- Subtitle: [subtitle.srt](subtitle.srt)" if (ldir / "subtitle.srt").exists() else "- Subtitle: unavailable",
         f"- Transcript: [transcript.txt](transcript.txt)" if (ldir / "transcript.txt").exists() else "- Transcript: unavailable",
         "- Official text: [official.txt](official.txt)",
+        "- Structured transcript: [transcript.jsonl](transcript.jsonl)",
+        "- Structured slides: [slides.jsonl](slides.jsonl)",
+        "- Segment plan: [segments.jsonl](segments.jsonl)",
         "- Slide pages: `pdf_pages/page-*.png`",
         "",
         "## Topics",
@@ -352,6 +497,8 @@ def write_lecture_dir(item: dict) -> None:
             "",
             "## Writing requirements",
             "",
+            "- Treat `transcript.jsonl`, `slides.jsonl`, and `segments.jsonl` as the primary structured evidence layer.",
+            "- Generate non-empty `coverage_units.jsonl` before writing or revising `lecture_XX_note.tex`.",
             "- Use Chinese.",
             "- Preserve coverage of both video and slides.",
             "- Include diagrams or slide figures as note figures.",

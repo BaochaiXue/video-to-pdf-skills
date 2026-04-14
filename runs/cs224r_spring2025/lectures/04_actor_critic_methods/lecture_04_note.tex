@@ -1,0 +1,258 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS224R 第 4 讲：Actor-Critic Methods}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{2025-04-11}
+\newcommand{\videochannel}{Stanford CS224R}
+\newcommand{\videopublishdate}{2025-04-11}
+\newcommand{\videoduration}{01:03:25}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=oejFZShW9hU}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{问题动机：为什么 policy gradient 还不够好}
+本讲从上一讲的 vanilla policy gradient 出发。其核心更新写成
+\[
+\nabla_\theta J(\theta)\approx \frac{1}{N}\sum_{i=1}^{N}\sum_{t=1}^{T}
+\nabla_\theta \log \pi_\theta(a_{i,t}\mid s_{i,t})\Bigl(\sum_{t'=t}^{T}r(s_{i,t'},a_{i,t'})-b\Bigr).
+\]
+它的直觉很直接：未来回报高的动作要更常做，未来回报低的动作要更少做，基线 \(b\) 则负责把“高于平均”和“低于平均”区分开来。
+
+但讲者强调，policy gradient 有两个结构性不足。第一，它完全 on-policy，每收一批数据通常只能做一次有效更新；第二，它直接把回报当监督信号，方差很大，学得慢、样本利用率低。于是本讲真正的目标变成：不要只看轨迹结果，而是先学会估计“一个状态有多好”“一个动作相对策略平均水平好多少”，再让策略沿着这些估计去改。
+
+\begin{importantbox}{本讲主线}
+actor-critic 的关键不是多加一个网络这么简单，而是把 RL 中“评估好坏”和“根据好坏改策略”明确拆开。critic 负责估值，actor 负责更新，两者形成闭环。
+\end{importantbox}
+
+\subsection{三个基础对象：价值函数、Q 函数与 advantage}
+为了搭起 actor-critic，讲者先回到三个最基础的对象。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-06.png}
+\caption{价值函数、Q 函数与 advantage 的关系示意}
+\end{figure}
+
+状态价值函数定义为
+\[
+V^\pi(s)=\mathbb{E}\Bigl[\sum_{t'=t}^{T} r(s_{t'},a_{t'}) \,\Big|\, s_t=s,\ a_{t':T}\sim \pi\Bigr].
+\]
+它回答的问题是：如果我现在站在状态 \(s\)，之后都老老实实按策略 \(\pi\) 行动，这个起点到底值多少钱。
+
+动作价值函数则更细一层：
+\[
+Q^\pi(s,a)=\mathbb{E}\Bigl[\sum_{t'=t}^{T} r(s_{t'},a_{t'}) \,\Big|\, s_t=s,\ a_t=a,\ a_{t+1:T}\sim \pi\Bigr].
+\]
+它不再只问“这个状态好不好”，而是问“在这个状态先强行采取动作 \(a\)，再回到策略 \(\pi\)，总收益会怎样”。
+
+两者满足一个非常重要的关系：
+\[
+V^\pi(s)=\mathbb{E}_{a\sim \pi(\cdot\mid s)}[Q^\pi(s,a)].
+\]
+也就是说，\(V^\pi(s)\) 是按当前策略对所有动作的 Q 值做期望后的平均水平。
+
+最后定义 advantage：
+\[
+A^\pi(s,a)=Q^\pi(s,a)-V^\pi(s).
+\]
+它测的不是绝对回报，而是“这个动作相对策略平均动作到底高出多少”。这正是 actor 更新时最想知道的量，因为策略并不需要知道绝对收益，只需要知道哪些动作比平均更值得强化。
+
+\subsection{用鼓手例子理解 advantage}
+讲者用“一个月内学会打鼓”的例子说明上述对象的区别。若一个人当前策略总是在沙滩休息，那么状态价值 \(V^\pi(s)\) 很低；而在同一状态下，练鼓这个动作的 \(Q^\pi(s,a)\) 会明显高于看电视或继续休息。于是练鼓对应的 advantage 为正，休息对应的 advantage 为负。
+
+这个例子揭示了 actor-critic 的核心思想：策略更新不需要仅依赖最终成败，而可以用 advantage 直接判断“这一步到底是拉高了未来，还是拖累了未来”。
+
+\subsection{本章小结}
+本节完成了从“只看轨迹回报”到“显式刻画状态、动作与相对优势”的转变。后续所有 actor-critic 公式，本质上都在围绕 \(V^\pi\)、\(Q^\pi\) 与 \(A^\pi\) 三个对象展开。
+
+\section{如何估计价值：Monte Carlo、Bootstrap 与 N-step}
+critic 的存在价值在于提供更低方差、更可复用的监督信号。但一旦说“拟合价值函数”，新的问题立刻出现：标签从哪来？
+
+\subsection{Monte Carlo：直接拿回报当标签}
+最直接的方法是 Monte Carlo 估计。对于轨迹中的某个时刻 \(t\)，直接把后续奖励和当作监督目标：
+\[
+y_{i,t}^{\text{MC}}=\sum_{t'=t}^{T} r(s_{i,t'},a_{i,t'}).
+\]
+然后用监督学习拟合 \(V_\phi^\pi(s_{i,t})\approx y_{i,t}^{\text{MC}}\)。
+
+它的优点是无偏：不借助当前模型自己的预测，不会把错误再反馈给自己。缺点也很明显：必须等轨迹后半段都出来以后才能知道标签，而且方差很大，尤其在长时程任务中非常难学。
+
+\subsection{Bootstrap：让模型帮助生成标签}
+另一条路线是 bootstrap，也就是 temporal difference learning。它用一步奖励加上下一状态的当前价值估计：
+\[
+y_{i,t}^{\text{TD}}=r(s_{i,t},a_{i,t})+\gamma \hat V_\phi^\pi(s_{i,t+1}).
+\]
+这样一来，标签更快可得，方差也更小，但它引入了偏差，因为标签的一部分来自一个还没学准的模型。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-19.png}
+\caption{Monte Carlo 与 bootstrap 在偏差-方差上的权衡}
+\end{figure}
+
+图中的轨迹例子很典型。对靠近终点的状态，Monte Carlo 会直接看到最终 \(+1\) 或 \(-1\) 的结果；而 bootstrap 则更依赖下一状态的估计值。因此 MC 更真实但更吵，TD 更稳定但可能系统性偏差。
+
+\subsection{N-step：在两者之间找中间地带}
+为了兼顾两者优点，本讲给出 N-step return：
+\[
+y_{i,t}^{(n)}=\sum_{t'=t}^{t+n-1}\gamma^{t'-t} r(s_{i,t'},a_{i,t'})
++\gamma^n \hat V_\phi^\pi(s_{i,t+n}).
+\]
+当 \(n=1\) 时它退化为 bootstrap；当 \(n\) 足够大时则接近 Monte Carlo。实际做法往往是选择一个有限步长，或使用加权和，把不同 horizon 的信息综合起来。
+
+\begin{knowledgebox}{为什么这很关键}
+critic 的学习质量，直接决定 actor 看到的 advantage 是否可靠。估值标签若太噪，actor 会被高方差信号拖累；估值标签若偏得太厉害，actor 会被系统性误导。
+\end{knowledgebox}
+
+\subsection{本章小结}
+估计价值函数并不是单一公式问题，而是偏差和方差之间的工程取舍。Monte Carlo 更真实，bootstrap 更高效，N-step 则提供了折中方案；这三者共同构成了本讲所谓的 policy evaluation。
+
+\section{Actor-Critic 全流程：从估值到策略更新}
+当 critic 可以产生价值估计之后，actor-critic 就能被写成一个完整循环。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-22.png}
+\caption{actor-critic 训练循环总览}
+\end{figure}
+
+讲者把流程拆成五步：
+\begin{enumerate}
+\item 用当前策略 \(\pi_\theta\) 采样一批轨迹。
+\item 用轨迹回报或 bootstrapped 目标拟合 \(V_\phi^\pi\)。
+\item 用 critic 计算 advantage，例如
+\[
+\hat A^\pi(s_t,a_t)=r(s_t,a_t)+\gamma \hat V_\phi^\pi(s_{t+1})-\hat V_\phi^\pi(s_t).
+\]
+\item 用 advantage 构造策略梯度
+\[
+\nabla_\theta J(\theta)\approx \sum_{t,i}\nabla_\theta \log \pi_\theta(a_{t,i}\mid s_{t,i})\hat A^\pi(s_{t,i},a_{t,i}).
+\]
+\item 按梯度更新 actor。
+\end{enumerate}
+
+相较于 vanilla policy gradient，这里最大的变化就是第三步。策略不再直接拿 reward-to-go 当权重，而是用 critic 先把“好坏”压缩为一个更干净的估计量。
+
+\subsection{为什么 advantage 形式特别自然}
+如果某动作的 \(Q^\pi\) 高于策略平均，即 \(A^\pi(s,a)>0\)，那就应增大其概率；若低于平均，则应减小其概率。这样策略更新自动具有“以当前策略为参照系”的性质，比直接拿绝对回报更稳定。
+
+\subsection{本章小结}
+actor-critic 的完整闭环已经成型：数据收集、价值拟合、优势计算、策略更新。这里的 critic 不是附属品，而是把稀疏、高方差回报信号变成可训练目标的核心模块。
+
+\section{走向 off-policy：多步更新与 replay buffer}
+前面虽然已经比 vanilla policy gradient 更高效，但整体仍偏 on-policy。本讲后半段开始解决一个更现实的问题：同一批数据能不能用很多次？过去的数据能不能继续用？
+
+\subsection{Version 1：同一批数据做多次梯度更新}
+第一步扩展，是在同一批由旧策略采到的数据上做多次更新。此时需要 importance ratio
+\[
+\rho_t=\frac{\pi_{\theta'}(a_t\mid s_t)}{\pi_{\theta}(a_t\mid s_t)}
+\]
+来校正“数据来自旧策略、但梯度针对新策略”的分布偏差。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.94\textwidth]{pdf_pages/page-25.png}
+\caption{使用 importance weight 的多步 actor-critic 更新}
+\end{figure}
+
+这一步的意义在于样本复用，但它也有明显限制：如果新旧策略差异太大，\(\rho_t\) 会非常极端，导致估计方差暴涨。因此它不是银弹，只适合小步更新。
+
+\subsection{Version 2：replay buffer 带来的真正 off-policy}
+再往前一步，就是 replay buffer。讲者把过去所有交互到的 transition 都放进缓冲区，后续每次更新都从中抽样小批量数据。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-29.png}
+\caption{replay buffer 让 actor-critic 从当前一批数据转向历史全部经验}
+\end{figure}
+
+这时问题也变得更尖锐：过去数据来自很多旧策略，直接拟合 \(V^\pi(s)\) 会不一致，因为 \(V\) 默认把动作分布也包进去了。为了解决这个问题，后续课程会转向更适合 replay buffer 的 \(Q(s,a)\) 视角，并进一步导向 SAC 等 fully off-policy 方法。
+
+\begin{warningbox}{这里的风险}
+越 off-policy，样本效率通常越高；但算法也越依赖稳定的目标构造、合适的超参数以及更复杂的实现细节。数据效率和优化稳定性并不总是同向变化。
+\end{warningbox}
+
+\subsection{本章小结}
+从单次 on-policy 更新，到 importance-weighted 多次更新，再到 replay buffer，本节展示了 actor-critic 如何逐步摆脱“每更新一次就得重新采样”的束缚。这为下一讲的 PPO、SAC 以及 value-based 方法铺平了道路。
+
+\section{总结与延伸}
+本讲完成了 online RL 里一个非常关键的结构升级。policy gradient 只知道“结果好不好”，而 actor-critic 试图回答“为什么好、哪一步好、在什么状态下更好”。这让 RL 从纯回报驱动，走向显式估值驱动。
+
+从知识结构上看，本讲有三层收获。第一层是对象层：理解 \(V^\pi\)、\(Q^\pi\)、\(A^\pi\) 三者的关系。第二层是学习层：理解 Monte Carlo、bootstrap 与 N-step return 如何为 critic 提供标签。第三层是算法层：理解 actor-critic 如何把估值网络嵌入策略优化闭环，并进一步延伸到 off-policy 场景。
+
+对后续课程而言，这一讲的影响非常大。PPO 本质上是“限制策略变化幅度的 actor-critic”，SAC 则是“借助 replay buffer 与 Q 学习的 fully off-policy actor-critic”。如果这一讲没吃透，后面看到 PPO/GAE/SAC 时就只会觉得公式越来越多；吃透以后会发现它们都只是围绕同一套估值逻辑做工程化强化。
+
+\end{document}

@@ -1,0 +1,523 @@
+CS 224R Tutorial
+Review of Q-Learning
+
+Anikait Singh
+1
+
+Outline of Tutorial
+• Review of Markov Decision Processes (MDP)
+• Exact MDPs
+• Fitted Q Iteration
+• Parametric Q-Learning
+• Bias Variance Tradeo (TD vs MC)
+• Practical Details
+• Replay Bu er, Overestimation, TD Gradients
+• Q-Learning/Actor Critic Algorithm Walkthrough (Preview of Homework 2)
+
+ff
+
+ff
+
+Many thanks to Pieter Abbeel, David
+Silver, Aviral Kumar, and Justin Fu!
+
+MDP Formulation
+An MDP is de ned by:
+
+• Set of states st
+• Set of actions at
+• Transition function p(st+1 | st, at)
+• Reward Function r(st, at)
+• Start state s1
+
+fi
+
+• Discount Factor γ
+• Horizon T
+
+MDP Formulation
+An MDP is de ned by:
+
+• Set of states st
+• Set of actions at
+• Transition function p(st+1 | st, at)
+
+• Discount Factor γ
+• Horizon T
+fi
+
+𝔼
+
+• Reward Function r(st, at)
+• Start state s1
+
+max
+π
+
+T
+
+[∑
+t=1
+
+t
+
+]
+
+γ r(st, at) | π
+
+Tabular Learning - Fitted Q Iteration
+π
+
+Q-Function Q (s, a) - future expected rewards starting at state s, taking
+action a, then following π
+Bellman Equation
+
+Q*(s, a) =
+
+p(st+1 | st, at) r(st, at) + γ max Q*(st+1, at+1
+∑
+(
+)
+at
+st+1
+
+Q-Value Iteration
+
+Q*
+(s,
+a)
+=
+k+1
+
+p(st+1 | st, at) r(st, at) + γ max Q*
+(s
+,
+a
+t+1
+t+1
+k
+∑
+(
+)
+at
+st+1
+
+Fitted Q Iteration with the MDP
+Discount = 0.9
+
+Q*
+(s,
+a)
+=
+k+1
+
+p(st+1 | st, at) r(st, at) + γ max Q*
+(s
+,
+a
+t+1
+t+1
+k
+∑
+(
+)
+at
+st+1
+
+Fitted Q Iteration with the MDP
+Discount = 0.9
+
+Q*
+(s,
+a)
+=
+k+1
+
+p(st+1 | st, at) r(st, at) + γ max Q*
+(s
+,
+a
+t+1
+t+1
+k
+∑
+(
+)
+at
+st+1
+
+Fitted Q Iteration with the MDP
+Discount = 0.9
+
+Q*
+(s,
+a)
+=
+k+1
+
+p(st+1 | st, at) r(st, at) + γ max Q*
+(s
+,
+a
+t+1
+t+1
+k
+∑
+(
+)
+at
+st+1
+
+Fitted Q Iteration with the MDP
+Discount = 0.9
+
+Q*
+(s,
+a)
+=
+k+1
+
+p(st+1 | st, at) r(st, at) + γ max Q*
+(s
+,
+a
+t+1
+t+1
+k
+∑
+(
+)
+at
+st+1
+
+Fitted Q Iteration with the MDP
+Discount = 0.9
+
+Q*
+(s,
+a)
+=
+k+1
+
+p(st+1 | st, at) r(st, at) + γ max Q*
+(s
+,
+a
+t+1
+t+1
+k
+∑
+(
+)
+at
+st+1
+
+Fitted Q Iteration with the MDP
+Discount = 0.9
+
+Q*
+(s,
+a)
+=
+k+1
+
+p(st+1 | st, at) r(st, at) + γ max Q*
+(s
+,
+a
+t+1
+t+1
+k
+∑
+(
+)
+at
+st+1
+
+Optimal Value, Q-Value, Policy
+
+Advantage (Optimal Policy)
+
+Q* vs Q
+
+π
+
+Optimal Policy
+(Deterministic for MDP)
+
+Suboptimal Policy
+
+To play more with the Tabular
+Environment, checkout the colab
+
+Pause for Questions.
+
+Limitations of Tabular Environment
+Moving towards parametric value functions
+
+• A tabular value function intractable
+as state/action space grows!
+
+• Learning a parametric value function
+can also allow for generalization
+
+• Related states have similar qvalues (smoothness)
+
+• Can use regression to learn value
+functions with a neural network
+
+Discrete vs Continuous Q-values
+- Di erent formulations for continuous and
+discrete action spaces:
+
+- In continuous (a), typically condition
+on an action and output a scalar,
+where you sample actions from your
+policy for an expectation calculation
+
+- In discrete (b), typically learn a value
+
+ff
+
+for each bin (output) and can enumerate
+over all actions for an expectation
+
+Q-Learning as a Regression Problem
+Whiteboard
+
+ff
+
+Bias vs Variance Tradeo !
+
+MC vs TD Visualization
+
+Monte-Carlo Rollouts
+(Regression)
+
+TD Backup
+(Dynamic Programming)
+
+N-Step Returns
+
+Bias vs Variance Tradeoff
+TD, MC, N-Step Return
+
+Method
+
+Bootstrap Depth
+
+Bias
+
+Variance
+
+TD
+
+1 Steps
+
+High
+
+Low
+
+N-Step
+
+N Steps
+
+Medium
+
+Medium
+
+Monte Carlo
+
+Full Episode
+
+Low
+
+High
+
+Why Dynamic Programming?
+Aside on Stitching
+
+ffl
+
+Should I Use O ine RL or Imitation Learning?
+
+Pause for Questions.
+
+Practical Implementation Detail
+Semi-Gradient and Target Network
+Going back to our formulation:
+Semi-Gradient
+
+Q(s, a) ← r(s, a) + γ max Q(s′, a)̂
+â
+
+Qθ(s, a) ← r(s, a) + γ max stopgrad (Qθ(s′, a)̂ )
+â
+
+Target Network
+
+Qθ(s, a) ← r(s, a) + γ max stopgrad (Qtarget(s′, a)̂ )
+â
+
+Hard Target Update
+
+Soft Target Update (Polyak)
+
+￼
+
+￼
+
+w′ ← τ ⋅ w + (1 − τ) ⋅ w′
+
+￼
+
+w′ ← w when mod (n, N) = 0
+￼
+
+￼
+
+￼
+
+Update Types
+
+Practical Implementation Details
+Dealing with TD Gradients
+
+Gradient Clipping
+
+Huber Loss
+
+Practical Implementation Details
+Replay Bu ers
+
+• Replay Bu ers are memory structures
+that store past experiences
+encountered by the agent, allowing the
+experiences to be reused instead of
+discarded after a single update
+
+• They break temporal correlations
+
+between consecutive training samples
+and prevents recency bias
+
+• Improves sample e ciency in Q-
+
+ff
+
+ffi
+
+ff
+
+ff
+
+learning algorithms, allowing an agent
+to reuse its experience e ectively
+
+Q-Learning is typically formulated as follows:
+
+Q(s, a) ← r(s, a) + γ max Q(s′, a)̂
+â
+
+When parameterized by a function approximator like a NN, there is some
+inherent noise in the q-value estimates due to modeling errors
+approx
+target
+â
+Q
+(s′, a)̂ = Q
+(s′, a)̂ + Y
+
+s′
+
+â
+Due to the noise on the RHS (Ys′), there results in error on the LHS, expressed as:
+
+Zs := γ
+
+( â
+
+â
+
+￼
+
+⟹
+
+[Zs] > 0 (often)
+￼
+
+â
+[Ys′] = 0 ∀ a ̂
+￼
+
+￼
+
+￼
+
+￼
+
+￼
+
+￼
+
+â
+Even with zero mean (Ys′), Zs may have positive mean:
+￼
+
+)
+
+approx
+target
+max Q
+(s′, a)̂ − max Q
+(s′, a)̂
+
+𝔼
+
+𝔼
+
+Q-Learning Overestimation
+
+Issues in Using Function Approximation for Reinforcement Learning
+
+Practical Implementation Detail
+Critic Ensembling
+
+• One approach to tackle overestimation
+is to measure epistemic uncertainty
+with an ensemble of networks
+
+• Since di erent model initializations
+
+may have di erent modeling errors,
+this can lead to ensembling with a min
+reduction to be e ective
+
+• Has been even shown to be e ective
+
+ff
+
+ff
+
+ff
+
+ff
+
+ffl
+
+in o ine RL where distribution shift is
+a larger concern (Sac-N and EDAC)
+
+Q-Learning vs Double Q-Learning
+
+Understanding HW Algorithms
+
+Q-Learning : DQN
+Whiteboard
+
+Actor Critic: SAC
+Whiteboard
+
+Thanks!
+
+

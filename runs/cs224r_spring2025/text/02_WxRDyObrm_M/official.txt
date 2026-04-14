@@ -1,0 +1,757 @@
+Imitation Learning
+CS 224R
+
+1
+
+SpongeBob image rights & credits to Viacom International
+
+Course reminders
+- Start forming
+
+nal project groups (survey due Weds April 16)
+
+- Homework 1 out today, due Fri April 18
+- PyTorch tutorial today at 1:30 pm in Gates B1
+
+fi
+
+2
+
+Partial Recap
+state st - the state of the “world” at time t
+
+observation ot - what the agent observes at time t
+action at - the decision taken at time t
+
+trajectory τ - sequence of states/observations and actions
+
+(s1, a1, s2, a2, . . . , sT, aT )
+
+reward function r(s, a) - how good is s, a?
+s
+
+a
+πθ(a | s)
+
+policy π(at | st) or π(at | ot−m:t) - behavior, usually what we are trying to learn
+can be represented using a generative model
+3
+
+The plan for today
+Imitation Learning
+1. Imitation learning basics
+2. Learning expressive policy distributions
+3. Learning from online interventions
+
+}
+
+Topic of homework 1!
+
+4. Time permitting: how to collect demonstrations
+
+Key learning goals:
+-
+
+how to represent distributions with neural networks
+
+-
+
+why expressive distributions matter for imitation learning
+
+-
+
+what are compounding errors and how to address them
+4
+
+𝒟
+
+What is the goal of imitation learning?
+
+Example
+
+Data: Given trajectories collected by an expert
+“demonstrations”
+
+:= {(s1, a1, . . . , sT )}
+
+(sampled from some unknown policy πexpert)
+Goal: Learn a policy πθ that performs at the level of the
+expert policy, by mimicking it.
+
+5
+
+- Dataset from human drivers
+- Sensor readings + steering
+commands
+
+𝒟
+
+Imitation learning - version 0
+Deterministic policy
+0. Given demonstrations collected by an expert
+
+:= {(s1, a1, . . . , sT )}
+
+1. For deterministic policy, supervised regression to the expert’s actions
+
+min
+θ
+
+|
+
+1
+
+∑
+| (s,a)∈
+
+2
+
+∥a − ̂a∥
+
+𝒟
+
+𝒟
+
+2. Deploy learned policy πθ
+
+6
+
+where â = πθ(s)
+
+What could go wrong?
+Example
+
+Question: what might policy trained with ℓ2-regression do?
+
+mean of data
+
+- Dataset from human drivers
+- Sensor readings + steering commands
+How often does this happen in practice?
+
+All the time!
+
+Esp. when data collected by multiple people.
+7
+
+How can we represent
+more than the mean?
+
+Learning distributions with neural networks
+1D discrete actions
+
+p(a)
+
+s
+
+Continuous actions
+
+s
+
+p(a)
+µ
+
+up
+do arro
+wn w
+arr
+ow
+pre
+ss A
+pre
+ss B
+
+parameters of distribution
+
+σ
+
+next steering angle
+
+Neural net outputs p(up), p(down), …
+represent categorical distribution.
+
+Neural net outputs μ, σ to represent
+Gaussian distribution.
+
+Maximally expressive
+
+Not very expressive!
+8
+
+Learning distributions with neural networks
+💡Can we use generative modeling?
+image diffusion models
+
+autoregressive models
+Lorem ipsum dolor sit amet, consectetur
+adipiscing elit, sed do eiusmod tempor
+incididunt ut labore et dolore magna aliqua. Ut
+enim ad minim veniam, quis nostrud exercitation
+ullamco laboris nisi ut aliquip ex ea commodo
+consequat.
+
+learning p(image | text description)
+
+learning p(next word | words so far)
+
+Our goal: learning p(action | observations)
+9
+
+Generative models for policies (approximating p(a | s))
+Mixture of Gaussians
+
+Discretize + Autoregressive
+iteratively
+denoise
+
+p(at,d)
+
+p(at)
+
+output μ1, σ1, w1, μ2, σ2, w2, …
+
+st
+
+Diffusion
+
+output p(at,1), p(at,2 | ât,1), p(at,3 | ât,1:2), …
+
+st
+
+output ϵn
+
+st at +
+
+Question: how are these different from ℓ2 loss with larger network?
+
+n
+
+∑
+i=1
+
+n = N…1
+
+ϵi
+
+Important Note: Neural network expressivity is often distinct from distribution expressivity!
+
+𝒟
+
+Imitation learning - version 1
+Expressive policies
+0. Given demonstrations collected by an expert
+
+:= {(s1, a1, . . . , sT )}
+
+1. Train generative model of the expert’s actions
+
+min −
+θ
+
+(s,a)∼
+
+with expressive distribution π( ⋅ | s)
+
+maximize the log probability of the
+demo actions under the policy
+
+𝔼
+
+𝒟
+
+2. Deploy learned policy πθ
+
+[log πθ(a | s)]
+
+11
+
+Imitation learning - version 1 vs version 0
+
+success rate
+
+Simulated transport task
+1
+0.75
+
+diffusion
+GMM
+
+Real shirt hanging task
+1
+0.75
+
+0.5
+
+0.5
+
+0.25
+
+0.25
+
+0
+
+0
+
+single human
+
+multi human
+
+demo dataset type
+
+https://diffusion-policy.cs.columbia.edu/
+https://aloha-unleashed.github.io/
+
+diffusion
+L1
+
+multi-human data
+
+demo dataset type
+
+12
+
+Robotics: Imitation learning + expressive policies
+Physical Intelligence π0
+
+NVIDIA Gr00t N1
+
+diffusion
+
+diffusion
+
+Figure Helix
+
+OpenVLA
+
+diffusion 13
+
+discretize + autoregressive prediction
+
+Autonomous driving: Imitation learning + expressive policies
+Waymo EMMA
+
+Wayve LINGO-2
+
+discretize + autoregressive prediction
+
+discretize + autoregressive prediction
+
+14
+
+Summary so far
+Data from one consistent demonstrator
+
+Multimodal data, e.g. from multiple demonstrators
+
+Unimodal policy distribution is enough
+
+Need expressive generative model for policy
+
+15
+
+SpongeBob image rights & credits to Viacom International
+
+Summary so far
+- Key idea: Train expressive policy class via generative modeling on dataset
+
+of demonstrations.
+
+- Algorithm is fully of
+
+De nitions.
+
+ine
+
+of ine: using only an existing dataset,
+no new data from learned policy
+online: using new data from learned
+policy
+
++ no need for data from policy (online data can be unsafe, expensive to collect)
++ no need to de
+
+ne a reward function
+
+- may need a lot of data for reliable performance
+
+fl
+
+fi
+
+fi
+
+fl
+
+16
+
+The plan for today
+Imitation Learning
+1. Imitation learning basics
+2. Learning expressive policy distributions
+3. Learning from online interventions
+4. Time permitting: how to collect demonstrations
+
+17
+
+}
+
+Topic of homework 1!
+
+What can go wrong in imitation learning?
+Compounding errors
+Supervised learning
+x2
+x1
+
+x3
+p(x)
+
+Supervised learning of behavior
+s3
+
+Inputs independent
+of predicted labels ŷ
+
+s2
+s1
+
+Predicted actions affect
+next state.
+
+s4
+â3
+
+â2
+
+Errors can lead to drift
+away from the data
+distribution!
+
+â1
+
+Errors can then compound!
+
+pexpert(s) ≠ pπ(s)
+states visited
+by expert
+18
+
+states visited by
+learned policy π
+
+“covariate shift”
+
+What can go wrong in imitation learning?
+Compounding errors
+Solutions?
+
+Supervised learning of behavior
+s3
+s2
+s1
+
+â2
+â1
+
+s4
+â3
+
+Predicted actions affect
+next state.
+
+1. Collect A LOT of demo data &
+hope for the best.
+
+Errors can lead to drift
+away from the data
+distribution!
+
+2. Collect corrective behavior data
+s3
+s2
+
+Errors can then compound!
+
+pexpert(s) ≠ pπ(s)
+
+s1
+
+19
+
+â2
+â1
+
+s4
+â3
+
+Collect corrective behavior data
+s3
+s2
+
+â2
+
+s4
+â3
+
+1. Roll out learned policy πθ: s′1, â1, . . . , s′T
+
+2. Query expert action at visited states a* ∼ πexpert( ⋅ | s′)
+3. Aggregate corrections with existing data
+
+â1
+
+s1
+
+4. Update policy min ℒ(πθ,
+θ
+
+←
+
+)
+
+“dataset aggregation” (DAgger)
++ data-ef cient way to learn from an expert
+
+￼
+
+𝒟
+
+𝒟
+
+Is there another way to collect corrective data?
+20
+
+fi
+
+￼
+
+￼
+
+- can be challenging to query expert when agent has control
+￼
+
+𝒟
+
+Addressing Compounding Errors with Interventions
+
+∪ {(s′,a*)}
+
+Collect corrective behavior data while taking full control
+s6
+s4
+
+s3
+s2
+
+â3
+
+â2
+
+s5
+
+1. Start to roll-out learned policy πθ: s′1, â1, . . . , s′t
+
+2. Expert intervenes at time t when policy makes mistake
+
+,
+.
+.
+.
+,
+s′
+3. Expert provides (partial) demonstration s′t, a*
+T
+t
+4. Aggregate new demos with existing data
+
+â1
+
+s1
+
+5. Update policy min ℒ(πθ,
+θ
+
+)
+
+←
+
+∪ {(s′i,a*
+)};
+i
+≥
+t
+i
+
+“human gated DAgger”
+
+￼
+
+￼
+
+𝒟
+
+𝒟
+
+￼
+
+￼
+
++ (much) more practical interface for providing corrections
+- can be hard to catch mistakes quickly in some application domains
+￼
+
+𝒟
+
+Addressing Compounding Errors with Interventions
+
+21
+
+Question: could you automatically
+detect when intervention is needed?
+
+The plan for today
+Imitation Learning
+1. Imitation learning basics
+2. Learning expressive policy distributions
+3. Learning from online interventions
+4. Time permitting: how to collect demonstrations
+
+22
+
+}
+
+Topic of homework 1!
+
+How to collect demonstrations?
+In some domains: People already collect demonstrations that can be recorded
+e.g. driving cars, writing text messages
+What about robotics?
+Kinesthetic teaching
+
+Remote controllers
+
++ easy interface
+
+~ interface ease varies,
+can have high latency
+
+- human visible in scene
+
+Puppeteering
+
++ easy interface
+- requires double hardware
+
+In other domains: It may not be viable to collect demos! (e.g. quadruped robot)
+23
+
+Can robots directly use videos of people, animals?
+Embodiment gap:
+
+- difference in appearance
+- difference in physical capabilities, degrees of freedom
+
+Hard to directly imitate human & animal data, but can potentially guide exploration.
+
+Peng, Kanazawa, Malik, Abbeel, Levine. SFV: Reinforcement Learning of Physical Skills from Videos. SIGGRAPH Asia 2018.
+24
+
+Summary
+Part 1: Train policy to mimic of ine demonstrations
+-
+
+best if policy is an expressive generative model over actions
+
+-
+
+algorithm is fully of ine
+
+often referred to as
+behavior cloning (BC)
+
+Part 2: Improve policy using online interventions
+-
+
+requires interface for human or expert intervention
+
+-
+
+algorithm involves running policy online
++ of
+
+often referred to as
+DAgger, or HG-DAgger
+
+ine BC: simple, no need for data from policy (online data can be unsafe, expensive)
+
++ DAgger: possible path to reliable performance, more data-ef cient than of
++ no need to de
+
+ine BC
+
+ne a reward function
+
+-
+
+may need impractically large amount of data for reliable performance
+
+-
+
+doesn’t provide a framework for improving on own (from “practicing”)
+
+fl
+
+fi
+
+fl
+
+fl
+
+fi
+
+fl
+
+Many successful methods combine imitation learning and reinforcement learning!
+
+The plan for today
+Imitation Learning
+1. Imitation learning basics
+2. Learning expressive policy distributions
+3. Learning from online interventions
+
+}
+
+Topic of homework 1!
+
+4. Time permitting: how to collect demonstrations
+
+Key learning goals:
+-
+
+how to represent distributions with neural networks
+
+-
+
+why expressive distributions matter for imitation learning
+
+-
+
+what are compounding errors and how to address them
+26
+
+Next time
+Start of reinforcement learning algorithms
+
+Course reminders
+- Start forming
+
+nal project groups (survey due Weds April 16)
+
+- Homework 1 out today, due Fri April 18
+- PyTorch tutorial today at 1:30 pm in Gates B1
+
+fi
+
+27
+
+

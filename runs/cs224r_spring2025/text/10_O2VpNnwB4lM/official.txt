@@ -1,0 +1,657 @@
+Reinforcement Learning
+for LLM Reasoning
+Aviral Kumar
+
+1
+
+Setup for Today: Solving Math Problems!
+
+Source: AIME questions, 2025.
+
+2
+
+The Conventional Way of Training
+predict the next token
+
+Why does next token
+prediction work?
+ground-truth model
+
+text, image, video, audio tokens
+
+Learned model
+
+Error reduces with
+more data similar
+to the target x
+3
+
+But in Many Problems, Data is Limited/Biased…
+Math reasoning
+
+Embodied AI
+
+It is estimated we will run out of
+high-quality Internet text by 2028
+
+Real-world is stochastic, this is
+little data compared to LLMs!
+4
+
+And Training on Current Data is Not Enough
+
+Analyzing
+individual terms is
+not good enough
+The model “asserts” its
+way out, no realization of
+its mistake / backtracking
+5
+
+Outline: RL for Reasoning
+time
+
+DeepSeek-R1 /
+“thinking” models
+
+Classical RL techniques
+for LLM reasoning
+1. Imitation Learning
+2. Offline reinforcement learning
+3. Online reinforcement learning
+Takeaway: Training with RL can
+help improve efficiency of learning!
+
+Modern extensions of
+these RL techniques
+1. Online reinforcement learning
+2. Some Extensions
+Summary: Still the old recipes and
+RL ideas are helpful!
+
+Problem Setup: LLM Math Reasoning Problems
+Initial state
+
+Steps = actions
+
+reward = 1 if
+answer is correct
+
+Intuition: Sparse-reward MDP with deterministic dynamics
+7
+
+Part 1
+
+Classical RL Methods
+for Reasoning
+
+Main papers covered:
+• RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold.
+Setlur, Garg, Geng, Garg, Smith, Kumar. NeurIPS 2024
+
+•
+
+Rewarding Progress: Scaling up Automated Process Supervision for LLM Reasoning
+Setlur, Nagpal, Fisch, Geng, Eisenstein, R. Agarwal, A. Agarwal, Berant, Kumar. ICLR 2025
+8
+
+Setup: Data-Scaling Analysis
+Number of questions
+
+Basic Approach
+Collect problems and
+corresponding oracle
+solutions to train on
+
+Also using bad solutions
+produced by the learner on
+some questions
+
+in N
+co u
+rre mb
+ct er
+so o f
+lu
+tio
+ns
+
+RL
+
+SFT
+Obtained by asking
+bigger models / human
+to write questions
+and one ref answer
+
+Number of correct solutions
+(all produce the same final answer)
+
+RFT
+Multiple solutions sampled on9
+policy from the learner
+
+Q
+
+Warmup: Scale #{Questions, Oracle Ans}
+
+#questions
+
+A
+-ve
+
+#questions
+
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+10
+
+But.. We Can’t Just SFT On-Policy Solutions
+RFT Scaling (fixed questions/prompts)
+
+Fitting self-generated data on limited
+initial states can hurt generalization
+on new initial states (prompts).
+
+0.62
+
+Test error
+
+Observation: On-policy
+imitation eventually degrades
+if you train too much on it
+
+MATH 8k prompts
+
+16k prompts
+
+GSM8K 8k prompts
+
+16k prompts
+
+0.60
+0.58
+0.28
+0.26
+0.24
+0.22
+
+10k 20k 30k 40k 50k 60k
+
+128k
+
++
+RFT
+dataset
+size
+(|D
+|)
+#correct answers per º
+question
+sft
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+11
+
+Mental Picture: Spurious Steps Derail the Model
+prompts
+
+“Spurious” steps
+• Can somehow learn to recover on train
+• But not on test, where it will derail
+
+Correct
+
+Akin to “causal confusion” in imitation
+when conditioned on history of past actions
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+12
+
+How Can We Address This?
+
+13
+
+An Idea: Assigning “Credit” to Steps
+Question: 4 apples and 3 pears cost $25, but 7 apples
+and 6 pears cost $49. What is the cost of 1 apple?
+
+C1: Let cost of 1 apple be x
+and 1 pear be y.
+
+Key insight: If we can
+identify spurious steps
+somewhat precisely, then
+we can avoid this issue
+C3: To remove y, multiple Eq1
+by 2 and subtract Eq 2 from it.
+
+Start
+
+C4: (8x+6y)(7x+6y)=50-49.
+
+C2: 4x+3y=25 (Eq 1) and
+7x+6y=49 (Eq 2).
+C5: x=1.
+
+C6 : Answer: 1
+apple costs $1.
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+Correct
+14 solution
+
+Q
+
+Negative On-Policy Data Gives Advantages -ve
+
+A
+
+Rollout succeeds è
+likely not a spurious step
+Sometimes succeeds,
+sort of OK step
+
+Always fails, not OK
+
+Connection: This is equivalent to the value function of the rollout policy….
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+15
+
+Q
+
+Negative On-Policy Data Gives Advantages -ve
+
+A
+
+Rollout succeeds è
+likely not a spurious step
+Sometimes succeeds,
+sort of OK step
+
+Always fails, not OK
+
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+16
+
+Q
+
+Negative On-Policy Data Gives Advantages -ve
+Q-value after step i
+
+A
+
+Q-value after step i-1
+
+Advantage: relative
+change in the value
+function having
+committed to a step
+
+0.66
+
+0.0
+
+1.0
+
+0.25
+
+0.0
+
+-0.66
+
+1.0
+
+-0.75
+
+-0.25
+
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+17
+
+Q
+
+Using Advantages for Training
+
+A
+-ve
+
+Option 1: Filter steps by advantages directly
+
+Incorrect solution
+from base 𝜋
+
+𝐴"! ≫ 0
+
+Training dataset
+
+Correct solution
+from base 𝜋
+
+𝐴"! ≪ 0
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+18
+
+Q
+
+Results: Filtering Steps w/ Advantages
+
+A
+-ve
+
+Advantage
+filtering helps!
+
+#correct answers per question
+
+#correct answers per question
+
+Finding: Advantage-filtered RFT does not fall prey to spurious steps
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+19
+
+Q
+
+Using Advantages for Offline RL (DPO)
+
+A
+-ve
+
+% for training
+Option 2: Retain partial rollouts from 𝝅
+
+Incorrect solution
+from base 𝜋
+
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+20
+
+Q
+
+Using Advantages for Offline RL (DPO)
+
+A
+-ve
+
+% for training
+Option 2: Retain partial rollouts from 𝝅
+
+Incorrect solution
+from base 𝜋
+
+Preference pair
+
+Training dataset
+
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+21
+
+Q
+
+Using Advantages for Offline RL (DPO)
+
+A
+-ve
+
+% for training
+Option 2: Retain partial rollouts from 𝝅
+
+Correct solution
+from base 𝜋
+Training dataset
+Preference pair
+
+z
+
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+22
+
+Q
+
+Results: Scaling for Offline RL
+
+#questions
+
+A
+-ve
+
+#questions
+
+Finding: Using offline RL (via per-step RL) gives you
+8x data efficiency in performance over imitation only.
+Setlur et al. RL on Incorrect Synthetic Data Scales the Efficiency of LLM Math Reasoning by Eight-Fold. NeurIPS 2024.
+
+23
+
+Online RL: Basic Recipe with 0/1 rewards
+A solution from
+current 𝜋
+
+Can also use other policy gradient
+methods (PPO, GRPO, etc)!
+
+Key idea: Train with a binary 0/1
+reward using policy gradients
+
+r(x, y) = {0, 1}
+
+Setlur et al. Rewarding Progress: Scaling Automated Process Supervision for LLM Reasoning. arXiv 2024.
+
+24
+
+Per-Step Advantages in Online RL
+A solution from
+base model
+current 𝜋
+
+Question: Should we do
+" on the fly?
+rollouts from 𝝅
+Fit a parametric model to
+advantage predictions
+
+Setlur et al. Rewarding Progress: Scaling Automated Process Supervision for LLM Reasoning. arXiv 2024.
+
+25
+
+Approach: Process Advantage Verifiers (PAVs)
+A solution from
+current 𝜋
+
+Key idea: Advantage as dense reward bonus in RL
+
+Challenge: These
+[Informal] Optimal Rollout Policy, 𝜋$ parametric values once
+" are
+The optimal rollout policy 𝜋$ iscomputed
+one whichfrom some 𝝅
+going
+to remain fixed in RL
+produces advantages that most
+effectively
+distinguish good and bad steps from all 𝜋.
+
+r(x, y) = {0, 1}
+Setlur et al. Rewarding Progress: Scaling Automated Process Supervision for LLM Reasoning. arXiv 2024.
+
+26
+
+Results: Dense-Reward RL Performance
+
+5-6x sample efficiency than outcome
+rewards only, 6-7% improvement
+Setlur et al. Rewarding Progress: Scaling Automated Process Supervision for LLM Reasoning. arXiv 2024.
+
+27
+
+…
+
+Results: Discovers Solutions to Hard Questions
+N = 256
+independent
+trials
+
+Base policy
+
+input (x)
+
+Insight: Specifically, PAVs give exploration
+crucial for solving hard questions
+
+Setlur et al. Rewarding Progress: Scaling Automated Process Supervision for LLM Reasoning. arXiv 2024.
+
+28
+
+Part 1
+
+Takeaways
+
+ØChallenge: Imitating positive data scales (slowly), but it
+induces spurious steps, that are memorized.
+ØAlgorithm: Careful, model-specific negative data can help
+with addressing this issue via offline / online RL
+ØResult: Offline RL gives 8x sample efficiency vs imitation.
+Online RL w/ dense advantage reward improves 5-6x
+
+29
+
+Part 2
+
+Training “Thinking”
+Models via RL
+
+Main papers covered:
+• DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning. 2025
+•
+
+Kimi K1.5: Scaling Reinforcement Learning with LLMs.
+
+•
+
+[Optional] Optimizing Test-Time Compute requires Solving a Meta-RL Problem
+Setlur, Qu, Yang, Zhang, Smith, Kumar. CMU MLD Blog, 2025
+
+30
+
+Example: A Trace From Thinking Models
+
+Figure from: Marjanovi´c et al. DeepSeek-R1 Thoughtolgy. arXiv 2025.
+
+What Changed?
+
+(Disclaimer: this is my version!)
+Ø The RL training objectives remained the same:
+Ø DeepSeek-R1 uses GRPO, another policy gradient method
+Ø Kimi-1.5 uses some version of APA (advantage-induced policy alignment)
+Ø Some minor changes in reward function
+Ø Crudely, the action space changed:
+Ø These base models became better at performing “macro” actions, such as
+revisiting a given answer, verification, backtracking, planning, etc
+Ø Crudely, we can now think of operating in this new action space that
+presents several ”meta” actions
+Ø We increased the token budget drastically to chain multiple macro actions
+
+Formulation: Training Thinking Models via RL
+Let’s start from the final goal
+
+on test problems
+
+response sampled
+from model (longer
+than typical solution)
+
+Total compute
+constraint per problem
+
+33
+
+Formulation: Training Thinking Models via RL
+
+This compute
+budget is fixed!
+
+Can optimize this via:
+Ø RL (like DeepSeek-R1): outcome-reward RL
+Ø SFT / RFT: collect data, filter by correctness, maximize likelihood
+34
+
+“Action” Space: Incorporating Meta Strategies
+
+This model does not
+improve during RL
+Gandhi et al. Cognitive Behaviors that Enable Self-Improving Reasoners. arXiv 2025.
+
+Longer Length: RL Training Amplifies Length
+
+Why?
+
+Kimi team. Kimi 1.5 Technical Report. arXiv 2025.
+
+A New Paradigm: Test-Time Scaling
+
+Language model
+
+input problem (x)
+
+Snell et al. Scaling LLM Test-Time Compute Optimally can be more Effective than Scaling Model Parameters. ICLR 2025 (Oral).
+
+37
+
+A New Paradigm: Test-Time Scaling
+
+Bigger language model
+
+input problem (x)
+
+Snell et al. Scaling LLM Test-Time Compute Optimally can be more Effective than Scaling Model Parameters. ICLR 2025 (Oral).
+
+38
+
+A New Paradigm: Test-Time Scaling
+longer responses, “more thinking”, self-correction, etc.
+
+Bigger language model
+
+input problem (x)
+
+Language model
+
+input problem (x)
+
+Snell et al. Scaling LLM Test-Time Compute Optimally can be more Effective than Scaling Model Parameters. ICLR 2025 (Oral).
+
+39
+
+Results: Thinking Models Top the Leaderboards!
+
+OpenAI. o3 and o4-mini blog post. 2025
+
+But Lots of Interesting Questions Remain!
+Desiderata and
+Formulation
+
+Ingredient 1:
+Dense rewards
+
+Ingredient 2:
+RL >> SFT
+
+Summary: Pose it as an
+adaptation problem
+
+Summary: More than
+outcome reward needed
+
+Summary: Use reward
+signals for training
+41
+
+

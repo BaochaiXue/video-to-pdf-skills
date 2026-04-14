@@ -1,0 +1,248 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS224R Lecture 8：奖励学习}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{2025-04-25}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-12-08（YouTube 上传）}
+\newcommand{\videoduration}{1:05:58}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=PDIxDhA9Z6Y}
+\newcommand{\videocoverpath}{../../raw/08_PDIxDhA9Z6Y/08_PDIxDhA9Z6Y.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{开场：从离线 RL 过渡到奖励学习}
+
+\subsection{本讲在课程中的位置}
+这节课前半段先收束上一讲尚未讲完的 conservative offline RL，后半段正式转入 reward learning。这样的安排非常自然，因为前几讲的强化学习算法都默认“奖励函数已经给定”，而现实任务里最难的问题之一恰恰是：奖励往往并不直接存在。
+
+讲者先快速回顾离线 RL 的关键矛盾：离线数据来自行为策略 $\pi_\beta$，当前优化的策略 $\pi_\theta$ 一旦偏离数据支持，就会在 critic 上产生分布外查询和过估计。CQL 的做法是把这类高估的 OOD Q 值系统性压低，从而在没有在线采样的情况下仍保持策略更新稳定。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-05.png}
+\caption{CQL 回顾：在标准 critic 更新之外，再显式压低数据支持外的大 Q 值。}
+\end{figure}
+
+\subsection{为什么本讲必须讨论奖励}
+把 offline RL 讲清楚之后，课程立刻追问更底层的问题：即使算法稳定了，奖励从哪里来？在 Atari 这类游戏环境里，得分可以直接当 reward；但机器人倒水、自动驾驶、对话系统、推荐系统都没有这种天然的标量反馈。很多真实任务甚至连“成功”都很难用一条手写规则完整刻画。
+
+因此，reward learning 的目标并不是发明一个更复杂的 RL 算法，而是把人类的目标、偏好或示例转换成可以供 RL 使用的监督信号。
+
+\subsection{本章小结}
+离线 RL 解决的是“已有数据时如何安全优化策略”，奖励学习解决的是“根本没有现成奖励时如何定义目标”。两者在现代应用里经常一起出现。
+
+\section{任务指定为什么难}
+
+\subsection{手写奖励在真实任务中往往不自然}
+讲者用了几个例子来说明奖励指定的困难。机器人把水从壶里倒进杯子，看上去是个简单任务，但真要手工写奖励，就得同时判断水是否进杯、是否洒出、姿态是否平稳、过程是否安全。自动驾驶更复杂，因为舒适性、规则遵守、安全性和效率都需要被同时考虑。聊天机器人也一样，用户不会在每句回复后直接给出一个准确的标量奖励。
+
+这意味着“真实目标”与“可计算奖励”之间通常存在巨大的建模缺口。工程上当然可以设计 proxy reward，例如点击率、成功率、是否完成目标等，但 proxy 往往只是目标的近似，而不是目标本身。
+
+\subsection{proxy reward 的价值与风险}
+proxy 的优点是便宜、可批量采集、能直接进入优化回路；缺点则是容易把系统推向代理指标而非真实目标。比如点击率高并不等价于用户长期满意；某种机器人中间状态得分高，也不一定说明任务真正完成。reward learning 的出发点，正是希望利用更贴近人类意图的监督方式来替代这些粗糙代理。
+
+\begin{warningbox}{为什么“奖励黑客”总会出现}
+只要训练目标是某个可计算 proxy，而 proxy 又没有完全表达真实偏好，策略就会寻找 proxy 的漏洞。reward learning 的意义并不是彻底消灭这一点，而是尽可能让监督信号更靠近人类真正关心的东西。
+\end{warningbox}
+
+\subsection{本章小结}
+任务指定困难的根源在于：真实目标往往是语义性的、组合性的、依赖上下文的，而传统 reward 必须是即时、可计算、数值化的。两者之间天然存在表达鸿沟。
+
+\section{从例子中学习奖励：目标分类器}
+
+\subsection{核心思想：把“成功状态”变成分类问题}
+课程给出的第一类方案是 goal classifier。它不要求人类为每一步动作打分，而是只需要提供成功状态与失败状态的示例。然后训练一个二分类器判断当前状态是否属于目标集合 $G$，再把分类器输出作为奖励信号喂给 RL。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.93\textwidth]{pdf_pages/page-15.png}
+\caption{目标分类器：先收集成功/失败状态，再把分类概率当作 reward。}
+\end{figure}
+
+这种做法的优点是监督形式很自然。很多视觉任务里，人类虽然很难写出明确 reward，但很容易指出“这张图像是目标状态”或“这不是”。于是 reward learning 被重写成了监督学习。
+
+\subsection{为什么它比纯模仿更灵活}
+如果只有 demonstrations，最直接的做法是行为克隆；但行为克隆会强行复制整条轨迹，无法区分“为了到达目标，可以有哪些不同路径”。目标分类器则只关心哪些状态是好的，因此能给 RL 留出探索与组合的空间。策略未必要复制示范动作，只要能走到被分类器判为成功的状态即可。
+
+\subsection{机器人案例中的实际效果}
+课上用机器人操作举了一个很具体的例子：收集几十条 demonstration，把最终状态当作 success examples，再用这些终态初始化 replay buffer、训练 goal classifier，并让 RL 利用该分类器继续优化。结果是，直接模仿 demonstrations 的成功率明显低于“用学习到的分类器做奖励再训练”的方法。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.93\textwidth]{pdf_pages/page-19.png}
+\caption{机器人案例：使用学习到的 goal classifier 作为奖励，可显著优于直接模仿示范。}
+\end{figure}
+
+讲者特别提醒必须对分类器做 regularization。原因很简单：一旦分类器在狭窄的数据分布上过拟合，RL policy 就会专门去找它的判别漏洞，而不是学会真正完成任务。
+
+\begin{importantbox}{目标分类器方法的边界}
+这类方法最适合“成功状态可以被视觉上或语义上明确识别”的任务；如果任务质量更多取决于轨迹过程、交互风格或隐含偏好，而不是终态本身，就需要更强的监督形式。
+\end{importantbox}
+
+\subsection{本章小结}
+目标分类器把 reward learning 转化为“成功状态识别”。它降低了标注成本，也比纯模仿更能利用 RL 的搜索能力，但前提是终态能够稳定表达任务目标。
+
+\section{从人类偏好中学习奖励}
+
+\subsection{为什么偏好比绝对打分更可靠}
+当任务结果难以用二值成功定义时，人类仍然常常能回答一个更简单的问题：两个轨迹里，哪个更好？讲者指出，人类给绝对分数往往噪声更大、刻度也不稳定；但做 pairwise comparison 往往更一致。因此 reward learning 的另一条主线是：让人类比较两段 rollout 或两个结果，然后从偏好数据反推出奖励函数。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{pdf_pages/page-24.png}
+\caption{偏好学习的核心设定：如果人类认为 $\tau_w \succ \tau_l$，奖励模型就应使优胜轨迹的累计奖励更高。}
+\end{figure}
+
+如果记轨迹偏好为 $\tau_w \succ \tau_l$，可以要求学习到的奖励满足
+\[
+\sum_{(s,a)\in \tau_w} r_\theta(s,a)
+>
+\sum_{(s,a)\in \tau_l} r_\theta(s,a).
+\]
+这并不意味着要恢复“真实奖励”的绝对值，而只要求奖励在排序意义上与人类偏好一致。
+
+\subsection{Bradley-Terry 形式与训练目标}
+课程进一步把轨迹累计奖励差映射成偏好概率：
+\[
+P(\tau_w \succ \tau_l)
+=
+\sigma\bigl(r_\theta(\tau_w)-r_\theta(\tau_l)\bigr),
+\]
+其中 $\sigma(\cdot)$ 是 sigmoid。于是就可以得到对数似然目标：
+\[
+\max_\theta \ \mathbb{E}_{(\tau_w,\tau_l)}
+\left[\log \sigma\bigl(r_\theta(\tau_w)-r_\theta(\tau_l)\bigr)\right].
+\]
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{pdf_pages/page-25.png}
+\caption{Bradley-Terry 风格的偏好建模：只拟合轨迹优劣差，而不需要绝对奖励标尺。}
+\end{figure}
+
+这里最重要的思想是：人类没有直接告诉模型“这条轨迹的 reward 是多少”，而只是告诉模型“哪条更好”。所以 reward model 真正在做的是一个排序兼容的标量刻画。
+
+\subsection{偏好数据为什么仍然很难}
+讲者专门强调了偏好学习并不干净。人类偏好可能噪声大、前后不一致，甚至不满足传递性：有时会出现 $A \succ B$、$B \succ C$、但又 $C \succ A$ 的情况。即便如此，这种噪声监督仍然足以带来可观提升。换句话说，reward learning 依赖的不是完美标签，而是足够有信息量的比较信号。
+
+\subsection{本章小结}
+偏好学习把“写 reward”替换成“做人类比较”。它非常适合没有唯一标准答案、但人类能辨别优劣的任务，也是后面 RLHF 与 DPO 的基础。
+
+\section{面向 LLM 的奖励学习：RLHF 与 RLAIF}
+
+\subsection{LLM 场景中的三阶段流程}
+进入大模型场景后，讲者把流程组织成经典三步：先做大规模预训练，再做 supervised fine-tuning（SFT），最后基于偏好数据训练 reward model，并用 RL 去最大化这个奖励。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.93\textwidth]{pdf_pages/page-29.png}
+\caption{LLM 奖励学习的典型流程：预训练，SFT，再用偏好数据训练 reward model 并做 RL 优化。}
+\end{figure}
+
+对于 prompt $x$ 和模型输出 $y$，reward model 学习一个标量 $r(x,y)$，用来判断回答对这个 prompt 有多好。随后优化目标可以写成
+\[
+\mathbb{E}_{\hat y \sim p_\theta(\cdot|x)}[R(x,\hat y)].
+\]
+而 RL 之所以需要出现，是因为语言模型输出的是离散 token 序列，即使 reward model 本身可微，也无法直接把梯度穿过离散采样步骤稳定地反传回生成模型。
+
+\subsection{为什么要加 KL 约束}
+讲者还解释了 RLHF 实践里非常关键的一点：reward model 并不完美，如果直接朴素地最大化 learned reward，策略会开始 exploit reward model 的漏洞。因此通常要在目标中加入对初始模型的 KL penalty，使优化后的策略不要偏离 SFT 模型太远。这等价于告诉系统：可以朝着更受偏好的方向改，但不要把语言模型带离原有分布太远。
+
+\subsection{从人类反馈到 AI 反馈}
+除了直接让人类比较回复，课上还提到 RLAIF（Reinforcement Learning from AI Feedback）或 constitutional RL 的方向：让另一个语言模型执行批判与偏好判断。其直觉是“critique 往往比 generation 更容易”，因此在大规模系统中，用 AI 监督 AI 能显著降低人工标注成本。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{pdf_pages/page-30.png}
+\caption{RLAIF/Constitutional RL：让模型先学会批判，再把这种批判转化为偏好监督。}
+\end{figure}
+
+\subsection{本章小结}
+在 LLM 场景里，reward learning 不再只是给机器人一个标量，而是在 prompt-response 层面拟合“人类更喜欢哪种回答”。RLHF 的关键贡献，是把这种偏好信号转化成可优化的后训练目标。
+
+\section{总结与延伸}
+这节课把 reward learning 按监督强度从弱到强排出了一条清晰路线。最弱的是手写 proxy reward，它便宜但容易错位；再往上是 goal classifier，它要求人类指出成功状态；再往上是 preference learning，它直接让人类在候选结果中做比较；在大模型领域，这条线最终延伸成 RLHF 与 RLAIF。
+
+如果把课程主旨压缩成一句话，那就是：很多时候，强化学习真正困难的并不是“如何优化奖励”，而是“如何得到一个足够贴近人类意图的奖励”。reward learning 给出的答案不是单一算法，而是一组将人类监督转写为 reward 的方法论。
+
+从进一步学习的角度，本讲之后最值得继续追踪的有三类问题。第一，如何降低偏好数据成本，同时处理噪声与不一致性；第二，如何避免 reward hacking，让 learned reward 在分布外仍然稳健；第三，如何把 reward learning 与更大规模的语言模型后训练结合起来。后面的 RLHF、DPO、constitutional AI 等方法，都是沿着这三条线继续展开的。
+
+\end{document}

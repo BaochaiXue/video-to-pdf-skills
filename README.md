@@ -71,6 +71,10 @@
   给 agent UI 使用的显示名称、简介和默认提示。
 - `demos/video-render-pdf/`
   样例 PDF 输出目录，当前沿用历史目录名 `video-render-pdf`。
+- `runs/cme295_fall2025/`
+  当前 YouTube canonical 示例流水线，按单讲 workspace 组织，并包含结构化证据、coverage sidecar 和课程汇总脚本。
+- `runs/cs336_all/`
+  较早期的 legacy/reference 流水线，保留作历史示例，不再作为 YouTube skill 的主承载路径。
 
 ## 使用方式
 
@@ -90,6 +94,17 @@ cp -R skills/bilibili-render-pdf ~/.codex/skills/
 ```
 
 然后在 Codex 中使用对应 skill 处理视频链接，请求生成讲义 `.tex` 和最终 PDF。
+
+## YouTube Canonical Pipeline
+
+当前 YouTube 侧的推荐实现以 `runs/cme295_fall2025/` 为准：
+
+- 每讲独立 workspace，直接从单讲 source bundle 生成 `lecture_XX_note.tex/.pdf`
+- 主输入层为 `transcript.jsonl`、`slides.jsonl`、`segments.jsonl`
+- `transcript.txt` 和 `official.txt` 仅作为 debug artifacts 保留
+- `build/validate_youtube_note.py` 负责 coverage 与 figure manifest 的硬校验
+
+`runs/cs336_all/` 保留为 legacy/reference-only 示例，不再承载新的 YouTube v1 能力，也不再作为单讲生成的 canonical 路线。
 
 ## 外部依赖
 

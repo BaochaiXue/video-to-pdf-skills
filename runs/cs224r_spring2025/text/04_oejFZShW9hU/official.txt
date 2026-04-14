@@ -1,0 +1,1089 @@
+Actor Critic Methods
+CS 224R
+
+1
+
+Course reminders
+- Start forming
+
+nal project groups (survey due next Wednesday)
+
+- Homework 1 due next Friday
+
+fi
+
+2
+
+Recap of Last Time
+Run policy to collect
+batch of data
+
+Online reinforcement learning with policy gradients
+<latexit sha1_base64="5rvULEPwW7cI2GSvAOaJkr1odXE=">AAAU43ic7VhLb9tGEGbSV6q+nEi3XgY1VEuwJYhC4qQHAXGcFk1aJKkjOwFESV2RK2lhvkqumhgUe+ylhxZFr/1TvfWn9NZZvkSKeiWI2xiIAEOr2dlvv/lmdpb0wNaZyxuNvy9dfuvtd95978r7hQ8+/OjjT7auXjtxrYmj0mPV0i3n6YC4VGcmPeaM6/Sp7VBiDHT6ZHB6KOaf/Egdl1lmm5/ZtGuQkcmGTCUcTf2r1/4pw2OdaRRkuVBWDGb2FT6mnEBNMQgfDwbel37fq4Q/hp7r70E8Jn5VcZkR/laJ7t31fVB0OuQd/LJGoNgsQqvM1kxnUFVQHDYa8y7ubJKBTuK97+OAPufenUO/EprQldi2Yz0HZegQFeQHoLgTo++xluz3HoTbViIbr6GtDVnM5YwQZI/7MIUZs8gUE6wWEpVu5LgmDFuQlkzhZAKBPnayJZqqKYnSlFsvSDlHOE13DnunxQW4U8n472RSGRhSAHFi4rj3L1TcwdcLRx+j1GCQF+JVRZ+PNOspiAbf//3OkXoxgdoiFV6XTGOKZqySKr1ZKDvLehXqBcqAjpjpqdgxXR8KZRk+h7DVmJRw/QyGlq5RzVcUwNlG/UYyH07AM8bH4FoGhWcOM091ASOcA/cZmMVjJJzFQ4Q7U1OL9s1y7PNMIXLBsyFCOkCUMXXAFaGh8rOa5tli5j2WheixoIZjqRCLmeKCAMMSSOUQEuRbhWWltbrZwsumdHmf3fzk4oL5sxuYFp5elI0zzIN3f9OLZD62l7s1zimYJHNfiMBEpTXroFqGPeEUfFiazcAVJi4zR8LNA3FOewwUrMXZ6WnKb3p8QNELOe34KEAyXqVB4rS5DLM9EiVSKK+pGNFwAylySgSHzctL5S1Z8kY13kE07FTaTIRQxKVR82n6VkBtU54rHSG+Xi6o6HFfbDZxvDoHa7o/ro94IkxaC/y5Rv2g+U/nb4MVWVi2ABZEsEb55VeRCGh2GZ7XvfS/aB5HmeO5VPRVKy6g6qmq30iodbIEIiSo1+ee9hPn8KU/ubqTHn+3733zLaJmOaiaxRWDaZnX/ilkiSxwioLuCvQfQNGozol4WoHH7YOjNjz8Cg4O2w+P4PDoXvveYVQ5XGiajD2+a9ZkHxwMaxdXnvSFBZ95zqJEtfIJWFQbsAvKmHDvxO8r9pj1kPv8sl3Zrya4rXSSExKbpXqDrUyxFb4fqNxyQHUYZyroVOUThwIZEWaue5CJz2Pc7feYP3fWEufz6XCbHbXsHYAkM0jCUIWfArUOUOZUQVbm/fZyUHh++lvbjXoj+EB+IEeDbSn6POpv/aVoljoxqMlVnbhuR27YvOsRBxOgU7+gTFxqE/WUjGgHhyYxqNv1gv/R+VBGi4YvhQ7+mRwCa3qFRwzXPTMG6CmouvNzwrhorjPhw1tdj5niHcBUw42GEx24BeIffqAxB2sDX201RqJiUccEU82p4woR5PmQ84OTZl3er+9/d3379p1IjivSp9JnUkWSpZvSbelr6ZF0LKnF74s/F38t/laipV9Kv5f+CF0vX4rWFKXMp/TnvySBWDA=</latexit>
+
+r✓ J(✓) ⇡
+
+Improve policy using
+batch of data
+
+N X
+T
+X
+1
+
+N i=1 t=1
+
+r✓ log ⇡✓ (ai,t |si,t )
+
+samples
+from policy
+
+policy
+log likelihood
+
+T
+X
+
+r(si,t0 , ai,t0 )
+
+t0 =t
+
+reward to go
+
+Do more of the above average stuff, less of the below average stuff.
+3
+
+!
+
+b
+
+!
+
+baseline
+
+Recap of Last Time
+attribute of online RL algorithms
+
+Vanilla policy gradients is fully on-policy.
+
+De nitions.
+
+on-policy: update uses only data
+from current policy
+
+—> only one gradient step per batch of data
+
+off-policy: update can reuse data
+from other, past policies
+
+Importance weights for off-policy policy gradient:
+<latexit sha1_base64="t/nEt/ucoju43SFl+YSo5veRPRA=">AAAPznic7ZdLb9NAEMfNGwIkBY5cRlShqUSjOIICh0o8JQQSKoICUpxGa3uTrOoX3nVLcS2ufD5u3PkgzPrtuAlUPAQSliKvZ2f/M/PbzXqtexbjotf7cuz4iZOnTp85e65x/sLFZmvp0uXX3A18g24ZruX6b3XCqcUcuiWYsOhbz6fE1i36Rt95KPvf7FKfM9d5JfY9OrTJxGFjZhCBptGli1/b8NJiJgVVbbQ1mzkjTUypILCm2URMdT18HI3CTvIwDnl0A7I2iVY1zuzk2SBW+CiKQLPoWAzw5k5A81iq1inGHBRSq6D5bDIVQ4zsEN0iWeyn2KDvRfjgYdRJTOhKPM9334M29okB6nPQeGCPQrahRtvPk7Cd1CbW0PYKqprzM0KRGyKCAygyS01ZgquNnNKtWq55hhtQRqYJEkDMx8tDomm1hKic8sYRU64lXE53RntlQ0hxv1PxX6lMZWwoCWQTk9W9/k/VHd+OXH2msgZ6HcSvqr5eadVTJhrf/3zklF6WwNphFP6WmcYpKrLKV+ntRtuft1chL9B0OmFOaOCOySNotFW4DslW41AirH0Yu5ZJzUjTAHt73Vt5f9IBe0xMgbs2hT2fOTuWlJHOsXsh5opMCXvxT4SRqWOmcas5jkRlIQqZZ0+WdB9VptQHLktD8sWaFtXFLLZZVWKbxWs4Q4VazJEvCLBdqdROJEG9i6pxvv0uGK7tBYJCBPOWW+IKAWfORLqFIGd7m4GGFRVz0Ff/7xRximGS00qEAPL2Iga5049jKGLkJEoqfymMtPkDKGok4nd/WEcVzhnyn5oYoBoenMwCQgJxbtXioLy3INuS50JHyDapfxR6ti/2+4snYPFJFClkGFCmDAIffyf6I2Kef+aVBaRsihn9Lm8cPEs8Nh3KHEM0fgpxRrgK+Ht84woPZktewHneAKhn/xO4cyq/CXZjtLTc6/biC+oNNW0sK+m1OVr6rJmuEdjUEYZFOB+oPU8MQ+ILZlg0amgBpx4xdsiEDrDpEJvyYRh/jkbQRouJ5x8ff46A2FoeERKb831bR0+ZP5/tk8bD+gaBGN8ZhsyRBxXHSAKNAwuEC/LbFkzmU0Oe4kxGDJ9hrmBMCS4JgV/AEoI6W3K98brfVde76y9uLt97kOI4q1xVrikdRVVuK/eUJ8qmsqUYzWfNd80PzbC12dptRa2PievxY+mYK0rlan36BiGHhYk=</latexit>
+
+0
+
+r J(✓ ) ⇡
+✓0
+
+N X
+T
+X
+1
+⇡✓0 (ai,t |si,t )
+
+N i=1 t=1 ⇡✓ (ai,t |si,t )
+
+T
+X
+
+r✓0 log ⇡✓0 (ai,t |si,t )
+
+t0 =t
+
+r(si,t0 , ai,t0 )
+
+!
+
+Note: Not a silver bullet. Only suitable when policies are very similar.
+
+fi
+
+4
+
+b
+
+!
+
+The plan for today
+Actor critic methods
+
+1. Improving policy gradients
+2. How to estimate the value of a policy
+a. Sample & directly supervise
+b. Use your own estimate
+c. Something in-between?
+3. Off-policy actor-critic
+a. Importance weights & constraining step size
+b. Full off-policy version with replay buffers
+
+Key learning goals:
+- How to estimate how good a state and action is for a policy
+- How to use those estimates to form a more ef cient RL algorithm
+
+fi
+
+5
+
+Revisiting Some Useful Objects
+π
+
+value function V (s) - future expected rewards starting at s and following π
+π
+
+re
+wa
+rd
+
+V (s)
+
+s
+π
+
+Useful relation: V (s) =
+
+exp
+ect
+ed
+s
+
+um
+
+of
+
+es
+e
+th
+of
+um
+ec
+te
+ds
+
+π
+
+ex
+p
+
+s
+
+the
+se
+
+take action a,
+then run π
+
+s
+
+run π
+
+rew
+ard
+
+s
+
+Q-function Q (s, a) - future expected rewards starting at s, taking a, then following π
+
+π
+
+Q (s,a)
+
+a∼π(⋅|s) [Q (s, a)]
+π
+
+π
+
+𝔼
+
+advantage A (s, a) - how much better it is to take a than to follow policy π at state s
+π
+
+π
+
+π
+
+A (s, a) = Q (s, a) − V (s)
+
+Let’s look at an example
+Reward = 1 if I can play it in
+a month, 0 otherwise
+
+a3
+
+Question:
+For each action, what are these?
+
+a2
+
+Q function:
+
+a1
+
+st
+
+Advantage function:
+
+𝑡
+
+𝑡
+𝐚
+
+𝑡
+
+𝑡
+
+𝐚
+
+𝐬
+
+𝐬
+
+𝐬
+
+𝐴
+
+𝑄
+
+𝑡
+
+Current policy: π(a1 | s) = 1 ∀s
+𝑉
+
+7
+
+𝜋
+
+𝜋
+
+7
+𝜋
+
+( )= ?
+( , )= ?
+
+Value function:
+
+( , )= ?
+
+What is dissatisfying about policy gradients?
+<latexit sha1_base64="5rvULEPwW7cI2GSvAOaJkr1odXE=">AAAU43ic7VhLb9tGEGbSV6q+nEi3XgY1VEuwJYhC4qQHAXGcFk1aJKkjOwFESV2RK2lhvkqumhgUe+ylhxZFr/1TvfWn9NZZvkSKeiWI2xiIAEOr2dlvv/lmdpb0wNaZyxuNvy9dfuvtd95978r7hQ8+/OjjT7auXjtxrYmj0mPV0i3n6YC4VGcmPeaM6/Sp7VBiDHT6ZHB6KOaf/Egdl1lmm5/ZtGuQkcmGTCUcTf2r1/4pw2OdaRRkuVBWDGb2FT6mnEBNMQgfDwbel37fq4Q/hp7r70E8Jn5VcZkR/laJ7t31fVB0OuQd/LJGoNgsQqvM1kxnUFVQHDYa8y7ubJKBTuK97+OAPufenUO/EprQldi2Yz0HZegQFeQHoLgTo++xluz3HoTbViIbr6GtDVnM5YwQZI/7MIUZs8gUE6wWEpVu5LgmDFuQlkzhZAKBPnayJZqqKYnSlFsvSDlHOE13DnunxQW4U8n472RSGRhSAHFi4rj3L1TcwdcLRx+j1GCQF+JVRZ+PNOspiAbf//3OkXoxgdoiFV6XTGOKZqySKr1ZKDvLehXqBcqAjpjpqdgxXR8KZRk+h7DVmJRw/QyGlq5RzVcUwNlG/UYyH07AM8bH4FoGhWcOM091ASOcA/cZmMVjJJzFQ4Q7U1OL9s1y7PNMIXLBsyFCOkCUMXXAFaGh8rOa5tli5j2WheixoIZjqRCLmeKCAMMSSOUQEuRbhWWltbrZwsumdHmf3fzk4oL5sxuYFp5elI0zzIN3f9OLZD62l7s1zimYJHNfiMBEpTXroFqGPeEUfFiazcAVJi4zR8LNA3FOewwUrMXZ6WnKb3p8QNELOe34KEAyXqVB4rS5DLM9EiVSKK+pGNFwAylySgSHzctL5S1Z8kY13kE07FTaTIRQxKVR82n6VkBtU54rHSG+Xi6o6HFfbDZxvDoHa7o/ro94IkxaC/y5Rv2g+U/nb4MVWVi2ABZEsEb55VeRCGh2GZ7XvfS/aB5HmeO5VPRVKy6g6qmq30iodbIEIiSo1+ee9hPn8KU/ubqTHn+3733zLaJmOaiaxRWDaZnX/ilkiSxwioLuCvQfQNGozol4WoHH7YOjNjz8Cg4O2w+P4PDoXvveYVQ5XGiajD2+a9ZkHxwMaxdXnvSFBZ95zqJEtfIJWFQbsAvKmHDvxO8r9pj1kPv8sl3Zrya4rXSSExKbpXqDrUyxFb4fqNxyQHUYZyroVOUThwIZEWaue5CJz2Pc7feYP3fWEufz6XCbHbXsHYAkM0jCUIWfArUOUOZUQVbm/fZyUHh++lvbjXoj+EB+IEeDbSn6POpv/aVoljoxqMlVnbhuR27YvOsRBxOgU7+gTFxqE/WUjGgHhyYxqNv1gv/R+VBGi4YvhQ7+mRwCa3qFRwzXPTMG6CmouvNzwrhorjPhw1tdj5niHcBUw42GEx24BeIffqAxB2sDX201RqJiUccEU82p4woR5PmQ84OTZl3er+9/d3379p1IjivSp9JnUkWSpZvSbelr6ZF0LKnF74s/F38t/laipV9Kv5f+CF0vX4rWFKXMp/TnvySBWDA=</latexit>
+
+r✓ J(✓) ⇡
+
+N X
+T
+X
+1
+
+N i=1 t=1
+
+r✓ log ⇡✓ (ai,t |si,t )
+
+samples
+from policy
+
+policy
+log likelihood
+
+T
+X
+
+r(si,t0 , ai,t0 )
+
+t0 =t
+
+reward to go
+
+!
+
+b
+
+!
+
+baseline
+
+2
+
+τ : folds only the sleeves
+3
+τ : flattens the jacket but does not fold it
+4
+τ : folds the jacket
+
+4
+
+τ : one small step forward then
+falls backwards
+
+2
+
+-> with sparse rewards, don’t utilize τ or τ
+
+-> pushes down likelihood of step forward
+
+3
+
+Policy gradients doesn’t make ef cient use of data! 💡Can we learn what is good & bad?
+fi
+
+8
+
+Improving policy gradients
+Estimating reward to go
+
+“reward to go”
+
+Can we get a better estimate?
+
+su
+
+m
+
+tog
+eth
+er
+the
+se
+
+rew
+ard
+
+s
+
+estimate of future rewards if we take ai,t in state si,t
+
+true expected rewards to go
+
+9
+
+This would be way better!
+
+Improving policy gradients
+What about baselines?
+
+.
+Recall:
+With baseline:
+<latexit sha1_base64="sfI4QXWYMqCWh9/xrkONC1iw1W0=">AAAWLXic7VhJb9tGFGbSLVU3p7VPvTzUUCzBC0QjcdKDgDhKiyYtkjSRnQCmRIzIkTQwtw5HjQWa/UG99K8UBXpIUfTav9E33ERqjxGnMRACgoZv3rzle8vMsONZzBe12otLl9959733P7jyYemjjz/59LOVq58f+u6AG/TAcC2XP+sQn1rMoQeCCYs+8zgldseiTzvHDTn/9GfKfeY6TTH0aMsmPYd1mUEEkvSrq40yPLGYSUFVS2XNZo6uiT4VBLY1m4h+pxN8E+pBJX7pBn64BemYhFXNZ3b8bhAruBuGoFm0K47wz+2B5rFEWmW05nQkqgoaZ72+aKFmh3Qskuq+jwN6IoI7jbASk5CVeB53T0DrcmKA+gA0f2DrAaurYftBrLaS0MQ20ppQlDnbIhSyJUI4hZFlCSk1sFrKULoxYWtmYR3ykGmCDCDCx8tUIqmagyhvcv0lTZ4wOG/umOyNupDCeaXAv1EIZUTICUgDk/q9d6H8jv5e2vtUyjZ0JoF4Vd5PelrklIZG/69fc4JeasD2NBTelEhjiEZWZVl6s1Tms3oV4gVah/aYExjYMf0QSmUVrkHcahxKhDWErmuZ1Aw1DXC2tnMjm48n4DkTffBdm8JzzpxjS4qRzBH7SJgrUkk4i0WEmqljJnqLNuqikIhC2lmTLu2jlD7l4EvXEPlRTotiMos2K4posyiHU6hQFnPkBgG2KyWVY5Gg3pqdW/O7LZw1prMb7fKliwvGizciTS1f9FAwDERwf9mdZNy3s20b5+RMFrqvpWMy1XZ3wHBtbyAohDAzmhErDHzm9CRbALJQ2ww0TMZR+eyqb5t8ZGIQ27QRIgDZeB4GGdPyMIx0ZEjkpLyhYCTDJaCYQCIqtmASqmDGkreoiSOUhp3KHIEQgzjTa3Ga3xYQ2xznXEZI95cLCnraF3d3cTw/Bgu6P65P7EQxeSzwdQH6UfM/Hd8N5kRh1gKY4sEC5GdvRdKh0WZ4XvvS/4J56uWEnTNBn7fiAqKey/qlgFoESwRCJvX62HE/Y45v/dnWnfX4u3rw/Q8otWiDYbpCs5lZuPefQtGQKUyJ0y0p/SfQTGoJIk8r8KS5/7gJD7+F/Ubz4WNoPL7XvNdIMkdITLNxIDadbTUEjm5t4spDXVLwzDNMAlWfDMC03IBN0PpEBIehrnl91kbbx5dtqmE1k1vPBzkzYrlQo6oesW3SdhaqdKRKvCgYwuVgcCaYARY1xIBTID3CnEUHmrQu066/xcKxmsuYz6fTLVdyxb0AjSxIkoQq/BKhtY9w5xKzMs63NSEqviLI47EqT9KWxA/oiUc5o44RHapzma8Xb1pMC9OzdZe7tmRe+MkrVQdQ0a4BMU0QLnDqWWQInUG3SznCcrZr2au9lFX3pyXdtPLQV9ZrO7XogcmBmgzWleR5pK/8oZmuMbCpIwyL+P6RWvNEKyAcM9ii6P7Apx4xjkmPHuHQITb1W0H0tTOEMlJMvF5z/DkCImp+RUBs3x/aHeSUhvrjc5I4be5oILq3WgFz5GXKMWJF3YEl4yM/nYLJOCaHNcQBSarN6BMMhKDcLyEI6rjLk4PD3R11b2fvx+vrt+8kcFxRvlS+UiqKqtxUbivfKY+UA8VY/XX199UXq3+t/bb259rfa//ErJcvJWu+UArP2r//AVXe05c=</latexit>
+
+r✓ J(✓) ⇡
+
+N X
+T
+X
+1
+
+N i=1 t=1
+
+⇡
+
+r✓ log ⇡✓ (ai,t |si,t )A (si,t , ai,t )
+
+Better estimates of A lead to less noisy gradients!
+
+10
+
+Online RL Outline
+<latexit sha1_base64="sfI4QXWYMqCWh9/xrkONC1iw1W0=">AAAWLXic7VhJb9tGFGbSLVU3p7VPvTzUUCzBC0QjcdKDgDhKiyYtkjSRnQCmRIzIkTQwtw5HjQWa/UG99K8UBXpIUfTav9E33ERqjxGnMRACgoZv3rzle8vMsONZzBe12otLl9959733P7jyYemjjz/59LOVq58f+u6AG/TAcC2XP+sQn1rMoQeCCYs+8zgldseiTzvHDTn/9GfKfeY6TTH0aMsmPYd1mUEEkvSrq40yPLGYSUFVS2XNZo6uiT4VBLY1m4h+pxN8E+pBJX7pBn64BemYhFXNZ3b8bhAruBuGoFm0K47wz+2B5rFEWmW05nQkqgoaZ72+aKFmh3Qskuq+jwN6IoI7jbASk5CVeB53T0DrcmKA+gA0f2DrAaurYftBrLaS0MQ20ppQlDnbIhSyJUI4hZFlCSk1sFrKULoxYWtmYR3ykGmCDCDCx8tUIqmagyhvcv0lTZ4wOG/umOyNupDCeaXAv1EIZUTICUgDk/q9d6H8jv5e2vtUyjZ0JoF4Vd5PelrklIZG/69fc4JeasD2NBTelEhjiEZWZVl6s1Tms3oV4gVah/aYExjYMf0QSmUVrkHcahxKhDWErmuZ1Aw1DXC2tnMjm48n4DkTffBdm8JzzpxjS4qRzBH7SJgrUkk4i0WEmqljJnqLNuqikIhC2lmTLu2jlD7l4EvXEPlRTotiMos2K4posyiHU6hQFnPkBgG2KyWVY5Gg3pqdW/O7LZw1prMb7fKliwvGizciTS1f9FAwDERwf9mdZNy3s20b5+RMFrqvpWMy1XZ3wHBtbyAohDAzmhErDHzm9CRbALJQ2ww0TMZR+eyqb5t8ZGIQ27QRIgDZeB4GGdPyMIx0ZEjkpLyhYCTDJaCYQCIqtmASqmDGkreoiSOUhp3KHIEQgzjTa3Ga3xYQ2xznXEZI95cLCnraF3d3cTw/Bgu6P65P7EQxeSzwdQH6UfM/Hd8N5kRh1gKY4sEC5GdvRdKh0WZ4XvvS/4J56uWEnTNBn7fiAqKey/qlgFoESwRCJvX62HE/Y45v/dnWnfX4u3rw/Q8otWiDYbpCs5lZuPefQtGQKUyJ0y0p/SfQTGoJIk8r8KS5/7gJD7+F/Ubz4WNoPL7XvNdIMkdITLNxIDadbTUEjm5t4spDXVLwzDNMAlWfDMC03IBN0PpEBIehrnl91kbbx5dtqmE1k1vPBzkzYrlQo6oesW3SdhaqdKRKvCgYwuVgcCaYARY1xIBTID3CnEUHmrQu066/xcKxmsuYz6fTLVdyxb0AjSxIkoQq/BKhtY9w5xKzMs63NSEqviLI47EqT9KWxA/oiUc5o44RHapzma8Xb1pMC9OzdZe7tmRe+MkrVQdQ0a4BMU0QLnDqWWQInUG3SznCcrZr2au9lFX3pyXdtPLQV9ZrO7XogcmBmgzWleR5pK/8oZmuMbCpIwyL+P6RWvNEKyAcM9ii6P7Apx4xjkmPHuHQITb1W0H0tTOEMlJMvF5z/DkCImp+RUBs3x/aHeSUhvrjc5I4be5oILq3WgFz5GXKMWJF3YEl4yM/nYLJOCaHNcQBSarN6BMMhKDcLyEI6rjLk4PD3R11b2fvx+vrt+8kcFxRvlS+UiqKqtxUbivfKY+UA8VY/XX199UXq3+t/bb259rfa//ErJcvJWu+UArP2r//AVXe05c=</latexit>
+
+r✓ J(✓) ⇡
+
+N X
+T
+X
+1
+
+N i=1 t=1
+
+⇡
+
+r✓ log ⇡✓ (ai,t |si,t )A (si,t , ai,t )
+
+First: Initialize the policy (randomly, with imitation learning, with heuristics)
+Run policy to collect
+batch of data
+Fit model to estimate
+expected return
+Improve policy
+
+11
+
+Online RL Outline
+<latexit sha1_base64="sfI4QXWYMqCWh9/xrkONC1iw1W0=">AAAWLXic7VhJb9tGFGbSLVU3p7VPvTzUUCzBC0QjcdKDgDhKiyYtkjSRnQCmRIzIkTQwtw5HjQWa/UG99K8UBXpIUfTav9E33ERqjxGnMRACgoZv3rzle8vMsONZzBe12otLl9959733P7jyYemjjz/59LOVq58f+u6AG/TAcC2XP+sQn1rMoQeCCYs+8zgldseiTzvHDTn/9GfKfeY6TTH0aMsmPYd1mUEEkvSrq40yPLGYSUFVS2XNZo6uiT4VBLY1m4h+pxN8E+pBJX7pBn64BemYhFXNZ3b8bhAruBuGoFm0K47wz+2B5rFEWmW05nQkqgoaZ72+aKFmh3Qskuq+jwN6IoI7jbASk5CVeB53T0DrcmKA+gA0f2DrAaurYftBrLaS0MQ20ppQlDnbIhSyJUI4hZFlCSk1sFrKULoxYWtmYR3ykGmCDCDCx8tUIqmagyhvcv0lTZ4wOG/umOyNupDCeaXAv1EIZUTICUgDk/q9d6H8jv5e2vtUyjZ0JoF4Vd5PelrklIZG/69fc4JeasD2NBTelEhjiEZWZVl6s1Tms3oV4gVah/aYExjYMf0QSmUVrkHcahxKhDWErmuZ1Aw1DXC2tnMjm48n4DkTffBdm8JzzpxjS4qRzBH7SJgrUkk4i0WEmqljJnqLNuqikIhC2lmTLu2jlD7l4EvXEPlRTotiMos2K4posyiHU6hQFnPkBgG2KyWVY5Gg3pqdW/O7LZw1prMb7fKliwvGizciTS1f9FAwDERwf9mdZNy3s20b5+RMFrqvpWMy1XZ3wHBtbyAohDAzmhErDHzm9CRbALJQ2ww0TMZR+eyqb5t8ZGIQ27QRIgDZeB4GGdPyMIx0ZEjkpLyhYCTDJaCYQCIqtmASqmDGkreoiSOUhp3KHIEQgzjTa3Ga3xYQ2xznXEZI95cLCnraF3d3cTw/Bgu6P65P7EQxeSzwdQH6UfM/Hd8N5kRh1gKY4sEC5GdvRdKh0WZ4XvvS/4J56uWEnTNBn7fiAqKey/qlgFoESwRCJvX62HE/Y45v/dnWnfX4u3rw/Q8otWiDYbpCs5lZuPefQtGQKUyJ0y0p/SfQTGoJIk8r8KS5/7gJD7+F/Ubz4WNoPL7XvNdIMkdITLNxIDadbTUEjm5t4spDXVLwzDNMAlWfDMC03IBN0PpEBIehrnl91kbbx5dtqmE1k1vPBzkzYrlQo6oesW3SdhaqdKRKvCgYwuVgcCaYARY1xIBTID3CnEUHmrQu066/xcKxmsuYz6fTLVdyxb0AjSxIkoQq/BKhtY9w5xKzMs63NSEqviLI47EqT9KWxA/oiUc5o44RHapzma8Xb1pMC9OzdZe7tmRe+MkrVQdQ0a4BMU0QLnDqWWQInUG3SznCcrZr2au9lFX3pyXdtPLQV9ZrO7XogcmBmgzWleR5pK/8oZmuMbCpIwyL+P6RWvNEKyAcM9ii6P7Apx4xjkmPHuHQITb1W0H0tTOEMlJMvF5z/DkCImp+RUBs3x/aHeSUhvrjc5I4be5oILq3WgFz5GXKMWJF3YEl4yM/nYLJOCaHNcQBSarN6BMMhKDcLyEI6rjLk4PD3R11b2fvx+vrt+8kcFxRvlS+UiqKqtxUbivfKY+UA8VY/XX199UXq3+t/bb259rfa//ErJcvJWu+UArP2r//AVXe05c=</latexit>
+
+r✓ J(✓) ⇡
+
+N X
+T
+X
+1
+
+N i=1 t=1
+
+⇡
+
+r✓ log ⇡✓ (ai,t |si,t )A (si,t , ai,t )
+
+First: Initialize the policy (randomly, with imitation learning, with heuristics)
+Run policy to collect
+batch of data
+Fit model to estimate
+expected return
+Improve policy
+
+θ ← θ + ∇θ J(θ)
+
+π
+
+π
+
+Estimate V , Q , or A
+
+12
+
+π
+
+The plan for today
+Actor critic methods
+
+1. Improving policy gradients
+2. How to estimate the value of a policy
+a. Sample & directly supervise
+b. Use your own estimate
+c. Something in-between?
+3. Off-policy actor-critic
+a. Importance weights & constraining step size
+b. Full off-policy version with replay buffers
+
+Key learning goals:
+- How to estimate how good a state and action is for a policy
+- How to use those estimates to form a better RL algorithm
+13
+
+Estimating expected return
+<latexit sha1_base64="sfI4QXWYMqCWh9/xrkONC1iw1W0=">AAAWLXic7VhJb9tGFGbSLVU3p7VPvTzUUCzBC0QjcdKDgDhKiyYtkjSRnQCmRIzIkTQwtw5HjQWa/UG99K8UBXpIUfTav9E33ERqjxGnMRACgoZv3rzle8vMsONZzBe12otLl9959733P7jyYemjjz/59LOVq58f+u6AG/TAcC2XP+sQn1rMoQeCCYs+8zgldseiTzvHDTn/9GfKfeY6TTH0aMsmPYd1mUEEkvSrq40yPLGYSUFVS2XNZo6uiT4VBLY1m4h+pxN8E+pBJX7pBn64BemYhFXNZ3b8bhAruBuGoFm0K47wz+2B5rFEWmW05nQkqgoaZ72+aKFmh3Qskuq+jwN6IoI7jbASk5CVeB53T0DrcmKA+gA0f2DrAaurYftBrLaS0MQ20ppQlDnbIhSyJUI4hZFlCSk1sFrKULoxYWtmYR3ykGmCDCDCx8tUIqmagyhvcv0lTZ4wOG/umOyNupDCeaXAv1EIZUTICUgDk/q9d6H8jv5e2vtUyjZ0JoF4Vd5PelrklIZG/69fc4JeasD2NBTelEhjiEZWZVl6s1Tms3oV4gVah/aYExjYMf0QSmUVrkHcahxKhDWErmuZ1Aw1DXC2tnMjm48n4DkTffBdm8JzzpxjS4qRzBH7SJgrUkk4i0WEmqljJnqLNuqikIhC2lmTLu2jlD7l4EvXEPlRTotiMos2K4posyiHU6hQFnPkBgG2KyWVY5Gg3pqdW/O7LZw1prMb7fKliwvGizciTS1f9FAwDERwf9mdZNy3s20b5+RMFrqvpWMy1XZ3wHBtbyAohDAzmhErDHzm9CRbALJQ2ww0TMZR+eyqb5t8ZGIQ27QRIgDZeB4GGdPyMIx0ZEjkpLyhYCTDJaCYQCIqtmASqmDGkreoiSOUhp3KHIEQgzjTa3Ga3xYQ2xznXEZI95cLCnraF3d3cTw/Bgu6P65P7EQxeSzwdQH6UfM/Hd8N5kRh1gKY4sEC5GdvRdKh0WZ4XvvS/4J56uWEnTNBn7fiAqKey/qlgFoESwRCJvX62HE/Y45v/dnWnfX4u3rw/Q8otWiDYbpCs5lZuPefQtGQKUyJ0y0p/SfQTGoJIk8r8KS5/7gJD7+F/Ubz4WNoPL7XvNdIMkdITLNxIDadbTUEjm5t4spDXVLwzDNMAlWfDMC03IBN0PpEBIehrnl91kbbx5dtqmE1k1vPBzkzYrlQo6oesW3SdhaqdKRKvCgYwuVgcCaYARY1xIBTID3CnEUHmrQu066/xcKxmsuYz6fTLVdyxb0AjSxIkoQq/BKhtY9w5xKzMs63NSEqviLI47EqT9KWxA/oiUc5o44RHapzma8Xb1pMC9OzdZe7tmRe+MkrVQdQ0a4BMU0QLnDqWWQInUG3SznCcrZr2au9lFX3pyXdtPLQV9ZrO7XogcmBmgzWleR5pK/8oZmuMbCpIwyL+P6RWvNEKyAcM9ii6P7Apx4xjkmPHuHQITb1W0H0tTOEMlJMvF5z/DkCImp+RUBs3x/aHeSUhvrjc5I4be5oILq3WgFz5GXKMWJF3YEl4yM/nYLJOCaHNcQBSarN6BMMhKDcLyEI6rjLk4PD3R11b2fvx+vrt+8kcFxRvlS+UiqKqtxUbivfKY+UA8VY/XX199UXq3+t/bb259rfa//ErJcvJWu+UArP2r//AVXe05c=</latexit>
+
+r✓ J(✓) ⇡
+
+N X
+T
+X
+1
+
+N i=1 t=1
+π
+
+π
+
+⇡
+
+r✓ log ⇡✓ (ai,t |si,t )A (si,t , ai,t )
+π
+
+Should we t V , Q , or A ?
+
+.
+(use the sampled st+1 )
+π
+
+Let’s just t V !
+fi
+
+fi
+
+14
+
+Estimating V
+
+π
+
+Version 1: Monte Carlo estimation
+
+s
+
+15
+
+ese
+of
+th
+exp
+ect
+ed
+s
+
+um
+
+run π
+
+rew
+ard
+s
+
+<- original single sample estimate
+
+π
+
+V (s)
+
+Estimating V
+
+π
+
+Version 1: Monte Carlo estimation
+
+of
+t
+
+he
+se
+
+re
+w
+ar
+d
+
+run π
+
+s
+
+16
+
+ex
+pe
+cte
+d
+
+su
+
+m
+
+<- multi-sample estimate
+(but can’t reset the world)
+
+s
+
+<- original single sample estimate
+
+π
+
+V (s)
+
+Estimating V
+
+π
+
+Version 1: Monte Carlo estimation
+<- original single sample estimate
+<- multi-sample estimate
+(but can’t reset the world)
+Step 1: Aggregate dataset of single sample estimates:
+
+Step 2: Supervised learning to t estimated value function
+
+fi
+
+17
+
+run π
+
+π
+
+V (s)
+
+Estimating V
+
+π
+
+Version 2: Bootstrapping
+
+Step 1: Aggregate dataset of “bootstrapped” estimates:
+<- update labels every gradient update!
+
+Step 2: Supervised learning to t estimated value function
+Also referred to as a form of
+temporal difference learning
+fi
+
+18
+
+π
+
+Estimating V : Monte Carlo vs. Bootstrap
+Monte Carlo
+
+supervise with roll-out’s summed rewards
+<latexit sha1_base64="U8b3G52WVSMio0g+iGpx1OKe16s=">AAARY3ic7Vhdj9tEFHVLKSWFblJ4QEJIV6zCJtpuFEd0Cw+RlrZICFBVRDetlEmssT1JRusv7Alt5PVP4Il/xhtvvPA/uONvx0l2KyHoSrW08vWdO2fOPffueBzds3gg+v0/r11/58a7N9+79X7j9gcf3tlrtu6OAnfpG+zUcC3Xf6HTgFncYaeCC4u98HxGbd1iz/WzR3L8+a/MD7jrPBMrj01sOnf4jBtUoEtr7a3a8LPFTQaq2mgTmzsaEQsmKBwRm4qFroffRlrYSR5mYRDdg8ymUZcE3E6eDWqFj6MIiMVmYow3dw7E4ylap5hzXkB1gfh8vhATXNmhukWztb9Hg70S4cNHUSdxYSj1PN99BWTmUwPUJ0CCpa2FfKhG0yfJsp3UJ47Q9wyqmNsZIcg9EcE5FMxSV0aw28hVul/jmjMcQlkyIugSYn28fEl0dUsSlSkPX5NyjXCZ7hr2wVBIcL9TiT+olDJ2lACywmR5H1+pvOPba2efoRyBXhfi38q+nmk1UhKN7//9yql6GYGjTSq8KZXGEhWs8i590Gj72/Yq1AuIzubcCQ3cMYMIGm0VvoBkq3EYFdYKZq5lMjMiBHC037ufjycD8JKLBQSuzeClz50zS8LI4Di8AHNFhoSj+E+EKzPHTNetctREpRGF5NmXKX2DKAvmQyBTQ+WLnhbVZhZTXoWY8riHM6kQizvyBQG2K5HaCSSoXyNqzHfQA8O1vaVgEMG2dktCYRlwZy7DQpDVnnIgmFFRg4H6dqeIKYYJp4MIBcjtXRrkQZeXoVgjV6KE8oaKkZqXkKKmRPzuD+tShVumvFVNjBEND05mIUIi4tasxXl5b0FtS5E7AyHbpK6o6Nm+OBigvbsGuw+jKESmBMKUtcDHC9SPD55lYWPHjipsmwAbMrhA+e3HYJlQKldR5AtLgJPXixC7Npbh/9I8y7LGc6vou2ZcQdVLXX8poS6SJRYhR/1y7cyYByefjvmrO9/jH2vhDz8iapWDYboCv07NysfjOVSJbAhKk55I9F+AmMwSFM9jaYsIKV5uh+LQwS9H8HH4EINGmvREjVVakGFd6E09AIdAFlSEo0gj3oJPkeP6tEM16ja05n6/148vqBtqauyf9H67M7rxye9PteYfxHSNpc0cYVg0CMZq3xOTkPqCGxaLGmQZMI8aZ3TOxmg61GbBJIx/I4igjR4TD6U+/jkCYm95RkjtIFjZOkZKrsH6mHRuGhsvxeyrScgdeXp0jGSh2dIC4YL8wQFM7jNDHq1NTg2fI1cwFhT7TDA/kCKo6ynXjdGgpx73jn9S908eKsl1S/lU+VzpKKryQDlRvlOeKqeKsfdX82Zzr9ls/t263brb+jgJvX4tnfORUrlan/0DDBgT5w==</latexit>
+
+Bootstrapped
+
+yi,t = r(si,t , ai,t ) + V̂ ⇡ (si,t+1 )
+
+supervise using reward and current value estimate
+
+Let’s look at an example:
+r = -1
+
+r=1
+Think-pair-share:
+
+π
+̂
+V MC(s) ≈ ?
+
+run π
+
+π
+̂
+V (s) ≈ ?
+TD
+
+r = 0 along trajectory
+19
+
+π
+̂
+V MC(s) ≈ ?
+π
+̂
+V (s) ≈ ?
+TD
+
+Is there middle ground?
+Can we balance bias and variance?
+
+π
+
+Estimating V : Monte Carlo vs. Bootstrap
+Monte Carlo
+
+supervise with roll-out’s summed rewards
+<latexit sha1_base64="U8b3G52WVSMio0g+iGpx1OKe16s=">AAARY3ic7Vhdj9tEFHVLKSWFblJ4QEJIV6zCJtpuFEd0Cw+RlrZICFBVRDetlEmssT1JRusv7Alt5PVP4Il/xhtvvPA/uONvx0l2KyHoSrW08vWdO2fOPffueBzds3gg+v0/r11/58a7N9+79X7j9gcf3tlrtu6OAnfpG+zUcC3Xf6HTgFncYaeCC4u98HxGbd1iz/WzR3L8+a/MD7jrPBMrj01sOnf4jBtUoEtr7a3a8LPFTQaq2mgTmzsaEQsmKBwRm4qFroffRlrYSR5mYRDdg8ymUZcE3E6eDWqFj6MIiMVmYow3dw7E4ylap5hzXkB1gfh8vhATXNmhukWztb9Hg70S4cNHUSdxYSj1PN99BWTmUwPUJ0CCpa2FfKhG0yfJsp3UJ47Q9wyqmNsZIcg9EcE5FMxSV0aw28hVul/jmjMcQlkyIugSYn28fEl0dUsSlSkPX5NyjXCZ7hr2wVBIcL9TiT+olDJ2lACywmR5H1+pvOPba2efoRyBXhfi38q+nmk1UhKN7//9yql6GYGjTSq8KZXGEhWs8i590Gj72/Yq1AuIzubcCQ3cMYMIGm0VvoBkq3EYFdYKZq5lMjMiBHC037ufjycD8JKLBQSuzeClz50zS8LI4Di8AHNFhoSj+E+EKzPHTNetctREpRGF5NmXKX2DKAvmQyBTQ+WLnhbVZhZTXoWY8riHM6kQizvyBQG2K5HaCSSoXyNqzHfQA8O1vaVgEMG2dktCYRlwZy7DQpDVnnIgmFFRg4H6dqeIKYYJp4MIBcjtXRrkQZeXoVgjV6KE8oaKkZqXkKKmRPzuD+tShVumvFVNjBEND05mIUIi4tasxXl5b0FtS5E7AyHbpK6o6Nm+OBigvbsGuw+jKESmBMKUtcDHC9SPD55lYWPHjipsmwAbMrhA+e3HYJlQKldR5AtLgJPXixC7Npbh/9I8y7LGc6vou2ZcQdVLXX8poS6SJRYhR/1y7cyYByefjvmrO9/jH2vhDz8iapWDYboCv07NysfjOVSJbAhKk55I9F+AmMwSFM9jaYsIKV5uh+LQwS9H8HH4EINGmvREjVVakGFd6E09AIdAFlSEo0gj3oJPkeP6tEM16ja05n6/148vqBtqauyf9H67M7rxye9PteYfxHSNpc0cYVg0CMZq3xOTkPqCGxaLGmQZMI8aZ3TOxmg61GbBJIx/I4igjR4TD6U+/jkCYm95RkjtIFjZOkZKrsH6mHRuGhsvxeyrScgdeXp0jGSh2dIC4YL8wQFM7jNDHq1NTg2fI1cwFhT7TDA/kCKo6ynXjdGgpx73jn9S908eKsl1S/lU+VzpKKryQDlRvlOeKqeKsfdX82Zzr9ls/t263brb+jgJvX4tnfORUrlan/0DDBgT5w==</latexit>
+
+⇡
+y
+=
+r(s
+,
+a
+)
++
+V̂
+(si,t+1 ) supervise using reward and current value estimate
+Bootstrapped
+i,t
+i,t
+i,t
+Pt+n 1
+⇡
+0
+0
+y
+=
+r(s
+,
+a
+)
++
+V̂
+(si,t+n )
+N-step returns i,t
+i,t
+i,t
+t0 =t
+<latexit sha1_base64="vpXxT+IPrPJ40yhfvnvgO5KN4mg=">AAARznic7VjPj9tEFHZLgRKgTeCCxOWJVdhE243iiG7hEGlpi4QoqhbRTSvFiTW2J8lo/av2pO0ya3Hlwon/jBt3/hDe+LfjJJtKCLpSLa38/ObN9773vdnxOIZvs5D3+39du/7OjXffe//mB40PP/r41u1m65NR6C0Dk56anu0FzwwSUpu59JQzbtNnfkCJY9j0qXH2QI4/fUGDkHnuE37u04lD5i6bMZNwdOmt23+34WebWRRUtdHWHObqGl9QTuBQcwhfGIb4LtJFJ3mYiTC6A5lNoq4WMid5NoktHkYRaDad8THevDloPkvROsWciwKqC1rA5gs+wcwuMWyS5f4BDfqKi/sPok7iwlDi+4H3CrRZQExQH4MWLh1dsKEaTR8naTupjx+i7wlUMTczQpA7PIILKJilroxgt5GrdLfGNWc4hLJkGidLiPXx85To6pYkKlMeviblGuEy3RXs/SGX4EGnEr9faWXsKAFkjcnqPrpSdce3164+QzkEoy7Ev1V9vdJqpCQa3//7zKl6GYHDdSq8KZ3GFhWs8lV6r9EONu1VqBdoBp0zV5i4Y4YRNNoqfAnJVuNSwu1zmHm2Ra1I0wBH+727+XgyAC8ZX0DoORReBsw9syWMDI7DCzCPZ0g4iv9EmJm6Vpq3ylHnlYXIJc++LOlbRFnQAEJZGipfrGleXcx8yqoQUxav4UwqxGKufEGA40mkdgIJ6jeIGvMd9MD0HH/JKUSwabklobAMmTuXYQJkt6cMNKyo6MFAfbtTxBRFwmk/QgFye5sGedDuMhQ5ciVKKG+oGKm5gxQ1JeJ3v6hLJTZMeasaHyMaHpysQoRExI1V84vy3oLaliK3BkK2SV1R0bN9cTBAe3sPth9GUYhMCYQpa4GPl6gfHzzLwsaOLV3YNAHWVHCJ8puPwbKgVK6iyZe2ACevNiF2rW3D/6V5VmWN50bRt824gqqXVv1OQl0mSyxCjvrVypkxD04+HfNXd77HP9TFox8RtcrBtDyOX6dW5ePxAqpE1gSlRU8k+nPQLGpzguexdIlwKV5uC37g4pcjBDh8gEEjXXrwcHOedmRYV3rdIoAD0BaEi1Gka/6CTZHk6rQDNeo2UthhuZk5h91aukMmFzPpzb1+rx9fUDfU1Ng77v1+a3Tjsz9O9OafmuWZS4e63LRJGI7Vvs8nggScmTaNGtoypD4xz8icjtF0iUPDiYh/joigjR4Lz78B/rkcYm95hiBOGJ47BkZKruHqmHSuGxsv+ezriWCuPKi6ZpJotrSBeyB/2wCLBdSUp3iLETNgyBXMBcElzWkQShHU1ZLrxmjQU496Rz+pe8f3leS6qXyufKF0FFW5pxwr3ysnyqliNh81nzd/aYrWSetFK2r9moRev5bO+VSpXK3f/gHp/T1S</latexit>
+
+MonteP
+Carlo:
+T
+using t r
+
+su
+m
+
+re
+w
+ar
+ds
+
+<latexit sha1_base64="XrFR8FxQSTx3qlPSxg2rTisBs9s=">AAAQ63ic7VdLb9tGEKaTPlL2IaU99jKooVoGYkFkYjk5GHCTFCjaIkjROAkgysKSXEkL8xXusolB8y/00kOLoj32D/XS9of03lm+aYmyAxRtDISAwOXs7DfffLNaDs3AYVwMh39tXLn6xptvvX3tHfXd997/oNO9/uFj7kehRQ8t3/HDpybh1GEePRRMOPRpEFLimg59Yh7fk/NPvqMhZ773SJwEdOKSucdmzCICTdPrnY0efOswm4KmqT3DZd7UEAsqCOwYLhEL04w/T6ZxP3uYxTy5AcWYJNsGZ272bBEnvp8kYDh0JsZ48+dgBCxH61drTiuobTBCNl+ICUb2iOmQIvaXOKAvRHz3XtLPTOhKgiD0X4AxC4kF2gMweOROY7avJUcPsrD93CZ20PYImpjtjBDkhkjgFCpmuakguK2WKu0ucS0Z7kNdMkOQCFJ9gjIkmrZrEtUp778k5SXCdbpnsLf2hQQP+w3/rUYpU0MNoChMkffoUuWd3l46+wJlB8xlIf6t7JczbXpKoun9v4+cq1cQ2FmlwqtSaSxRxarcpXtqL2w7q1AvMEw6Z15s4YnJE1B7GnwK2VHjUSKcE5j5jk3txDAAZ4eD3XI+m4DnTCyA+y6F5yHzjh0JI51T9wrMFwUSzuKfCCNTz87jNjlORWMjCslzKFP6DFEWNAQuU0Plqz0tmptZHLEmxBFL93AhFWIxT74gwPUlUi+DBO0OoqZ89QFYvhtEgkICbdstc4WIM28u3WKQ1T5iYGBGVQ107fVJkVKMM05bCQpQjtdpUDpdXIYqRqlEDeUVFSMfXkCKJSXSd3+8LFXcsuS1amKMaNg42ZUImYitWYvT+tmC2tY81zpCcUhdUtGLc1HXcby+BuubURSiUAJh6lrg4znqp41nXdjUsKYKbQtgRQbnKN/eBsuEcrmqIp9bAlx8tgipaWUZ/i/NiyyXeLaKvm7FJVS9tusvJNR5sqQilKi3zvSMpXP26Vi+ussz/v40/uprRG1ysGxf4Nep3fh4PIUmkRVOedITif4MDJs6gmA/pmZ9lNROnXY3h4M7t0f6rg7DwXC4p98cyYG+d0u/CRpa5LV50Pv7zz9+VecPp93fDdu3Ipd6wnII52NtGIhJTELBLIcmqhFxGhDrmMzpGIcecSmfxOm3egI9tNjYHIb48wSk1vqKmLicn7gmesos+Nk5aVw1N47E7PYkZp7s4jwrCzSLHBA+yA9/sFlILdni2oxYIUOuYC0I1lvQkEsRikyhffBYH2ijwegbbfPgrpJd15SPlU+UvqIpe8qB8oXyUDlUrM6i833nx85PXbf7Q/fn7i+Z65WNfM1HSuPq/vYPpwDvCg==</latexit>
+
+How about
+Pt+n 1
+r + Vt+n
+t
+<latexit sha1_base64="siqlEH+M4VCcFU0pLlAOQxTVVgc=">AAARDnic7Vhbb9xEFHbLrZjLbuGxL0cNSzZKs7JXTUofIqUXJASoKqJJK6031tie3R3FNzyztJHjX8ALf4AfwQsPIMQrz7wAP4R3zvju7HqTShU0Ui1FMz5z5pvvfGd2fCZW6DIuNO3vS5dfe/2NN9+68rb6zrvvvd/pXv3ggAfzyKb7duAG0ROLcOoyn+4LJlz6JIwo8SyXPraO7snxx9/SiLPAfySOQzr2yNRnE2YTgSbzauejHnztMoeCrqs9w2O+aYgZFQS2DI+ImWXFnyZm3M9eJjFPbkDRJ8mGwZmXvdvEje8nCRgunYgRNsEUjJDlaP1qzkkFtQFGxKYzMcaVfWK5pFj7c+zQZyK+ey/pZyZ0JWEYBc/AmETEBv0BGHzumTHb1ZPDB9my/dwmttD2CJqY7YwQ5IZI4AQqZrmpILihliptL3AtGe5CXTJDkDmk+oTlkmjaqElUp7z7nJQXCNfpnsJe3xUSPOo3/NcbqUwNNYAiMUXcOxcq7rR57ugLlC2wFoV4UdEvRtr0lETT9r9fOVevILC1TIWXJdOYoopVuUtvqb2o7axCvcCw6JT5sY0nJk9A7enwMWRHjU+JcI9hErgOdRLDABzVBtvleDYAT5mYAQ88Ck8j5h+5EkY6p+4VWCAKJBzFHxGuTH0nX7fJ0RSNjSgkT02GdAdRZjQCLkND5as9LZqbWRyyJsQhS/dwIRViMV9+IMALJFIvgwT9NqKmfIcDsAMvnAsKCbRtt8wV5pz5U+kWg8z2IQMDI6pyMNRfnRQpxTjjtJ6gAGV/lQal0/llqNYolaihvKRi5N1zSLGgRPrtjxelilumvFJNjBANCyenEiETsTVqcVI/W1DbmudKRygOqQsqenEuDofYX52D1cUoClEogTB1LfD1DPXTwrMubGpYkYW2CbAkgjOUby+DZUC5XFWSz0wBTj6dhNS0NA3/l+ZFlAs8W0VfNeMCql7b9ecS6ixZUhFK1JunasbSObs6lp/u8oy/b8ZffImoTQ62Ewi8nTqNy+MJNIksccqDHkv0b8BwqCsI1mP5FhFSPDXvxmLTx4sjRDi6iT4HprRs6omqmt01rAU1fIagDWR7cxtyyzboqUXT1vZ6//z15w/q9KHZ/cNwAnvuUV/YLuF8pGuhGMckEsx2aaIac05DYh+RKR1h1yce5eM4vc4n0EOLg/VjhH++gNRanxETj/Njz0JPGSg/PSaNy8ZGczH5ZBwzXxZ6vp0tNJm7IAKQ/xsAh0XUllWww4gdMeQK9ozglhA04lKEIlJo7xwMB/rOYOcrfW3vrpI9V5RrynWlr+jKLWVP+Ux5qOwrdue7zo+dnzu/dL/v/tT9tftb5nr5Uj7nQ6XxdH//Fxhk+i0=</latexit>
+
+<latexit sha1_base64="siqlEH+M4VCcFU0pLlAOQxTVVgc=">AAARDnic7Vhbb9xEFHbLrZjLbuGxL0cNSzZKs7JXTUofIqUXJASoKqJJK6031tie3R3FNzyztJHjX8ALf4AfwQsPIMQrz7wAP4R3zvju7HqTShU0Ui1FMz5z5pvvfGd2fCZW6DIuNO3vS5dfe/2NN9+68rb6zrvvvd/pXv3ggAfzyKb7duAG0ROLcOoyn+4LJlz6JIwo8SyXPraO7snxx9/SiLPAfySOQzr2yNRnE2YTgSbzauejHnztMoeCrqs9w2O+aYgZFQS2DI+ImWXFnyZm3M9eJjFPbkDRJ8mGwZmXvdvEje8nCRgunYgRNsEUjJDlaP1qzkkFtQFGxKYzMcaVfWK5pFj7c+zQZyK+ey/pZyZ0JWEYBc/AmETEBv0BGHzumTHb1ZPDB9my/dwmttD2CJqY7YwQ5IZI4AQqZrmpILihliptL3AtGe5CXTJDkDmk+oTlkmjaqElUp7z7nJQXCNfpnsJe3xUSPOo3/NcbqUwNNYAiMUXcOxcq7rR57ugLlC2wFoV4UdEvRtr0lETT9r9fOVevILC1TIWXJdOYoopVuUtvqb2o7axCvcCw6JT5sY0nJk9A7enwMWRHjU+JcI9hErgOdRLDABzVBtvleDYAT5mYAQ88Ck8j5h+5EkY6p+4VWCAKJBzFHxGuTH0nX7fJ0RSNjSgkT02GdAdRZjQCLkND5as9LZqbWRyyJsQhS/dwIRViMV9+IMALJFIvgwT9NqKmfIcDsAMvnAsKCbRtt8wV5pz5U+kWg8z2IQMDI6pyMNRfnRQpxTjjtJ6gAGV/lQal0/llqNYolaihvKRi5N1zSLGgRPrtjxelilumvFJNjBANCyenEiETsTVqcVI/W1DbmudKRygOqQsqenEuDofYX52D1cUoClEogTB1LfD1DPXTwrMubGpYkYW2CbAkgjOUby+DZUC5XFWSz0wBTj6dhNS0NA3/l+ZFlAs8W0VfNeMCql7b9ecS6ixZUhFK1JunasbSObs6lp/u8oy/b8ZffImoTQ62Ewi8nTqNy+MJNIksccqDHkv0b8BwqCsI1mP5FhFSPDXvxmLTx4sjRDi6iT4HprRs6omqmt01rAU1fIagDWR7cxtyyzboqUXT1vZ6//z15w/q9KHZ/cNwAnvuUV/YLuF8pGuhGMckEsx2aaIac05DYh+RKR1h1yce5eM4vc4n0EOLg/VjhH++gNRanxETj/Njz0JPGSg/PSaNy8ZGczH5ZBwzXxZ6vp0tNJm7IAKQ/xsAh0XUllWww4gdMeQK9ozglhA04lKEIlJo7xwMB/rOYOcrfW3vrpI9V5RrynWlr+jKLWVP+Ux5qOwrdue7zo+dnzu/dL/v/tT9tftb5nr5Uj7nQ6XxdH//Fxhk+i0=</latexit>
+
+<latexit sha1_base64="Vzx548b0q3ST/6lPvt9P9q80AbU=">AAARDHic7VhLb9tGEGbSRxL1IaU99jKNoVpCYoEUGsU+GHCTFCjaIkjR2AkgysSSXEkL81XuMolB8wf00v6UXnpoUfTSQ39Ab/0hvXeWb1oPO0DRxEAIGBzOzn77zTej5dJm4DAuVPXvS5ffePOtt69cvdZ659333m93rn9wwP0otOi+5Tt++MQknDrMo/uCCYc+CUJKXNOhj82je3L88VMacuZ7j8RxQCcumXlsyiwi0GVcb9/owrcOsyloWquru8wzdDGngsCW7hIxN83488SIe9nDNObJLShskvR1ztzs2SJOfD9JQHfoVIzx5s9AD1iO1qvmnFRQfdBDNpuLCa7sEdMhxdpfokGfi/juvaSXuTCUBEHoPwd9GhILtAeg88g1YrarJYcPsmV7uU9soe8RNDFXM0KQWyKBE6iY5a6CYL9VqnR7gWvJcBfqkumCRJDqE5RLoqtfk6hOefcFKS8QrtM9hb25KyR42GvEbzZKmTpqAEVhirxHFyrv9PbC2RcoW2AuCvFfZb+YaTNSEk3v///KuXoFga1lKrwqlcYSVazKLr3T6oar9irUC3STzpgXW7hj8gRaXQ0+gWyr8SgRzjFMfcemdqLrgKPq4HY5ng3AMybmwH2XwrOQeUeOhJHBaXgF5osCCUfxR4QrU8/O121yNESjEYXkqcqUPkOUOQ2By9RQ+aqnRbOZxSFrQhyytIcLqRCLefIFAa4vkboZJGg7iJryHQ7A8t0gEhQSWNVuWShEnHkzGRaDrPYhAx0zqmow1F7vFCnFOOO0maAApb1OgzLo/DJUa5RK1FBeUTFy8xxSLCiRvvvjRaniFVNeqybGiIYHJ7sSIRNxZdbipL63oLa1yLWBUGxSF1T0Yl8cDtFeX4P1h1EUolACYepa4OMZ6qcHz7qwqWNNFVZNgCUZnKH86mOwTCiXqyrymSXAyaeLkLqWluFlaV5kucBzpejrZlxA1Wtdfy6hzpIlFaFE/fTUmbEMzj4dy1d3ucffN+KvvkbUJgfL9gV+ndqNj8cTaBJZEpQnPZHo34FuU0cQPI/lLSKkeKUdi5sefjlCiMM3W3BgSEfSahmdDXWg4jUagTS0bVVDY2dnezjcAS0dUtWNvY97//zxo95/aHT+0m3filzqCcshnI81NRCTmISCWQ5NWnrEaUCsIzKjYzQ94lI+idOP+QS66LHx9Bjinycg9dZnxMTl/Ng1MVKmyU+PSeeysXEkptuTmHnymOdZ2ULTyAHhg/zPANgspJY8A9uMWCFDrmDNCTaEoCGXIhSZwmrjYDjQRoPRN9rG3l0lu64qHyk3lJ6iKXeUPeUL5aGyr1jt79s/tX9p/9r5ofNz57fO71no5Uv5nA+VxtX58199P/kd</latexit>
+
+<latexit sha1_base64="PFWUbHVADxV0UO5rDTDCML+4R44=">AAARDHic7Vhbb9xEFHbLrTWX3cIjL0eNlmyUZrVe0RQeIoW2SAhQVUSTVqw31tie3R3FNzxjmsjxD+CFd35FX3gAIV75Abzxa+CM717vblKpgkaqpcjHZ858853vnB2PYwYO42I4/PvK1ddef+PNt65dV99+5933Ot0b7x9yPwotemD5jh8+MQmnDvPogWDCoU+CkBLXdOhj8/ieHH/8Aw05871H4jSgE5fMPDZlFhHoMm50bvbgW4fZFDRN7eku8wxdzKkgsKO7RMxNM/48MeJ+9jCNeXILCpskWzpnbvZsESe+nySgO3QqxnjzZ6AHLEfrV3POKqgt0EM2m4sJruwR0yHF2l+iQU9EfPde0s9cGEqCIPRPQJ+GxALtAeg8co2Y7WnJ0YNs2X7uEzvoewRNzNWMEOSWSOAMKma5qyC4pZYq3W5xLRnuQV0yXZAIUn2Cckl0bdUkqlPee07KLcJ1ugvYm3tCgof9Rvxmo5SpowZQFKbIe/dS5Z3enjv7AmUHzLYQLyr7dqbNSEk0vf/3K+fqFQR2lqnwslQaS1SxKrv0jtoLV+1VqBfoJp0xL7Zwx+QJqD0NPoJsq/EoEc4pTH3Hpnai64Cjw8HtcjwbgKdMzIH7LoWnIfOOHQkjg9PwCswXBRKO4o8IV6aena/b5GiIRiMKyXMoU/oMUeY0BC5TQ+WrnhbNZhZHrAlxxNIeLqRCLObJFwS4vkTqZZCgfYqoKd/RACzfDSJBIYFV7ZaFQsSZN5NhMchqHzHQMaOqBiPt1U6RUowzTpsJClDa6zQogy4uQ7VGqUQN5SUVIzcvIEVLifTdH7elildMeaWaGCMaHpzsSoRMxJVZi7P63oLa1iLXBkKxSV1S0Yt9cTRCe30N1h9GUYhCCYSpa4GP56ifHjzrwqaONVVYNQGWZHCO8quPwTKhXK6qyOeWACcvFiF1LS3D/6V5kWWL50rR1824hKrXuv5CQp0nSypCifrxwpmxDM4+HctXd7nH3zfir75G1CYHy/YFfp3ajY/HM2gSWRKUJz2R6N+DblNHEDyP5S0ipHilHYttL4EQ1G2MODTk47aWqKrR3RgOhukFbUPLjY3968HP3z07+eeh0f1Lt30rcqknLIdwPtaGgZjEJBTMcmii6hGnAbGOyYyO0fSIS/kkTj/mE+ihx8bTY4h/noDUW58RE5fzU9fESJkmXxyTzmVj40hMP5nEzJPHPM/KFppGDggf5H8GwGYhteQZ2GbEChlyBWtOsCEEDbkUQVtMuW0cjgba7mD3G21j/66SXdeUD5WbSl/RlDvKvvKF8lA5UKzOj51nnV87v3V/6v7S/b37RxZ69Uo+5wOlcXX//BfLlflc</latexit>
+
+Bootstrapped:
+using r+V
+
+-> less variance than MC
+-> lower bias than 1-step bootstrap
+
+n > 1, n < T often works the best in practice!
+20
+
+Aside: discount factors
+
+21
+
+Slide adapted from Sergey Levine
+
+A Full Algorithm Walkthrough
+1. Sample batch of data {(s1,i, a1,i, …, sT,i, aT,i)} from πθ
+πθ
+̂
+2. Fit V to summed rewards in data
+ϕ
+
+π̂ θ
+
+πθ
+πθ
+̂
+̂
+3. Evaluate A (st,i, at,i) = r(st,i, at,i) + γV ϕ (st+1,i) − V ϕ (st,i) ∀t, i
+
+4. Evaluate ∇θ J(θ) ≈
+
+∑
+t,i
+
+π̂ θ
+
+∇θ log πθ(at,i | st,i) A (st,i, at,i)
+
+5. Update θ ← θ + α ∇θ J(θ)
+<latexit sha1_base64="yg/gGJeVcLHVTlaQ7hbc5dyY3EU=">AAAU63ic7VhLb9tGEKaTPlL15VS69TKooVqCLUEUEic5CIijtGjSIkkd2QlgSsKKXEkL81Vy1cSg2J/QSw8til77h3rrv+ksXyJFvRLUbQyEgMDl7Ow3M9/MzpIa2DpzeaPx99aVq++8+9771z4ofPjRx598un39sxPXmjgqPVYt3XKeD4hLdWbSY864Tp/bDiXGQKfPBmdtMf/sR+q4zDI7/NymXYOMTDZkKuEo6l8vbpXhqc40CrJcKCsGM/sKH1NOoKYYhI8HA+8rv+9Vwoeh5/r7EI+JX1VcZoTPKtG9+74Pik6H/BRv1ggUm0Voldma6QyqCorDRmPeRcsmGegktv0QB/Ql9+61/UooQlVi2471EpShQ1SQH4HiToy+x1qy33sUmq1EMl5DWQeymMs9QpB97sMUZp5FotjBaiFh6WbO18TDFqQpUziZQMCPnZhEUTVFUdrl1iu6nHM47e4c9m6LC3CnktHfzaQyEKQA4sTEcR9cqriD2ytHH6PUYJAn4t+KPh9pVlM4Gtz/e8sRe7EDtUUsvCmZxhTNvEqq9Fah7CzrVcgXKAM6YqanYsd0fSiUZfgSwlZjUsL1cxhaukY1X1EAZxv1m8l8OAEvGB+DaxkUXjjMPNMFjFAO1GdgFo+RcBY3EVqmphbZzfrY55lC5MLPhgjpEFHG1AFXhIbMz2qaZ4uZ91gWoseCGo6pQixmigMCDEsglUNIkG8vr63V3RZeN6fLG+3mWxcXzG/eQLRw+2KEnGEivIebniTzsb3esXFBwSSpuyMCE6XWrINqGfaEU/BhaTYDVZi4zBwJNQ/ERu0xULAYZ9unKb9t8oGLXujTro8EJONVHCRKm9Mws5EwkUJ5Q8mIhhtQkWMi2GxenipvyZK3rPFTRMNOpc1ICElcGjWfpo8F5DaluVIR4vPlkpIe98VmE8erc7Cm++P6yE+ESXOBj2vYD5r/dP40WJGFZQtgQQRrmF9+FImAZofhRZ1L/wvncZQ5P5eSvmrFJWQ9VfUbEbWOloCEBPXG3Ot+ohx+9SdHd9Lj7/e9b79D1KwPqmZxxWBa5rt/CllHFihFQXcF+g+gaFTnRLytwNPO4VEHHn8Nh+3O4yNoHz3oPGhHlcMFp8nY43tmTfbBwbD2cOVJX0jwnec8SlQrn4BFtQF7oIwJ9078vmKPWQ99n1+2J/vVQgTbSuc48WGzTKOlETEM0jPXWjTRovhOULnlgOowzlTQqconDgUyIsxc9z4Tb8u46e8zf27LJcoX0+g223HZowCdzCAJQRV+Ctg6RLpTdVmZ19vPQeE26m/vNOqN4IL8QI4GO1J0Pelv/6VoljoxqMlVnbjuqdywedcjDiZAp35BmbjUJuoZGdFTHJrEoG7XC/6r86GMEg0/Dh38mRwCaXqFRwzXPTcGqClcdefnhHDR3OmED293PWaKTwFTDQ0NJzpwC8Qff6AxB2sDP3E1RqJiUccEU82p4woS5PmQ84OTZl0+qB98f2Pn7r2IjmvS59IXUkWSpVvSXekb6Yl0LKnFcfHn4q/F30pG6ZfS76U/QtUrW9GaopS5Sn/+A3CyWqw=</latexit>
+
+yi,t =
+
+t+n
+X1
+t0 =t
+
+“actor-critic algorithm”
+22
+
+r(si,t0 , ai,t0 ) +
+
+n
+
+⇡
+
+V̂ (si,t+n )
+
+Review so far
+Algorithms
+Policy gradients: observe what is good vs. bad, then do more of good stuff
+Actor-critic: learn to estimate what is good vs. bad, then do more of the good stuff
+i.e. get a better policy gradient by using neural network
+to estimate value function
+How to estimate value:
+
+“policy evaluation”
+
+Supervised learning directly on observed sum of future rewards
+Supervised learning on current reward + value estimate of next state
+Hybrid: Supervised learning on sum of next n rewards + value of state after that
+
+What about off-policy versions?
+23
+
+The plan for today
+Actor critic methods
+
+1. Improving policy gradients
+2. How to estimate the value of a policy (“policy evaluation”)
+a. Sample & directly supervise (“Monte Carlo estimation”)
+b. Use your own estimate (“bootstrapping”, “temporal difference learning”)
+c. Something in-between? (“N-step returns”)
+3. Off-policy actor-critic
+a. Importance weights & constraining step size
+b. Full off-policy version with replay buffers
+
+Key learning goals:
+- How to estimate how good a state and action is for a policy
+- How to use those estimates to form a better RL algorithm
+24
+
+Off-Policy Actor-Critic Methods
+Version 1: Multiple Gradient Steps
+1. Sample batch of data {(s1,i, a1,i, …, sT,i, aT,i)} from πθ
+πθ
+̂
+2. Fit V to summed rewards in data
+ϕ
+
+π̂ θ
+
+πθ
+πθ
+̂
+̂
+3. Evaluate A (st,i, at,i) = r(st,i, at,i) + γV ϕ (st+1,i) − V ϕ (st,i) ∀t, i
+
+4. Evaluate ∇θ J(θ) ≈
+
+∑
+t,i
+
+π̂ θ
+
+∇θ log πθ(at,i | st,i) A (st,i, at,i)
+
+5. Update θ ← θ + α ∇θ J(θ)
+
+25
+
+<- use importance weights here
+
+Off-Policy Actor-Critic Methods
+Version 1: Multiple Gradient Steps
+1. Sample batch of data {(s1,i, a1,i, …, sT,i, aT,i)} from πθ
+πθ
+̂
+2. Fit V to summed rewards in data
+ϕ
+
+π̂ θ
+
+πθ
+πθ
+̂
+̂
+3. Evaluate A (st,i, at,i) = r(st,i, at,i) + γV ϕ (st+1,i) − V ϕ (st,i) ∀t, i
+<latexit sha1_base64="XZ/0N8Z7NU9sTns4OzQAo2nUXZE=">AAAS8Xic7Vhbj9tEFHZLoSXcNuGRl6Ouwiba3SiO2i08ROoNCQGqiuhuK8WJNbYnyWh9wzNpu/K6v4IXHkCIV/4Nb/wbzvjuOMmmEpeuVEuRx2fOfPOd7xyPZ2L4NuOi3//rytV3rr373vUb7zc++PCjjz/ZabZOuLcITHpserYXPDMIpzZz6bFgwqbP/IASx7DpU+P0gex/+pwGnHnuE3Hm07FDZi6bMpMINOnN5vU2/GAzi4KqNtqaw1xdE3MqCBxqDhFzwwi/ivSwkzxMQx4dQNYmUVfjzEmeTWKHD6MINJtOxQhv3gw0n6VonWLMeQHVBS1gs7kY48wuMWySzf0NNuhLEd5/EHUSE7oS3w+8l6BNA2KC+gg0vnD0kA3VaPIombaT2sQh2p5AFXM9IwQ5EBGcQ8EsNWUEu41cpds1rjnDIZQl0wRZQKyPn0+Jpm5JojLl4WtSrhEu013C3hsKCR50Kv57lVTGhhJAlpgs7qNLFXd8e+3oM5RDMOpC/FPR1yOtekqi8f2/nzlVLyNwuEqFNyXTmKKCVV6ldxrtYN1ahXqBZtAZc0MTV0weQaOtwueQLDUuJcI+g6lnW9SKNA2wt9+7nfcnHfCCiTlwz6HwImDuqS1hpHPsXoB5IkPCXnyJcGbqWum8VY66qBSikDz7MqR7iDKnAXAZGipf1LSoFrOYsCrEhMU1nEmFWMyVHwhwPInUTiBB/RJRY76DHpie4y8EhQjWlVviCgvO3Jl0C0Fme8JAw4iKHAzUtytFTDFMOO1FKEDe3qRB7rS9DMUcuRIllDdUjLS5hRQ1JeJvf1iXKlwz5K1qYoRouHGyChESEddGLc7LawtqW/Lc6AjZInVJRc/WxcEA25tzsHkzikJkSiBMWQt8vED9eONZFjY2bMjCugGwIoILlF+/DZYBpXIVSb4wBTh4OQmxaWUa/i/NsyhrPNeKvmnEJVS9VPVbCXWRLLEIOeqtpT1j7pwcHfNPd77GP9TDb79D1CoH0/IEnk6tyuHxHKpEVjilQY8l+o+gWdQWBPdjaYkIKV7eDsW+iydHCLB7H51OdGnBzc1ZmpFhXelVRQD7oM2JCE8iXfPnbIIkl4ftq1E3xx2Ws5mT2C6nW0zl4lSbtyTZm5Wt2wcMU1iuhdz331mq6vRWvDLVtRwpVoCkoQuvYjHuoYqlwuos+x3UoPA90Hd2+71+fEG9oaaNXSW9Hus7f2qWZy4c6grTJpyP1L4vxiEJBDNtijEtOPWJeUpmdIRNlziUj8P4H5sI2mix8IgQ4M8VEFvLI0LicH7mGOgpqfLlPmlc1TdaiOkX45C5ci/vmslE04UNwgP59w9YLKCmPOhYjJgBQ65gzglmWtCASxHU5ZDrjZNBTz3qHX1/a/fu/VSOG8pnyk2lo6jKHeWu8rXyWDlWzKbb/Kn5S/PXFm/93Pqt9XvievVKOuZTpXK1/vgbx4mrEA==</latexit>
+
+4. Evaluate r✓0 J(✓ ) ⇡
+0
+
+X ⇡✓0 (ai,t |si,t )
+t,i
+
+⇡✓ (ai,t |si,t )
+
+⇡✓
+
+r✓0 log ⇡✓0 (at,i |st,i ) Â (st,i , at,i )
+
+5. Update θ ← θ + α ∇θ J(θ)
+
+<- use importance weights here
+
+Advantages based on old policy.
+
+Policy will increase probability on
+actions with high advantages
+
+What can go wrong if you take too many gradient steps?
+26
+
+Off-Policy Actor-Critic Methods
+Version 1: Multiple Gradient Steps
+1. Sample batch of data {(s1,i, a1,i, …, sT,i, aT,i)} from πθ
+πθ
+̂
+2. Fit V to summed rewards in data
+ϕ
+
+π̂ θ
+
+πθ
+πθ
+̂
+̂
+3. Evaluate A (st,i, at,i) = r(st,i, at,i) + γV ϕ (st+1,i) − V ϕ (st,i) ∀t, i
+<latexit sha1_base64="XZ/0N8Z7NU9sTns4OzQAo2nUXZE=">AAAS8Xic7Vhbj9tEFHZLoSXcNuGRl6Ouwiba3SiO2i08ROoNCQGqiuhuK8WJNbYnyWh9wzNpu/K6v4IXHkCIV/4Nb/wbzvjuOMmmEpeuVEuRx2fOfPOd7xyPZ2L4NuOi3//rytV3rr373vUb7zc++PCjjz/ZabZOuLcITHpserYXPDMIpzZz6bFgwqbP/IASx7DpU+P0gex/+pwGnHnuE3Hm07FDZi6bMpMINOnN5vU2/GAzi4KqNtqaw1xdE3MqCBxqDhFzwwi/ivSwkzxMQx4dQNYmUVfjzEmeTWKHD6MINJtOxQhv3gw0n6VonWLMeQHVBS1gs7kY48wuMWySzf0NNuhLEd5/EHUSE7oS3w+8l6BNA2KC+gg0vnD0kA3VaPIombaT2sQh2p5AFXM9IwQ5EBGcQ8EsNWUEu41cpds1rjnDIZQl0wRZQKyPn0+Jpm5JojLl4WtSrhEu013C3hsKCR50Kv57lVTGhhJAlpgs7qNLFXd8e+3oM5RDMOpC/FPR1yOtekqi8f2/nzlVLyNwuEqFNyXTmKKCVV6ldxrtYN1ahXqBZtAZc0MTV0weQaOtwueQLDUuJcI+g6lnW9SKNA2wt9+7nfcnHfCCiTlwz6HwImDuqS1hpHPsXoB5IkPCXnyJcGbqWum8VY66qBSikDz7MqR7iDKnAXAZGipf1LSoFrOYsCrEhMU1nEmFWMyVHwhwPInUTiBB/RJRY76DHpie4y8EhQjWlVviCgvO3Jl0C0Fme8JAw4iKHAzUtytFTDFMOO1FKEDe3qRB7rS9DMUcuRIllDdUjLS5hRQ1JeJvf1iXKlwz5K1qYoRouHGyChESEddGLc7LawtqW/Lc6AjZInVJRc/WxcEA25tzsHkzikJkSiBMWQt8vED9eONZFjY2bMjCugGwIoILlF+/DZYBpXIVSb4wBTh4OQmxaWUa/i/NsyhrPNeKvmnEJVS9VPVbCXWRLLEIOeqtpT1j7pwcHfNPd77GP9TDb79D1CoH0/IEnk6tyuHxHKpEVjilQY8l+o+gWdQWBPdjaYkIKV7eDsW+iydHCLB7H51OdGnBzc1ZmpFhXelVRQD7oM2JCE8iXfPnbIIkl4ftq1E3xx2Ws5mT2C6nW0zl4lSbtyTZm5Wt2wcMU1iuhdz331mq6vRWvDLVtRwpVoCkoQuvYjHuoYqlwuos+x3UoPA90Hd2+71+fEG9oaaNXSW9Hus7f2qWZy4c6grTJpyP1L4vxiEJBDNtijEtOPWJeUpmdIRNlziUj8P4H5sI2mix8IgQ4M8VEFvLI0LicH7mGOgpqfLlPmlc1TdaiOkX45C5ci/vmslE04UNwgP59w9YLKCmPOhYjJgBQ65gzglmWtCASxHU5ZDrjZNBTz3qHX1/a/fu/VSOG8pnyk2lo6jKHeWu8rXyWDlWzKbb/Kn5S/PXFm/93Pqt9XvievVKOuZTpXK1/vgbx4mrEA==</latexit>
+
+4. Evaluate r J(✓ ) ⇡
+✓0
+
+0
+
+X ⇡✓0 (ai,t |si,t )
+t,i
+
+⇡✓ (ai,t |si,t )
+
+⇡✓
+
+r log ⇡ (at,i |st,i ) Â (st,i , at,i )
+✓0
+
+✓0
+
+5. Update θ ← θ + α ∇θ J(θ)
+
+Policy will increase probability on
+actions with high advantages
+
+<- use importance weights here
+
+Advantages are based on old
+policy, will get out-dated
+
+What can go wrong if you take too many gradient steps?
+💡Idea 1: Use KL constraint on policy.
+
+💡Idea 2: Can we bound the importance weights?
+
+We will see this in LLM preference optimization
+
+Doesn’t directly constrain policy, but removes incentives
+
+Es⇠⇡✓ [DKL (⇡✓0 (· | s)k⇡✓ (· | s))] 
+<latexit sha1_base64="XPurPdU7daaP2b3aBOYlMX6LGG4=">AAAQ3Xic7Vdbj9tEFHbLpcVAk8IjL0eswmalbhRH7bY8rFTaIiFAVRHdtiLOWuPxJBmtb/WMaVdeS7zwAEK88r9443fwBzjju9dJdish6Eq1FPn4zJlvvvOdyfHYDl0u5Hj816XLb739zrtXrr6nv//Bh9d6/esfPRFBHFF2QAM3iJ7ZRDCX++xAcumyZ2HEiGe77Kl9dF+NP/2RRYIH/mN5HLKZRxY+n3NKJLqs69f+HsD3LncYGIY+MD3uW6ZcMklg1/SIXNp28mVqJcP8YZ6I9AaUNkl3TMG9/JkSN3mQpmC6bC6neAsWYIa8QBvWc05qqB0wI75Yyhmu7BPbJeXaX6PBXsrk3v10mLswlIRhFLwEcx4RCsZDMEXsWQnfN9LDh/myw8Ind9H3GNqY6xkhyA2ZwgnUzApXSXBHr1S61eFaMdyHpmSmJDFk+oTVkujaaUjUpLz/ipQ7hJt0T2Fv70sFHg1b8dutUmaOBkBZmDLvvQuVd3Z75exLlF2wu0L8W9l3M21HKqLZ/b9fuVCvJLC7SoXXpdJYoppVtUtv64NoXa9CvcC02YL7CcWOKVLQBwZ8Bnmr8RmR7jHMA9dhTmqagKPj0a1qPB+AF1wuQQQegxcR949cBaOCs/AaLJAlEo7inwhXZr5TrNvmaMnWRpSK51il9AWiLFkEQqWGytd7WrY3szzkbYhDnu3hUirE4r56QYAXKKRBDgnG54ia8Z2MgAZeGEsGKazbbnkoxIL7CxWWgKr2IQcTM6prMDHedIqMYpJz2k5RgMrepEEVdH4Z6jUqJRoor6kYhXkOKTpKZO/+pCtVsmbKG9XkFNHw4OTUIuQirs1anjR7C2rbiNwYCGWTuqCil31xMkF7cw02H0ZRiFIJhGlqgY9nqJ8dPJvCZo4NVVg3AVZkcIby64/BKqFCrrrIZ5YAJ58uQuZaWYb/S/Myyw7PtaJvmnEBVW/s+nMJdZYsmQgV6k291a2q2PzLsXpzVy3+gZV88y2CtilQJ5D4ceq0vh1PoM1jRVCR80yhPwfTYa4kum71t8ajcXZB1zAKY0srrkdW/0/TCWjsMV9SlwgxNcahnCUkkpy6LNXNWLCQ0COyYFM0feIxMUuyr/MUBuhx8DgY4c+XkHmbMxLiCXHs2RipiIvTY8q5amway/mdWcJ9dW7zab7QPHZBBqA+9cHhEaPqUOtwQiOOXIEuCVZYskgoEYzTKXeNJ5ORsTfa++7m1t17hRxXtU+0T7WhZmi3tbvaV9oj7UCjvR96P/V+6f3at/o/93/r/56HXr5UzPlYa139P/4BDt7m6Q==</latexit>
+
+27
+
+-> Key idea behind proximal policy optimization (PPO)
+
+Off-Policy Actor-Critic Methods
+So far:
+- use one batch of policy data for one gradient step (fully on-policy)
+- use one batch of policy data for multiple gradient steps (starting to be off-policy)
+
+Can we be even more off-policy?
+Can we reuse data from previous batches, i.e. all of the past trial-and-error data?
+Key ideas:
+- maintain a buffer of all past data “replay buffer”
+- adjust equations to remove on-policy assumptions
+
+28
+
+Off-Policy Actor-Critic Methods
+Version 2: Replay buffers
+
+1. collect experience {si , ai } from ⇡✓ (a|s)
+<latexit sha1_base64="1nwmI3YaWUXZq+jeq8M0eX+kyVU=">AAAVfHic7VjbbttGEGXSW6renNp+6kMHdZVIsGWIRuKkDwLiOC2atEhSR3YCmBKxIlfSwrx1uWxs0OxH9NP61k/pS9FZ3kTqniBuYyAEBC1nZ8/OnJmd3WXPs5gvms2/rlx97/0PPvzo2seVTz797PMvVq5/eeS7ATfooeFaLn/RIz61mEMPBRMWfeFxSuyeRZ/3TvZl//PfKPeZ67TFmUc7Nhk4rM8MIlCkX1/9owrPLGZSUNVKVbOZo2tiSAWBhmYTMez1wu8jPawlL/3Qj7Yga5OorvnMTt4NYoUPogg0i/bFMf65A9A8lqLVRmPOR1B10DgbDEUHZ3ZIzyLZ3I+wQU9FeH8/qiUiVCWex91T0PqcGKA+Bs0PbD1kLTXqPk6mraUy0UBZG8qYsy1CkC0RwTmMLEtFmYH1Ss7S7QlbcwtbUKRMEySAmB8vnxJF9QJFRZNbr2jyhMFFc8ewb7aEBOe1kv7NUihjQQEgC0zm9+6l8jv+e2XvM5QG9CaJeFPeT3pa1pSGxv///cwpe5kBjWksvC2RxhCNrMqz9E6lymfVKuQLtB4dMCc0sGL6EVSqKtyApNQ4lAjrDPquZVIz0jTA3ub27bw/6YCXTAzBd20KLzlzTiwJI5Vj9RGYKzIk7MVFhDNTx0znLduoi1IiCmlnU7q0hyhDysGXriHzo5wW5WQWXVaG6LI4hzOqEIs5coMA25VI1QQS1Luzc2t+tYXXjensQrv80sUB44s3Fk1dvuihYBiI8NGyO8m4b6+3bVyQM3novpOOyVTb2QbDtb1AUIhgZjRjVQh85gykWghyoXYZaJiMo+Wzo74r8rGJYWLTzQgJyNvzOMiVlqdhNEfORAHlLSUjbS5BxQQT8WILJ6kKZwx5x5o4RjSsVOaIhITEmV6L8+K2gNwWNOcqQra/XFLSs7q4s4Pt+TFYUP1xfGonwhS5wNcF7MfF/3x8N5gThVkDYIoHC5ifvRVJh0ab4UXtS/8L55mXE3bOJH3eiEvIeiHrlyJqES0xCTnqrbHjfq6c3PrzrTuv8Q/08KefEbVsg2G6QrOZWbr3n0PZkClKqdMdif4raCa1BJGnFXjW3jtow5MfYG+//eQA9g8eth/up5kjJKd5OxSbTkONgKNbmzjySJcSPPOcpYFqTQZgWm7AJmhDIsKjSNe8Ieui7ePDNtWonuO2ikHOjVgu1DjVgNg26ToLp3TklHhRMITLweBMMAMsaoiAUyADwpxFB5psXWZVf4tFY2suV76YSrfckivvBWhkCUkK6vB7zNYe0l1IzNq43tYEFK6j5HSsyoO0JekDeupRzqhjxGfqQuLr5YsW06LsaN3nri2VF37xSo/tADXtBhDTBOECp55FzqAX9PuU1yN9ZaO53YwfmGyoaWNDSZ+n+sqfmukagU0dYVjE94/Vpic6IeGYEBaNKlrgU48YJ2RAj7HpEJv6nTD+eBhBFSUm3lY5/hwBsbQ4IiS275/ZPdSUbvjjfVI4re84EP27nZA58m7iGMlE/cCSDssvkWAyjmTjndtkJE1eY0gw9QTlfgVJUMddnmwc7Wyru9u7v9zauHc/peOa8pXyjVJTVOWOck/5UXmqHCrG6t9rX6/V1upr/6x/u7653khUr15Jx6wqpWd991/qMo74</latexit>
+
+Add this to replay buffer
+Do this on minibatch sampled
+from all previous data
+
+off-policy actor-critic
+
+replay
+buffer
+transitions that
+we saw in prior
+time steps
+29
+
+Slide adapted from Sergey Levine
+
+Off-Policy Actor-Critic Methods
+Version 2: Replay buffers
+
+1. collect experience {si , ai } from ⇡✓ (a|s) (& add to replay bu↵er)
+<latexit sha1_base64="1nwmI3YaWUXZq+jeq8M0eX+kyVU=">AAAVfHic7VjbbttGEGXSW6renNp+6kMHdZVIsGWIRuKkDwLiOC2atEhSR3YCmBKxIlfSwrx1uWxs0OxH9NP61k/pS9FZ3kTqniBuYyAEBC1nZ8/OnJmd3WXPs5gvms2/rlx97/0PPvzo2seVTz797PMvVq5/eeS7ATfooeFaLn/RIz61mEMPBRMWfeFxSuyeRZ/3TvZl//PfKPeZ67TFmUc7Nhk4rM8MIlCkX1/9owrPLGZSUNVKVbOZo2tiSAWBhmYTMez1wu8jPawlL/3Qj7Yga5OorvnMTt4NYoUPogg0i/bFMf65A9A8lqLVRmPOR1B10DgbDEUHZ3ZIzyLZ3I+wQU9FeH8/qiUiVCWex91T0PqcGKA+Bs0PbD1kLTXqPk6mraUy0UBZG8qYsy1CkC0RwTmMLEtFmYH1Ss7S7QlbcwtbUKRMEySAmB8vnxJF9QJFRZNbr2jyhMFFc8ewb7aEBOe1kv7NUihjQQEgC0zm9+6l8jv+e2XvM5QG9CaJeFPeT3pa1pSGxv///cwpe5kBjWksvC2RxhCNrMqz9E6lymfVKuQLtB4dMCc0sGL6EVSqKtyApNQ4lAjrDPquZVIz0jTA3ub27bw/6YCXTAzBd20KLzlzTiwJI5Vj9RGYKzIk7MVFhDNTx0znLduoi1IiCmlnU7q0hyhDysGXriHzo5wW5WQWXVaG6LI4hzOqEIs5coMA25VI1QQS1Luzc2t+tYXXjensQrv80sUB44s3Fk1dvuihYBiI8NGyO8m4b6+3bVyQM3novpOOyVTb2QbDtb1AUIhgZjRjVQh85gykWghyoXYZaJiMo+Wzo74r8rGJYWLTzQgJyNvzOMiVlqdhNEfORAHlLSUjbS5BxQQT8WILJ6kKZwx5x5o4RjSsVOaIhITEmV6L8+K2gNwWNOcqQra/XFLSs7q4s4Pt+TFYUP1xfGonwhS5wNcF7MfF/3x8N5gThVkDYIoHC5ifvRVJh0ab4UXtS/8L55mXE3bOJH3eiEvIeiHrlyJqES0xCTnqrbHjfq6c3PrzrTuv8Q/08KefEbVsg2G6QrOZWbr3n0PZkClKqdMdif4raCa1BJGnFXjW3jtow5MfYG+//eQA9g8eth/up5kjJKd5OxSbTkONgKNbmzjySJcSPPOcpYFqTQZgWm7AJmhDIsKjSNe8Ieui7ePDNtWonuO2ikHOjVgu1DjVgNg26ToLp3TklHhRMITLweBMMAMsaoiAUyADwpxFB5psXWZVf4tFY2suV76YSrfckivvBWhkCUkK6vB7zNYe0l1IzNq43tYEFK6j5HSsyoO0JekDeupRzqhjxGfqQuLr5YsW06LsaN3nri2VF37xSo/tADXtBhDTBOECp55FzqAX9PuU1yN9ZaO53YwfmGyoaWNDSZ+n+sqfmukagU0dYVjE94/Vpic6IeGYEBaNKlrgU48YJ2RAj7HpEJv6nTD+eBhBFSUm3lY5/hwBsbQ4IiS275/ZPdSUbvjjfVI4re84EP27nZA58m7iGMlE/cCSDssvkWAyjmTjndtkJE1eY0gw9QTlfgVJUMddnmwc7Wyru9u7v9zauHc/peOa8pXyjVJTVOWOck/5UXmqHCrG6t9rX6/V1upr/6x/u7653khUr15Jx6wqpWd991/qMo74</latexit>
+
+<latexit sha1_base64="K6XjRbBdkGUSfvZogNsyogpdh/g=">AAAVfXic7VjbbttGEGXSW6renNp+6sughmKptgXRSOz0QUAcp0WTFknqyE4AUyJW5EpamLcul40Nmv2J/lnf+it9aWd5E6l7gqaNgRAQtJydPTtzZnZ2lz3PYr5oNv+8dv299z/48KMbH1c++fSzz79Yufnlie8G3KDHhmu5/EWP+NRiDj0WTFj0hccpsXsWfd47O5T9z3+l3Geu0xYXHu3YZOCwPjOIQJF+c/X3KjyzmElBVStVzWaOrokhFQR2NJuIYa8XfhfpYS156Yd+tA1Zm0R1zWd28m4QK3wQRaBZtC9O8c8dgOaxFK02GnM5gqqDxtlgKDo4s0N6FsnmfoQNei7C+4dRLRGhKvE87p6D1ufEAPUxaH5g6yFrqVH3cTJtLZWJHZS1oYw52yIE2RYRXMLIslSUGViv5CzdmbA1t7AFRco0QQKI+fHyKVFUL1BUNLn1iiZPGFw0dwx7syUkOK+V9DdLoYwFBYAsMJnfe1fK7/jvlb3PUHagN0nEv+X9pKdlTWlo/P/fz5yylxmwM42FtyXSGKKRVXmW7leqfFatQr5A69EBc0IDK6YfQaWqwi1ISo1DibAuoO9aJjUjTQPsbTbu5P1JB7xkYgi+a1N4yZlzZkkYqRyrj8BckSFhLy4inJk6Zjpv2UZdlBJRSDub0qUDRBlSDr50DZkf5bQoJ7PosjJEl8U5nFGFWMyRGwTYrkSqJpCg3p2dW/OrLbxuTGcX2uWXLg4YX7yxaOryRQ8Fw0CEj5bdScZ9e71t4w05k4fuW+mYTLXdBhiu7QWCQgQzoxmrQuAzZyDVQpALtctAw2QcLZ9d9V2Rj00ME5s2IyQgb8/jIFdanobRHDkTBZS3lIy0uQQVE0zEiy2cpCqcMeQda+IU0bBSmSMSEhJnei0ui9sCclvQnKsI2f5yRUnP6uLuLrbnx2BB9cfxqZ0IU+QCXxewHxf/y/HdYE4UZg2AKR4sYH72ViQdGm2Gb2pf+l84z7ycsHMm6fNGXEHWC1m/FFGLaIlJyFFvjx33c+Xk1p9v3XmNf6CHP/6EqGUbDNMVms3M0r3/EsqGTFFKne5I9F9AM6kliDytwLP2wVEbnnwPB4ftJ0dwePSw/fAwzRwhOc3bodhydtQIOLq1hSNPdCnBM89FGqjWZACm5QZsgTYkIjyJdM0bsi7aPj5sS43qOW6rGOTciOVCjVMNiG2TrrNwSkdOiRcFQ7gcDM4EM8Cihgg4BTIgzFl0oMnWZVb1t1k0tuZy5TdT6ZZbcuW9AI0sIUlBHX6L2TpAuguJWRvX256ASq4I8nisypO0JfkDeu5RzqhjxIfqQubr5ZsW06LsbN3nri2VF37yqqQDoKbdAmKaIFzg1LPIBfSCfp/yeqSvbDQbzfiByYaaNjaU9Hmqr/yhma4R2NQRhkV8/1RteqITEo4ZYdGoogU+9YhxRgb0FJsOsanfCeOvhxFUUWLidZXjzxEQS4sjQmL7/oXdQ03phj/eJ4XT+k4D0b/bCZkjLyeOkUzUDyzpsPwUCSbjSDZeuk1G0uw1hgRzT1DuV5AEddzlycbJbkPda+z9fHvj3v2UjhvKV8rXSk1RlX3lnvKD8lQ5VozVv9Zgrb72zdrf69X17fVGonr9WjpmVSk96/v/ABEljww=</latexit>
+
+replay
+buffer
+
+mini batch size
+
+The algorithm is currently broken 😢
+30
+
+Slide adapted from Sergey Levine
+
+Off-Policy Actor-Critic Methods
+Version 2: Fixing the value function
+
+31
+Slide adapted from Sergey Levine
+
+Off-Policy Actor-Critic Methods
+Version 2: Fixing the policy update
+
+32
+
+Slide adapted from Sergey Levine
+
+Off-Policy Actor-Critic Methods
+Version 2: Anything else?
+
+Any remaining problems?
+
+33
+
+Slide adapted from Sergey Levine
+
+Off-Policy Actor-Critic Methods
+Version 2: Some implementation details
+
+also fancier ways to fit Q-functions
+(more on this in next two lectures)
+
+can also use reparameterization trick to better
+estimate the gradient (for Gaussian policy)
+
+Example practical algorithm:
+Haarnoja, Zhou, Abbeel, Levine. Soft Actor-Critic: Off-Policy Maximum Entropy Deep
+Reinforcement Learning with a Stochastic Actor. 2018.
+34
+
+More off-policy vs. less off-policy actor critic?
+<- more off-policy
+
+(i.e. with replay buffer)
+
+<- less off-policy
+
+(i.e. no replay buffer)
+
++ Off-policy with replay buffer (e.g. soft actor-critic) can be far more data efficient
+- They can also generally be harder to tune hyperparameters, less stable (than e.g. PPO)
+35
+
+The plan for today
+Actor critic methods
+
+1. Improving policy gradients
+2. How to estimate the value of a policy (“policy evaluation”)
+a. Sample & directly supervise (“Monte Carlo estimation”)
+b. Use your own estimate (“bootstrapping”, “temporal difference learning”)
+c. Something in-between? (“N-step returns”)
+3. Off-policy actor-critic
+a. Importance weights & constraining step size
+b. Full off-policy version with replay buffers
+
+Key learning goals:
+- How to estimate how good a state and action is for a policy
+- How to use those estimates to form a better RL algorithm
+36
+
+Next Week
+Q-learning (last big online RL method)
++
+Practical implementation of online RL algorithms
+
+Course reminders
+- Form
+
+nal project groups & ideas (survey due next Wednesday)
+
+- Homework 1 due next Friday
+
+fi
+
+37
+
+

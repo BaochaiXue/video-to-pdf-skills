@@ -1,0 +1,231 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS224R 第 6 讲：Q-Learning}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{2025-04-18}
+\newcommand{\videochannel}{Stanford CS224R}
+\newcommand{\videopublishdate}{2025-04-18}
+\newcommand{\videoduration}{01:01:35}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=-7kv6jf0isQ}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{从 policy improvement 到只学 Q：Q-learning 的思想跳跃}
+本讲的起点，是对上一讲 off-policy actor-critic 的进一步极简化。既然我们已经知道 \(Q^\pi(s,a)\) 描述“在状态 \(s\) 采取动作 \(a\) 后，再按策略 \(\pi\) 行动的未来回报”，那是否可以直接在每个状态选择 \(Q\) 最大的动作，而不再单独维护一个显式 actor？
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-08.png}
+\caption{从显式 policy gradient 过渡到直接对 Q 做 greedy improvement}
+\end{figure}
+
+讲者给出的答案是肯定的。若我们已经有准确的 \(Q^\pi(s,a)\)，那么定义
+\[
+\pi'(a_t\mid s_t)=
+\begin{cases}
+1, & a_t=\arg\max_a Q^\pi(s_t,a),\\
+0, & \text{otherwise},
+\end{cases}
+\]
+则新策略至少不会比旧策略更差，往往还会更好。这里的思想与 policy iteration 一致：先评估，再贪心改进。
+
+\subsection{为什么这一步成立}
+原因在于 \(Q^\pi(s,a)\) 本身已经告诉我们“在该状态下，先做哪个动作最赚”。既然如此，就没必要再通过一个独立 actor 去学习同一件事。对离散动作空间尤其如此，枚举所有动作的 Q 值并取最大值往往更直接。
+
+\begin{importantbox}{Q-learning 的哲学}
+actor-critic 里，actor 负责把“好坏估计”翻译成策略；Q-learning 里，这个翻译过程被一个 \(\arg\max\) 直接替代了。
+\end{importantbox}
+
+\subsection{本章小结}
+本节完成了最关键的概念跨越：从“critic 辅助 actor”转向“critic 独自完成策略改进”。这就是 value-based RL 的核心立场。
+
+\section{Bellman optimality：Q-learning 的目标究竟在拟合什么}
+如果只剩下 Q 网络，我们需要一个自洽的目标来训练它。讲者先回顾任意策略下的 Bellman equation：
+\[
+Q^\pi(s,a)=r(s,a)+\gamma \mathbb{E}_{s'\sim p(\cdot\mid s,a),\,a'\sim\pi(\cdot\mid s')}[Q^\pi(s',a')].
+\]
+若把策略换成最优策略 \(\pi^\star\)，就得到 Bellman optimality equation：
+\[
+Q^{\pi^\star}(s,a)=r(s,a)+\gamma \mathbb{E}_{s'\sim p(\cdot\mid s,a)}
+\Bigl[\max_{a'}Q^{\pi^\star}(s',a')\Bigr].
+\]
+Q-learning 的全部训练逻辑，就是让一个参数化函数 \(\hat Q_\phi\) 尽量满足这个方程。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-12.png}
+\caption{从 actor-critic 退化到 critic-only 之后，Bellman optimality 成为 Q-learning 的监督目标}
+\end{figure}
+
+\subsection{单步目标}
+对 replay buffer 中的一条 transition \((s_i,a_i,r_i,s'_i)\)，Q-learning 构造目标
+\[
+y_i=r_i+\gamma \max_{a'}\hat Q_\phi(s'_i,a').
+\]
+然后把 \(\hat Q_\phi(s_i,a_i)\) 回归到 \(y_i\)。这一步像监督学习，但标签又由当前 Q 网络自己间接生成，因此它是典型的 bootstrap learning。
+
+\subsection{off-policy 数据为何天然可用}
+Q-learning 的一个突出优点是天然 off-policy。因为目标只要求知道当前 transition 的 \(s,a,r,s'\)，以及下一个状态上“当前 Q 认为最优的动作值”，并不要求数据里的动作来自当前 greedy policy。于是训练数据可以来自任何探索策略。
+
+\subsection{本章小结}
+Bellman optimality equation 给了 Q-learning 一个非常强的训练对象：不是直接模仿某个策略，而是直接逼近最优动作价值函数。一旦这个函数足够准，greedy policy 自然浮现出来。
+
+\section{Q-learning 的实践算法：数据收集、replay buffer 与 target network}
+虽然公式优雅，但直接套用 Q-learning 往往不稳定。原因很直观：目标值里也用到了当前网络自己的预测，于是标签在优化过程中不断变化，形成 moving target。
+
+\subsection{一个基础训练循环}
+讲者给出的 practical loop 可以概括为：
+\begin{enumerate}
+\item 用某个探索策略收集 transition \((s,a,s',r)\)，存入 replay buffer \(\mathcal R\)；
+\item 从 \(\mathcal R\) 中采样 mini-batch；
+\item 构造目标 \(y_i=r_i+\gamma \max_{a'}\hat Q_{\phi'}(s'_i,a')\)；
+\item 最小化平方损失
+\[
+\mathcal L(\phi)=\frac12\sum_i \|\hat Q_\phi(s_i,a_i)-y_i\|^2.
+\]
+\end{enumerate}
+
+\subsection{为什么要引入 target network}
+若直接令 \(\phi'=\phi\)，那么每次参数更新都会同时改变预测值和标签，导致优化极不稳定。DQN 的关键修复，是冻结一份 target network 参数 \(\phi'\)，只隔一段时间才从在线网络 \(\phi\) 复制一次。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-18.png}
+\caption{target network 通过冻结标签来源，缓解 moving target 问题}
+\end{figure}
+
+这带来的收益非常直接：在内层若干步更新中，监督目标不再剧烈漂移，优化更像标准 supervised learning。
+
+\begin{knowledgebox}{DQN 的两个核心工程件}
+replay buffer 负责打乱相关性、复用历史数据；target network 负责减慢标签变化速度。少了任何一个，深度 Q-learning 都更容易发散。
+\end{knowledgebox}
+
+\subsection{本章小结}
+Q-learning 之所以能在深度网络场景下真正跑起来，不只是因为 Bellman 公式，更因为 replay buffer 和 target network 这两个工程机制把 bootstrap 学习的数值不稳定压了下去。
+
+\section{进一步稳定化：Double Q-learning 与 N-step returns}
+即便有 target network，Q-learning 仍有两个常见问题：一是 \(\max\) 操作倾向于高估 noisy value；二是一步 bootstrap 在早期容易偏差太大、学习传播过慢。
+
+\subsection{Double Q-learning：把“选动作”和“评动作”拆开}
+标准 Q-learning 中，
+\[
+\max_{a'}Q_{\phi'}(s',a')
+=Q_{\phi'}\bigl(s',\arg\max_{a'}Q_{\phi'}(s',a')\bigr),
+\]
+同一个网络既负责选最大动作，也负责给这个动作打分，因此会系统性偏向高估。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{pdf_pages/page-22.png}
+\caption{Double Q-learning 用两个网络分离动作选择与动作评价，减少高估偏差}
+\end{figure}
+
+Double Q-learning 的思路是：用 \(Q_{\phi_A}\) 负责选择动作，再用 \(Q_{\phi_B}\) 评估这个动作的价值，反之亦然。只要两者噪声不完全相关，高估就会明显减轻。
+
+\subsection{N-step returns：更快把奖励向前传播}
+一步目标
+\[
+y_{j,t}=r_{j,t}+\gamma \max_{a_{j,t+1}} Q_{\phi'}(s_{j,t+1},a_{j,t+1})
+\]
+在 Q 值估计很差时，几乎完全依赖即时奖励，因此回报信息传播慢。于是可以构造 N-step target：
+\[
+y_{j,t}^{(N)}
+=\sum_{t'=t}^{t+N-1}\gamma^{t'-t}r_{j,t'}
+\gamma^N \max_{a_{j,t+N}}Q_{\phi'}(s_{j,t+N},a_{j,t+N}).
+\]
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{pdf_pages/page-25.png}
+\caption{N-step return 用更多真实奖励替代短视 bootstrap，但在 off-policy 下会引入额外偏差}
+\end{figure}
+
+它的优点是偏差更小、奖励传播更快，尤其训练早期常常显著加速学习；但问题也很明确：中间这 \(N\) 步奖励来自收集数据的行为策略，因此严格来说只在 on-policy 情况下完全一致。实践中很多系统仍然使用 \(N>1\)，接受这部分近似。
+
+\subsection{什么时候该用哪种 online RL 算法}
+讲者最后做了一个简短但非常实用的总结：若重视稳定性和易用性，常选 PPO；若动作空间离散且希望直接学习 value，可选 DQN 及其变体；若更在乎数据效率，则 SAC 及其变体往往更合适。
+
+\subsection{本章小结}
+本节展示了深度 Q-learning 为什么不是“Bellman 方程 + SGD”这么简单。Double Q-learning 解决高估偏差，N-step return 解决信息传播慢，两者都是为了让 value-based RL 在真实网络训练里更靠谱。
+
+\section{总结与延伸}
+这一讲把 online RL 的最后一块主拼图补上了。前几讲从 policy gradient 到 actor-critic，核心都还是“显式维护策略，再想办法更新它”；而 Q-learning 走的是另一条路：只要把每个状态动作对的价值学准，策略本身就可以由 greedy rule 自动产生。
+
+从理论上看，本讲最关键的是 Bellman optimality equation，它把“最优策略”变成“最优 Q 函数的自洽条件”。从工程上看，最关键的是 replay buffer、target network、Double Q-learning 与 N-step return，这些机制共同让深度 value learning 不至于在 bootstrap 自举过程中失控。
+
+更大的课程脉络也在这里收束起来了。PPO、SAC、DQN 各自代表在线强化学习的三种典型设计取向：稳定优先、数据效率优先、离散动作 value-based 优先。后续讲 offline RL 和 language model RL 时，很多方法仍然是在这三条主线的基础上做延伸。
+
+\end{document}

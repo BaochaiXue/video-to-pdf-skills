@@ -1,0 +1,664 @@
+Advancing Robot Intelligence with
+Reinforcement Learning
+Ashish Kumar
+
+What is reinforcement learning?
+Imitation Learning
+
+Reinforcement learning
+
+• Used in: VLMs, video generation,
+
+• Used in: Game playing, reasoning,
+
+image segmentation, etc
+
+• Characteristics:
+
+- Relies heavily on off-policy data
+- Learns from good examples
+- Gives generalists
+
+robotics
+
+• Characteristics:
+
+- On policy data
+- Uses good as well as bad data
+- Gives Specialists
+
+What has reinforcement learning achieved?
+- AlphaGo [1]: Learned to exceed what humans can do
+- Reasoning in LLMs [2]: Coherent over long horizon
+- Dexterity in robotics [rest of the talk]: Reliability
+What enabled these successes ?
+- Well specified rewards
+- Scalable evaluation of policies
+[1] Silver, David, et al. "Mastering the game of Go with deep neural networks and tree search." nature (2016)
+[2] Guo, Daya, et al. "Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning." arXiv:2501.12948 (2025)
+
+Zooming in on robotics
+
+What enabled these success ?
+- Well specified rewards —> Programmatically calculate them
+- Scalable evaluation of policies —> Simulation
+
+Simulation to real?
+
+One Policy to Walk them All
+
+Rapid Motor Adaptation for
+Legged Robots
+Ashish Kumar
+UC Berkeley
+
+Zipeng Fu
+CMU
+
+Deepak Pathak
+Jitendra Malik
+CMU
+UC Berkeley/FAIR
+
+Learn to Walk in Simulation
+
+Mass
+COM
+Friction
+Terrain Height
+Motor Strength
+
+x(t), a(t-1)
+Environmental
+Factor Encoder
+
+zt
+
+Base
+Policy
+
+at
+
+Physics Simulation
+
+Extrinsics
+
+Learn to Walk in Simulation
+
+Mass
+COM
+Friction
+Terrain Height
+Motor Strength
+
+x(t), a(t-1)
+Environmental
+Factor Encoder
+
+zt
+
+Base
+Policy
+
+• Important: Reward Function minimizes
+
+work and ground impact (Biomechanics
+and Energetics)
+
+at
+
+Physics Simulation
+
+Reward Function
+Forward Walking
+Energetics
+
+Stability + Minimize
+hardware damage
+
+How can we deploy it?
+
+Mass
+COM
+Friction
+Terrain Height
+Motor Strength
+
+x(t), a(t-1)
+Environmental
+Factor Encoder
+
+zt
+
+Base Policy
+
+Unknown Extrinsics
+
+Unavailable
+
+at
+
+During Deployment
+
+Key Insight — Extrinsics from Observation History
+
+x(t), a(t-1)
+x(t-50), a(t-50)
+.
+.
+.
+
+Adaptation Module
+
+zt
+
+Base Policy
+
+at
+
+x(t-1), a(t-1)
+
+During Deployment
+
+Estimate Online
+
+• Discrepancy b/w expected movement and actual measured movement
+• Continuously estimate these extrinsics online
+
+Training Summary
+Phase 1
+Mass
+COM
+Friction
+Terrain Height
+Motor Strength
+
+x(t), a(t-1)
+Environmental
+Factor Encoder
+
+zt
+
+Base Policy
+
+at
+
+Regress
+Phase 2
+
+x(t), a(t-1)
+
+x(t-50), a(t-50)
+.
+.
+
+Adaptation Module
+
+zt
+
+Base Policy
+
+Physics Simulation
+
+x(t-1), a(t-1)
+*Trainable Modules in Red
+
+Test Time
+
+x(t), a(t-1)
+x(t-50), a(t-50)
+.
+.
+.
+
+Adaptation Module
+10Hz
+
+zt
+
+Base Policy
+100 Hz
+
+at
+
+x(t-1), a(t-1)
+
+During Deployment
+
+Indoors Evaluation
+
+Oily surface and plastic wrapped feet
+
+SLOW
+
+Oily surface
+
+5kg payload throw
+
+SLOW
+
+5kg payload throw
+
+Planks - uneven footholds and moving surfaces
+
+RMA - Indoors
+
+Comparison to RMA w/o Adaptation
+
+RMA
+
+8kg payload
+
+RMA w/o Adaptation
+
+RMA
+
+RMA w/o Adaptation
+
+Analysis of Adaptation Module
+
+Oily surface and plastic wrapped feet
+
+z1, z5 value Knee Tau
+
+RL
+RR
+FL
+FR
+
+10—
+
+0—
+
+0.5—
+
+0—
+
+5kg payload throw
+
+z2, z7 value Knee Tau
+
+RL
+RR
+FL
+FR
+
+10—
+
+0—
+
+1—
+
+0.4—
+
+Quantitative Comparison
+
+Existing Attempts at Learning General Policies
+
+• Domain Randomization (Robust)
+• System Identification
+• Fine tuning at test time in the real world
+
+Why do we need vision?
+
+Perception
+enables
+precise
+locomotion
+Perception
+enables
+precise
+and agile
+locomotion
+
+Legged Locomotion in Challenging
+Terrains using Egocentric Vision
+Ananye Agarwal*
+
+Ashish Kumar*
+
+Jitendra Malik†
+
+CMU
+
+UC Berkeley
+
+UC Berkeley
+
+Deepak Pathak†
+CMU
+
+Typical approach: build terrain maps from vision
+
+Miki, Takahiro, et al. "Learning robust perceptive locomotion for
+quadrupedal robots in the wild." Science Robotics 7.62 (2022)
+Kim, Donghyun, et al. "Vision aided dynamic exploration of
+unstructured terrain with a small-scale quadruped robot." ICRA 2020.
+
+But terrain maps are very noisy!
+
+Noisy maps wipe out signal => degraded performance
+
+?
+Miki, Takahiro, et al. "Learning robust perceptive locomotion for
+quadrupedal robots in the wild." Science Robotics 7.62 (2022)
+
+Do we really need terrain maps?
+We tightly couple vision and control
+
+Phase 1: Learning to Walk with Privileged
+Terrain Information
+ot
+mt RNN
+
+γt
+
+et
+
+zt
+
+RNN
+
+π1
+
+MLP
+
+at
+Scandots ( mt )
+
+PPO in IsaacGym
+Reward = (Track Velocity) + (Minimize Energy)
+
+Training
+Terrains
+Stairs
+
+Slopes
+Rough
+Flat
+
+Stairs
+Stairs
+
+Slopes
+Slopes
+Rough Flat
+
+Gaps
+Stepping
+Stones
+
+Rough Flat
+Flat
+Rough
+
+Gaps
+Gaps Stones
+Stepping
+
+Discrete Obstacles
+
+Gaps
+
+Discrete Ob
+
+Phase 1 Policy
+
+How do we deploy it?
+
+ot
+
+scan dots
+
+[friction, payload…..]
+
+mt RNN
+
+γt
+
+et
+
+zt
+
+RNN
+
+π1
+
+MLP
+
+Cannot directly measure in real world
+
+Phase 2: Learning to Walk with Egocentric Depth
+scan dots
+
+[friction, payload…..]
+
+ot
+mt RNN
+
+γt
+
+et
+
+zt
+
+RNN
+
+MLP
+Copy and
+Freeze
+
+Regress
+
+Egocentric Depth
+
+π1
+
+ot
+dt
+
+RNN
+
+γt̂
+
+ot
+
+RNN
+
+zt̂
+
+π1
+
+MLP
+
+at
+Scandots ( mt )
+
+Deployment Policy
+
+Egocentric Depth
+
+ot
+dt
+
+RNN
+
+γt̂
+
+ot
+
+RNN
+
+zt̂
+
+π1
+
+MLP
+
+Stairs are designed for humans
+
+26cm
+17cm
+
+Stairs are challenging for small robots
+
+No predefined gait => emergent hip abduction
+
+Emergent footstep planning
+
+Map Free, Gait Free
+
+Live demo at New Zealand (CoRL 2022)
+
+Live demo at New Orleans (CVPR 2022)
+
+Comparisons to baselines
+
+Performance is better without maps
+Average Distance
+Blind
+
+Map Based
+
+Ours
+
+Slopes
+
+34.72
+
+36.14
+
+43.98
+
+Stepping Stones
+
+1.02
+
+1.09
+
+18.83
+
+Stairs
+Discrete Obstacles
+
+Performance gap is larger on challenging terrains
+
+16.64
+
+6.74
+
+31.24
+
+32.41
+
+29.08
+
+40.13
+
+Application to dexterous manipulation
+
+Qi* et. al. In-Hand Object Rotation via Rapid Motor Adaptation. CoRL 2022.
+
+62
+
+Generalization across Objects with Different Physical Properties
+Weight
+
+5g
+
+Coefficient of Friction
+
+198 g
+
+Small
+Shape
+
+Center of Mass
+
+Higher than Finger
+
+Lower than Finger
+
+Large
+
+Cube
+
+Cup
+
+63
+
+Proprioceptive history for Contact Detection
+
+64
+
+Proprioceptive history for Contact Detection
+Actions
+
+Joint Position
+The Bottom Joint
+65
+
+Contact Detection
+Pinky Finger in Contact
+Actions
+
+Joint Position
+
+Joint Position != Action
+
+Joint Position ≈ Action
+No Contact on Pinky Finger
+
+66
+
+Real-world Demos
+
+Credit: Max
+University of Bristol
+University
+of Yang,
+Bristol
+
+CoRL 2022
+
+ICRA 2024
+
+67
+
+Application to drone flight
+
+So what’s left to solve?
+
+Humanoids
+
+Getting to reliability and dexterity
+
+- Simulation technology is still very primitive
+
+Epic Kitchens
+
+Simulation?
+- We can, in fact model complex scenarios like deformable
+objects, etc. However, they are slow.
+- Learn from the bitter lesson and bet on compute
+“The biggest lesson that can be read from 70 years of AI research
+is that general methods that leverage computation are ultimately
+the most effective, and by a large margin”
+- Rich Sutton
+
+General reward model?
+- Most obvious answer are large models trained for general
+understanding
+
+- Could work, but RL will exploit weaknesses if they exist
+
+Worst case: humans label everything for us!
+
+Superhuman capabilities
+Learnings from AlphaGo: Sparse reward + lots of search!
+
+Can we get robots that exceed human capability?
+
+Questions?
+
+

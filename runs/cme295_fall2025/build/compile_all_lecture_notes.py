@@ -1,33 +1,40 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 LECTURES_DIR = ROOT / "lectures"
+VALIDATOR = ROOT / "build" / "validate_youtube_note.py"
 
-
-def compile_tex(tex_path: Path) -> None:
-    for _ in range(2):
-        subprocess.run(
-            ["xelatex", "-interaction=nonstopmode", "-halt-on-error", tex_path.name],
-            cwd=tex_path.parent,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
+def lecture_dirs(selected: set[str] | None = None) -> list[Path]:
+    lecture_paths = sorted(p for p in LECTURES_DIR.iterdir() if p.is_dir() and p.name[:2].isdigit())
+    if selected is None:
+        return lecture_paths
+    return [path for path in lecture_paths if path.name in selected or path.name.split("_", 1)[0] in selected]
 
 
 def main() -> None:
-    lecture_dirs = sorted(p for p in LECTURES_DIR.iterdir() if p.is_dir() and p.name[:2].isdigit())
-    for lecture_dir in lecture_dirs:
-        tex_files = sorted(lecture_dir.glob("lecture_*_note.tex"))
-        if not tex_files:
-            continue
-        compile_tex(tex_files[0])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--lectures", nargs="*", help="lecture ids or lecture directory names")
+    parser.add_argument("--regression-set", action="store_true", help="compile and validate the fixed 3-lecture regression set")
+    args = parser.parse_args()
+
+    if args.regression_set:
+        cmd = ["python3", str(VALIDATOR), "--compile", "--regression-set"]
+        subprocess.run(cmd, cwd=ROOT, check=True)
+        return
+
+    selected = set(args.lectures) if args.lectures else None
+    for lecture_dir in lecture_dirs(selected):
+        subprocess.run(
+            ["python3", str(VALIDATOR), "--compile", lecture_dir.name],
+            cwd=ROOT,
+            check=True,
+        )
         print(lecture_dir.name)
 
 

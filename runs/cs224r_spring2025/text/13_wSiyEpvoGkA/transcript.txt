@@ -1,0 +1,1355 @@
+[00:00:05,520 --> 00:00:07,840] OK, let's get started.
+[00:00:07,840 --> 00:00:08,580] Cool.
+[00:00:08,580 --> 00:00:11,080] So as a recap of last week, we talked
+[00:00:11,080 --> 00:00:13,833] about multi-task reinforcement learning
+[00:00:13,833 --> 00:00:16,000] and how we might want to have reinforcement learning
+[00:00:16,000 --> 00:00:19,637] agents not learn just one task, but multiple different things
+[00:00:19,637 --> 00:00:21,720] that might correspond to multiple different reward
+[00:00:21,720 --> 00:00:22,840] functions.
+[00:00:22,840 --> 00:00:29,080] And we saw that we can formulate an aggregated MDP that
+[00:00:29,080 --> 00:00:32,479] encapsulates all of the different tasks, where you now
+[00:00:32,479 --> 00:00:36,620] are augmenting your state with some sort of task descriptor,
+[00:00:36,620 --> 00:00:42,800] like a prompt or a goal or just an index corresponding to what
+[00:00:42,800 --> 00:00:44,540] the agent should do.
+[00:00:44,540 --> 00:00:46,040] And the way that this worked is we'd
+[00:00:46,040 --> 00:00:51,600] sample some task, run the policy in the MDP for that task,
+[00:00:51,600 --> 00:00:54,120] sample another task, and so forth.
+[00:00:54,120 --> 00:00:57,960] And we would then get a policy that
+[00:00:57,960 --> 00:01:03,430] could be able to successfully achieve high reward
+[00:01:03,430 --> 00:01:05,069] in a number of different MDPs.
+[00:01:05,069 --> 00:01:08,070] Or another way to view it, as single,
+[00:01:08,070 --> 00:01:12,060] aggregated MDP with this augmented state.
+[00:01:14,197 --> 00:01:16,530] This is going to be a little bit different from meta-RL.
+[00:01:16,530 --> 00:01:21,230] So we'll see some differences here later in this lecture.
+[00:01:21,230 --> 00:01:23,190] And we also somewhat briefly talked
+[00:01:23,190 --> 00:01:25,510] about goal-conditioned reinforcement learning.
+[00:01:25,510 --> 00:01:27,830] And it could just be simply viewed
+[00:01:27,830 --> 00:01:30,910] as a special case of multi-task reinforcement learning,
+[00:01:30,910 --> 00:01:34,630] where each task is trying to reach a goal state.
+[00:01:34,630 --> 00:01:37,890] And the task descriptor corresponds to that goal state.
+[00:01:37,890 --> 00:01:40,010] And so if your states are images, for example,
+[00:01:40,010 --> 00:01:42,550] then now you'll be passing as input
+[00:01:42,550 --> 00:01:46,450] to the policy, both the current image and the goal image.
+[00:01:46,450 --> 00:01:48,470] And you'll be trying to reach that goal image.
+[00:01:48,470 --> 00:01:50,930] Or if your state, for example, is a vector,
+[00:01:50,930 --> 00:01:52,990] you'll be passing in two vectors.
+[00:01:52,990 --> 00:01:56,470] And the task is trying to reach some goal state.
+[00:01:56,470 --> 00:01:58,710] And you can construct different reward functions,
+[00:01:58,710 --> 00:02:01,090] if you have discrete states or continuous states,
+[00:02:01,090 --> 00:02:04,210] as some sort of, did you reach that goal
+[00:02:04,210 --> 00:02:06,690] or reach close to that goal.
+[00:02:06,690 --> 00:02:08,810] And one of the things that's kind
+[00:02:08,810 --> 00:02:11,290] of nice about this goal-conditioned formulation
+[00:02:11,290 --> 00:02:13,770] of reinforcement learning is that you can actually
+[00:02:13,770 --> 00:02:16,177] do it in a self-supervised way.
+[00:02:16,177 --> 00:02:17,510] You don't need task descriptors.
+[00:02:17,510 --> 00:02:19,330] You don't need a different set of tasks
+[00:02:19,330 --> 00:02:20,910] that you've manually defined.
+[00:02:20,910 --> 00:02:23,650] You can just use a bunch of different states
+[00:02:23,650 --> 00:02:26,530] as the tasks themselves.
+[00:02:26,530 --> 00:02:29,010] And a lot of different tasks can be formulated as goal
+[00:02:29,010 --> 00:02:31,210] reaching tasks.
+[00:02:31,210 --> 00:02:34,210] One thing to note here is it can be pretty hard to train.
+[00:02:34,210 --> 00:02:37,770] But you'll be experimenting with a simple, goal-conditioned
+[00:02:37,770 --> 00:02:42,290] reinforcement learning setting in your homework.
+[00:02:42,290 --> 00:02:44,690] OK, so for today we're going to be talking about meta
+[00:02:44,690 --> 00:02:45,870] reinforcement learning.
+[00:02:45,870 --> 00:02:48,530] And specifically, we'll be talking about what that problem
+[00:02:48,530 --> 00:02:53,090] statement looks like and a class of meta-RL methods
+[00:02:53,090 --> 00:02:56,760] that I like to refer to as black-box meta-RL methods.
+[00:02:56,760 --> 00:02:59,760] We'll start to get into what these methods look like
+[00:02:59,760 --> 00:03:03,040] and also some of the challenges that they face.
+[00:03:03,040 --> 00:03:04,340] So what's the problem?
+[00:03:04,340 --> 00:03:07,760] Why do we care about meta-RL?
+[00:03:07,760 --> 00:03:09,540] Why not just do vanilla RL?
+[00:03:09,540 --> 00:03:12,280] So say that you're trying to figure out
+[00:03:12,280 --> 00:03:15,720] how to operate an espresso machine that you've never
+[00:03:15,720 --> 00:03:16,270] used before.
+[00:03:19,720 --> 00:03:23,220] If you wanted to do that, well, first,
+[00:03:23,220 --> 00:03:26,160] if you wanted a robot or a reinforcement
+[00:03:26,160 --> 00:03:28,400] learning agent to do that, it would probably
+[00:03:28,400 --> 00:03:30,840] take a lot of data, a lot of attempts
+[00:03:30,840 --> 00:03:33,995] to try to figure out how to make coffee.
+[00:03:33,995 --> 00:03:35,620] Because it's a pretty complicated task,
+[00:03:35,620 --> 00:03:37,600] lots of different steps involved.
+[00:03:37,600 --> 00:03:39,720] You have to do the steps in sequence.
+[00:03:39,720 --> 00:03:43,200] And also, the reward signal that you get for this sort of task
+[00:03:43,200 --> 00:03:46,120] probably isn't going to be super detailed.
+[00:03:46,120 --> 00:03:49,880] But as a human, if you were to attempt this task,
+[00:03:49,880 --> 00:03:52,760] probably if you had a little bit of instruction
+[00:03:52,760 --> 00:03:55,470] or some previous experience making espresso,
+[00:03:55,470 --> 00:03:58,470] then you could probably learn it in minutes, or maybe even less
+[00:03:58,470 --> 00:04:01,110] than a minute.
+[00:04:01,110 --> 00:04:04,270] So if you think about reinforcement learning, this gap
+[00:04:04,270 --> 00:04:07,750] between how quickly a human could learn something
+[00:04:07,750 --> 00:04:11,190] and how slowly it would take a reinforcement learning system
+[00:04:11,190 --> 00:04:15,150] to learn it, this is rather unsatisfying.
+[00:04:15,150 --> 00:04:18,630] And if we think about what is the difference between a person
+[00:04:18,630 --> 00:04:21,362] and a reinforcement learning system,
+[00:04:21,362 --> 00:04:23,070] one of the big differences is that people
+[00:04:23,070 --> 00:04:25,150] aren't starting from scratch.
+[00:04:25,150 --> 00:04:29,550] People already know how to move objects around with their hands.
+[00:04:29,550 --> 00:04:32,190] They might already know how to make coffee in other ways
+[00:04:32,190 --> 00:04:33,750] or with other machines.
+[00:04:33,750 --> 00:04:36,990] And they can leverage that experience and also
+[00:04:36,990 --> 00:04:39,678] some notion of semantic knowledge of what
+[00:04:39,678 --> 00:04:41,470] to do if someone tells you to pick up a cup
+[00:04:41,470 --> 00:04:44,170] and put it somewhere, or to turn a knob.
+[00:04:44,170 --> 00:04:46,670] And I can leverage that previous experience in order
+[00:04:46,670 --> 00:04:50,070] to solve this problem really, really quickly,
+[00:04:50,070 --> 00:04:52,830] compared to training a reinforcement learning system
+[00:04:52,830 --> 00:04:53,460] from scratch.
+[00:04:56,330 --> 00:04:58,650] And so experience with similar tasks,
+[00:04:58,650 --> 00:05:02,250] other espresso-making machines, either espresso making
+[00:05:02,250 --> 00:05:04,580] on other machines or just general motor control,
+[00:05:04,580 --> 00:05:06,330] following instructions, that sort of thing
+[00:05:06,330 --> 00:05:09,890] can be very useful when trying to solve a new task.
+[00:05:09,890 --> 00:05:13,390] And I mentioned this as kind of an example with espresso making,
+[00:05:13,390 --> 00:05:17,090] but this framework of not starting from scratch
+[00:05:17,090 --> 00:05:18,430] is really general.
+[00:05:18,430 --> 00:05:21,370] So it applies to robotics problems
+[00:05:21,370 --> 00:05:23,490] where you're facing a new environment
+[00:05:23,490 --> 00:05:25,330] or facing a new task.
+[00:05:25,330 --> 00:05:28,890] But it's also really faced by many reinforcement learning
+[00:05:28,890 --> 00:05:29,730] systems.
+[00:05:29,730 --> 00:05:32,450] As another example, say you want to solve a challenging math
+[00:05:32,450 --> 00:05:34,690] problem that you haven't solved before.
+[00:05:34,690 --> 00:05:38,090] If you have experience solving previous math problems,
+[00:05:38,090 --> 00:05:40,548] then you can use that to more quickly solve
+[00:05:40,548 --> 00:05:43,090] a new problem, because you've learned some sort of strategies
+[00:05:43,090 --> 00:05:47,610] that you might be able to apply to the new scenario.
+[00:05:47,610 --> 00:05:49,170] OK, we're framing this question of,
+[00:05:49,170 --> 00:05:52,120] can reinforcement learning algorithms leverage experience
+[00:05:52,120 --> 00:05:56,680] from previous tasks in order to learn a new task with less
+[00:05:56,680 --> 00:05:59,920] data and less experience?
+[00:05:59,920 --> 00:06:01,813] In many ways, this problem is thought
+[00:06:01,813 --> 00:06:03,480] of as a transfer learning problem, where
+[00:06:03,480 --> 00:06:06,700] we want to transfer knowledge, information,
+[00:06:06,700 --> 00:06:12,610] experience from previous tasks to new tasks.
+[00:06:12,610 --> 00:06:14,360] And there are a few different formulations
+[00:06:14,360 --> 00:06:16,400] and a few different problem settings
+[00:06:16,400 --> 00:06:19,540] that the research community has thought about.
+[00:06:19,540 --> 00:06:24,760] One is a fairly standard, a fairly simple setup
+[00:06:24,760 --> 00:06:27,320] where you learn one task and then want to learn a new task.
+[00:06:27,320 --> 00:06:29,320] And you can just, for example, train on one task
+[00:06:29,320 --> 00:06:31,340] and then fine-tune on the new task.
+[00:06:31,340 --> 00:06:34,920] And notions of fine-tuning that we use in supervised learning
+[00:06:34,920 --> 00:06:38,212] are also applicable to reinforcement learning settings,
+[00:06:38,212 --> 00:06:40,420] where you could fine-tune a Q-function to a new task,
+[00:06:40,420 --> 00:06:43,280] or fine-tune a policy to a new task.
+[00:06:43,280 --> 00:06:47,400] Although, for this to work well, the tasks
+[00:06:47,400 --> 00:06:51,222] need to be quite similar to each other.
+[00:06:51,222 --> 00:06:52,930] We also talked about multi-task learning.
+[00:06:52,930 --> 00:06:55,350] And you could also use multi-task learning for transfer
+[00:06:55,350 --> 00:06:57,070] to new tasks.
+[00:06:57,070 --> 00:07:03,830] And in particular, if your prompt shares some structure,
+[00:07:03,830 --> 00:07:07,190] if it's just like a task 1, task 2, task 3;
+[00:07:07,190 --> 00:07:08,730] transfer is going to be harder.
+[00:07:08,730 --> 00:07:10,850] But if it's something that has a lot of structure,
+[00:07:10,850 --> 00:07:13,250] like pick up a water bottle, pick up a phone,
+[00:07:13,250 --> 00:07:18,030] pick up a pen, and so forth; then you might actually
+[00:07:18,030 --> 00:07:21,110] be able to have things transfer what's
+[00:07:21,110 --> 00:07:23,150] called zero-shot, without any new experience
+[00:07:23,150 --> 00:07:26,790] at all, simply by passing that prompt to the system
+[00:07:26,790 --> 00:07:32,470] and having it act according to that prompt.
+[00:07:32,470 --> 00:07:35,870] And then meta-learning is often concerned with, instead
+[00:07:35,870 --> 00:07:38,790] of zero-shot transfer, something that's called few-shot transfer,
+[00:07:38,790 --> 00:07:40,850] where with a little bit of experience,
+[00:07:40,850 --> 00:07:44,110] a few examples or a few trials of a task,
+[00:07:44,110 --> 00:07:47,770] can you adapt to that task?
+[00:07:47,770 --> 00:07:50,967] And essentially the difference between multi-task learning
+[00:07:50,967 --> 00:07:53,050] and meta-learning is that it accounts for the fact
+[00:07:53,050 --> 00:07:54,890] that we're going to be trying to adapt
+[00:07:54,890 --> 00:07:57,330] with a small amount of data.
+[00:07:57,330 --> 00:08:01,610] And it does that during the original training process.
+[00:08:01,610 --> 00:08:03,210] And another way of thinking about this
+[00:08:03,210 --> 00:08:05,530] is that instead of having the task descriptor be
+[00:08:05,530 --> 00:08:08,890] a prompt or an index, the task descriptor might actually
+[00:08:08,890 --> 00:08:11,970] be a dataset itself, like a set of trials
+[00:08:11,970 --> 00:08:15,010] that you're going to be adapting to
+[00:08:15,010 --> 00:08:17,560] in the context of some policy.
+[00:08:17,560 --> 00:08:19,810] Another word for this is sometimes in-context learning
+[00:08:19,810 --> 00:08:21,690] or few-shot learning.
+[00:08:21,690 --> 00:08:24,070] Now, for this to work, for the first scenario to work,
+[00:08:24,070 --> 00:08:27,250] you must have very similar source and target tasks.
+[00:08:27,250 --> 00:08:30,810] Whereas, in some ways, things get a little bit easier
+[00:08:30,810 --> 00:08:33,890] and a little bit harder for number 2 and number 3.
+[00:08:33,890 --> 00:08:36,090] They get easier in the sense that you no longer
+[00:08:36,090 --> 00:08:37,830] have to have an extremely similar task.
+[00:08:37,830 --> 00:08:40,850] You, instead, just need to have a distribution of tasks
+[00:08:40,850 --> 00:08:44,650] and be similar to that distribution, such
+[00:08:44,650 --> 00:08:47,320] that conceivably, the new task that you're trying to solve
+[00:08:47,320 --> 00:08:49,720] should be within the distribution of the task
+[00:08:49,720 --> 00:08:51,835] that you've seen during training.
+[00:08:51,835 --> 00:08:53,960] It gets a little bit harder because you do actually
+[00:08:53,960 --> 00:08:58,720] need a number of training tasks, not just a single training task,
+[00:08:58,720 --> 00:09:02,360] in order to get effective transfer.
+[00:09:02,360 --> 00:09:05,480] OK, before we jump into meta-RL, let's just
+[00:09:05,480 --> 00:09:08,080] look at a couple few-shot learning examples outside of RL,
+[00:09:08,080 --> 00:09:11,280] and then go back to the RL setting.
+[00:09:11,280 --> 00:09:12,800] So actually, I picked this example
+[00:09:12,800 --> 00:09:13,900] so that it's not trivial.
+[00:09:13,900 --> 00:09:16,840] There's other test data points that are much, much easier.
+[00:09:16,840 --> 00:09:17,500] Cool.
+[00:09:17,500 --> 00:09:19,960] So that's the essence of a few-shot image classification
+[00:09:19,960 --> 00:09:23,340] problem, where you have a small number of data points.
+[00:09:23,340 --> 00:09:26,920] And your goal is to classify a new data point.
+[00:09:26,920 --> 00:09:30,080] And typically, if you were to train from scratch on just six
+[00:09:30,080 --> 00:09:32,360] images, you'd have no hope of being
+[00:09:32,360 --> 00:09:34,440] able to learn a classifier, especially
+[00:09:34,440 --> 00:09:35,968] on high-dimensional images.
+[00:09:35,968 --> 00:09:37,760] But the way that meta-learning works is you
+[00:09:37,760 --> 00:09:41,280] can construct other tasks for the machine learning system
+[00:09:41,280 --> 00:09:43,340] to solve that have a similar structure,
+[00:09:43,340 --> 00:09:45,630] like other image classification tasks,
+[00:09:45,630 --> 00:09:48,790] train it to be able to take as input a training dataset
+[00:09:48,790 --> 00:09:55,270] and a query image or a test input, and then predict a label.
+[00:09:55,270 --> 00:09:58,390] And basically, constructing each of these few-shot learning
+[00:09:58,390 --> 00:10:03,110] problems as a data point themselves.
+[00:10:03,110 --> 00:10:07,190] Now, another example of few-shot learning outside
+[00:10:07,190 --> 00:10:08,910] of reinforcement learning is in-context
+[00:10:08,910 --> 00:10:11,110] learning in large language models.
+[00:10:11,110 --> 00:10:13,770] And what this looks like is, here's just one example.
+[00:10:13,770 --> 00:10:16,270] There's lots of examples of different tasks you could do.
+[00:10:16,270 --> 00:10:20,910] In this case, the goal is, given a sentence that's poor English
+[00:10:20,910 --> 00:10:23,430] input, like, "I eated the purple berries,"
+[00:10:23,430 --> 00:10:27,110] output good English input like, "I ate the purple berries."
+[00:10:27,110 --> 00:10:29,710] It gives it, in this case, I think
+[00:10:29,710 --> 00:10:34,510] four or three different examples of input-outputs.
+[00:10:34,510 --> 00:10:35,750] This is the training dataset.
+[00:10:35,750 --> 00:10:37,790] And the goal is for a new input to be
+[00:10:37,790 --> 00:10:43,610] able to predict a good output for that example.
+[00:10:43,610 --> 00:10:46,430] So here's another example of a few-shot learning problem.
+[00:10:46,430 --> 00:10:48,770] And again, language models get things that
+[00:10:48,770 --> 00:10:50,152] look like this during training.
+[00:10:50,152 --> 00:10:52,610] One thing that's a little bit special about language models
+[00:10:52,610 --> 00:10:55,250] is that this sort of in-context learning,
+[00:10:55,250 --> 00:10:58,050] you don't explicitly set up your training dataset exactly
+[00:10:58,050 --> 00:10:59,450] to match all of this.
+[00:10:59,450 --> 00:11:02,010] And it turns out that a lot of the statistics of data
+[00:11:02,010 --> 00:11:05,330] on the internet leads to this ability
+[00:11:05,330 --> 00:11:09,012] to react to these few-shot examples effectively.
+[00:11:09,012 --> 00:11:10,470] This is actually just a base model.
+[00:11:10,470 --> 00:11:12,978] I think this is from GPT-3.
+[00:11:12,978 --> 00:11:15,270] And so even without any additional supervised training,
+[00:11:15,270 --> 00:11:17,050] you get something like this.
+[00:11:17,050 --> 00:11:18,150] It's not perfect.
+[00:11:18,150 --> 00:11:19,610] It doesn't work all the time.
+[00:11:19,610 --> 00:11:23,792] But this is another example of few-shot learning.
+[00:11:23,792 --> 00:11:25,250] And then in each of these examples,
+[00:11:25,250 --> 00:11:26,970] you can think of the goal as trying
+[00:11:26,970 --> 00:11:30,250] to train this model that takes as input a training
+[00:11:30,250 --> 00:11:34,570] dataset and a new example x, and makes
+[00:11:34,570 --> 00:11:37,970] a prediction for that example, based on both x
+[00:11:37,970 --> 00:11:40,250] and on the training data.
+[00:11:40,250 --> 00:11:43,600] Yeah, so the question is, in in-context learning in LLMs,
+[00:11:43,600 --> 00:11:46,200] typically you achieve this sort of model,
+[00:11:46,200 --> 00:11:48,320] this few-shot learning through prompting,
+[00:11:48,320 --> 00:11:51,720] by putting the dataset in a context
+[00:11:51,720 --> 00:11:54,200] or as part of the prompt into the model.
+[00:11:54,200 --> 00:11:56,132] Is that also how it works in meta-RL?
+[00:11:56,132 --> 00:11:57,840] Generally, yes, we're going to be looking
+[00:11:57,840 --> 00:11:59,280] at that case in meta-RL.
+[00:11:59,280 --> 00:12:02,640] There are actually other methods where you can accomplish this,
+[00:12:02,640 --> 00:12:04,960] actually, with gradient updates as well,
+[00:12:04,960 --> 00:12:08,600] or with something that looks like nearest neighbors.
+[00:12:08,600 --> 00:12:12,380] The most successful method in meta-RL looks like prompting.
+[00:12:12,380 --> 00:12:14,830] And so that's what we'll be talking about today.
+[00:12:17,360 --> 00:12:19,920] Now, let's look at a meta-RL example.
+[00:12:19,920 --> 00:12:26,680] So, say that we want to navigate mazes.
+[00:12:26,680 --> 00:12:31,120] And so our goal is, we want to solve a new maze.
+[00:12:31,120 --> 00:12:34,340] And we're an agent that's in this maze.
+[00:12:34,340 --> 00:12:35,423] We don't get to see.
+[00:12:35,423 --> 00:12:37,340] We actually don't even see this top-down view.
+[00:12:37,340 --> 00:12:40,080] Maybe we just have a first-person perspective.
+[00:12:40,080 --> 00:12:42,710] And our goal is, because this is a reinforcement learning
+[00:12:42,710 --> 00:12:45,033] problem, it's not just about outputting a label.
+[00:12:45,033 --> 00:12:46,950] It's actually also about collecting experience
+[00:12:46,950 --> 00:12:48,630] in the environment.
+[00:12:48,630 --> 00:12:51,550] And so the goal is, we'd like to be
+[00:12:51,550 --> 00:12:54,330] able to very quickly solve a reinforcement learning problem.
+[00:12:54,330 --> 00:12:57,430] And we'll frame this as collecting a very small training
+[00:12:57,430 --> 00:13:00,430] dataset of one episode or a few episodes.
+[00:13:00,430 --> 00:13:02,130] In this case, it's exploring the maze,
+[00:13:02,130 --> 00:13:05,230] trying to find where the goal is.
+[00:13:05,230 --> 00:13:08,570] And it starts in the middle right here, explores over here.
+[00:13:08,570 --> 00:13:11,590] And it eventually goes to the goal, right here.
+[00:13:11,590 --> 00:13:14,590] And after we explore, we'd like to be
+[00:13:14,590 --> 00:13:16,950] able to have a policy that is able to solve
+[00:13:16,950 --> 00:13:20,550] the maze, in this case, just with a single episode
+[00:13:20,550 --> 00:13:23,030] of experience.
+[00:13:23,030 --> 00:13:25,270] And again, if you were to do this sort of thing
+[00:13:25,270 --> 00:13:27,550] from scratch that tries to use just
+[00:13:27,550 --> 00:13:29,110] a single episode of experience to get
+[00:13:29,110 --> 00:13:32,150] a policy that can solve the task,
+[00:13:32,150 --> 00:13:34,230] this would be very, very hard.
+[00:13:34,230 --> 00:13:36,870] And instead, the way that meta-RL frames
+[00:13:36,870 --> 00:13:40,610] this is by trying to construct examples
+[00:13:40,610 --> 00:13:43,210] and trying to construct a set of training environments
+[00:13:43,210 --> 00:13:47,170] that facilitates this kind of fast adaptation.
+[00:13:47,170 --> 00:13:49,670] Now, in comparison to the supervised learning scenarios,
+[00:13:49,670 --> 00:13:51,850] like I mentioned, we're now going
+[00:13:51,850 --> 00:13:54,070] to be faced with this exploration problem.
+[00:13:54,070 --> 00:13:56,610] We're not just given a training dataset
+[00:13:56,610 --> 00:13:59,590] and then make a prediction based on that training dataset.
+[00:13:59,590 --> 00:14:03,330] We're actually constructing the training dataset ourselves
+[00:14:03,330 --> 00:14:05,370] through exploration.
+[00:14:05,370 --> 00:14:07,450] And we need to figure out how best to trade-off
+[00:14:07,450 --> 00:14:11,890] between exploring in the environment versus being
+[00:14:11,890 --> 00:14:14,570] able to then solve the task; and how much time we should spend
+[00:14:14,570 --> 00:14:17,290] exploring versus trying to exploit what
+[00:14:17,290 --> 00:14:20,250] we know about the environment.
+[00:14:20,250 --> 00:14:22,582] So this is our goal.
+[00:14:22,582 --> 00:14:24,790] This is what we'd like to be able to do at test time.
+[00:14:24,790 --> 00:14:29,170] We'd like to be able to quickly learn a new maze.
+[00:14:29,170 --> 00:14:34,370] Then, to set our agent up for success at meta-training time,
+[00:14:34,370 --> 00:14:36,870] before we try to adapt to a new maze,
+[00:14:36,870 --> 00:14:40,360] we'll try to learn how to efficiently explore and solve
+[00:14:40,360 --> 00:14:42,560] many other MDPs that are related.
+[00:14:42,560 --> 00:14:46,880] In this case, they can be other mazes like this, and so forth.
+[00:14:46,880 --> 00:14:48,960] And these are each of the tasks that we'll
+[00:14:48,960 --> 00:14:52,030] be training on in order to adapt to a new maze.
+[00:14:55,400 --> 00:14:56,320] Cool.
+[00:14:56,320 --> 00:14:58,960] The other thing, one key assumption here
+[00:14:58,960 --> 00:15:00,500] is that you need to have--
+[00:15:00,500 --> 00:15:02,560] these new MDPs can't be completely
+[00:15:02,560 --> 00:15:05,203] different from the MDPs that you saw before.
+[00:15:05,203 --> 00:15:07,120] And the way that we can think about that is we
+[00:15:07,120 --> 00:15:09,600] should have some sort of distribution over tasks.
+[00:15:09,600 --> 00:15:12,680] And these new MDPs that we're trying to adapt to
+[00:15:12,680 --> 00:15:15,000] should be within the distribution of tasks
+[00:15:15,000 --> 00:15:16,930] that we saw during training.
+[00:15:23,040 --> 00:15:26,600] Maze navigation is one example of a meta-RL task.
+[00:15:26,600 --> 00:15:29,960] There's lots of other scenarios as well.
+[00:15:29,960 --> 00:15:35,160] So one useful scenario that we've seen in robotics
+[00:15:35,160 --> 00:15:39,270] is being able to adapt very quickly
+[00:15:39,270 --> 00:15:43,290] to different terrains, different slopes for legged robot systems.
+[00:15:43,290 --> 00:15:47,110] This is actually a really small legged robot,
+[00:15:47,110 --> 00:15:51,610] but it's also applicable to larger legged robots as well.
+[00:15:51,610 --> 00:15:53,190] And sometimes you might actually be
+[00:15:53,190 --> 00:15:55,190] training on different environments in simulation
+[00:15:55,190 --> 00:15:56,710] and then adapting in the real world
+[00:15:56,710 --> 00:16:00,165] as just another environment.
+[00:16:00,165 --> 00:16:01,790] You could also have object manipulation
+[00:16:01,790 --> 00:16:05,208] as different tasks, as well, in manipulation scenarios.
+[00:16:05,208 --> 00:16:07,750] And then there's also a number of language modeling scenarios
+[00:16:07,750 --> 00:16:09,470] where this is quite applicable.
+[00:16:09,470 --> 00:16:11,950] One example where meta-RL has been relevant
+[00:16:11,950 --> 00:16:15,430] is adapting to different users with different preferences,
+[00:16:15,430 --> 00:16:18,390] where you give examples of the kinds of responses
+[00:16:18,390 --> 00:16:20,270] that they want in context.
+[00:16:20,270 --> 00:16:24,023] And we'll also later see an example in reasoning as well.
+[00:16:24,023 --> 00:16:26,190] Yeah, so the question is, what is the key difference
+[00:16:26,190 --> 00:16:29,750] between this sort of meta-RL approach
+[00:16:29,750 --> 00:16:31,630] and transfer learning where you're training
+[00:16:31,630 --> 00:16:33,270] and then fine-tuning?
+[00:16:33,270 --> 00:16:37,210] And there's a couple of ways to view it.
+[00:16:37,210 --> 00:16:40,030] One is that during the training process,
+[00:16:40,030 --> 00:16:42,950] you're actually explicitly optimizing for transferability.
+[00:16:42,950 --> 00:16:44,810] You're optimizing for the ability
+[00:16:44,810 --> 00:16:47,050] to adapt with a small dataset.
+[00:16:47,050 --> 00:16:51,070] And as a result of that, you can get much faster transfer.
+[00:16:51,070 --> 00:16:53,450] You can use a much smaller dataset.
+[00:16:53,450 --> 00:16:55,970] And there are examples of, if you use fine-tuning
+[00:16:55,970 --> 00:16:58,530] versus if you use few-shot in-context learning
+[00:16:58,530 --> 00:17:00,372] or few-shot adaptation, you can get
+[00:17:00,372 --> 00:17:01,580] much more efficient transfer.
+[00:17:04,670 --> 00:17:06,650] So you get much greater efficiency.
+[00:17:06,650 --> 00:17:10,250] And the way that you get that is by providing
+[00:17:10,250 --> 00:17:16,910] the algorithm with a number of different training tasks,
+[00:17:16,910 --> 00:17:21,490] rather than just one training task that you're feeding off of.
+[00:17:21,490 --> 00:17:23,849] So slightly more formally, we've talked
+[00:17:23,849 --> 00:17:25,970] about multi-task learning, where you
+[00:17:25,970 --> 00:17:27,470] try to solve multiple tasks at once.
+[00:17:27,470 --> 00:17:31,650] You might try to transfer to a new task from that.
+[00:17:31,650 --> 00:17:34,258] But you're not optimizing for transferability.
+[00:17:34,258 --> 00:17:35,800] With transfer learning, you're trying
+[00:17:35,800 --> 00:17:40,400] to solve some target task after solving some source
+[00:17:40,400 --> 00:17:43,320] task, typically by fine-tuning.
+[00:17:43,320 --> 00:17:45,440] Whereas, in the meta-learning problem,
+[00:17:45,440 --> 00:17:49,640] we have experience from some training tasks
+[00:17:49,640 --> 00:17:54,468] and we want to very quickly solve a new task.
+[00:17:54,468 --> 00:17:56,260] And in the reinforcement learning scenario,
+[00:17:56,260 --> 00:18:00,120] these tasks are going to be MDPs, each with their own state
+[00:18:00,120 --> 00:18:03,480] space, action space, dynamics, reward.
+[00:18:03,480 --> 00:18:07,740] And we see meta-learning and supervised learning.
+[00:18:07,740 --> 00:18:11,160] And also there's a nice analogy between the two,
+[00:18:11,160 --> 00:18:13,120] where the main difference with meta-RL
+[00:18:13,120 --> 00:18:14,860] is this exploration challenge.
+[00:18:19,430 --> 00:18:22,080] And then diving into some notation
+[00:18:22,080 --> 00:18:28,160] here, we can view the meta-RL problem as basically,
+[00:18:28,160 --> 00:18:31,350] with a small amount of experience,
+[00:18:31,350 --> 00:18:35,270] be able to learn a policy that can solve the task,
+[00:18:35,270 --> 00:18:38,890] and also to be able to collect this experience itself.
+[00:18:38,890 --> 00:18:41,070] And so this training data, there's
+[00:18:41,070 --> 00:18:43,470] two different variants of the meta-RL problem.
+[00:18:43,470 --> 00:18:47,470] In the first case, this can correspond to multiple rollouts
+[00:18:47,470 --> 00:18:50,430] from some exploration policy.
+[00:18:50,430 --> 00:18:52,830] And instead, you could also consider
+[00:18:52,830 --> 00:18:56,670] this to be just actually a few time steps from your exploration
+[00:18:56,670 --> 00:18:57,590] policy.
+[00:18:57,590 --> 00:19:00,453] There's a bit of a continuum between these two scenarios.
+[00:19:00,453 --> 00:19:01,870] You might want to be able to adapt
+[00:19:01,870 --> 00:19:04,870] both online with a few time steps,
+[00:19:04,870 --> 00:19:08,350] and with more and more episodes, with basically a growing
+[00:19:08,350 --> 00:19:12,710] dataset, but writing it explicitly
+[00:19:12,710 --> 00:19:17,105] as two different things here to make it clear
+[00:19:17,105 --> 00:19:19,230] that there are some problem settings where you want
+[00:19:19,230 --> 00:19:21,645] to adapt really quickly online within an episode,
+[00:19:21,645 --> 00:19:23,270] and other scenarios where you're caring
+[00:19:23,270 --> 00:19:28,632] a lot more about multiple trials of experience.
+[00:19:28,632 --> 00:19:30,090] The last thing that I'll mention is
+[00:19:30,090 --> 00:19:32,930] I've been writing it as an exploration policy and a task
+[00:19:32,930 --> 00:19:34,203] policy.
+[00:19:34,203 --> 00:19:36,370] There are some scenarios where you might train these
+[00:19:36,370 --> 00:19:37,910] and these might be separate networks.
+[00:19:37,910 --> 00:19:39,368] There's other scenarios where these
+[00:19:39,368 --> 00:19:42,330] could share parameters and basically be the same network.
+[00:19:42,330 --> 00:19:46,090] So they don't necessarily need to be separated
+[00:19:46,090 --> 00:19:49,170] like they are on this slide.
+[00:19:49,170 --> 00:19:51,030] And then the last thing is, insofar
+[00:19:51,030 --> 00:19:52,530] as we're learning this policy that's
+[00:19:52,530 --> 00:19:55,290] conditioning on a training dataset,
+[00:19:55,290 --> 00:19:58,970] you can view this as a task identifier.
+[00:19:58,970 --> 00:20:01,170] And from that standpoint, we're then
+[00:20:01,170 --> 00:20:05,050] more in a setting that looks like multi-task learning.
+[00:20:05,050 --> 00:20:07,503] So the question is, when I say that the test has
+[00:20:07,503 --> 00:20:09,670] to be in distribution compared to the training task,
+[00:20:09,670 --> 00:20:10,810] does that mean it has to be the same as one
+[00:20:10,810 --> 00:20:11,727] of the training tasks?
+[00:20:11,727 --> 00:20:13,490] Or can it be a bit different?
+[00:20:13,490 --> 00:20:16,105] It can be a bit different.
+[00:20:16,105 --> 00:20:20,890] And we'll see examples where it is different as well.
+[00:20:20,890 --> 00:20:23,790] So let's talk about how to address these problems.
+[00:20:23,790 --> 00:20:31,600] So the good news is that there's a very conceptually simple way
+[00:20:31,600 --> 00:20:35,960] to address this general problem statement.
+[00:20:35,960 --> 00:20:38,360] The bad news is that it can be challenging to optimize,
+[00:20:38,360 --> 00:20:38,900] in practice.
+[00:20:38,900 --> 00:20:41,440] And we'll talk about some of those challenges in a bit.
+[00:20:41,440 --> 00:20:45,760] But conceptually, we can essentially
+[00:20:45,760 --> 00:20:49,840] train a sequence model.
+[00:20:49,840 --> 00:20:51,400] It could be a transformer, any sort
+[00:20:51,400 --> 00:20:54,720] of neural network with memory, a recurrent neural network.
+[00:20:54,720 --> 00:20:59,680] And use this, where basically everything that's
+[00:20:59,680 --> 00:21:03,000] being passed into this policy corresponds to the experience
+[00:21:03,000 --> 00:21:05,800] that the agent has collected.
+[00:21:05,800 --> 00:21:08,280] And so you're basically conditioning your policy
+[00:21:08,280 --> 00:21:10,360] on this training dataset.
+[00:21:10,360 --> 00:21:14,680] And then having a policy output actions based off of the data
+[00:21:14,680 --> 00:21:17,880] that it's seen so far in that MDP.
+[00:21:17,880 --> 00:21:24,440] And then training the sequence model policy
+[00:21:24,440 --> 00:21:30,110] across all of the set of training MDPs that we have.
+[00:21:30,110 --> 00:21:33,190] So here, this is the current state.
+[00:21:33,190 --> 00:21:34,910] This sort of context or training dataset
+[00:21:34,910 --> 00:21:37,630] is going to get larger over time as we collect
+[00:21:37,630 --> 00:21:42,500] more experience in a given MDP.
+[00:21:45,870 --> 00:21:48,230] Now, a question for you.
+[00:21:48,230 --> 00:21:50,150] There are a couple of differences
+[00:21:50,150 --> 00:21:53,870] between this and simply using a recurrent policy
+[00:21:53,870 --> 00:21:57,470] in a standard RL setup--
+[00:21:57,470 --> 00:21:59,930] or using a sequence model in a standard RL setup,
+[00:21:59,930 --> 00:22:01,430] like using a transformer.
+[00:22:01,430 --> 00:22:03,190] Does anyone have thoughts on what
+[00:22:03,190 --> 00:22:08,310] are some of the differences between what
+[00:22:08,310 --> 00:22:12,510] I'm starting to talk about here and simply using a sequence
+[00:22:12,510 --> 00:22:16,910] model as your policy in a standard RL setup?
+[00:22:16,910 --> 00:22:18,470] Memory.
+[00:22:18,470 --> 00:22:22,810] Yeah, so typically in RL, we often don't use memory.
+[00:22:22,810 --> 00:22:24,430] And here we're using memory.
+[00:22:24,430 --> 00:22:26,250] So that's one thing.
+[00:22:26,250 --> 00:22:31,170] But compared to if we had used memory in a standard RL setup,
+[00:22:31,170 --> 00:22:33,143] what else is different here?
+[00:22:33,143 --> 00:22:34,810] Yeah, so one thing that we're doing here
+[00:22:34,810 --> 00:22:37,830] is we're actually passing the reward as input into the memory.
+[00:22:37,830 --> 00:22:41,410] And that's a little bit different in the sense
+[00:22:41,410 --> 00:22:43,810] that you're actually using reward information
+[00:22:43,810 --> 00:22:48,810] from the current MDP in order to try to get better at the task.
+[00:22:48,810 --> 00:22:50,770] This also means that actually at test time
+[00:22:50,770 --> 00:22:52,950] or when we're trying to adapt to a new task,
+[00:22:52,950 --> 00:22:55,170] we're also going to be using the reward.
+[00:22:55,170 --> 00:22:56,890] And in RL settings, oftentimes we
+[00:22:56,890 --> 00:22:59,930] don't necessarily assume that we have the reward when we're just
+[00:22:59,930 --> 00:23:02,710] deploying our policy.
+[00:23:02,710 --> 00:23:05,810] So that was one main difference.
+[00:23:05,810 --> 00:23:09,170] Any other differences?
+[00:23:09,170 --> 00:23:11,410] Yeah, so the question is, why are we also not passing
+[00:23:11,410 --> 00:23:12,570] as input the actions?
+[00:23:12,570 --> 00:23:15,410] You can pass as input the actions.
+[00:23:15,410 --> 00:23:20,750] It depends on, if your policy is mostly deterministic,
+[00:23:20,750 --> 00:23:22,530] then information about past actions
+[00:23:22,530 --> 00:23:24,765] could be stored in the memory as well.
+[00:23:24,765 --> 00:23:27,140] Because you were predicting, you generated those actions.
+[00:23:27,140 --> 00:23:29,223] And so in those cases, you don't need the actions.
+[00:23:29,223 --> 00:23:31,120] If you have a more stochastic policy,
+[00:23:31,120 --> 00:23:34,743] then that sampling process won't be necessarily in the memory.
+[00:23:34,743 --> 00:23:37,160] And in those cases, it's good to pass as input the actions
+[00:23:37,160 --> 00:23:38,760] as well.
+[00:23:38,760 --> 00:23:42,920] Right, so the note was that the states and actions might not be
+[00:23:42,920 --> 00:23:44,260] the same for different tasks.
+[00:23:44,260 --> 00:23:45,968] And so one of the things that's different
+[00:23:45,968 --> 00:23:49,317] here is we're actually training this model across MDPs.
+[00:23:49,317 --> 00:23:51,400] And so you might have a different state and action
+[00:23:51,400 --> 00:23:51,700] space.
+[00:23:51,700 --> 00:23:53,180] You might have different dynamics.
+[00:23:53,180 --> 00:23:55,960] And so one of the big differences compared
+[00:23:55,960 --> 00:23:59,060] to standard RL is that actually we're training this across MDPs.
+[00:23:59,060 --> 00:24:01,400] And there's going to be differences in states, actions,
+[00:24:01,400 --> 00:24:05,780] dynamics, and rewards across those MDPs.
+[00:24:05,780 --> 00:24:06,280] Cool.
+[00:24:06,280 --> 00:24:08,240] There's actually also one other difference.
+[00:24:08,240 --> 00:24:09,907] But the first thing that we talked about
+[00:24:09,907 --> 00:24:12,020] is, we see that the reward is passed as input.
+[00:24:12,020 --> 00:24:14,280] You might also be passing as input actions.
+[00:24:14,280 --> 00:24:17,000] And this is trained across multiple MDPs.
+[00:24:17,000 --> 00:24:20,720] And that's quite different from the typical reinforcement
+[00:24:20,720 --> 00:24:22,470] learning setup.
+[00:24:22,470 --> 00:24:24,630] Now, the second thing that's also different
+[00:24:24,630 --> 00:24:28,150] is that your memory is also going
+[00:24:28,150 --> 00:24:31,250] to span across multiple episodes, potentially.
+[00:24:31,250 --> 00:24:34,030] If you're trying to actually learn
+[00:24:34,030 --> 00:24:38,030] not just within an episode, but learn across episodes, then
+[00:24:38,030 --> 00:24:40,870] rather than having your current policy simply have memory
+[00:24:40,870 --> 00:24:43,790] within an episode, you will be maintaining
+[00:24:43,790 --> 00:24:46,590] any sort of hidden state or any sort of memory,
+[00:24:46,590 --> 00:24:49,530] not just within your episode, but across multiple episodes.
+[00:24:52,130 --> 00:24:54,890] Maybe I'll leave this up here in case it's useful.
+[00:24:54,890 --> 00:24:58,270] In terms of the algorithm, what this looks like is,
+[00:24:58,270 --> 00:25:06,230] we will sample a task or an MDP.
+[00:25:06,230 --> 00:25:13,430] So maybe let's call this MDP Ti.
+[00:25:13,430 --> 00:25:18,310] And then we're going to run our policy in that MDP
+[00:25:18,310 --> 00:25:21,290] for multiple episodes.
+[00:25:21,290 --> 00:25:34,050] So let's say, run pi in our task or MDP for n episodes.
+[00:25:34,050 --> 00:25:36,290] So this is rolling out this right here.
+[00:25:36,290 --> 00:25:41,410] And it's going to have memory across those N episodes.
+[00:25:41,410 --> 00:25:45,690] And then, optionally, if we're using an off-policy algorithm
+[00:25:45,690 --> 00:25:51,130] with a replay buffer, then we would store the episodes
+[00:25:51,130 --> 00:25:53,220] in a replay buffer.
+[00:25:59,290 --> 00:26:04,210] And then lastly, we're going to update our policy
+[00:26:04,210 --> 00:26:07,890] to optimize the rewards.
+[00:26:07,890 --> 00:26:12,930] And so we will be updating pi.
+[00:26:12,930 --> 00:26:17,850] And specifically, we are going to be maximizing
+[00:26:17,850 --> 00:26:20,680] the sum of rewards, like the typical RL objective,
+[00:26:20,680 --> 00:26:24,920] but it's going to be across all of the tasks in our task
+[00:26:24,920 --> 00:26:25,700] distribution.
+[00:26:25,700 --> 00:26:34,080] So we'll have some sum over tasks i, in some mini-batch,
+[00:26:34,080 --> 00:26:39,800] and then also the expected sum of rewards.
+[00:26:39,800 --> 00:26:44,000] So this would be an expectation under our policy
+[00:26:44,000 --> 00:26:48,870] of the sum of rewards over different time steps.
+[00:26:55,560 --> 00:27:01,280] Now, this is a pretty simple algorithm.
+[00:27:01,280 --> 00:27:03,480] It looks a lot like reinforcement learning,
+[00:27:03,480 --> 00:27:05,520] where simply the main thing that's different
+[00:27:05,520 --> 00:27:07,600] is that we're going to be doing this optimization
+[00:27:07,600 --> 00:27:09,320] across multiple MDPs.
+[00:27:09,320 --> 00:27:14,600] And our policy will have memory across a set of episodes.
+[00:27:14,600 --> 00:27:19,150] Usually N, usually this is going to be pretty small.
+[00:27:19,150 --> 00:27:22,530] Because if it was large, if it was like 1,000 episodes,
+[00:27:22,530 --> 00:27:27,050] it's going to be hard to store that in the context of a model,
+[00:27:27,050 --> 00:27:32,190] just because your memory will start to increase substantially.
+[00:27:32,190 --> 00:27:37,270] So what that looks like is you have this neural network.
+[00:27:37,270 --> 00:27:40,550] It has multiple episodes.
+[00:27:40,550 --> 00:27:45,170] And then you'll be rolling it out for multiple episodes,
+[00:27:45,170 --> 00:27:48,450] taking actions, and then you'll start collecting for a new MDP.
+[00:27:48,450 --> 00:27:50,950] So you'll cut your memory when you
+[00:27:50,950 --> 00:27:54,190] start to collect for the new MDP that you've sampled.
+[00:27:54,190 --> 00:27:57,170] So you sample a task, roll out the policy for n episodes.
+[00:27:57,170 --> 00:28:00,710] In this case, n equals 2 in this diagram,
+[00:28:00,710 --> 00:28:04,590] under the dynamics and reward function for that MDP.
+[00:28:04,590 --> 00:28:06,450] Then, store in your replay buffer.
+[00:28:06,450 --> 00:28:09,790] Oftentimes, you'll have a replay buffer for each task.
+[00:28:09,790 --> 00:28:13,390] And then update your policy to maximize the discounted return
+[00:28:13,390 --> 00:28:15,690] for all tasks that you've collected for.
+[00:28:15,690 --> 00:28:17,930] And then repeat this process in order
+[00:28:17,930 --> 00:28:19,690] to continuously get a policy that's
+[00:28:19,690 --> 00:28:24,530] better at doing this in-context adaptation.
+[00:28:24,530 --> 00:28:25,910] Yeah, so that's a good question.
+[00:28:25,910 --> 00:28:27,810] So the question is, does it know that it's
+[00:28:27,810 --> 00:28:31,290] starting a new episode, like at this position right here?
+[00:28:31,290 --> 00:28:32,930] You could use a position encoding.
+[00:28:32,930 --> 00:28:36,450] In practice, you're also going to probably have
+[00:28:36,450 --> 00:28:38,070] a discontinuity in your state.
+[00:28:38,070 --> 00:28:39,570] And so you might just be able to see
+[00:28:39,570 --> 00:28:42,610] that your current state is very different from the past state.
+[00:28:42,610 --> 00:28:44,070] And that might also tell it.
+[00:28:44,070 --> 00:28:45,862] But yeah, you could have some sort of token
+[00:28:45,862 --> 00:28:48,170] to also tell it that it's a new episode.
+[00:28:48,170 --> 00:28:50,290] The question is, are we randomizing S1
+[00:28:50,290 --> 00:28:52,130] across the different episodes?
+[00:28:52,130 --> 00:28:55,410] When you're rolling out the policy, when
+[00:28:55,410 --> 00:28:57,730] you start a new episode, that will
+[00:28:57,730 --> 00:29:00,810] be a different sample from the initial state distribution.
+[00:29:00,810 --> 00:29:03,870] And so, S1, I guess it's maybe a little confusing.
+[00:29:03,870 --> 00:29:05,970] S1 here might be different from S1 here.
+[00:29:05,970 --> 00:29:10,010] S2 is very likely different from S2 here, and so forth.
+[00:29:10,010 --> 00:29:10,590] Cool.
+[00:29:10,590 --> 00:29:13,010] And then the outcome of this is you'll
+[00:29:13,010 --> 00:29:18,280] have a policy that should be able to adapt across episodes
+[00:29:18,280 --> 00:29:20,600] with experience from those episodes.
+[00:29:20,600 --> 00:29:24,140] And it should be able to, on its own,
+[00:29:24,140 --> 00:29:27,180] actually decide on the best exploration/exploitation
+[00:29:27,180 --> 00:29:28,200] trade-off.
+[00:29:28,200 --> 00:29:30,100] And the best exploration/exploitation
+[00:29:30,100 --> 00:29:33,360] trade-off is going to depend on the number of episodes
+[00:29:33,360 --> 00:29:34,720] that you give it.
+[00:29:34,720 --> 00:29:37,840] If N is 2, then it has two episodes
+[00:29:37,840 --> 00:29:40,920] to maximize rewards as quickly as possible.
+[00:29:40,920 --> 00:29:42,620] And if and if it needs to explore,
+[00:29:42,620 --> 00:29:44,460] it'll explore as quickly as possible.
+[00:29:44,460 --> 00:29:46,320] If N is a little bit larger, then you've
+[00:29:46,320 --> 00:29:48,720] given it a little bit more budget--
+[00:29:48,720 --> 00:29:51,920] it still wants to explore quickly and efficiently,
+[00:29:51,920 --> 00:29:54,540] if it can, because then it can get higher rewards later.
+[00:29:54,540 --> 00:29:57,720] But it might have slightly more budget to explore.
+[00:29:57,720 --> 00:30:01,120] And so one of the things that's pretty cool about this, when you
+[00:30:01,120 --> 00:30:03,020] optimize this whole thing end-to-end,
+[00:30:03,020 --> 00:30:06,560] is that it will make decisions on whether or not
+[00:30:06,560 --> 00:30:09,680] to explore or to exploit.
+[00:30:09,680 --> 00:30:11,320] And it'll make those decisions in a way
+[00:30:11,320 --> 00:30:16,350] that's informed by whatever gets it the highest reward.
+[00:30:16,350 --> 00:30:18,730] Then, after this training process,
+[00:30:18,730 --> 00:30:24,810] after you've trained it on multiple MDPs,
+[00:30:24,810 --> 00:30:29,310] you can actually then roll out your policy in a new task.
+[00:30:29,310 --> 00:30:39,170] So at test time, you will then give it a new task.
+[00:30:39,170 --> 00:30:48,030] So you're in some new MDP, Tj.
+[00:30:48,030 --> 00:30:53,270] And you can take the policy that was trained
+[00:30:53,270 --> 00:30:58,570] and roll it out in that MDP.
+[00:30:58,570 --> 00:31:07,310] So roll out pi in that MDP with those states, actions,
+[00:31:07,310 --> 00:31:09,110] and rewards, and so forth.
+[00:31:09,110 --> 00:31:11,970] And so sample new task, roll out that policy.
+[00:31:11,970 --> 00:31:15,250] You want to roll this out for up to N episodes.
+[00:31:15,250 --> 00:31:17,890] If you roll it out for longer, all bets
+[00:31:17,890 --> 00:31:19,630] are off, in terms of what it might do.
+[00:31:23,568 --> 00:31:25,610] You could also have a variable number of episodes
+[00:31:25,610 --> 00:31:27,490] that you use during training, if you
+[00:31:27,490 --> 00:31:30,930] want it to be able to handle variable numbers of episodes.
+[00:31:30,930 --> 00:31:36,290] But yeah, this would be like for N episodes or for up to N
+[00:31:36,290 --> 00:31:37,110] episodes.
+[00:31:43,250 --> 00:31:44,790] Cool.
+[00:31:44,790 --> 00:31:46,708] So in terms of actually implementing this,
+[00:31:46,708 --> 00:31:48,250] there's a few different architectures
+[00:31:48,250 --> 00:31:49,870] and optimizers you could use.
+[00:31:49,870 --> 00:31:53,170] So you could use a vanilla recurrent neural network.
+[00:31:53,170 --> 00:31:57,170] Some of the first works on meta reinforcement learning did this.
+[00:31:57,170 --> 00:31:59,070] And they used algorithms.
+[00:31:59,070 --> 00:32:02,590] This is, I think, before PPO existed or was introduced.
+[00:32:02,590 --> 00:32:04,210] They used an algorithm that's somewhat
+[00:32:04,210 --> 00:32:08,610] similar in nature, in terms of the assumptions, as PPO.
+[00:32:08,610 --> 00:32:12,760] There's is also a paper that before transformers were really
+[00:32:12,760 --> 00:32:17,220] popular, used self-attention and also 1D convolutions.
+[00:32:17,220 --> 00:32:19,360] You can think of it sort of a transformer.
+[00:32:19,360 --> 00:32:20,648] It optimized this.
+[00:32:20,648 --> 00:32:22,440] And you can actually note that they do also
+[00:32:22,440 --> 00:32:28,320] pass the actions as input in this particular scenario.
+[00:32:28,320 --> 00:32:33,180] One other thing, we'll talk about this a bit more later.
+[00:32:33,180 --> 00:32:37,200] But you can also, instead of using a transformer or an RNN,
+[00:32:37,200 --> 00:32:43,120] you could also use a feedforward network and then average across,
+[00:32:43,120 --> 00:32:44,520] average the embedding.
+[00:32:44,520 --> 00:32:47,840] This is sometimes called a deep set.
+[00:32:47,840 --> 00:32:50,580] And it has its own benefits.
+[00:32:50,580 --> 00:32:52,560] It's actually pretty computationally fast,
+[00:32:52,560 --> 00:32:54,498] because you can parallelize everything.
+[00:32:54,498 --> 00:32:56,040] And also, actually, it's surprisingly
+[00:32:56,040 --> 00:32:58,928] expressive for what it can do.
+[00:32:58,928 --> 00:33:00,220] So let's look at some examples.
+[00:33:00,220 --> 00:33:04,120] So we'll look at this example that was using something that's
+[00:33:04,120 --> 00:33:06,080] a bit like a transformer.
+[00:33:06,080 --> 00:33:08,230] And they were trying to learn how
+[00:33:08,230 --> 00:33:10,790] to visually navigate a maze--
+[00:33:10,790 --> 00:33:14,870] specifically, new mazes that the agent had never been in before.
+[00:33:14,870 --> 00:33:18,350] They trained it on 1,000 small mazes.
+[00:33:18,350 --> 00:33:21,310] And they tested it on held-out mazes
+[00:33:21,310 --> 00:33:23,150] that the agent hadn't seen before.
+[00:33:23,150 --> 00:33:25,190] And they tested it actually both on small mazes
+[00:33:25,190 --> 00:33:26,610] and on large mazes.
+[00:33:26,610 --> 00:33:28,110] So this is actually a scenario where
+[00:33:28,110 --> 00:33:30,855] they were able to see some extrapolation to tasks
+[00:33:30,855 --> 00:33:32,730] that were outside of the distribution of what
+[00:33:32,730 --> 00:33:35,000] it was trained on.
+[00:33:35,000 --> 00:33:36,250] So this is what it looks like.
+[00:33:36,250 --> 00:33:37,765] So this is at test time.
+[00:33:37,765 --> 00:33:39,390] And you can see that the agent, it just
+[00:33:39,390 --> 00:33:42,030] is exploring around this environment,
+[00:33:42,030 --> 00:33:44,050] looking for where the goal is.
+[00:33:44,050 --> 00:33:46,550] It only gets these images as input.
+[00:33:46,550 --> 00:33:49,930] And on the right, we can see the trace of the exploration.
+[00:33:49,930 --> 00:33:52,310] So it started in the middle, explored over here,
+[00:33:52,310 --> 00:33:55,510] it explored down here, and eventually found the goal.
+[00:33:55,510 --> 00:33:57,640] And then after that exploration episode,
+[00:33:57,640 --> 00:34:00,390] we still have memory from that previous episode.
+[00:34:00,390 --> 00:34:05,270] And using that memory, it's able to then
+[00:34:05,270 --> 00:34:10,530] be able to go directly to the goal,
+[00:34:10,530 --> 00:34:14,170] based on this experience in that maze.
+[00:34:14,170 --> 00:34:16,370] So watching that again, whoops.
+[00:34:19,130 --> 00:34:21,030] This is the first episode.
+[00:34:21,030 --> 00:34:26,570] And so this is the first episode of rolling out this policy.
+[00:34:26,570 --> 00:34:30,022] It's choosing to explore because it doesn't know
+[00:34:30,022 --> 00:34:31,550] where the goal is in this maze.
+[00:34:31,550 --> 00:34:33,850] It also doesn't know the layout of the maze.
+[00:34:33,850 --> 00:34:36,210] And so we see it explore here.
+[00:34:36,210 --> 00:34:39,210] And then in the second episode, it
+[00:34:39,210 --> 00:34:40,929] chooses to go straight to the goal
+[00:34:40,929 --> 00:34:43,570] because it decided that it already explored
+[00:34:43,570 --> 00:34:45,650] the extent of the maze.
+[00:34:45,650 --> 00:34:47,350] Here's an example in a larger maze.
+[00:34:47,350 --> 00:34:50,370] So the agent starts over here.
+[00:34:50,370 --> 00:34:58,730] And it explores in the top part, doesn't see the goal.
+[00:34:58,730 --> 00:35:00,807] It realizes that this is a dead end.
+[00:35:00,807 --> 00:35:02,390] It doesn't need to explore it further.
+[00:35:02,390 --> 00:35:04,280] And then it ends up seeing the goal here.
+[00:35:04,280 --> 00:35:09,160] And then after that, it goes straight to the goal
+[00:35:09,160 --> 00:35:10,760] after that first episode.
+[00:35:10,760 --> 00:35:15,240] And so in this training example, N equals 2.
+[00:35:15,240 --> 00:35:19,320] So they trained it just to be able to explore and exploit
+[00:35:19,320 --> 00:35:21,520] after two episodes.
+[00:35:21,520 --> 00:35:22,040] Cool.
+[00:35:22,040 --> 00:35:24,640] And then quantitatively, they looked at the average time
+[00:35:24,640 --> 00:35:27,200] to find the goal in both the first episode
+[00:35:27,200 --> 00:35:29,000] and the second episode.
+[00:35:29,000 --> 00:35:34,360] They compared to using a random policy, which occasionally does
+[00:35:34,360 --> 00:35:37,320] happen upon the goal, and using an LSTM
+[00:35:37,320 --> 00:35:40,160] architecture and this more self-attention and convolution
+[00:35:40,160 --> 00:35:41,200] architecture.
+[00:35:41,200 --> 00:35:44,262] And they found that with the small mazes, even
+[00:35:44,262 --> 00:35:46,720] within the first episode, they were able to do a lot better
+[00:35:46,720 --> 00:35:47,720] than random.
+[00:35:47,720 --> 00:35:50,440] That's because it's actually exploring efficiently and then
+[00:35:50,440 --> 00:35:52,560] eventually often finding the goal.
+[00:35:52,560 --> 00:35:56,740] And then it's able to find the goal faster
+[00:35:56,740 --> 00:35:58,640] in the second episode, after learning
+[00:35:58,640 --> 00:36:01,520] where the goal is and about the maze in the first episode.
+[00:36:01,520 --> 00:36:03,740] We also see that it does significantly better
+[00:36:03,740 --> 00:36:06,180] than a random agent in the large mazes.
+[00:36:06,180 --> 00:36:09,860] And in both cases, using the self-attention architecture
+[00:36:09,860 --> 00:36:13,100] is better than using an LSTM architecture, which
+[00:36:13,100 --> 00:36:15,385] is another memory architecture.
+[00:36:15,385 --> 00:36:17,760] Yeah, so the question is, is the reward to find the goal?
+[00:36:17,760 --> 00:36:21,940] And if so, why is it optimized to find it as fast as possible?
+[00:36:21,940 --> 00:36:27,100] So the reward is to find the goal.
+[00:36:27,100 --> 00:36:30,860] I don't remember the exact structure of the reward.
+[00:36:30,860 --> 00:36:33,800] It's optimized to find it quickly.
+[00:36:33,800 --> 00:36:35,700] There's a couple of ways that lead to it
+[00:36:35,700 --> 00:36:39,060] to optimize to find it quickly.
+[00:36:39,060 --> 00:36:41,620] In this particular case, I believe they're
+[00:36:41,620 --> 00:36:43,040] using discounted rewards.
+[00:36:43,040 --> 00:36:46,530] And so the discount factor, instead of being like this,
+[00:36:46,530 --> 00:36:48,860] you're optimizing for discounted rewards.
+[00:36:48,860 --> 00:36:50,820] So there's a discount factor right there.
+[00:36:50,820 --> 00:36:52,280] And the discount factor is not 1.
+[00:36:52,280 --> 00:36:55,620] It's probably like 0.95 or 0.99.
+[00:36:55,620 --> 00:36:59,100] And so that objective will be higher
+[00:36:59,100 --> 00:37:01,970] if you get the reward sooner rather than later.
+[00:37:01,970 --> 00:37:05,110] Yeah, so the question is, what is passed as input to the model?
+[00:37:05,110 --> 00:37:08,550] Yeah, exactly, so it's video from the previous episode,
+[00:37:08,550 --> 00:37:11,262] the actions from the previous episode.
+[00:37:11,262 --> 00:37:13,470] Basically, everything up until the current time step,
+[00:37:13,470 --> 00:37:16,730] which is any previous episodes and everything
+[00:37:16,730 --> 00:37:17,830] so far in that episode.
+[00:37:17,830 --> 00:37:21,610] So it's all of the video frames and then also all of the actions
+[00:37:21,610 --> 00:37:24,810] and all of the rewards as well.
+[00:37:24,810 --> 00:37:26,930] Yeah, so the question is, where in the algorithm
+[00:37:26,930 --> 00:37:29,770] are we exploring exploration versus exploitation?
+[00:37:29,770 --> 00:37:35,530] And, here, it basically all comes down
+[00:37:35,530 --> 00:37:37,530] to this objective for both of them.
+[00:37:37,530 --> 00:37:46,010] And the insight is that the agent doesn't know much
+[00:37:46,010 --> 00:37:46,710] about the task.
+[00:37:46,710 --> 00:37:47,690] It doesn't know.
+[00:37:47,690 --> 00:37:51,150] Well, depending on the training tasks, in this case,
+[00:37:51,150 --> 00:37:52,910] it doesn't know what maze it's in.
+[00:37:52,910 --> 00:37:55,618] It doesn't know the structure of the maze and that sort of thing.
+[00:37:55,618 --> 00:37:58,850] And so actually it's not able to get high reward
+[00:37:58,850 --> 00:38:01,880] until it starts to explore, until it finds
+[00:38:01,880 --> 00:38:04,080] where the goal is, for example.
+[00:38:04,080 --> 00:38:08,100] And so by optimizing just end-to-end for reward,
+[00:38:08,100 --> 00:38:11,030] you're incentivizing it to--
+[00:38:11,030 --> 00:38:13,280] it's not going to get high reward without exploration,
+[00:38:13,280 --> 00:38:14,800] essentially.
+[00:38:14,800 --> 00:38:18,093] Yeah, we will talk about that soon in a few lectures.
+[00:38:18,093 --> 00:38:19,760] But yeah, there's lots of problems here.
+[00:38:19,760 --> 00:38:21,720] Because when your policy is bad and you're not
+[00:38:21,720 --> 00:38:25,760] getting good rewards, it ends up being very difficult to figure
+[00:38:25,760 --> 00:38:28,160] out a good policy.
+[00:38:28,160 --> 00:38:33,200] Yeah, so the question is, instead of
+[00:38:33,200 --> 00:38:35,698] doing what we're doing, could we just do regular RL
+[00:38:35,698 --> 00:38:36,990] and then do test-time training?
+[00:38:39,720 --> 00:38:46,082] So in some ways, language models with recurrence,
+[00:38:46,082 --> 00:38:48,040] it depends on how you view it, but in some ways
+[00:38:48,040 --> 00:38:50,123] you are already doing something that kind of looks
+[00:38:50,123 --> 00:38:51,900] like meta-RL, if it has memory.
+[00:38:51,900 --> 00:38:53,640] It basically has the ability to adapt,
+[00:38:53,640 --> 00:38:58,300] depending on the task that you're giving it.
+[00:38:58,300 --> 00:39:00,103] And then one important component is,
+[00:39:00,103 --> 00:39:01,520] if you're doing test-time compute,
+[00:39:01,520 --> 00:39:05,140] you're allowing it to actually think through the problem.
+[00:39:05,140 --> 00:39:07,340] Now, test-time compute is a very broad term.
+[00:39:07,340 --> 00:39:12,460] So on the next slide, we'll talk about how meta-RL is
+[00:39:12,460 --> 00:39:13,800] relevant for test-time compute.
+[00:39:13,800 --> 00:39:15,580] So let's talk about that now.
+[00:39:15,580 --> 00:39:18,640] So say that we're solving different math problems.
+[00:39:18,640 --> 00:39:21,380] This is the canonical language model example, especially
+[00:39:21,380 --> 00:39:23,460] for test-time compute.
+[00:39:23,460 --> 00:39:25,180] And one example of a math problem
+[00:39:25,180 --> 00:39:27,060] is trying to show this inequality.
+[00:39:27,060 --> 00:39:29,660] This is actually the same, I think, possibly the same math
+[00:39:29,660 --> 00:39:32,700] problem that [INAUDIBLE] showed in his lecture.
+[00:39:32,700 --> 00:39:37,940] And in some ways, trying to solve this math problem,
+[00:39:37,940 --> 00:39:40,140] you can think of it in some ways as an MDP
+[00:39:40,140 --> 00:39:43,940] itself, in that there's different strategies that you
+[00:39:43,940 --> 00:39:47,100] might try to take to solve this math problem.
+[00:39:47,100 --> 00:39:50,458] And you don't know, a priori, which strategy is going
+[00:39:50,458 --> 00:39:51,750] to help you solve that problem.
+[00:39:55,340 --> 00:39:56,305] Where do you start?
+[00:39:56,305 --> 00:39:58,430] Do you try to, for example, do you guess and check?
+[00:39:58,430 --> 00:40:04,090] Do you try to eliminate terms in the equation and so forth.
+[00:40:04,090 --> 00:40:06,770] And ideally, you'd be able to explore
+[00:40:06,770 --> 00:40:10,450] those different strategies and then produce an answer based off
+[00:40:10,450 --> 00:40:11,620] of the best strategy.
+[00:40:17,410 --> 00:40:19,570] So DeepSeekR1 is a language model
+[00:40:19,570 --> 00:40:23,150] that uses test-time compute in order to solve math problems.
+[00:40:23,150 --> 00:40:27,730] And if you give R1 different math problems to solve,
+[00:40:27,730 --> 00:40:30,490] if you give it a hard problem, it thinks for a while.
+[00:40:30,490 --> 00:40:33,587] At some point, it cuts off its test-time compute
+[00:40:33,587 --> 00:40:35,170] because it doesn't want to be thinking
+[00:40:35,170 --> 00:40:36,730] for too long for the user.
+[00:40:36,730 --> 00:40:41,730] And then it outputs some explanation for the user.
+[00:40:41,730 --> 00:40:44,450] And then also, if you give it a really easy problem,
+[00:40:44,450 --> 00:40:46,650] like 2 plus 2 equals question mark,
+[00:40:46,650 --> 00:40:50,450] it actually also kind of thinks through what the solution might
+[00:40:50,450 --> 00:40:54,690] be and then gives a step-by-step explanation for the answer.
+[00:40:54,690 --> 00:40:57,960] And so this is something that is clearly somewhat wasteful
+[00:40:57,960 --> 00:41:02,800] to do, probably, unless this is somehow a challenging problem.
+[00:41:02,800 --> 00:41:06,480] And so you can actually use this notion of meta-RL
+[00:41:06,480 --> 00:41:08,900] to try to optimize for test-time compute.
+[00:41:08,900 --> 00:41:10,348] And if you know that you're going
+[00:41:10,348 --> 00:41:12,140] to be doing test-time compute at test time,
+[00:41:12,140 --> 00:41:14,760] then basically bring that into the training process
+[00:41:14,760 --> 00:41:17,862] and encourage the model to efficiently use
+[00:41:17,862 --> 00:41:19,320] that test-time compute, efficiently
+[00:41:19,320 --> 00:41:21,440] explore different strategies, such that,
+[00:41:21,440 --> 00:41:24,920] ideally, on easy problems, it is trying
+[00:41:24,920 --> 00:41:27,000] to output an answer as quickly as possible.
+[00:41:27,000 --> 00:41:29,800] And for harder problems, it's thinking
+[00:41:29,800 --> 00:41:33,200] as much as it needs, including possible exploration,
+[00:41:33,200 --> 00:41:38,520] until it then tries to exploit and give an explanation.
+[00:41:38,520 --> 00:41:42,880] And so this paper here was a paper that explored that.
+[00:41:42,880 --> 00:41:47,400] They found that when they were trying to explicitly optimize
+[00:41:47,400 --> 00:41:50,780] for effective use of test-time compute,
+[00:41:50,780 --> 00:41:53,820] they were able to get higher performance with the same number
+[00:41:53,820 --> 00:41:58,100] of tokens, and also actually reduce the number of tokens
+[00:41:58,100 --> 00:42:00,720] needed to get the same performance so that you aren't,
+[00:42:00,720 --> 00:42:05,380] for example, using up a ton of tokens on simple problems.
+[00:42:05,380 --> 00:42:08,220] So that's a use case of meta-RL or ideas
+[00:42:08,220 --> 00:42:11,660] for meta-RL in language models.
+[00:42:11,660 --> 00:42:14,140] Now, a quick digression, and this
+[00:42:14,140 --> 00:42:16,140] will actually lead us into a different way
+[00:42:16,140 --> 00:42:18,540] of thinking about meta-RL.
+[00:42:18,540 --> 00:42:20,860] So we've talked about multi-task policies
+[00:42:20,860 --> 00:42:23,100] where we condition on a task descriptor.
+[00:42:23,100 --> 00:42:24,660] So maybe we want a robot to stack
+[00:42:24,660 --> 00:42:26,180] in different locations or a robot
+[00:42:26,180 --> 00:42:28,300] to walk in different directions.
+[00:42:28,300 --> 00:42:31,620] And we've talked about policies that take as input experience
+[00:42:31,620 --> 00:42:35,878] and then generate actions based off of that dataset.
+[00:42:35,878 --> 00:42:38,420] And if you were to think about how this relates to multi-task
+[00:42:38,420 --> 00:42:40,740] learning policies, one way to think about it
+[00:42:40,740 --> 00:42:43,920] is that we're just doing multi-task learning,
+[00:42:43,920 --> 00:42:47,820] but now this data is our task identifier.
+[00:42:47,820 --> 00:42:51,730] And this is something that actually changes within a task.
+[00:42:51,730 --> 00:42:53,470] So the analogy is not perfect.
+[00:42:53,470 --> 00:42:55,650] It's not actually fixed for a given task.
+[00:42:55,650 --> 00:42:58,510] You can think about it as conditioning on the task,
+[00:42:58,510 --> 00:43:01,050] insofar as experience tells you what the task you're
+[00:43:01,050 --> 00:43:03,010] trying to do is.
+[00:43:03,010 --> 00:43:04,690] Cool.
+[00:43:04,690 --> 00:43:07,930] And if you think about goal-conditioned policies,
+[00:43:07,930 --> 00:43:10,810] rewards, you can also view meta-RL
+[00:43:10,810 --> 00:43:13,410] as kind of a generalization of goal-conditioned policies.
+[00:43:13,410 --> 00:43:17,970] Because there's a set of MDPs that are goal-reaching MDPs.
+[00:43:17,970 --> 00:43:19,610] And then there's a broader set of MDPs
+[00:43:19,610 --> 00:43:23,830] that are reward-maximizing MDPs.
+[00:43:23,830 --> 00:43:25,730] And then the other way to think about this
+[00:43:25,730 --> 00:43:28,630] is instead of trying to generalize to new goals,
+[00:43:28,630 --> 00:43:32,570] you can think about meta-RL as trying to adapt to new tasks
+[00:43:32,570 --> 00:43:34,490] with a small amount of experience.
+[00:43:34,490 --> 00:43:37,930] And this would be the difference between zero-shot generalization
+[00:43:37,930 --> 00:43:40,810] and the goal-conditioned case and k-shot
+[00:43:40,810 --> 00:43:43,770] generalization with k episodes or k time steps
+[00:43:43,770 --> 00:43:45,880] in the meta-RL case.
+[00:43:48,623 --> 00:43:50,040] So we've talked about how we could
+[00:43:50,040 --> 00:43:54,900] view the experience as the task descriptors [INAUDIBLE]
+[00:43:54,900 --> 00:43:56,733] the prompt, essentially.
+[00:43:56,733 --> 00:43:58,400] But there's actually another way to look
+[00:43:58,400 --> 00:44:02,880] at it, which is that if we think about this policy with memory
+[00:44:02,880 --> 00:44:07,160] that has the past memory and then our current policy,
+[00:44:07,160 --> 00:44:09,600] if we were to think about what information is being passed
+[00:44:09,600 --> 00:44:14,800] right here to the policy; this information is presumably
+[00:44:14,800 --> 00:44:17,600] information about the task.
+[00:44:17,600 --> 00:44:21,340] And specifically when zi isn't part of the state,
+[00:44:21,340 --> 00:44:24,500] there's ambiguity about what MDP you're trying to solve.
+[00:44:24,500 --> 00:44:27,800] And you're using that experience to try to identify
+[00:44:27,800 --> 00:44:30,840] the MDP that you're in.
+[00:44:30,840 --> 00:44:32,680] And you can think about it as the policy
+[00:44:32,680 --> 00:44:34,740] needs to infer the task.
+[00:44:34,740 --> 00:44:37,240] It needs to infer specifically some sort of latent task
+[00:44:37,240 --> 00:44:40,400] descriptor from its experience.
+[00:44:40,400 --> 00:44:42,480] And so another way of looking at meta-RL
+[00:44:42,480 --> 00:44:45,880] is something where you are using your experience
+[00:44:45,880 --> 00:44:50,100] to infer what the task is, and then conditioning
+[00:44:50,100 --> 00:44:52,800] your policy that's acting at the current time
+[00:44:52,800 --> 00:44:58,577] step on your current estimate of what the task is.
+[00:44:58,577 --> 00:45:00,160] So you can think about it essentially,
+[00:45:00,160 --> 00:45:04,060] as meta-RL is trying to explore, to infer this unknown task,
+[00:45:04,060 --> 00:45:06,700] and then perform the task.
+[00:45:06,700 --> 00:45:07,240] I see.
+[00:45:07,240 --> 00:45:10,060] So you're asking, because we're going to be inferring the task
+[00:45:10,060 --> 00:45:14,220] identifier, why don't we just give it to the learning system?
+[00:45:14,220 --> 00:45:20,300] Yeah, so the main reason is that if we
+[00:45:20,300 --> 00:45:22,900] don't have a compact way of describing
+[00:45:22,900 --> 00:45:26,820] the task that the agent is doing, then
+[00:45:26,820 --> 00:45:30,047] it may actually be challenging.
+[00:45:30,047 --> 00:45:31,880] If we don't have a good way to represent it,
+[00:45:31,880 --> 00:45:34,420] then we're not sure what to pass into the policy.
+[00:45:34,420 --> 00:45:36,787] And if we don't have a good way of representing it,
+[00:45:36,787 --> 00:45:38,620] we can always resort to just using an index,
+[00:45:38,620 --> 00:45:41,200] saying this is task 1, this is task 2, this is task 3.
+[00:45:41,200 --> 00:45:42,980] But if you do that and then at test time
+[00:45:42,980 --> 00:45:45,780] you say this is task 100, it's not
+[00:45:45,780 --> 00:45:48,050] going to be able to generalize in that scenario
+[00:45:48,050 --> 00:45:51,250] and do anything about that task.
+[00:45:51,250 --> 00:45:53,472] Whereas, conditioning on experience
+[00:45:53,472 --> 00:45:54,930] is something that could generalize,
+[00:45:54,930 --> 00:46:00,010] where it can actually be able to use the more continuous space
+[00:46:00,010 --> 00:46:02,730] of states, rewards, and so forth in order
+[00:46:02,730 --> 00:46:04,410] to figure out a new task.
+[00:46:04,410 --> 00:46:06,330] So it comes down to representations.
+[00:46:06,330 --> 00:46:09,970] And you could view this as learning a z representation,
+[00:46:09,970 --> 00:46:12,530] like learning like a continuous vector that's
+[00:46:12,530 --> 00:46:15,090] representing our tasks.
+[00:46:15,090 --> 00:46:23,410] Now, in multi-task RL, we talked about how
+[00:46:23,410 --> 00:46:26,170] if you formulate some state space,
+[00:46:26,170 --> 00:46:28,450] that it corresponds to the original state
+[00:46:28,450 --> 00:46:32,810] space and the z vector.
+[00:46:32,810 --> 00:46:35,690] Then, you get this aggregate MDP.
+[00:46:35,690 --> 00:46:43,050] And so the result of this is still an MDP, just with
+[00:46:43,050 --> 00:46:45,920] a new state space and new dynamics
+[00:46:45,920 --> 00:46:48,480] to account for this new state space.
+[00:46:48,480 --> 00:46:53,200] And so there's a question of, for meta-RL, is there
+[00:46:53,200 --> 00:46:54,750] an aggregate MDP?
+[00:47:01,040 --> 00:47:05,160] And this would be for meta-RL.
+[00:47:08,200 --> 00:47:14,120] And in this case, we're not providing zi in the state.
+[00:47:14,120 --> 00:47:18,880] And so actually, inherently, it's
+[00:47:18,880 --> 00:47:20,100] actually partially observed.
+[00:47:20,100 --> 00:47:22,060] You don't actually know what the task is.
+[00:47:22,060 --> 00:47:25,480] You're trying to explore and figure that out from experience.
+[00:47:25,480 --> 00:47:28,960] And so there isn't actually an aggregate
+[00:47:28,960 --> 00:47:30,920] MDP that you can think about.
+[00:47:30,920 --> 00:47:34,240] Instead, if you wanted to try to aggregate it
+[00:47:34,240 --> 00:47:36,000] into a single decision process, it
+[00:47:36,000 --> 00:47:40,640] would have to be a partially observable MDP, or POMDP.
+[00:47:40,640 --> 00:47:45,566] And it's actually a special kind of POMDP,
+[00:47:45,566 --> 00:47:47,140] where we talked about before, where
+[00:47:47,140 --> 00:47:50,420] you have some partially observable Markov decision
+[00:47:50,420 --> 00:47:57,660] process where you can't actually observe S. And you have actions.
+[00:47:57,660 --> 00:48:03,660] And instead of observing S, you observe some observations
+[00:48:03,660 --> 00:48:09,148] that are some function of S.
+[00:48:09,148 --> 00:48:12,180] That would be the general POMDP case.
+[00:48:12,180 --> 00:48:17,700] One thing that's a little bit special about the meta-RL thing
+[00:48:17,700 --> 00:48:21,740] is the only thing that you can't observe is what the task is.
+[00:48:21,740 --> 00:48:27,140] And so it's basically a POMDP where this hidden state
+[00:48:27,140 --> 00:48:35,820] space can be defined as the observation and the task
+[00:48:35,820 --> 00:48:37,460] identifier.
+[00:48:37,460 --> 00:48:41,000] And if you can infer the task identifier from experience,
+[00:48:41,000 --> 00:48:42,890] then you can essentially view it as a way
+[00:48:42,890 --> 00:48:46,930] of trying to infer the underlying state space as a way
+[00:48:46,930 --> 00:48:50,690] to solve the POMDP.
+[00:48:50,690 --> 00:48:52,850] So this is basically another way of looking
+[00:48:52,850 --> 00:48:54,850] at the meta-RL problem, as basically
+[00:48:54,850 --> 00:48:58,530] like a partially observable Markov decision process.
+[00:48:58,530 --> 00:49:02,490] Now, there's a meta-RL method that we actually talked about.
+[00:49:02,490 --> 00:49:06,610] I showed an architecture diagram that was actually explicitly
+[00:49:06,610 --> 00:49:11,730] trying to output z's, And it was actually outputting some
+[00:49:11,730 --> 00:49:13,058] distribution over z's.
+[00:49:13,058 --> 00:49:14,850] Because at the very beginning, you actually
+[00:49:14,850 --> 00:49:15,930] don't know what z is.
+[00:49:15,930 --> 00:49:18,430] You have some kind of prior belief over what z is.
+[00:49:18,430 --> 00:49:20,110] And then as you get more experience,
+[00:49:20,110 --> 00:49:22,370] you're going to have a better and better estimate of what z
+[00:49:22,370 --> 00:49:22,870] is.
+[00:49:22,870 --> 00:49:24,453] And so if you represent a distribution
+[00:49:24,453 --> 00:49:28,330] over this kind of latent task representation,
+[00:49:28,330 --> 00:49:32,630] then you can do cool things with that.
+[00:49:32,630 --> 00:49:35,130] And we'll see that in a bit.
+[00:49:35,130 --> 00:49:37,810] So this particular algorithm is looking at continuous control
+[00:49:37,810 --> 00:49:40,570] problems where different tasks correspond
+[00:49:40,570 --> 00:49:42,420] to walking in different directions,
+[00:49:42,420 --> 00:49:45,160] running at different velocities; and also different physical
+[00:49:45,160 --> 00:49:47,480] dynamics-- so being able to adapt when the friction is
+[00:49:47,480 --> 00:49:52,520] different or the inertia of the robot system is different.
+[00:49:52,520 --> 00:49:54,960] The other thing was that everything,
+[00:49:54,960 --> 00:49:58,840] what we saw before was using a PPO-style algorithm, which
+[00:49:58,840 --> 00:50:02,720] is somewhat off-policy but not very off-policy.
+[00:50:02,720 --> 00:50:05,600] It's more on-policy than off-policy in some ways,
+[00:50:05,600 --> 00:50:10,000] because it's not using a replay buffer of past data.
+[00:50:10,000 --> 00:50:12,380] And with meta-training algorithms,
+[00:50:12,380 --> 00:50:14,360] you can adapt really, really quickly.
+[00:50:14,360 --> 00:50:16,520] But the training process might be really slow
+[00:50:16,520 --> 00:50:21,560] if your base algorithm is fairly on-policy.
+[00:50:21,560 --> 00:50:26,440] And so as a question, hopefully, this
+[00:50:26,440 --> 00:50:28,760] should be a straightforward question,
+[00:50:28,760 --> 00:50:33,040] if your base algorithm for updating the policy at step
+[00:50:33,040 --> 00:50:35,500] four, if that's an off-policy algorithm,
+[00:50:35,500 --> 00:50:41,260] do you expect that to be more or less efficient than if you
+[00:50:41,260 --> 00:50:44,860] used an on-policy-based method?
+[00:50:44,860 --> 00:50:45,800] Yeah, more efficient.
+[00:50:45,800 --> 00:50:48,100] So if you're using a replay buffer
+[00:50:48,100 --> 00:50:52,982] and using that replay buffer to update your policy with memory,
+[00:50:52,982 --> 00:50:54,940] that should be a lot more data efficient during
+[00:50:54,940 --> 00:50:57,220] this meta-training process.
+[00:50:57,220 --> 00:50:59,280] At test time, when you're adapting,
+[00:50:59,280 --> 00:51:01,000] the efficiency is going to be similar.
+[00:51:01,000 --> 00:51:03,100] So this is just talking about the efficiency
+[00:51:03,100 --> 00:51:08,380] for actually training this in-context learning system.
+[00:51:08,380 --> 00:51:13,420] And so if you actually look at the curves over this training
+[00:51:13,420 --> 00:51:17,420] process right here, the amount of data that you need in
+[00:51:17,420 --> 00:51:20,560] order to meta-learn in these kinds of systems.
+[00:51:20,560 --> 00:51:22,020] You can see that in blue, if we're
+[00:51:22,020 --> 00:51:26,637] using an off-policy algorithm with a replay buffer,
+[00:51:26,637 --> 00:51:28,220] it's a lot more data efficient, learns
+[00:51:28,220 --> 00:51:35,020] a lot more quickly than RL2 and ProMP.
+[00:51:35,020 --> 00:51:38,850] I want to say all three of these are using base RL
+[00:51:38,850 --> 00:51:41,850] algorithms that are more on-policy and more like PPO,
+[00:51:41,850 --> 00:51:43,490] for example.
+[00:51:43,490 --> 00:51:46,090] Yeah, so the question is, can I elaborate on what specifically
+[00:51:46,090 --> 00:51:47,110] is in the replay buffer?
+[00:51:52,490 --> 00:51:59,740] Well, so each replay buffer will have a sequence of episodes.
+[00:51:59,740 --> 00:52:01,490] Basically, each thing in the replay buffer
+[00:52:01,490 --> 00:52:05,130] will be a sequence of episodes from a given MDP.
+[00:52:05,130 --> 00:52:12,450] And that includes the states, the actions, the rewards.
+[00:52:12,450 --> 00:52:15,625] And when you optimize this, oftentimes, you'll
+[00:52:15,625 --> 00:52:17,250] have a different replay buffer per task
+[00:52:17,250 --> 00:52:20,610] so that you can sample a task here and then optimize
+[00:52:20,610 --> 00:52:28,813] the reward for that task using the memory from that trajectory.
+[00:52:28,813 --> 00:52:30,730] Typically, the buffer, instead of just storing
+[00:52:30,730 --> 00:52:32,897] states and actions, you're storing full trajectories
+[00:52:32,897 --> 00:52:36,420] together because you're going to be training a model with memory.
+[00:52:36,420 --> 00:52:40,960] And you need to be able to provide that trajectory as input
+[00:52:40,960 --> 00:52:43,320] to the policy.
+[00:52:43,320 --> 00:52:44,160] Cool.
+[00:52:44,160 --> 00:52:49,360] So summary so far, we've talked about using these models to be
+[00:52:49,360 --> 00:52:51,800] able to adapt to new MDPs.
+[00:52:51,800 --> 00:52:52,500] They're general.
+[00:52:52,500 --> 00:52:54,800] They're quite expressive.
+[00:52:54,800 --> 00:52:59,200] And there's also a variety of choices in the architecture.
+[00:52:59,200 --> 00:53:01,800] One thing is they're hard to optimize.
+[00:53:01,800 --> 00:53:04,080] Because actually it needs to figure out
+[00:53:04,080 --> 00:53:06,300] how to adapt from data.
+[00:53:06,300 --> 00:53:08,800] And there's lots of different input features
+[00:53:08,800 --> 00:53:10,900] here that you could try to pay attention to.
+[00:53:10,900 --> 00:53:15,440] And the model has to figure out what about those input videos
+[00:53:15,440 --> 00:53:18,000] that you're passing as input for the maze navigation
+[00:53:18,000 --> 00:53:21,360] is useful when you're then trying to exploit and learn
+[00:53:21,360 --> 00:53:23,337] a policy.
+[00:53:23,337 --> 00:53:25,420] Because you're passing in so many things as input,
+[00:53:25,420 --> 00:53:27,600] it's such a big model, it can be hard to optimize
+[00:53:27,600 --> 00:53:28,540] for that reason.
+[00:53:28,540 --> 00:53:30,832] And it can also be hard to optimize from an exploration
+[00:53:30,832 --> 00:53:33,200] standpoint, which we'll talk about right after this.
+[00:53:33,200 --> 00:53:37,500] And then the sample efficiency of the meta-learning process
+[00:53:37,500 --> 00:53:41,580] is going to be inherited from whatever optimizer you use
+[00:53:41,580 --> 00:53:44,100] in this last step right here.
+[00:53:44,100 --> 00:53:47,280] And so if you use something like vanilla policy gradient,
+[00:53:47,280 --> 00:53:49,080] it'll be extremely data inefficient.
+[00:53:49,080 --> 00:53:50,860] If you use something like PPO, it'll
+[00:53:50,860 --> 00:53:54,760] be more stable, but still fairly inefficient.
+[00:53:54,760 --> 00:53:56,780] If you use something like SAC, it
+[00:53:56,780 --> 00:53:58,880] will be probably a lot more efficient,
+[00:53:58,880 --> 00:54:02,300] although you might need to tune the hyperparameters more.
+[00:54:02,300 --> 00:54:05,100] So now let's talk a bit about exploration.
+[00:54:05,100 --> 00:54:08,180] By exploration, I mean exploration
+[00:54:08,180 --> 00:54:11,900] in context, exploration when you're
+[00:54:11,900 --> 00:54:15,165] trying to explore a new task.
+[00:54:15,165 --> 00:54:16,540] What we've talked about so far is
+[00:54:16,540 --> 00:54:19,660] trying to optimize end-to-end for exploration
+[00:54:19,660 --> 00:54:25,595] and exploitation, with respect to the final sum of rewards.
+[00:54:25,595 --> 00:54:27,220] Simple, in principle, it could actually
+[00:54:27,220 --> 00:54:29,547] yield the optimal exploration-exploitation
+[00:54:29,547 --> 00:54:31,380] trade-off because you're optimizing directly
+[00:54:31,380 --> 00:54:33,770] for the sum of rewards.
+[00:54:33,770 --> 00:54:35,610] And that's really, really nice.
+[00:54:35,610 --> 00:54:38,090] But it can be a really challenging optimization.
+[00:54:38,090 --> 00:54:40,570] And let's talk about why that's the case.
+[00:54:40,570 --> 00:54:45,150] So let's look at a running example.
+[00:54:45,150 --> 00:54:51,730] So say that you have some robot that looks like this.
+[00:54:51,730 --> 00:54:56,930] And the robot needs to find something.
+[00:54:56,930 --> 00:55:02,170] And there are some hallways that the robot
+[00:55:02,170 --> 00:55:05,490] might need to go down in order to try
+[00:55:05,490 --> 00:55:09,770] to find the thing that it's trying to find.
+[00:55:09,770 --> 00:55:13,370] And different tasks correspond to different locations
+[00:55:13,370 --> 00:55:15,310] of the object that it's trying to find.
+[00:55:15,310 --> 00:55:18,353] So in one task or in one scenario,
+[00:55:18,353 --> 00:55:19,770] it might be all the way over here.
+[00:55:19,770 --> 00:55:25,290] In another scenario, it might be over here, and so forth.
+[00:55:25,290 --> 00:55:28,930] And to help the robot out a little bit,
+[00:55:28,930 --> 00:55:31,010] we're going to introduce one other thing, which
+[00:55:31,010 --> 00:55:35,280] is that there's going to be some piece of paper over here.
+[00:55:35,280 --> 00:55:43,360] And that paper actually says where the object is in words.
+[00:55:43,360 --> 00:55:46,582] Maybe it's trying to find a replacement light bulb
+[00:55:46,582 --> 00:55:47,540] or something like that.
+[00:55:47,540 --> 00:55:50,680] And it says, the light bulb is in the fourth hallway
+[00:55:50,680 --> 00:55:53,320] at the end.
+[00:55:53,320 --> 00:55:55,180] OK, so here's our robot.
+[00:55:55,180 --> 00:55:56,853] Here are the hallways.
+[00:55:56,853 --> 00:55:58,520] Different tasks correspond to navigating
+[00:55:58,520 --> 00:56:00,080] to the ends of the different halls.
+[00:56:00,080 --> 00:56:02,380] And we have some information about where to go.
+[00:56:02,380 --> 00:56:05,720] And if we look at that, information
+[00:56:05,720 --> 00:56:11,600] will be in the state about where the reward is for this task.
+[00:56:11,600 --> 00:56:15,020] Now, how do we actually learn how to explore?
+[00:56:15,020 --> 00:56:18,600] So say that we were trying to collect trajectories
+[00:56:18,600 --> 00:56:22,400] and trying to learn how to explore such
+[00:56:22,400 --> 00:56:26,130] that we can get good behavior.
+[00:56:28,790 --> 00:56:33,040] Let's start with the scenario where we sampled a task.
+[00:56:33,040 --> 00:56:37,780] And maybe the task was to go to the end of this hallway right
+[00:56:37,780 --> 00:56:39,300] here.
+[00:56:39,300 --> 00:56:44,400] And say that we actually just got lucky.
+[00:56:44,400 --> 00:56:47,540] We collected a trajectory that just went straight
+[00:56:47,540 --> 00:56:51,003] to that reward.
+[00:56:51,003 --> 00:56:52,420] Now, in some ways, that seems good
+[00:56:52,420 --> 00:56:55,460] because we got reward for that.
+[00:56:55,460 --> 00:56:59,580] And so that gave us some reward.
+[00:56:59,580 --> 00:57:01,420] And that's optimizing the objective
+[00:57:01,420 --> 00:57:04,282] that we care about ultimately.
+[00:57:04,282 --> 00:57:05,740] But the thing that's bad about this
+[00:57:05,740 --> 00:57:10,600] is that the robot got lucky.
+[00:57:10,600 --> 00:57:14,300] And it doesn't actually know how to repeat that in the future,
+[00:57:14,300 --> 00:57:19,540] because it didn't actually explore any other alternatives.
+[00:57:19,540 --> 00:57:23,000] And so the way that we can view this
+[00:57:23,000 --> 00:57:25,000] is if it goes to the end of the correct hallway,
+[00:57:25,000 --> 00:57:26,560] it'll get positive reward.
+[00:57:26,560 --> 00:57:31,450] But the context leading up to getting that positive reward
+[00:57:31,450 --> 00:57:34,450] doesn't actually look different than any other task.
+[00:57:34,450 --> 00:57:36,090] It went through here.
+[00:57:36,090 --> 00:57:39,450] And there's nothing that differentiates
+[00:57:39,450 --> 00:57:42,490] what it did there, which was like zero reward, zero reward,
+[00:57:42,490 --> 00:57:45,250] than if the task, for example, had been to go here
+[00:57:45,250 --> 00:57:47,250] or to go here.
+[00:57:47,250 --> 00:57:51,030] And as a result, it didn't actually learn how to explore
+[00:57:51,030 --> 00:57:54,410] and it didn't learn how to use exploration information in order
+[00:57:54,410 --> 00:57:55,850] to solve the task.
+[00:57:55,850 --> 00:57:57,570] And so this trajectory might not actually
+[00:57:57,570 --> 00:58:02,693] be very helpful for learning how to explore
+[00:58:02,693 --> 00:58:03,860] and learning how to exploit.
+[00:58:06,490 --> 00:58:11,930] Now, let's say that we had a different trajectory.
+[00:58:11,930 --> 00:58:13,490] So we're exploring.
+[00:58:13,490 --> 00:58:17,850] And let's say that the agent, instead of doing that,
+[00:58:17,850 --> 00:58:19,930] it maybe sampled the same task.
+[00:58:19,930 --> 00:58:22,690] And it went to the end of this trajectory
+[00:58:22,690 --> 00:58:24,690] and then continued, didn't see that,
+[00:58:24,690 --> 00:58:29,640] and then went to the end of this trajectory.
+[00:58:29,640 --> 00:58:37,960] So that would be good, in the sense that it has experience
+[00:58:37,960 --> 00:58:40,440] that ruled out one task.
+[00:58:40,440 --> 00:58:42,662] And then it got rewarded for a different task.
+[00:58:42,662 --> 00:58:44,120] And so it's going to be teaching it
+[00:58:44,120 --> 00:58:47,480] something about an exploration strategy that works.
+[00:58:47,480 --> 00:58:50,538] The downside is that exploration strategy is quite suboptimal.
+[00:58:50,538 --> 00:58:53,080] Because it would have been a lot more efficient to first look
+[00:58:53,080 --> 00:58:57,720] at the instructions and then go to the correct position.
+[00:58:57,720 --> 00:59:01,300] And so it's somewhat good, somewhat bad.
+[00:59:01,300 --> 00:59:03,840] It provides signal on a suboptimal exploration
+[00:59:03,840 --> 00:59:06,120] and exploitation strategy.
+[00:59:06,120 --> 00:59:10,360] And so it's perhaps better than the first trajectory
+[00:59:10,360 --> 00:59:13,110] that it did, but still not ideal.
+[00:59:15,880 --> 00:59:19,000] Now, let's consider a third trajectory.
+[00:59:19,000 --> 00:59:24,020] Say that we are again collecting data for the meta-RL process.
+[00:59:24,020 --> 00:59:27,420] And let's say that the agent decided
+[00:59:27,420 --> 00:59:31,620] to look at the instructions and then just stay and watch
+[00:59:31,620 --> 00:59:34,620] the instructions.
+[00:59:34,620 --> 00:59:36,860] Does anyone have thoughts on whether that
+[00:59:36,860 --> 00:59:42,740] would be a useful trajectory or not for the learning process?
+[00:59:42,740 --> 00:59:43,720] Yeah, exactly.
+[00:59:43,720 --> 00:59:46,020] So it did something useful, but it doesn't
+[00:59:46,020 --> 00:59:47,060] get any reward for that.
+[00:59:47,060 --> 00:59:50,780] It only gets reward if it did that and then went here.
+[00:59:50,780 --> 00:59:54,740] And so that's also not going to be very useful for the learning
+[00:59:54,740 --> 00:59:55,900] problem.
+[00:59:55,900 --> 01:00:00,340] And basically, in the problem like this,
+[01:00:00,340 --> 01:00:03,780] you're only going to actually be learning something
+[01:00:03,780 --> 01:00:08,460] useful about how to explore and exploit if you successfully did
+[01:00:08,460 --> 01:00:11,100] the proper exploration behavior and then did the exploitation
+[01:00:11,100 --> 01:00:11,840] behavior.
+[01:00:11,840 --> 01:00:15,585] And if you do them in separate episodes,
+[01:00:15,585 --> 01:00:18,980] then you're not actually getting good learning signal.
+[01:00:18,980 --> 01:00:21,740] And that means that you have this kind of sample complexity
+[01:00:21,740 --> 01:00:25,010] where you need to actually get lucky and do both of the two
+[01:00:25,010 --> 01:00:28,370] things at the same time in order to get signal that
+[01:00:28,370 --> 01:00:31,752] helps you learn the problem.
+[01:00:31,752 --> 01:00:34,210] So basically, it's hard to learn how to explore and exploit
+[01:00:34,210 --> 01:00:35,070] at the same time.
+[01:00:37,620 --> 01:00:39,370] Another example of this is say that you're
+[01:00:39,370 --> 01:00:41,250] trying to learn how to cook.
+[01:00:41,250 --> 01:00:43,150] You have data in previous kitchens.
+[01:00:43,150 --> 01:00:45,530] Your goal is to then be able to quickly learn
+[01:00:45,530 --> 01:00:48,092] how to cook in a new kitchen.
+[01:00:48,092 --> 01:00:49,550] Now, in order to learn how to cook,
+[01:00:49,550 --> 01:00:51,330] you need to find the ingredients.
+[01:00:51,330 --> 01:00:53,777] And if you haven't yet figured out
+[01:00:53,777 --> 01:00:55,610] how to find the ingredients because you have
+[01:00:55,610 --> 01:00:57,690] bad exploration, then you can't learn
+[01:00:57,690 --> 01:01:00,790] how to cook because you don't have the ingredients with you.
+[01:01:00,790 --> 01:01:04,630] And then you're going to get a low reward.
+[01:01:04,630 --> 01:01:06,130] And then also, if you don't yet know
+[01:01:06,130 --> 01:01:08,890] how to cook because you haven't collected experience
+[01:01:08,890 --> 01:01:11,990] on that, then regardless of the exploration you do,
+[01:01:11,990 --> 01:01:13,930] you're going to get low reward.
+[01:01:13,930 --> 01:01:15,890] And so you have this chicken and egg problem
+[01:01:15,890 --> 01:01:18,450] between learning how to explore and learning
+[01:01:18,450 --> 01:01:21,610] how to solve the task using that information.
+[01:01:21,610 --> 01:01:26,000] And so there's another way to view this coupling problem where
+[01:01:26,000 --> 01:01:28,920] exploration and execution or exploitation
+[01:01:28,920 --> 01:01:32,600] depend on each other in order to be jointly successful.
+[01:01:32,600 --> 01:01:35,760] So then the way to view end-to-end training
+[01:01:35,760 --> 01:01:38,280] is that it's great in that you can
+[01:01:38,280 --> 01:01:39,800] learn this optimal trade-off.
+[01:01:39,800 --> 01:01:41,680] But it can be extremely challenging
+[01:01:41,680 --> 01:01:44,120] if you have a hard exploration problem, because you
+[01:01:44,120 --> 01:01:46,920] need to figure out how to explore and exploit and get
+[01:01:46,920 --> 01:01:50,122] learning signal that way.
+[01:01:50,122 --> 01:01:52,080] The question is, is the ultimate challenge here
+[01:01:52,080 --> 01:01:53,580] that the reward is sparse?
+[01:01:53,580 --> 01:01:57,970] So it's true that if you had a dense reward,
+[01:01:57,970 --> 01:01:59,907] you'd be in a much better place, basically,
+[01:01:59,907 --> 01:02:01,740] because you wouldn't really have to explore.
+[01:02:08,170 --> 01:02:09,920] Well, you wouldn't have to explicitly take
+[01:02:09,920 --> 01:02:10,720] actions to explore.
+[01:02:13,360 --> 01:02:15,480] And this really comes down to a problem
+[01:02:15,480 --> 01:02:16,960] when exploration is hard.
+[01:02:16,960 --> 01:02:19,320] If exploration is easy, this really isn't a problem.
+[01:02:19,320 --> 01:02:21,580] Because you no longer have to solve both exploration
+[01:02:21,580 --> 01:02:22,440] and exploitation.
+[01:02:22,440 --> 01:02:25,217] You only have to solve exploitation.
+[01:02:25,217 --> 01:02:26,800] So there's a couple solutions to this.
+[01:02:26,800 --> 01:02:29,780] And we'll start to talk about one solution today.
+[01:02:29,780 --> 01:02:34,860] And then on Friday, we'll talk about more solutions.
+[01:02:34,860 --> 01:02:39,460] So the second solution, I'm not going to go into complete detail
+[01:02:39,460 --> 01:02:40,480] on how these work.
+[01:02:40,480 --> 01:02:44,020] But one solution here is, instead of optimizing just
+[01:02:44,020 --> 01:02:48,460] for end-to-end reward, you can add in auxiliary exploration
+[01:02:48,460 --> 01:02:53,540] objectives to encourage it to try to actually figure out
+[01:02:53,540 --> 01:02:57,460] something more meaningful about the task.
+[01:02:57,460 --> 01:02:59,900] And one approach here is to use what's
+[01:02:59,900 --> 01:03:04,900] called posterior sampling, also called Thompson sampling.
+[01:03:04,900 --> 01:03:11,020] And the way that this works is that we
+[01:03:11,020 --> 01:03:13,180] talked about an algorithm where you're trying
+[01:03:13,180 --> 01:03:15,580] to infer what the task is.
+[01:03:15,580 --> 01:03:20,810] And if you've collected some experience so
+[01:03:20,810 --> 01:03:27,690] far and you've inferred some distribution over your task--
+[01:03:27,690 --> 01:03:30,830] in this case, zi is now some latent representation,
+[01:03:30,830 --> 01:03:34,610] it's not a representation that's known--
+[01:03:34,610 --> 01:03:38,410] then what you could do is you could then
+[01:03:38,410 --> 01:03:44,370] sample from this distribution and then act as
+[01:03:44,370 --> 01:03:47,610] if that was the correct task.
+[01:03:47,610 --> 01:03:51,270] So if you have this task inference procedure
+[01:03:51,270 --> 01:03:55,930] and then you also have a policy that, given an estimate of z,
+[01:03:55,930 --> 01:04:03,370] is able to generate actions, then what you can do
+[01:04:03,370 --> 01:04:07,570] is you can sample a z from this distribution and then sample
+[01:04:07,570 --> 01:04:08,360] from this policy.
+[01:04:13,908 --> 01:04:15,950] This starts to decouple the problem a little bit.
+[01:04:15,950 --> 01:04:22,280] Because if you have policies that for a given z do the task,
+[01:04:22,280 --> 01:04:25,920] then you would basically learn an exploration strategy
+[01:04:25,920 --> 01:04:36,560] that is trying to go down the different corridors to find
+[01:04:36,560 --> 01:04:37,260] the solution.
+[01:04:37,260 --> 01:04:39,258] So as an example, this is actually
+[01:04:39,258 --> 01:04:41,800] a problem that looks somewhat similar to the corridors, where
+[01:04:41,800 --> 01:04:45,400] you get a sparse reward if you reach one of these circles.
+[01:04:45,400 --> 01:04:48,520] And the different circles correspond to different tasks.
+[01:04:48,520 --> 01:04:53,720] And in this case, we've sampled this task right here.
+[01:04:53,720 --> 01:05:02,040] And first, we sample a z from our prior over tasks.
+[01:05:02,040 --> 01:05:03,580] We haven't collected any data yet.
+[01:05:03,580 --> 01:05:04,780] So we sample z.
+[01:05:04,780 --> 01:05:07,240] We then run our policy based on those different z's.
+[01:05:07,240 --> 01:05:09,520] And we get exploration based on these.
+[01:05:09,520 --> 01:05:13,667] And then we use that to infer what the task might be.
+[01:05:13,667 --> 01:05:15,500] And so now we know that the task is probably
+[01:05:15,500 --> 01:05:17,837] either over here or over here.
+[01:05:17,837 --> 01:05:19,420] And so now you'll collect trajectories
+[01:05:19,420 --> 01:05:22,440] that are lighter in color that are like this one, this one,
+[01:05:22,440 --> 01:05:24,507] and going over here.
+[01:05:24,507 --> 01:05:26,840] And then once you've actually collected this trajectory,
+[01:05:26,840 --> 01:05:29,257] then you should actually have a much narrower distribution
+[01:05:29,257 --> 01:05:31,740] over the task because you get positive reward here.
+[01:05:31,740 --> 01:05:37,120] And so then your z distribution will be narrowed out here.
+[01:05:37,120 --> 01:05:42,540] And you'll execute your policy according to those z's.
+[01:05:42,540 --> 01:05:47,140] And so that's one approach for addressing this exploration
+[01:05:47,140 --> 01:05:48,420] problem--
+[01:05:48,420 --> 01:05:51,740] basically, learning this latent representation over tasks
+[01:05:51,740 --> 01:05:55,100] and then sampling from that distribution
+[01:05:55,100 --> 01:05:58,680] and acting according to your policy for that task.
+[01:06:02,260 --> 01:06:04,420] So there's some scenarios where this is great
+[01:06:04,420 --> 01:06:06,768] and scenarios where this is not so great.
+[01:06:06,768 --> 01:06:09,060] Does anyone have thoughts on when this sort of sampling
+[01:06:09,060 --> 01:06:11,500] might be bad, like what sort of MDPs
+[01:06:11,500 --> 01:06:13,930] this might not work well in?
+[01:06:13,930 --> 01:06:16,370] "If you have a large action space."
+[01:06:16,370 --> 01:06:18,730] That could contribute.
+[01:06:18,730 --> 01:06:21,930] Although, it isn't just having to do with the action space.
+[01:06:21,930 --> 01:06:24,430] Because if you have a dense reward and a large action space,
+[01:06:24,430 --> 01:06:26,370] you'd be probably OK.
+[01:06:26,370 --> 01:06:27,870] So if these are out of distribution,
+[01:06:27,870 --> 01:06:29,715] certainly things will be problematic.
+[01:06:29,715 --> 01:06:31,090] But even in distribution, there's
+[01:06:31,090 --> 01:06:36,010] scenarios where this exploration strategy will be really bad.
+[01:06:36,010 --> 01:06:40,490] Yeah, so one scenario where this might work poorly
+[01:06:40,490 --> 01:06:47,610] is if you start to see some reward,
+[01:06:47,610 --> 01:06:49,770] but there might actually be an even better reward
+[01:06:49,770 --> 01:06:53,450] in another scenario, you might start
+[01:06:53,450 --> 01:06:55,690] to exploit a little bit too early.
+[01:06:55,690 --> 01:06:58,610] Although, it won't rule out those higher reward scenarios
+[01:06:58,610 --> 01:07:00,650] if it knows that there are other tasks
+[01:07:00,650 --> 01:07:03,050] that might have higher rewards.
+[01:07:03,050 --> 01:07:05,755] So I guess the scenario that I was thinking
+[01:07:05,755 --> 01:07:07,130] of where I think that this can be
+[01:07:07,130 --> 01:07:11,370] quite bad is actually a lot like this scenario right here.
+[01:07:11,370 --> 01:07:13,480] So the strategy that posterior sampling
+[01:07:13,480 --> 01:07:15,520] will learn in this scenario is, instead
+[01:07:15,520 --> 01:07:17,165] of looking at the instructions, it's
+[01:07:17,165 --> 01:07:19,040] instead going to go down each of the hallways
+[01:07:19,040 --> 01:07:20,880] and try to find the reward.
+[01:07:20,880 --> 01:07:23,200] Because it's trying to explicitly explore
+[01:07:23,200 --> 01:07:25,200] by executing policies corresponding
+[01:07:25,200 --> 01:07:26,920] to different tasks.
+[01:07:26,920 --> 01:07:30,800] And this will be especially bad if the hallways are very long.
+[01:07:30,800 --> 01:07:34,120] So if the hallways are really, really long,
+[01:07:34,120 --> 01:07:36,800] take days to traverse, then what it's going to do
+[01:07:36,800 --> 01:07:39,160] is it's going to spend days going down one of them
+[01:07:39,160 --> 01:07:41,420] and then figuring out that it's not the right one.
+[01:07:41,420 --> 01:07:43,380] And then spend days going down another one,
+[01:07:43,380 --> 01:07:45,600] rather than trying to seek out information that
+[01:07:45,600 --> 01:07:49,100] might tell it about what to do.
+[01:07:49,100 --> 01:07:51,818] So, for example, if these goals are very far away
+[01:07:51,818 --> 01:07:53,360] and there is some sign that tells you
+[01:07:53,360 --> 01:07:57,980] what the correct goal is, then this is a bad strategy.
+[01:07:57,980 --> 01:08:01,560] Now, if that sign doesn't exist, then it actually
+[01:08:01,560 --> 01:08:04,080] would be a good strategy, because you have to go down
+[01:08:04,080 --> 01:08:06,426] those different corridors.
+[01:08:06,426 --> 01:08:08,120] There's a couple of other approaches
+[01:08:08,120 --> 01:08:10,660] that we can use as well that include [INAUDIBLE]
+[01:08:10,660 --> 01:08:13,780] intrinsic rewards that try to encourage
+[01:08:13,780 --> 01:08:17,939] it to visit new states, and also trying to visit states that help
+[01:08:17,939 --> 01:08:20,620] you distinguish the dynamics and reward
+[01:08:20,620 --> 01:08:23,020] models for different tasks.
+[01:08:23,020 --> 01:08:26,060] So we try to collect data so that our model of rewards
+[01:08:26,060 --> 01:08:28,660] and states are accurate.
+[01:08:28,660 --> 01:08:30,220] And with this sort of approach, you
+[01:08:30,220 --> 01:08:31,939] could actually get exploration strategy
+[01:08:31,939 --> 01:08:34,340] that looks a lot more efficient, that looks something like this,
+[01:08:34,340 --> 01:08:35,979] compared to posterior sampling, that's
+[01:08:35,979 --> 01:08:40,020] trying to just sample the different trajectories
+[01:08:40,020 --> 01:08:43,100] for the different tasks.
+[01:08:43,100 --> 01:08:45,220] There's also scenarios where this might be bad,
+[01:08:45,220 --> 01:08:48,620] if there's lots of distractors or really complex state
+[01:08:48,620 --> 01:08:50,185] dynamics.
+[01:08:50,185 --> 01:08:52,060] But unfortunately, I don't have too much time
+[01:08:52,060 --> 01:08:52,960] to go over that now.
+[01:08:52,960 --> 01:08:54,620] So these sorts of approaches are easier
+[01:08:54,620 --> 01:08:56,160] to optimize than end-to-end.
+[01:08:56,160 --> 01:08:58,580] A lot of them have some principle behind them,
+[01:08:58,580 --> 01:09:01,920] but they can be very suboptimal in certain environments.
+[01:09:01,920 --> 01:09:05,810] And it kind of depends on the environment or the domain.

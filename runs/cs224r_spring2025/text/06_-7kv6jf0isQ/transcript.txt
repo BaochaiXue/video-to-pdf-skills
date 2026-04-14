@@ -1,0 +1,1167 @@
+[00:00:05,480 --> 00:00:09,520] So as a recap for the last couple lectures,
+[00:00:09,520 --> 00:00:12,480] we've talked a lot about value functions and Q-functions.
+[00:00:12,480 --> 00:00:14,960] We'll talk about them more today.
+[00:00:14,960 --> 00:00:18,160] And as a reminder, value functions and Q-functions
+[00:00:18,160 --> 00:00:23,000] are representing some future expected rewards,
+[00:00:23,000 --> 00:00:24,480] starting at some state.
+[00:00:24,480 --> 00:00:28,100] And value function will be future expected rewards
+[00:00:28,100 --> 00:00:30,320] we start at state and follow with policy.
+[00:00:30,320 --> 00:00:33,110] And a Q-function is if we start at a state, take an action,
+[00:00:33,110 --> 00:00:35,640] and then follow it.
+[00:00:35,640 --> 00:00:39,520] And so you can write these down mathematically
+[00:00:39,520 --> 00:00:42,080] as expected future rewards.
+[00:00:42,080 --> 00:00:45,040] And we've seen these diagrams a couple of times
+[00:00:45,040 --> 00:00:50,120] where you can think about value as the sum of future rewards,
+[00:00:50,120 --> 00:00:56,180] but think of Q-functions as policy rewards plus state.
+[00:00:56,180 --> 00:00:56,680] All right.
+[00:00:56,680 --> 00:00:59,788] We've talked about a couple methods so far.
+[00:00:59,788 --> 00:01:01,330] The first method that we talked about
+[00:01:01,330 --> 00:01:04,489] was policy gradients, where we alternate between collecting
+[00:01:04,489 --> 00:01:06,930] data and improving our policy.
+[00:01:06,930 --> 00:01:10,570] And we can think of it as trying to get samples for our policy
+[00:01:10,570 --> 00:01:14,090] and increasing the log likelihood of actions that
+[00:01:14,090 --> 00:01:17,210] have a higher reward in the future, where we subtract
+[00:01:17,210 --> 00:01:21,730] the baseline in order to encourage the policy to be more
+[00:01:21,730 --> 00:01:24,530] above average things than it did before, and less as
+[00:01:24,530 --> 00:01:27,050] of the below average stuff.
+[00:01:27,050 --> 00:01:30,290] We then started to talk about actor-critic methods.
+[00:01:30,290 --> 00:01:32,690] And in this part, we introduced an additional step
+[00:01:32,690 --> 00:01:37,650] of this loop, where we are first going to estimate the expected
+[00:01:37,650 --> 00:01:43,690] future reward for our policy and use that to improve the policy.
+[00:01:43,690 --> 00:01:47,110] So we had this revised form for our gradients,
+[00:01:47,110 --> 00:01:50,330] for our policy, where we are still taking samples,
+[00:01:50,330 --> 00:01:54,010] but increasing the likelihood on actions that we think are good,
+[00:01:54,010 --> 00:01:59,022] and decreasing the likelihood on actions that we think are bad.
+[00:01:59,022 --> 00:02:02,180] So these are the methods that we've talked about so far.
+[00:02:02,180 --> 00:02:04,540] We, last lecture, focused a lot on how
+[00:02:04,540 --> 00:02:08,259] to do this actor-critic algorithm in an off-policy way.
+[00:02:08,259 --> 00:02:12,440] So instead of only using the data from the current iteration,
+[00:02:12,440 --> 00:02:15,460] trying to be able to use all of the past data from all past
+[00:02:15,460 --> 00:02:16,940] iterations.
+[00:02:16,940 --> 00:02:21,460] And do that, we needed to be able to estimate a Q-function
+[00:02:21,460 --> 00:02:24,060] from past policy data.
+[00:02:24,060 --> 00:02:26,960] And to do that, we can use a neural network.
+[00:02:26,960 --> 00:02:30,700] Half of them put a state in action and output the value.
+[00:02:30,700 --> 00:02:33,580] And we derive this equation that's
+[00:02:33,580 --> 00:02:36,260] defining the Q-function recursively.
+[00:02:36,260 --> 00:02:38,740] Or we can think of the sum of future rewards
+[00:02:38,740 --> 00:02:40,780] as the reward at the first timestep,
+[00:02:40,780 --> 00:02:48,060] plus the Q-function starting at the next state and action.
+[00:02:48,060 --> 00:02:52,300] We found that this equation holds for any state and action,
+[00:02:52,300 --> 00:02:55,940] and that means that we can use previous state-action and next
+[00:02:55,940 --> 00:03:00,402] state pairs in order to try to learn a Q-function.
+[00:03:00,402 --> 00:03:02,360] And specifically the way that we did that is we
+[00:03:02,360 --> 00:03:04,600] would sample a state-action next state
+[00:03:04,600 --> 00:03:07,960] from our buffer of previous data.
+[00:03:07,960 --> 00:03:11,840] Then we'll sample a next action from the current policy,
+[00:03:11,840 --> 00:03:14,400] rather than from the past policy.
+[00:03:14,400 --> 00:03:17,200] And then we will try to do supervised learning
+[00:03:17,200 --> 00:03:20,320] on these targets, where the targets are
+[00:03:20,320 --> 00:03:24,760] using our current estimate of the Q-function for our policy.
+[00:03:24,760 --> 00:03:27,380] And we pass these inputs to state, the action,
+[00:03:27,380 --> 00:03:29,920] the next state and the next action
+[00:03:29,920 --> 00:03:32,400] that the sample [INAUDIBLE].
+[00:03:32,400 --> 00:03:36,300] And so once we formulate this objective using those two step
+[00:03:36,300 --> 00:03:39,600] Q-values, then we can use supervised
+[00:03:39,600 --> 00:03:43,120] learning to help with that to try to match the Q function.
+[00:03:43,120 --> 00:03:47,240] Then we also talked about for these yi's be accurate,
+[00:03:47,240 --> 00:03:50,440] you need to have sufficient coverage in your data set
+[00:03:50,440 --> 00:03:53,880] to cover actions that your newest policy [INAUDIBLE].
+[00:03:53,880 --> 00:03:57,273] So today, we're going to be covering value-based RL methods.
+[00:03:57,273 --> 00:03:58,690] And specifically, we'll be talking
+[00:03:58,690 --> 00:04:01,290] about what I think arguably was the very
+[00:04:01,290 --> 00:04:03,690] first deep reinforcement learning method,
+[00:04:03,690 --> 00:04:06,610] and it was based on Q-learning algorithm.
+[00:04:06,610 --> 00:04:08,430] And we'll be talking about Q-learning,
+[00:04:08,430 --> 00:04:10,097] and then we'll also be talking about how
+[00:04:10,097 --> 00:04:13,610] to implement Q-learning in practice, how to make it stable.
+[00:04:13,610 --> 00:04:16,410] And the goal for today is to think about how Q-functions
+[00:04:16,410 --> 00:04:19,250] relate to policies, how to do RL without learning
+[00:04:19,250 --> 00:04:22,810] an explicit policy, and how to stabilize Q-learning
+[00:04:22,810 --> 00:04:26,810] if you're actually [INAUDIBLE].
+[00:04:26,810 --> 00:04:28,140] Cool.
+[00:04:28,140 --> 00:04:29,890] So we're going to start out with a thought
+[00:04:29,890 --> 00:04:33,610] exercise, and a question for all of you to think about.
+[00:04:33,610 --> 00:04:41,250] So say we have some policy, and for your policy,
+[00:04:41,250 --> 00:04:44,290] you have a pretty good estimate of the Q-function.
+[00:04:44,290 --> 00:04:48,530] And as a reminder, I'll put the definition of Q-values
+[00:04:48,530 --> 00:04:52,810] up here, where it says future rewards for a state and action.
+[00:04:52,810 --> 00:04:56,340] And an object that we're going to be thinking about a lot today
+[00:04:56,340 --> 00:05:03,200] is if you have some estimate of the Q-function, in this case,
+[00:05:03,200 --> 00:05:10,740] for a policy, then one thing you could do is you could try to--
+[00:05:10,740 --> 00:05:14,500] instead of following some policy that you've already learned,
+[00:05:14,500 --> 00:05:18,940] you could potentially formulate a policy
+[00:05:18,940 --> 00:05:24,940] by choosing the action that maximizes this Q-value.
+[00:05:24,940 --> 00:05:27,715] So if you have a bunch of different states and actions,
+[00:05:27,715 --> 00:05:29,840] at a given state, instead of following your policy,
+[00:05:29,840 --> 00:05:31,820] you could pick the candidate action
+[00:05:31,820 --> 00:05:36,020] that has the highest Q-value.
+[00:05:36,020 --> 00:05:39,480] So to continue on this thought exercise,
+[00:05:39,480 --> 00:05:42,660] we'll define a policy that does exactly that.
+[00:05:42,660 --> 00:05:45,220] That policy has a probability of 1
+[00:05:45,220 --> 00:05:48,860] for taking the action that maximizes the Q-value,
+[00:05:48,860 --> 00:05:50,842] and has a probability of 0 otherwise.
+[00:05:50,842 --> 00:05:52,300] There's just a deterministic policy
+[00:05:52,300 --> 00:05:55,110] that always follows what the Q-value is
+[00:05:55,110 --> 00:05:56,610] telling you is the best.
+[00:05:59,190 --> 00:06:02,570] And then we'll look at this in the context of an example.
+[00:06:02,570 --> 00:06:05,670] So say that we have some 2D navigation problem.
+[00:06:05,670 --> 00:06:08,150] We're going to be starting somewhere in this blue box,
+[00:06:08,150 --> 00:06:12,870] and our goal is to get to the star.
+[00:06:12,870 --> 00:06:15,150] We can move in 2D.
+[00:06:15,150 --> 00:06:20,230] The reward is 1 at the star, and 0 elsewhere, so very simple.
+[00:06:20,230 --> 00:06:23,490] And let's say that our current policy always goes to the right.
+[00:06:26,590 --> 00:06:29,830] And as one additional point of detail,
+[00:06:29,830 --> 00:06:31,870] if you're going to move up, it takes 1 timestep
+[00:06:31,870 --> 00:06:34,670] to move about this distance, and it takes about 2 timesteps
+[00:06:34,670 --> 00:06:37,790] to move this distance.
+[00:06:37,790 --> 00:06:43,030] So my question for you is, if you define this new policy--
+[00:06:43,030 --> 00:06:45,290] you have this current policy that always goes right.
+[00:06:45,290 --> 00:06:49,007] You have an accurate estimate of the Q-value for that policy.
+[00:06:49,007 --> 00:06:50,590] If you define this new policy, is that
+[00:06:50,590 --> 00:06:52,170] better than the current policy?
+[00:06:52,170 --> 00:06:53,710] Is worse than the current policy?
+[00:06:53,710 --> 00:06:56,570] Is it the same as the current policy?
+[00:06:56,570 --> 00:07:01,050] Is it the optimal policy, and why or why not?
+[00:07:01,050 --> 00:07:02,170] So I'll give you--
+[00:07:02,170 --> 00:07:04,120] well, first, any questions about this example?
+[00:07:07,910 --> 00:07:08,410] OK.
+[00:07:08,410 --> 00:07:11,050] I'll give you a few minutes to talk
+[00:07:11,050 --> 00:07:13,730] to your neighbor about these questions,
+[00:07:13,730 --> 00:07:17,750] and then we'll come back and talk through the answers.
+[00:07:23,050 --> 00:07:25,270] It seems like people are talking a little bit less,
+[00:07:25,270 --> 00:07:26,850] so maybe we can come back.
+[00:07:26,850 --> 00:07:30,450] Who wants to share their thoughts?
+[00:07:30,450 --> 00:07:31,875] Yeah?
+[00:07:31,875 --> 00:07:33,250] So let's summarize that, and then
+[00:07:33,250 --> 00:07:35,292] we'll talk about whether it's the optimal policy.
+[00:07:35,292 --> 00:07:39,290] So summarize the old policy is going right.
+[00:07:39,290 --> 00:07:42,630] And so that is not optimal because if you're starting here,
+[00:07:42,630 --> 00:07:45,130] then you're not actually going to hit the star.
+[00:07:45,130 --> 00:07:50,740] And if you think about what Q pi is for the old policy,
+[00:07:50,740 --> 00:07:54,780] everything in this region right here
+[00:07:54,780 --> 00:07:57,820] is going to have a Q pi equal to 1
+[00:07:57,820 --> 00:08:03,860] for all of these states and actions.
+[00:08:03,860 --> 00:08:06,780] Also, the-- yeah.
+[00:08:06,780 --> 00:08:10,140] And then if you start to think about what
+[00:08:10,140 --> 00:08:15,820] Q pi looks like right here, this is actually where it will--
+[00:08:15,820 --> 00:08:17,100] well, actually, sorry.
+[00:08:17,100 --> 00:08:18,460] Take that back.
+[00:08:18,460 --> 00:08:20,800] V pi is equal to 1 for everything in this row.
+[00:08:20,800 --> 00:08:23,340] It actually depends a little bit on the action what
+[00:08:23,340 --> 00:08:26,340] the Q-function actually is.
+[00:08:26,340 --> 00:08:30,280] For this row, if the action is the same as the policy,
+[00:08:30,280 --> 00:08:31,740] it's going to move right.
+[00:08:31,740 --> 00:08:33,715] Then if Q-value is 1--
+[00:08:33,715 --> 00:08:35,840] if it actually does something else-- if it goes up,
+[00:08:35,840 --> 00:08:36,440] for example--
+[00:08:36,440 --> 00:08:37,940] then it might actually miss the star
+[00:08:37,940 --> 00:08:42,780] if it follows the policy after taking that action.
+[00:08:42,780 --> 00:08:47,340] Now if you look at this row, for this row,
+[00:08:47,340 --> 00:08:51,350] Q pi of all the states in this row for the action of going
+[00:08:51,350 --> 00:08:54,550] right is going to be 0.
+[00:08:54,550 --> 00:08:59,310] But then if you look at the Q pi for all the states
+[00:08:59,310 --> 00:09:05,070] here for the action of going up, what is the Q value for that?
+[00:09:05,070 --> 00:09:06,300] For Q pi?
+[00:09:06,300 --> 00:09:06,800] 1.
+[00:09:06,800 --> 00:09:07,510] Cool.
+[00:09:07,510 --> 00:09:10,830] And so that's because if we follow up and then follow
+[00:09:10,830 --> 00:09:14,230] the policy, we'll have a reward of 1.
+[00:09:14,230 --> 00:09:19,110] And then lastly, if we go to this row, if we have s
+[00:09:19,110 --> 00:09:23,150] and then going up, what is the key value?
+[00:09:23,150 --> 00:09:23,730] 0.
+[00:09:23,730 --> 00:09:24,930] Cool.
+[00:09:24,930 --> 00:09:26,430] And so what this means is that we're
+[00:09:26,430 --> 00:09:28,050] going to get the new policy.
+[00:09:28,050 --> 00:09:33,710] What it's going to do is it's going to be going right here.
+[00:09:33,710 --> 00:09:35,290] And then for everything in this row,
+[00:09:35,290 --> 00:09:37,230] it will be going up because it's going
+[00:09:37,230 --> 00:09:42,350] to be choosing the action that has the maximum value of Q pi.
+[00:09:42,350 --> 00:09:44,750] But then for this row, all of the Q values
+[00:09:44,750 --> 00:09:50,120] are 0 because all of the Q values for the next one
+[00:09:50,120 --> 00:09:51,100] are also 0.
+[00:09:51,100 --> 00:09:56,600] And so if you default to the previous behavior,
+[00:09:56,600 --> 00:10:00,880] it'll stay going to the right.
+[00:10:00,880 --> 00:10:05,920] Does anyone want to discuss the second question?
+[00:10:05,920 --> 00:10:09,960] Is this the optimal policy?
+[00:10:09,960 --> 00:10:14,900] Yeah, so the new policy is better than the old one,
+[00:10:14,900 --> 00:10:17,630] but it's not the optimal policy because
+[00:10:17,630 --> 00:10:18,880] in these states, the optimal--
+[00:10:18,880 --> 00:10:22,240] the best policy should be the one that also is going up
+[00:10:22,240 --> 00:10:24,900] in order to get to the star.
+[00:10:24,900 --> 00:10:25,400] Yeah.
+[00:10:25,400 --> 00:10:28,880] So the question was if we iterate this and do it a couple
+[00:10:28,880 --> 00:10:32,080] times, this will become the optimal policy, right?
+[00:10:32,080 --> 00:10:34,780] And yes, you're a couple slides ahead,
+[00:10:34,780 --> 00:10:37,840] but we'll talk about doing this iteratively.
+[00:10:37,840 --> 00:10:39,332] Yeah, so we can get a reward of 1.
+[00:10:39,332 --> 00:10:41,540] The question was, why is this not the optimal policy?
+[00:10:41,540 --> 00:10:44,020] So we'll get a reward of 1 here, which is great.
+[00:10:44,020 --> 00:10:46,120] But if we're starting at this initial state,
+[00:10:46,120 --> 00:10:48,330] we actually will just keep on going right.
+[00:10:48,330 --> 00:10:51,350] We won't go up after defining this new policy.
+[00:10:51,350 --> 00:10:54,090] And so therefore, it's not going to get a reward of 1
+[00:10:54,090 --> 00:10:56,390] from all states in [INAUDIBLE].
+[00:10:56,390 --> 00:10:56,890] Yeah.
+[00:10:56,890 --> 00:10:58,530] So the question, is there a sense
+[00:10:58,530 --> 00:11:00,670] of if you're getting closer to the star,
+[00:11:00,670 --> 00:11:03,490] the Q would be higher versus not?
+[00:11:03,490 --> 00:11:05,430] I actually didn't explicitly define this,
+[00:11:05,430 --> 00:11:09,810] but if you have a discount factor that is below 1,
+[00:11:09,810 --> 00:11:13,290] then it will get higher as you get closer.
+[00:11:13,290 --> 00:11:15,810] Everything I've shown here is with a discount factor
+[00:11:15,810 --> 00:11:17,490] of 1 for simplicity.
+[00:11:17,490 --> 00:11:21,270] But if you use a discount factor of 0.9, for example,
+[00:11:21,270 --> 00:11:24,430] then the Q-value here would be 1, then it would be 0.9 here,
+[00:11:24,430 --> 00:11:27,150] then 0.8 here, 0.7 here, and so forth.
+[00:11:27,150 --> 00:11:31,690] And then it would still be 0 for this entire row,
+[00:11:31,690 --> 00:11:40,983] just because you're still somewhat of a [? slope. ?]
+[00:11:40,983 --> 00:11:42,650] The other thing potentially to note here
+[00:11:42,650 --> 00:11:44,410] is that if your reward was denser--
+[00:11:44,410 --> 00:11:48,630] the reward function, instead of being 1 at the star and 0--
+[00:11:48,630 --> 00:11:52,430] or if it was, for example, the negative distance to the star,
+[00:11:52,430 --> 00:11:53,670] then you would actually--
+[00:11:53,670 --> 00:11:56,628] I won't go through that.
+[00:11:56,628 --> 00:11:58,170] I won't go through that on the board.
+[00:11:58,170 --> 00:11:59,628] But if you go through that example,
+[00:11:59,628 --> 00:12:03,350] you'll actually see that even in a single step,
+[00:12:03,350 --> 00:12:06,030] starting from this policy, you would actually
+[00:12:06,030 --> 00:12:10,630] get a policy that goes to the star from all states.
+[00:12:10,630 --> 00:12:13,050] The question is, if I wanted to get the optimal policy,
+[00:12:13,050 --> 00:12:18,030] I would need to iteratively do this and reconsider the Q
+[00:12:18,030 --> 00:12:19,670] pi for the latest policy every time.
+[00:12:19,670 --> 00:12:21,450] So yeah, that's correct.
+[00:12:21,450 --> 00:12:21,950] Yeah.
+[00:12:21,950 --> 00:12:23,750] So in this example-- the question is,
+[00:12:23,750 --> 00:12:24,710] is it always better?
+[00:12:24,710 --> 00:12:26,950] And this example, the new policy was better
+[00:12:26,950 --> 00:12:28,210] than the current policy.
+[00:12:28,210 --> 00:12:30,690] And this is actually always going to be the case.
+[00:12:30,690 --> 00:12:32,510] So it's always going to be at least as
+[00:12:32,510 --> 00:12:35,270] good as the previous policy.
+[00:12:35,270 --> 00:12:37,902] And it's never going to-- well, assuming that Q pi is accurate,
+[00:12:37,902 --> 00:12:39,610] it's always going to be at least as good.
+[00:12:39,610 --> 00:12:41,470] It's never going to be worse.
+[00:12:41,470 --> 00:12:43,770] And now, if Q pi is already the optimal policy,
+[00:12:43,770 --> 00:12:44,860] then it will be the same.
+[00:12:47,750 --> 00:12:50,000] This is starting to think about, can we actually start
+[00:12:50,000 --> 00:12:51,320] omitting policies?
+[00:12:51,320 --> 00:12:54,360] So Q is the expected reward.
+[00:12:54,360 --> 00:12:56,200] When we do this arg max, we're going
+[00:12:56,200 --> 00:12:59,290] to be taking the best action from state
+[00:12:59,290 --> 00:13:03,800] s if we then follow the policy afterwards.
+[00:13:03,800 --> 00:13:07,400] And this is going to be at least as good as any action
+[00:13:07,400 --> 00:13:09,440] that the policy would have taken.
+[00:13:09,440 --> 00:13:13,280] And regardless of what the policy is, this is going to be,
+[00:13:13,280 --> 00:13:17,680] yeah, at least as good as what that policy would've been.
+[00:13:17,680 --> 00:13:20,680] We do that because it's taking the action that has
+[00:13:20,680 --> 00:13:22,610] the maximum expected reward.
+[00:13:25,840 --> 00:13:27,560] So potentially, we could actually
+[00:13:27,560 --> 00:13:29,120] just forget using policies and just
+[00:13:29,120 --> 00:13:31,800] do this rather than actually explicitly learning
+[00:13:31,800 --> 00:13:35,040] a neural network for the policy.
+[00:13:35,040 --> 00:13:39,960] And so what this looks like as an iterative algorithm is
+[00:13:39,960 --> 00:13:42,440] we would run our policy to collect data,
+[00:13:42,440 --> 00:13:46,210] then we would fit a model to estimate Q pi.
+[00:13:46,210 --> 00:13:48,990] According to that latest plot for data,
+[00:13:48,990 --> 00:13:51,050] you could also do this in your off-policy way,
+[00:13:51,050 --> 00:13:54,010] like we talked about in the last lecture.
+[00:13:54,010 --> 00:13:56,530] And then to improve your policy, you
+[00:13:56,530 --> 00:14:00,170] can just define the policy to be the policy that
+[00:14:00,170 --> 00:14:03,330] maximizes the Q pi.
+[00:14:03,330 --> 00:14:05,330] And then once you define that new policy,
+[00:14:05,330 --> 00:14:08,830] you can collect new data and then estimate again Q- pi.
+[00:14:08,830 --> 00:14:10,850] But in this case, Q pi for your new policy
+[00:14:10,850 --> 00:14:13,010] and not your old policy.
+[00:14:13,010 --> 00:14:16,930] The policy pi is equal to this, and so we're not
+[00:14:16,930 --> 00:14:19,410] learning a neural network for the policy pi.
+[00:14:19,410 --> 00:14:22,270] We're not explicitly representing it as a model.
+[00:14:22,270 --> 00:14:25,850] But it's helpful to have some notation
+[00:14:25,850 --> 00:14:28,370] to refer to the [INAUDIBLE].
+[00:14:28,370 --> 00:14:30,730] The only neural network here, the only model
+[00:14:30,730 --> 00:14:33,230] here is this Q pi [INAUDIBLE].
+[00:14:33,230 --> 00:14:33,730] Yeah.
+[00:14:33,730 --> 00:14:35,605] So the question is, how do we generalize this
+[00:14:35,605 --> 00:14:38,650] to continuous actions or more expressive action spaces?
+[00:14:38,650 --> 00:14:41,420] So this is generally going to be easiest
+[00:14:41,420 --> 00:14:45,080] when you have a discrete set of actions that you might face,
+[00:14:45,080 --> 00:14:47,307] like going up, going to the right.
+[00:14:47,307 --> 00:14:49,140] If you have continuous actions, you actually
+[00:14:49,140 --> 00:14:51,520] can still use this algorithm.
+[00:14:53,933 --> 00:14:56,100] Although, you need to figure out how to perform that
+[00:14:56,100 --> 00:14:57,500] max operation.
+[00:14:57,500 --> 00:15:00,060] There's a couple ways that you could conceivably
+[00:15:00,060 --> 00:15:03,038] run this operation right here.
+[00:15:03,038 --> 00:15:04,580] In principle, you could use something
+[00:15:04,580 --> 00:15:07,620] like gradient descent, although that turns out
+[00:15:07,620 --> 00:15:09,500] not to work very well.
+[00:15:09,500 --> 00:15:12,940] You can potentially-- there's a variety reasons why it cannot
+[00:15:12,940 --> 00:15:13,640] work very well.
+[00:15:13,640 --> 00:15:15,780] And if your actions are not very high dimensional,
+[00:15:15,780 --> 00:15:18,300] then it might actually be better just
+[00:15:18,300 --> 00:15:20,700] to simply try to sample a bunch of different actions
+[00:15:20,700 --> 00:15:23,260] and pick the one that has the highest Q value.
+[00:15:23,260 --> 00:15:27,540] You can also-- there's other sampling based optimization
+[00:15:27,540 --> 00:15:31,460] algorithms where you can iteratively sample and refine
+[00:15:31,460 --> 00:15:35,428] your estimates from there.
+[00:15:35,428 --> 00:15:37,700] Yeah, so there's a couple of things you can do there.
+[00:15:37,700 --> 00:15:40,100] If you have a discrete action space that's--
+[00:15:40,100 --> 00:15:41,700] like [INAUDIBLE], for example--
+[00:15:41,700 --> 00:15:45,960] in principle, you could do some sort of discrete search
+[00:15:45,960 --> 00:15:50,840] over things where the Q value is what you're trying
+[00:15:50,840 --> 00:15:52,785] to maximize in that system.
+[00:15:52,785 --> 00:15:54,160] Yeah, how does this work in cases
+[00:15:54,160 --> 00:15:55,920] where the rewards are very sparse?
+[00:15:55,920 --> 00:15:59,240] So we saw one example where the rewards are sparse,
+[00:15:59,240 --> 00:16:04,440] and it can still work in this scenario.
+[00:16:04,440 --> 00:16:08,480] The thing that you need to be aware of when the rewards are
+[00:16:08,480 --> 00:16:12,120] sparse is that you may need to do this loop of refitting
+[00:16:12,120 --> 00:16:15,000] the policy potentially a large number of times
+[00:16:15,000 --> 00:16:18,800] because each time you do this, you're actually-- like,
+[00:16:18,800 --> 00:16:21,200] the first time, we only got a good policy here.
+[00:16:21,200 --> 00:16:23,140] And now if this environment was much bigger,
+[00:16:23,140 --> 00:16:27,420] that means that you need to keep on doing it as you go down.
+[00:16:27,420 --> 00:16:30,380] And what is often referred to as a backup,
+[00:16:30,380 --> 00:16:34,100] you're backing up the rewards from here to the other state.
+[00:16:34,100 --> 00:16:37,680] And you'll need to do those backups for--
+[00:16:37,680 --> 00:16:40,450] essentially, it goes for as long as the horizon of the problem
+[00:16:40,450 --> 00:16:41,570] is.
+[00:16:41,570 --> 00:16:43,570] You just need to make sure that you're doing
+[00:16:43,570 --> 00:16:45,392] many iterations [INAUDIBLE].
+[00:16:48,770 --> 00:16:51,210] OK.
+[00:16:51,210 --> 00:16:51,710] Cool.
+[00:16:51,710 --> 00:16:54,330] So let's see.
+[00:16:54,330 --> 00:16:57,490] We can write this down as an algorithm.
+[00:16:57,490 --> 00:17:00,290] And so we can take our off policy
+[00:17:00,290 --> 00:17:03,650] actor-critic algorithm that is fitting Q pi.
+[00:17:03,650 --> 00:17:09,609] And then instead of using this policy gradient update, simply
+[00:17:09,609 --> 00:17:14,670] define a new policy that's taking actions according to
+[00:17:14,670 --> 00:17:17,890] [INAUDIBLE].
+[00:17:17,890 --> 00:17:21,026] And you can think of this as really having two key steps
+[00:17:21,026 --> 00:17:22,109] like what we talked about.
+[00:17:22,109 --> 00:17:25,609] One is estimating Q pi.
+[00:17:25,609 --> 00:17:27,810] This is often referred to as policy evaluation
+[00:17:27,810 --> 00:17:32,650] because you're learning what the values are for a policy.
+[00:17:32,650 --> 00:17:36,090] And note that you can do multiple gradient steps here
+[00:17:36,090 --> 00:17:41,860] because this is isn't on policy.
+[00:17:41,860 --> 00:17:44,860] We're just trying to fit our target.
+[00:17:44,860 --> 00:17:47,720] And then the second step is improving our policy,
+[00:17:47,720 --> 00:17:51,420] so you refer to it as policy improvement.
+[00:17:51,420 --> 00:17:53,900] And this two-step iterative procedure
+[00:17:53,900 --> 00:17:57,020] is often called policy iteration.
+[00:17:57,020 --> 00:18:02,220] It's on the way to an algorithm like Q.
+[00:18:02,220 --> 00:18:02,720] Cool.
+[00:18:02,720 --> 00:18:04,512] So on the--
+[00:18:04,512 --> 00:18:06,980] I'll write this out on the board.
+[00:18:06,980 --> 00:18:11,740] What this looks like is having a first step
+[00:18:11,740 --> 00:18:12,920] where you collect data.
+[00:18:16,540 --> 00:18:19,620] Oftentimes, you might collect data from pi.
+[00:18:19,620 --> 00:18:21,620] It might also be-- it could actually potentially
+[00:18:21,620 --> 00:18:23,940] be from some other policy.
+[00:18:23,940 --> 00:18:26,940] Then you have a next step where you're
+[00:18:26,940 --> 00:18:31,060] going to try to fit your estimated
+[00:18:31,060 --> 00:18:36,430] Q-function for that policy.
+[00:18:36,430 --> 00:18:41,990] And you can use the targets that we defined
+[00:18:41,990 --> 00:18:50,910] in the last lecture of r of sa plus gamma times Q, where
+[00:18:50,910 --> 00:18:57,020] these are from the buffer and this is sampled from our policy.
+[00:19:00,030 --> 00:19:02,470] And then lastly, we'll improve our policy
+[00:19:02,470 --> 00:19:14,950] by defining a new policy as being 1
+[00:19:14,950 --> 00:19:18,850] if [INAUDIBLE] is maximizing Q value, and 0 otherwise.
+[00:19:30,390 --> 00:19:32,990] The question is, is this policy deterministic?
+[00:19:32,990 --> 00:19:36,765] Yes, this policy is deterministic.
+[00:19:36,765 --> 00:19:38,640] This is actually one reason why you might not
+[00:19:38,640 --> 00:19:40,340] want to collect data from this policy
+[00:19:40,340 --> 00:19:43,760] because you're not going to have that much diversity
+[00:19:43,760 --> 00:19:44,942] in your actions.
+[00:19:44,942 --> 00:19:46,400] And we'll talk, in a couple slides,
+[00:19:46,400 --> 00:19:50,720] about what policy you might want to collect data from instead.
+[00:19:50,720 --> 00:19:51,240] Yeah.
+[00:19:51,240 --> 00:19:54,660] So the question is, when we're fitting these targets,
+[00:19:54,660 --> 00:19:56,380] why are we sampling from a prime?
+[00:19:56,380 --> 00:20:02,400] And why not do a maximum over actions or an average?
+[00:20:02,400 --> 00:20:08,020] So there's a couple of things here.
+[00:20:08,020 --> 00:20:13,440] So first, you can do an average and sample multiple times.
+[00:20:13,440 --> 00:20:18,760] And that can give you a better estimate of the target value.
+[00:20:18,760 --> 00:20:22,800] The second thing is that you can actually-- instead
+[00:20:22,800 --> 00:20:25,320] of sampling this from pi, you can actually
+[00:20:25,320 --> 00:20:30,640] do this improvement step in the Q-function target itself.
+[00:20:30,640 --> 00:20:32,680] So you can actually--
+[00:20:32,680 --> 00:20:36,820] instead of defining yi this way, you
+[00:20:36,820 --> 00:20:41,340] could consider a target for your Q-function
+[00:20:41,340 --> 00:20:48,780] to be the reward plus gamma times the max
+[00:20:48,780 --> 00:20:52,900] over a prime of Qs.
+[00:20:56,260 --> 00:21:00,980] And what this looks like is something like this.
+[00:21:00,980 --> 00:21:04,617] And this actually is what gets us Q.
+[00:21:04,617 --> 00:21:06,700] And one way to think about this is-- a couple ways
+[00:21:06,700 --> 00:21:07,533] to think about this.
+[00:21:07,533 --> 00:21:11,580] The first is that these targets are actually your Q-values
+[00:21:11,580 --> 00:21:13,860] for your new policy.
+[00:21:13,860 --> 00:21:18,620] So you're already putting the improvement steps
+[00:21:18,620 --> 00:21:21,940] in your Q-function update, and you're actually
+[00:21:21,940 --> 00:21:24,900] learning the Q-values associated with the new policy
+[00:21:24,900 --> 00:21:28,140] that you're going to be defining.
+[00:21:28,140 --> 00:21:31,700] And there's actually another way to look at this as well.
+[00:21:31,700 --> 00:21:37,150] So we previously defined this equation
+[00:21:37,150 --> 00:21:39,650] that's true for all states and actions.
+[00:21:39,650 --> 00:21:42,910] So we defined that the Q-function
+[00:21:42,910 --> 00:21:48,790] is equal to the reward plus the Q-function at the next state.
+[00:21:48,790 --> 00:21:51,790] This is true for all states and actions,
+[00:21:51,790 --> 00:21:58,110] and it's actually also true for any policy, including
+[00:21:58,110 --> 00:22:00,735] the optimal policy.
+[00:22:00,735 --> 00:22:02,110] And you could actually write down
+[00:22:02,110 --> 00:22:04,070] another equation that is specifically
+[00:22:04,070 --> 00:22:06,550] for the optimal policy.
+[00:22:06,550 --> 00:22:10,270] And in particular, we know that the optimal policy is always
+[00:22:10,270 --> 00:22:12,390] going to be taking the actions that
+[00:22:12,390 --> 00:22:14,950] maximize our future rewards.
+[00:22:14,950 --> 00:22:17,853] So the optimal policy is always going to be--
+[00:22:17,853 --> 00:22:19,270] the action that it picks is always
+[00:22:19,270 --> 00:22:21,228] going to be the one that maximizes the Q-value.
+[00:22:23,710 --> 00:22:26,310] And so we can write down an equation that holds just
+[00:22:26,310 --> 00:22:33,360] for the optimal policy which is the same equation as the one
+[00:22:33,360 --> 00:22:35,640] there, except instead of an expectation
+[00:22:35,640 --> 00:22:38,240] over the next action, it's a maximization
+[00:22:38,240 --> 00:22:40,440] over the next action.
+[00:22:40,440 --> 00:22:46,080] So what that looks like is we're defining
+[00:22:46,080 --> 00:22:48,280] the Q-function as the reward at the current timestep
+[00:22:48,280 --> 00:22:52,400] plus the sum of future rewards.
+[00:22:52,400 --> 00:22:55,960] And for that sum of future rewards,
+[00:22:55,960 --> 00:23:02,520] we have some expectation over the next state that will happen.
+[00:23:02,520 --> 00:23:07,400] And then because we know that the optimal policy or the best
+[00:23:07,400 --> 00:23:10,640] policy is going to be taking the action that is maximizing
+[00:23:10,640 --> 00:23:20,360] the Q-value, then we can write this as the max of Q
+[00:23:20,360 --> 00:23:21,290] at the next state.
+[00:23:24,180 --> 00:23:24,680] Yeah.
+[00:23:24,680 --> 00:23:27,440] So the question is, why are we talking all about Q,
+[00:23:27,440 --> 00:23:29,530] and why not V?
+[00:23:29,530 --> 00:23:31,410] So you can actually also write down
+[00:23:31,410 --> 00:23:36,290] these equations for V in a very similar way.
+[00:23:36,290 --> 00:23:40,210] The thing that's very nice about Q
+[00:23:40,210 --> 00:23:44,290] is that we can actually get a policy out of Q.
+[00:23:44,290 --> 00:23:50,850] So if we know what Q is, then we can do this arg max over actions
+[00:23:50,850 --> 00:23:53,570] to get a policy that's better than our previous policy.
+[00:23:53,570 --> 00:23:57,050] Whereas with the value function, if we only know V of s,
+[00:23:57,050 --> 00:24:02,930] then we don't know which action will lead to higher [INAUDIBLE].
+[00:24:02,930 --> 00:24:04,750] In principle, with the value function,
+[00:24:04,750 --> 00:24:06,730] you could try to do some look ahead.
+[00:24:06,730 --> 00:24:11,370] If you have a sense for what the dynamics are,
+[00:24:11,370 --> 00:24:13,730] you could try to predict what s prime is,
+[00:24:13,730 --> 00:24:20,310] and pick actions that are maximizing that.
+[00:24:20,310 --> 00:24:24,250] And so what that would look like is
+[00:24:24,250 --> 00:24:28,350] trying to pick actions that lead leads
+[00:24:28,350 --> 00:24:41,430] to an expectation like a high future value.
+[00:24:41,430 --> 00:24:46,030] So you could, in principle, do something like this with V.
+[00:24:46,030 --> 00:24:50,288] But we don't know what these dynamics are,
+[00:24:50,288 --> 00:24:51,830] and we can't necessarily predict what
+[00:24:51,830 --> 00:24:55,270] the next state will be as a consequence of our actions.
+[00:24:55,270 --> 00:24:57,070] And so in general, it's a lot harder
+[00:24:57,070 --> 00:24:59,790] to get a policy out of a value function
+[00:24:59,790 --> 00:25:03,030] than it is to improve our policy, ultimately,
+[00:25:03,030 --> 00:25:05,290] with the value function than it is with a Q function.
+[00:25:09,110 --> 00:25:11,230] So now going back to this equation,
+[00:25:11,230 --> 00:25:13,110] this is true for the optimal policy.
+[00:25:13,110 --> 00:25:17,250] And you can write Q for the optimal policy
+[00:25:17,250 --> 00:25:20,910] here, where I'm writing pi star as the optimal policy.
+[00:25:20,910 --> 00:25:25,830] And if you look at our update right here,
+[00:25:25,830 --> 00:25:33,360] we're trying to fit a Q-function that's predicting this.
+[00:25:33,360 --> 00:25:37,060] And essentially, with this equation,
+[00:25:37,060 --> 00:25:39,920] you can think about it as this update is actually trying
+[00:25:39,920 --> 00:25:42,280] to make this equation true.
+[00:25:42,280 --> 00:25:44,680] So we're trying to make the left side of the equation
+[00:25:44,680 --> 00:25:47,120] equal to the right side of the equation.
+[00:25:47,120 --> 00:25:49,640] And when this equation is true that means our policy
+[00:25:49,640 --> 00:25:50,370] is optimal.
+[00:25:52,920 --> 00:25:55,280] So essentially, one way to think about Q-learning
+[00:25:55,280 --> 00:25:59,020] is that when we're optimizing step 3,
+[00:25:59,020 --> 00:26:02,720] we're trying to find a Q-function such that it
+[00:26:02,720 --> 00:26:05,000] satisfies this equation, which is only
+[00:26:05,000 --> 00:26:07,360] true for the optimal policy.
+[00:26:07,360 --> 00:26:08,220] Yeah, sorry.
+[00:26:08,220 --> 00:26:11,080] This is-- it's an [INAUDIBLE].
+[00:26:11,080 --> 00:26:14,060] So this only holds for the optimal policy.
+[00:26:14,060 --> 00:26:17,720] And if you have the optimal policy, then [INAUDIBLE].
+[00:26:17,720 --> 00:26:19,280] Yeah, great question.
+[00:26:19,280 --> 00:26:23,080] So the question is if we have really good estimates of Q,
+[00:26:23,080 --> 00:26:23,900] will this converge?
+[00:26:23,900 --> 00:26:26,570] We'll talk about this in one minute.
+[00:26:26,570 --> 00:26:30,290] So let's first just talk about some terminology really quick.
+[00:26:30,290 --> 00:26:34,010] Reinforcement learning has a ton of terminology.
+[00:26:34,010 --> 00:26:35,410] It's useful to know some of it so
+[00:26:35,410 --> 00:26:37,952] that if someone's talking to you about reinforcement learning
+[00:26:37,952 --> 00:26:40,623] or you're reading a paper, you know what they're talking about.
+[00:26:40,623 --> 00:26:42,290] This first equation is often referred to
+[00:26:42,290 --> 00:26:44,210] as the Bellman equation.
+[00:26:44,210 --> 00:26:46,210] It's very useful objects, and it's
+[00:26:46,210 --> 00:26:48,090] what we were using to try to do policy
+[00:26:48,090 --> 00:26:50,290] evaluation for our policy.
+[00:26:50,290 --> 00:26:52,850] And the second equation is called the Bellman optimality
+[00:26:52,850 --> 00:26:58,450] equation because it's specifically for optimal policy.
+[00:26:58,450 --> 00:27:02,290] Sometimes people also informally might call the second one
+[00:27:02,290 --> 00:27:05,170] Bellman equation as well.
+[00:27:05,170 --> 00:27:08,590] But yeah, officially, the first one is Bellman equation.
+[00:27:08,590 --> 00:27:10,490] Second one is Bellman optimality equation.
+[00:27:10,490 --> 00:27:13,050] You can derive equations like this
+[00:27:13,050 --> 00:27:15,650] that are also for the value function V instead
+[00:27:15,650 --> 00:27:18,130] of the Q-function, and people also
+[00:27:18,130 --> 00:27:23,370] refer to those as Bellman equation and Bellman optimality.
+[00:27:23,370 --> 00:27:24,130] OK.
+[00:27:24,130 --> 00:27:27,780] So getting back to the question, if we do this iteratively,
+[00:27:27,780 --> 00:27:34,460] will we converge to the optimal policy?
+[00:27:34,460 --> 00:27:37,060] There's good news and bad news here.
+[00:27:37,060 --> 00:27:40,340] The good news is that if you're in a very simple setting where
+[00:27:40,340 --> 00:27:42,540] you can actually store all of your key values
+[00:27:42,540 --> 00:27:45,580] in a table for every single state and action,
+[00:27:45,580 --> 00:27:47,690] this would be for a very small, discrete state
+[00:27:47,690 --> 00:27:49,940] and maximum state.
+[00:27:49,940 --> 00:27:53,100] And if you have sufficient exploration,
+[00:27:53,100 --> 00:27:57,140] then this algorithm will converge.
+[00:27:57,140 --> 00:27:59,180] So that's the good news.
+[00:27:59,180 --> 00:28:03,020] The bad news is that basically in any other scenario,
+[00:28:03,020 --> 00:28:05,380] it is not guaranteed to converge.
+[00:28:05,380 --> 00:28:07,180] And you can construct scenarios when
+[00:28:07,180 --> 00:28:09,460] it diverges even with this linear Q
+[00:28:09,460 --> 00:28:14,180] function, which is kind of sad.
+[00:28:14,180 --> 00:28:17,260] I guess the flip side of that is that even though it
+[00:28:17,260 --> 00:28:20,740] can diverge in scenarios, it can be made to work very well.
+[00:28:20,740 --> 00:28:23,270] And we'll see some examples of it working very well
+[00:28:23,270 --> 00:28:24,950] at the end of lecture.
+[00:28:24,950 --> 00:28:28,410] Yeah, so the question is, what does this mean?
+[00:28:28,410 --> 00:28:29,990] What does this statement mean?
+[00:28:29,990 --> 00:28:31,290] And it is a bit vague.
+[00:28:31,290 --> 00:28:35,470] So specifically, it doesn't necessarily
+[00:28:35,470 --> 00:28:37,790] have to do with the accuracy of your Q values
+[00:28:37,790 --> 00:28:41,190] because you're actually going to be fitting your Q
+[00:28:41,190 --> 00:28:43,270] values through this process.
+[00:28:43,270 --> 00:28:46,190] It's more a statement of the size of your state and action
+[00:28:46,190 --> 00:28:46,790] space.
+[00:28:46,790 --> 00:28:51,950] And if it's small enough that you can maintain this table--
+[00:28:51,950 --> 00:28:54,830] and there's also a condition on exploration
+[00:28:54,830 --> 00:28:58,310] where you actually need to have full coverage of the state
+[00:28:58,310 --> 00:29:00,790] and actions in your data set--
+[00:29:00,790 --> 00:29:02,630] then it will convert.
+[00:29:02,630 --> 00:29:03,800] OK.
+[00:29:03,800 --> 00:29:07,470] So M note about this is Q-learning is off policy.
+[00:29:07,470 --> 00:29:11,190] And in particular, this equation holds
+[00:29:11,190 --> 00:29:12,830] for all states and actions.
+[00:29:12,830 --> 00:29:16,470] And it means that we don't have to have the actions coming
+[00:29:16,470 --> 00:29:19,097] from our current policy.
+[00:29:19,097 --> 00:29:21,430] And in particular, it might actually make a lot of sense
+[00:29:21,430 --> 00:29:24,890] for it to be broader than our current policy
+[00:29:24,890 --> 00:29:28,090] because we're going to be doing this maximization over our Q
+[00:29:28,090 --> 00:29:28,590] values.
+[00:29:28,590 --> 00:29:30,592] And so when we do this maximization,
+[00:29:30,592 --> 00:29:32,050] we're going to be considering a lot
+[00:29:32,050 --> 00:29:33,350] of different possible actions.
+[00:29:33,350 --> 00:29:35,110] And if we have a discrete action space,
+[00:29:35,110 --> 00:29:38,050] we might actually just consider all of the possible actions.
+[00:29:38,050 --> 00:29:40,050] And when we do that, we would want our Q values
+[00:29:40,050 --> 00:29:42,430] to be accurate when we're considering all of them.
+[00:29:42,430 --> 00:29:44,170] And if there's one action that we haven't collected
+[00:29:44,170 --> 00:29:46,050] data for that we're going to be considering
+[00:29:46,050 --> 00:29:49,130] in this maximization, it might be erroneously high
+[00:29:49,130 --> 00:29:50,990] because we didn't collect any data for it.
+[00:29:50,990 --> 00:29:54,850] And then you'll get an inaccurate target value
+[00:29:54,850 --> 00:29:59,250] when you are fitting your Q.
+[00:29:59,250 --> 00:30:03,630] And so instead of collecting data from our current policy,
+[00:30:03,630 --> 00:30:06,475] it'd be useful to collect data from some exploration policy,
+[00:30:06,475 --> 00:30:07,850] and specifically, a policy that's
+[00:30:07,850 --> 00:30:10,330] collecting a broader set of actions
+[00:30:10,330 --> 00:30:14,125] than our deterministic policy.
+[00:30:14,125 --> 00:30:16,250] So we want coverage for a lot of different actions,
+[00:30:16,250 --> 00:30:18,570] specifically for this term.
+[00:30:18,570 --> 00:30:21,260] And there's a couple of choices here.
+[00:30:21,260 --> 00:30:27,620] One choice is to follow our policy most of the time,
+[00:30:27,620 --> 00:30:33,620] but with some small probability, take a completely random action.
+[00:30:33,620 --> 00:30:38,180] And so what that would look like is a policy
+[00:30:38,180 --> 00:30:44,100] that with some probability--
+[00:30:44,100 --> 00:30:45,580] I would say maybe you can write it
+[00:30:45,580 --> 00:30:56,380] as take a random action with probability epsilon and follow--
+[00:30:56,380 --> 00:30:58,620] maybe we can call this pi exploration--
+[00:30:58,620 --> 00:31:08,570] and follow your current policy probability 1 minus epsilon.
+[00:31:14,020 --> 00:31:20,070] And you can write that out slightly more formally up here.
+[00:31:20,070 --> 00:31:22,470] And this can be a good choice because it
+[00:31:22,470 --> 00:31:25,770] means that when you take an actual uniform at random,
+[00:31:25,770 --> 00:31:28,750] it means that you'll get very good coverage of the actions
+[00:31:28,750 --> 00:31:30,390] that you consider.
+[00:31:30,390 --> 00:31:35,690] And oftentimes, as you proceed through training,
+[00:31:35,690 --> 00:31:37,855] you might start with a larger epsilon
+[00:31:37,855 --> 00:31:39,230] so that you have more exploration
+[00:31:39,230 --> 00:31:40,438] at the beginning of training.
+[00:31:40,438 --> 00:31:42,310] And then as your policy is getting better
+[00:31:42,310 --> 00:31:45,530] and as you're getting a better estimate of your Q-function,
+[00:31:45,530 --> 00:31:47,710] you can then make them smaller and explore
+[00:31:47,710 --> 00:31:51,830] less as you go through phase.
+[00:31:51,830 --> 00:31:55,350] So this is called epsilon-greedy because you're
+[00:31:55,350 --> 00:31:59,110] being greedy some of the time, and epsilon
+[00:31:59,110 --> 00:32:01,950] probability of the time, you're not being greedy and just taking
+[00:32:01,950 --> 00:32:03,332] a random [? function. ?]
+[00:32:06,310 --> 00:32:06,810] OK.
+[00:32:06,810 --> 00:32:10,350] And then another choice that's also
+[00:32:10,350 --> 00:32:13,550] somewhat reasonable, although a little bit more complicated,
+[00:32:13,550 --> 00:32:16,070] is to take actions with probability that
+[00:32:16,070 --> 00:32:18,040] is proportional to the Q value.
+[00:32:18,040 --> 00:32:21,020] And so if you have actions that have a higher Q value,
+[00:32:21,020 --> 00:32:22,820] then take those actions more frequently.
+[00:32:22,820 --> 00:32:25,420] And if you have actions with lower probability,
+[00:32:25,420 --> 00:32:28,520] then take those actions less frequently.
+[00:32:28,520 --> 00:32:32,280] One way to write this is you could exponentiate your Q values
+[00:32:32,280 --> 00:32:35,320] so that they're all positive, and then
+[00:32:35,320 --> 00:32:38,880] normalize in order to get a probability
+[00:32:38,880 --> 00:32:41,320] distribution over [INAUDIBLE].
+[00:32:41,320 --> 00:32:45,080] Sometimes this is called Boltzmann exploration,
+[00:32:45,080 --> 00:32:47,600] named after the Boltzmann distribution
+[00:32:47,600 --> 00:32:50,220] where you exponentiate a [INAUDIBLE].
+[00:32:50,220 --> 00:32:50,720] Yeah.
+[00:32:50,720 --> 00:32:54,560] So the question is, it's straightforward to do
+[00:32:54,560 --> 00:32:55,780] this with discrete actions.
+[00:32:55,780 --> 00:32:57,680] How do you do these kinds of approaches
+[00:32:57,680 --> 00:32:59,840] when you have continuous actions?
+[00:32:59,840 --> 00:33:02,080] The first one is indeed a lot more common
+[00:33:02,080 --> 00:33:04,980] with discrete actions.
+[00:33:04,980 --> 00:33:07,620] You can still do something like this with continuous actions,
+[00:33:07,620 --> 00:33:12,120] but you would need to define some uniform-ish distribution
+[00:33:12,120 --> 00:33:14,240] over your continuous actions.
+[00:33:14,240 --> 00:33:16,860] And for that, you would need some sort of range or something.
+[00:33:16,860 --> 00:33:19,180] Instead, you could also use a Gaussian distribution
+[00:33:19,180 --> 00:33:21,580] with a wide standard deviation, in principle,
+[00:33:21,580 --> 00:33:23,580] where you sample from that.
+[00:33:23,580 --> 00:33:25,200] I think in continuous action spaces,
+[00:33:25,200 --> 00:33:29,300] this second option is a bit more common.
+[00:33:29,300 --> 00:33:35,398] In terms of sampling from it, off the top of my head,
+[00:33:35,398 --> 00:33:36,940] I actually can't remember the details
+[00:33:36,940 --> 00:33:38,920] of how you would sample from this,
+[00:33:38,920 --> 00:33:42,563] but we can post on [? Ed ?] afterwards.
+[00:33:42,563 --> 00:33:44,980] It's possible that the way that you do it is actually just
+[00:33:44,980 --> 00:33:47,980] to try to fit a policy, but yeah, we
+[00:33:47,980 --> 00:33:49,900] can talk about it afterwards.
+[00:33:49,900 --> 00:33:52,780] OK, so putting the pieces together,
+[00:33:52,780 --> 00:33:56,020] what a full Q-learning algorithm looks like is we'll
+[00:33:56,020 --> 00:33:58,740] collect data using some policy.
+[00:33:58,740 --> 00:34:01,980] We'll add that data to our replay buffer,
+[00:34:01,980 --> 00:34:03,620] then we will sample a batch of data
+[00:34:03,620 --> 00:34:07,320] from our replay buffer uniformly.
+[00:34:07,320 --> 00:34:09,739] And this is useful to sample about separately
+[00:34:09,739 --> 00:34:11,980] from what we just collected so that we
+[00:34:11,980 --> 00:34:17,590] are de-correlating and sampling IID from our replay buffer.
+[00:34:17,590 --> 00:34:20,670] And then we will update our Q-function
+[00:34:20,670 --> 00:34:26,929] by taking the gradient of the L2 loss with respect to the target.
+[00:34:26,929 --> 00:34:28,429] And so if you write that out, you'll
+[00:34:28,429 --> 00:34:33,510] get a gradient that looks like this, where--
+[00:34:33,510 --> 00:34:38,989] yeah, if you're taking the L2 loss, then on the inside,
+[00:34:38,989 --> 00:34:41,090] this is the inside of L2 loss.
+[00:34:41,090 --> 00:34:43,670] And then you use the chain rule to get the second term
+[00:34:43,670 --> 00:34:45,070] right here that's backpropagating
+[00:34:45,070 --> 00:34:47,389] into your parameter.
+[00:34:47,389 --> 00:34:51,070] You can repeat these multiple times.
+[00:34:51,070 --> 00:34:55,110] So you can actually take multiple gradient steps
+[00:34:55,110 --> 00:34:57,763] after collecting a batch of data.
+[00:34:57,763 --> 00:34:59,430] In practice, it's actually pretty common
+[00:34:59,430 --> 00:35:01,630] to set K equals to 1.
+[00:35:01,630 --> 00:35:05,910] But you're going to be more data efficient if you have a larger
+[00:35:05,910 --> 00:35:10,990] K, if you take more gradient steps for a given batch of data.
+[00:35:10,990 --> 00:35:13,880] And then you also iterate this process.
+[00:35:13,880 --> 00:35:16,120] After you're done taking gradient steps,
+[00:35:16,120 --> 00:35:19,420] then you can collect some more data and repeat.
+[00:35:19,420 --> 00:35:19,920] Yeah.
+[00:35:19,920 --> 00:35:22,720] So the question was, if you're collecting data from any policy,
+[00:35:22,720 --> 00:35:28,600] wouldn't that be less optimal than using a good policy
+[00:35:28,600 --> 00:35:30,560] or using your current policy?
+[00:35:30,560 --> 00:35:31,840] Yeah.
+[00:35:31,840 --> 00:35:35,190] So the reason why you might use a different policy is--
+[00:35:38,882 --> 00:35:40,840] the reason why you might use a different policy
+[00:35:40,840 --> 00:35:44,000] is specifically to learn a more accurate Q-function,
+[00:35:44,000 --> 00:35:46,680] and so it's actually going to help you learn
+[00:35:46,680 --> 00:35:48,735] a more optimal policy later.
+[00:35:48,735 --> 00:35:50,360] And essentially, there's this trade-off
+[00:35:50,360 --> 00:35:53,360] between collecting less optimal data at the beginning
+[00:35:53,360 --> 00:35:55,620] to help you be better later on.
+[00:35:55,620 --> 00:35:58,175] And one way to think about this is if you are--
+[00:35:58,175 --> 00:35:59,800] say you're reinforcement learning agent
+[00:35:59,800 --> 00:36:02,140] is trying to help you pick a restaurant.
+[00:36:02,140 --> 00:36:04,640] If you haven't really explored that many restaurants to know
+[00:36:04,640 --> 00:36:07,740] what is a good restaurant, then at the beginning,
+[00:36:07,740 --> 00:36:10,560] probably you want to explore and actually try things-- even
+[00:36:10,560 --> 00:36:13,090] restaurants that might be suboptimal-- in order
+[00:36:13,090 --> 00:36:16,010] to get a good estimate of what good restaurants are
+[00:36:16,010 --> 00:36:17,590] for a particular person.
+[00:36:17,590 --> 00:36:22,970] And then later on, once you have a good estimate
+[00:36:22,970 --> 00:36:25,650] for what good restaurants are, then
+[00:36:25,650 --> 00:36:29,050] you might want to then explore less.
+[00:36:29,050 --> 00:36:30,570] So visually, what this looks like is
+[00:36:30,570 --> 00:36:31,870] you have some environment.
+[00:36:31,870 --> 00:36:35,370] You'll initialize your replay buffer as empty.
+[00:36:35,370 --> 00:36:38,770] And then at this first step, you'll run your policy--
+[00:36:38,770 --> 00:36:40,850] like the epsilon-greedy policy--
+[00:36:40,850 --> 00:36:42,742] that's exploring in the environment.
+[00:36:42,742 --> 00:36:44,450] You'll then get some transitions that you
+[00:36:44,450 --> 00:36:47,370] put into your replay buffer.
+[00:36:47,370 --> 00:36:51,090] And then for this part, you'll then use your replay buffer
+[00:36:51,090 --> 00:36:56,490] to update your Q-function on the data that you see,
+[00:36:56,490 --> 00:36:59,530] with the goal of trying to get something
+[00:36:59,530 --> 00:37:03,190] that is not saying the Q-function of the [? optimal. ?]
+[00:37:03,190 --> 00:37:05,190] So the question is, when we combine this with 1,
+[00:37:05,190 --> 00:37:07,890] can we still call this off policy?
+[00:37:07,890 --> 00:37:10,450] Because we are collecting data potentially from a policy
+[00:37:10,450 --> 00:37:13,940] that's very similar to our current policy.
+[00:37:13,940 --> 00:37:16,700] Because we're using a replay buffer of essentially
+[00:37:16,700 --> 00:37:20,820] all of our past experience, when we do these updates,
+[00:37:20,820 --> 00:37:22,860] it's referred to as off policy.
+[00:37:22,860 --> 00:37:24,912] That doesn't mean that none of the data
+[00:37:24,912 --> 00:37:26,120] is from our current policies.
+[00:37:26,120 --> 00:37:27,787] So some of the data in the replay buffer
+[00:37:27,787 --> 00:37:29,540] will be from the current policy.
+[00:37:29,540 --> 00:37:31,220] But essentially, what off policy means
+[00:37:31,220 --> 00:37:33,320] is that you are not only using that data,
+[00:37:33,320 --> 00:37:36,700] you're also using data from other policies.
+[00:37:36,700 --> 00:37:40,040] In practice, what is the some policy?
+[00:37:40,040 --> 00:37:40,540] Yeah.
+[00:37:40,540 --> 00:37:42,260] So in practice, it's exactly what we talked about
+[00:37:42,260 --> 00:37:43,120] on the last slide.
+[00:37:43,120 --> 00:37:49,020] So it would either be something like epsilon-greedy,
+[00:37:49,020 --> 00:37:50,772] where with some small probability,
+[00:37:50,772 --> 00:37:52,980] you're taking a random action and otherwise following
+[00:37:52,980 --> 00:37:54,140] the policy.
+[00:37:54,140 --> 00:37:57,700] Or it's something where you're taking actions in proportion
+[00:37:57,700 --> 00:38:00,580] to the [INAUDIBLE].
+[00:38:00,580 --> 00:38:02,780] And it might actually, as you talked about it,
+[00:38:02,780 --> 00:38:04,965] might actually change during training.
+[00:38:04,965 --> 00:38:06,340] You might actually change epsilon
+[00:38:06,340 --> 00:38:08,700] during training so that you're doing
+[00:38:08,700 --> 00:38:11,080] more exploration at the beginning, and less exploration
+[00:38:11,080 --> 00:38:11,980] later on.
+[00:38:11,980 --> 00:38:12,480] Yeah.
+[00:38:12,480 --> 00:38:13,980] So the question is, are we resetting
+[00:38:13,980 --> 00:38:16,160] our learning of each iteration?
+[00:38:16,160 --> 00:38:21,110] Oftentimes, you'll keep your old Q parameters around,
+[00:38:21,110 --> 00:38:24,760] warm start them, and keep on training on top of them.
+[00:38:24,760 --> 00:38:30,520] One important thing-- so the results of this algorithm is Q.
+[00:38:30,520 --> 00:38:34,300] And then to extract a policy out of that,
+[00:38:34,300 --> 00:38:39,840] the final policy that you would then deploy is a policy that is
+[00:38:39,840 --> 00:38:42,000] acting according to--
+[00:38:42,000 --> 00:38:43,560] essentially, just be acting greedily,
+[00:38:43,560 --> 00:38:48,120] where it's taking the actions that maximize your Q.
+[00:38:48,120 --> 00:38:52,000] Oh, so if the size of the replay buffer is 1, then just-- like,
+[00:38:52,000 --> 00:38:54,840] yeah, 1 data point--
+[00:38:54,840 --> 00:38:57,160] then that would be on policy.
+[00:38:57,160 --> 00:39:00,340] So if it's tiny, then that's fully on policy.
+[00:39:00,340 --> 00:39:04,160] In practice, this replay buffer is a lot larger.
+[00:39:04,160 --> 00:39:05,640] Oh, oh, oh, sorry.
+[00:39:05,640 --> 00:39:06,990] Right.
+[00:39:06,990 --> 00:39:10,730] If the replay buffer size is 1, if this policy is not the same
+[00:39:10,730 --> 00:39:14,497] as this, then that's still off policy
+[00:39:14,497 --> 00:39:15,830] because the policy is different.
+[00:39:15,830 --> 00:39:18,003] Yeah, so good point.
+[00:39:18,003 --> 00:39:20,170] So yeah, this policy might be different from the one
+[00:39:20,170 --> 00:39:22,530] that directly [INAUDIBLE].
+[00:39:22,530 --> 00:39:24,550] Yeah, so how do we manage our replay buffer?
+[00:39:24,550 --> 00:39:26,425] Make sure that we're not oversampling states,
+[00:39:26,425 --> 00:39:27,770] and so forth?
+[00:39:27,770 --> 00:39:30,210] This is generally-- it's actually
+[00:39:30,210 --> 00:39:33,030] an important consideration with Q-learning algorithms.
+[00:39:33,030 --> 00:39:35,590] And usually, you will discard old data.
+[00:39:35,590 --> 00:39:37,850] So you'll have a first in, first out principle
+[00:39:37,850 --> 00:39:41,070] where this buffer is not infinitely large.
+[00:39:41,070 --> 00:39:43,070] Oftentimes, with Q-learning, it is pretty large.
+[00:39:43,070 --> 00:39:47,170] But you can just pick a fixed size.
+[00:39:47,170 --> 00:39:49,950] And then once you have filled it to that size,
+[00:39:49,950 --> 00:39:52,460] start discarding data and discard the oldest data first.
+[00:39:55,170 --> 00:39:58,050] One other consideration is that at the very beginning
+[00:39:58,050 --> 00:40:01,050] of training, the replay buffer might be very small.
+[00:40:01,050 --> 00:40:04,130] Sometimes to handle that, you might
+[00:40:04,130 --> 00:40:07,100] try to collect more data in the very first iteration just
+[00:40:07,100 --> 00:40:09,180] to populate it.
+[00:40:09,180 --> 00:40:11,780] There are also algorithms that we won't quite
+[00:40:11,780 --> 00:40:16,000] cover that do asynchronous data collection and updates
+[00:40:16,000 --> 00:40:17,618] because data collection takes time.
+[00:40:17,618 --> 00:40:19,160] Updating a neural network takes time.
+[00:40:19,160 --> 00:40:22,115] And so you could actually have some threads that are actually
+[00:40:22,115 --> 00:40:24,740] adding to the replay buffer, and other threads that are running
+[00:40:24,740 --> 00:40:26,462] updates on your queue function.
+[00:40:26,462 --> 00:40:27,920] With those asynchronous algorithms,
+[00:40:27,920 --> 00:40:30,860] it's actually especially important to think about how
+[00:40:30,860 --> 00:40:34,645] the replay buffer is managed so that you're not running 1,000
+[00:40:34,645 --> 00:40:36,020] gradient steps on one data point,
+[00:40:36,020 --> 00:40:37,520] and 1 gradient step on another.
+[00:40:42,220 --> 00:40:44,100] Cool.
+[00:40:44,100 --> 00:40:46,060] That's Q-learning.
+[00:40:46,060 --> 00:40:49,500] Let's talk a little bit about what happens in practice when
+[00:40:49,500 --> 00:40:52,260] you use these methods.
+[00:40:52,260 --> 00:40:56,400] So we talked about how Q-learning can diverge.
+[00:40:56,400 --> 00:41:00,600] And in general, when you run Q-learning with neural networks,
+[00:41:00,600 --> 00:41:02,700] it can be unstable.
+[00:41:02,700 --> 00:41:06,730] And one of the reasons for that is you have this moving target.
+[00:41:06,730 --> 00:41:08,990] This max is [INAUDIBLE].
+[00:41:08,990 --> 00:41:12,230] And it means that our optimization process
+[00:41:12,230 --> 00:41:17,950] is very non-stationary, especially as K is 1.
+[00:41:17,950 --> 00:41:23,750] And one trick is to try to slow down
+[00:41:23,750 --> 00:41:26,390] how often we change the target.
+[00:41:26,390 --> 00:41:27,190] The target network.
+[00:41:27,190 --> 00:41:31,230] So instead of having the target change every single time
+[00:41:31,230 --> 00:41:35,190] you change your parameters, one idea
+[00:41:35,190 --> 00:41:37,750] is you could freeze the parameters of your target
+[00:41:37,750 --> 00:41:41,730] network and only update them periodically.
+[00:41:41,730 --> 00:41:45,350] Only update them once every 100 gradient steps,
+[00:41:45,350 --> 00:41:48,350] or something like that.
+[00:41:48,350 --> 00:41:53,270] So what this looks like is we can
+[00:41:53,270 --> 00:41:58,390] save a separate neural network, another copy
+[00:41:58,390 --> 00:42:01,350] of our Q-function parameters.
+[00:42:01,350 --> 00:42:05,570] We'll call this phi prime.
+[00:42:05,570 --> 00:42:11,930] And when we say this out, then just for this target right here,
+[00:42:11,930 --> 00:42:21,570] we can use these new parameters Q phi prime in our target.
+[00:42:21,570 --> 00:42:24,370] These parameters will be frozen, and so it
+[00:42:24,370 --> 00:42:27,210] means that inside this inner loop,
+[00:42:27,210 --> 00:42:29,628] the labels will not change.
+[00:42:29,628 --> 00:42:31,170] And so this inner loop is essentially
+[00:42:31,170 --> 00:42:34,090] going to be doing supervised learning with some data being
+[00:42:34,090 --> 00:42:36,010] added to the replay buffer.
+[00:42:36,010 --> 00:42:37,590] So this would be a lot more stable.
+[00:42:37,590 --> 00:42:40,770] Supervised learning is a lot more stable, generally.
+[00:42:40,770 --> 00:42:45,410] And then only periodically, then update our target network
+[00:42:45,410 --> 00:42:49,560] parameters be the same as our latest Q-function script.
+[00:42:52,290 --> 00:42:54,670] So once we use the target network,
+[00:42:54,670 --> 00:42:58,290] this is referred to as the DQN algorithm.
+[00:42:58,290 --> 00:43:01,070] It was introduced in 2013.
+[00:43:01,070 --> 00:43:05,420] It was basically like the first deep RL method, at least
+[00:43:05,420 --> 00:43:07,420] in my opinion.
+[00:43:07,420 --> 00:43:10,620] And they found that you could actually
+[00:43:10,620 --> 00:43:13,500] train neural networks to play a variety of different Atari
+[00:43:13,500 --> 00:43:14,660] games.
+[00:43:14,660 --> 00:43:17,155] And it was one of the first examples of using reinforcement
+[00:43:17,155 --> 00:43:18,780] learning to train neural networks to do
+[00:43:18,780 --> 00:43:20,148] a pretty complicated task.
+[00:43:20,148 --> 00:43:21,940] And they were actually training it directly
+[00:43:21,940 --> 00:43:27,300] from the pixel observations from the game.
+[00:43:27,300 --> 00:43:30,700] And prior to that, a lot of reinforcement learning examples
+[00:43:30,700 --> 00:43:33,100] were on varied [? toy ?] settings or very low
+[00:43:33,100 --> 00:43:35,620] dimensional settings, or something like that.
+[00:43:35,620 --> 00:43:38,920] If you take two tables of Q-values,
+[00:43:38,920 --> 00:43:40,980] will that be the same [INAUDIBLE]?
+[00:43:40,980 --> 00:43:45,355] Yeah, so that's actually not quite the case
+[00:43:45,355 --> 00:43:46,980] because you will actually be collecting
+[00:43:46,980 --> 00:43:49,120] new data in this loop.
+[00:43:49,120 --> 00:43:51,360] And so you can't just store all the Q-values.
+[00:43:51,360 --> 00:43:53,980] You actually do have to store the parameters
+[00:43:53,980 --> 00:43:59,220] so that you can then compute the Q-values for the new data.
+[00:43:59,220 --> 00:44:00,160] The target Q-values.
+[00:44:00,160 --> 00:44:01,460] And then [INAUDIBLE].
+[00:44:01,460 --> 00:44:05,790] So you can't just store these, the Q-values.
+[00:44:05,790 --> 00:44:08,550] You have to [INAUDIBLE] them.
+[00:44:08,550 --> 00:44:09,070] Cool.
+[00:44:09,070 --> 00:44:10,570] And so this is one of the algorithms
+[00:44:10,570 --> 00:44:12,594] that you'll implement in homework 2.
+[00:44:15,430 --> 00:44:18,710] OK, so that's the first trick is use a target network that you
+[00:44:18,710 --> 00:44:21,150] only periodically update.
+[00:44:21,150 --> 00:44:23,270] There's two more things that make
+[00:44:23,270 --> 00:44:25,382] Q-learning work a lot better.
+[00:44:25,382 --> 00:44:27,590] And the first one is actually looking at the accuracy
+[00:44:27,590 --> 00:44:28,630] of the Q-values.
+[00:44:28,630 --> 00:44:38,345] So if you plot the reward over training, the reward goes up,
+[00:44:38,345 --> 00:44:38,970] so that's good.
+[00:44:38,970 --> 00:44:41,590] This is a reward on the game of Breakout
+[00:44:41,590 --> 00:44:43,190] and the game of Seaquest.
+[00:44:43,190 --> 00:44:45,550] And if you also plot the Q-values
+[00:44:45,550 --> 00:44:48,070] over the course of training, they're also going up.
+[00:44:48,070 --> 00:44:50,470] And so that's typically what you expect
+[00:44:50,470 --> 00:44:52,510] because the Q-values is representing
+[00:44:52,510 --> 00:44:56,030] your average reward, so that's good.
+[00:44:56,030 --> 00:44:59,470] One other thing to note actually is a practical tip.
+[00:44:59,470 --> 00:45:02,680] When you're looking at the loss function on your Q values
+[00:45:02,680 --> 00:45:06,480] during training, when you train with DQN,
+[00:45:06,480 --> 00:45:10,735] the loss values will actually often go up through training.
+[00:45:10,735 --> 00:45:12,360] This is sometimes a little bit alarming
+[00:45:12,360 --> 00:45:14,640] because you're used to loss values going down.
+[00:45:14,640 --> 00:45:17,160] But the reason for that is you're collecting new data
+[00:45:17,160 --> 00:45:19,577] and that new data has higher Q-values,
+[00:45:19,577 --> 00:45:21,160] and so the scale of your loss function
+[00:45:21,160 --> 00:45:23,667] is decreasing throughout training.
+[00:45:23,667 --> 00:45:26,000] And at the very beginning, if you're getting zero reward
+[00:45:26,000 --> 00:45:28,620] everywhere, it might be very easy to get a loss
+[00:45:28,620 --> 00:45:30,200] function that's going up.
+[00:45:30,200 --> 00:45:34,120] So yeah, don't be alarmed if your loss function is going up.
+[00:45:34,120 --> 00:45:36,760] Sometimes that means that the policy
+[00:45:36,760 --> 00:45:39,680] is starting to [INAUDIBLE].
+[00:45:39,680 --> 00:45:40,180] So, cool.
+[00:45:40,180 --> 00:45:40,980] This looks pretty good.
+[00:45:40,980 --> 00:45:42,340] As we predicted, Q increases.
+[00:45:42,340 --> 00:45:44,440] So does the return.
+[00:45:44,440 --> 00:45:48,080] You can also look at the value over training.
+[00:45:48,080 --> 00:45:50,220] And you see that in the first case,
+[00:45:50,220 --> 00:45:53,320] the values right here are fairly uniform.
+[00:45:53,320 --> 00:45:56,400] But once you're in a state where you really have to go up,
+[00:45:56,400 --> 00:46:01,330] then the Q-value for the action of up is higher than going down
+[00:46:01,330 --> 00:46:02,822] or a no-op.
+[00:46:02,822 --> 00:46:05,030] Likewise, right here, it's really important to go up.
+[00:46:05,030 --> 00:46:07,410] And so the Q-value is higher for going up
+[00:46:07,410 --> 00:46:09,430] than the actions of going down are no-op.
+[00:46:09,430 --> 00:46:10,930] In the right case, it doesn't really
+[00:46:10,930 --> 00:46:13,513] matter because the ball is on the other side on the opponent's
+[00:46:13,513 --> 00:46:15,890] side, and so the Q-values are more uniform.
+[00:46:15,890 --> 00:46:18,370] So when you visualize these Q-values,
+[00:46:18,370 --> 00:46:23,810] they look pretty reasonable, which is good.
+[00:46:23,810 --> 00:46:31,570] But then if you actually plot like what the true returns are--
+[00:46:31,570 --> 00:46:35,570] the true returns are shown in red
+[00:46:35,570 --> 00:46:37,850] here on this red horizontal line,
+[00:46:37,850 --> 00:46:42,450] and the estimate of the values according to the Q-network
+[00:46:42,450 --> 00:46:44,250] are shown as this upper line.
+[00:46:44,250 --> 00:46:46,530] And you actually see this really huge gap
+[00:46:46,530 --> 00:46:50,210] between the estimate, where the estimate is always a lot higher
+[00:46:50,210 --> 00:46:54,170] than the true value.
+[00:46:54,170 --> 00:46:56,450] And so it seems like we're seeing
+[00:46:56,450 --> 00:46:59,230] a lot of what's called overestimation,
+[00:46:59,230 --> 00:47:00,870] where our Q-function is overestimating
+[00:47:00,870 --> 00:47:03,042] how good our policy is.
+[00:47:03,042 --> 00:47:04,750] And then there's this algorithm that I've
+[00:47:04,750 --> 00:47:06,230] introduced called double DQN that's
+[00:47:06,230 --> 00:47:09,250] able to get a much more accurate Q-function,
+[00:47:09,250 --> 00:47:16,390] and it's able to overestimate far, far less than DQN.
+[00:47:16,390 --> 00:47:19,990] So let's talk a little bit about double DQN,
+[00:47:19,990 --> 00:47:22,510] and overestimation in general.
+[00:47:22,510 --> 00:47:25,160] So our target value is--
+[00:47:27,690 --> 00:47:28,190] let's see.
+[00:47:28,190 --> 00:47:33,310] We're taking a max over action right here.
+[00:47:33,310 --> 00:47:36,390] And when we take this max, we're choosing an action
+[00:47:36,390 --> 00:47:38,230] that maximizes its Q-value.
+[00:47:38,230 --> 00:47:45,110] And another way to write this is you can think of it as--
+[00:47:47,830 --> 00:47:51,550] I might need a little bit.
+[00:47:51,550 --> 00:48:00,320] You can think about this quantity as Q of phi of s
+[00:48:00,320 --> 00:48:10,020] evaluated at the action that is maximizing our Q phi.
+[00:48:15,040 --> 00:48:19,780] And so we're both using an action that has a high Q-value,
+[00:48:19,780 --> 00:48:22,920] and evaluating the Q-value of that action using
+[00:48:22,920 --> 00:48:24,800] the same Q-function.
+[00:48:24,800 --> 00:48:29,700] And this means that if there is noise in our Q-function,
+[00:48:29,700 --> 00:48:32,260] then it's very easy.
+[00:48:32,260 --> 00:48:35,080] This noise is very easy to basically pick
+[00:48:35,080 --> 00:48:38,760] actions that are using that noise to get a higher Q-value.
+[00:48:41,400 --> 00:48:44,200] And so this last term right here is
+[00:48:44,200 --> 00:48:47,000] what's causing overestimation.
+[00:48:47,000 --> 00:48:47,980] It's not perfect.
+[00:48:47,980 --> 00:48:51,580] It has some noise in it, as neural networks generally do.
+[00:48:51,580 --> 00:48:57,250] And because the action selected according to Q
+[00:48:57,250 --> 00:49:00,730] is the same as what's being evaluated,
+[00:49:00,730 --> 00:49:03,170] then you can really exploit that noise
+[00:49:03,170 --> 00:49:08,490] and use actions that have higher value
+[00:49:08,490 --> 00:49:11,350] than they actually do because of the noise.
+[00:49:14,290 --> 00:49:19,410] Now, if you instead use a different Q-function
+[00:49:19,410 --> 00:49:23,730] for picking an action and evaluating it,
+[00:49:23,730 --> 00:49:26,150] then you can de-correlate the noise
+[00:49:26,150 --> 00:49:29,010] because if you had two different Q-functions,
+[00:49:29,010 --> 00:49:32,850] they would have, naturally, different noise
+[00:49:32,850 --> 00:49:35,930] and different errors [INAUDIBLE].
+[00:49:35,930 --> 00:49:38,550] And so if you have a way to use different Q-values,
+[00:49:38,550 --> 00:49:43,050] we can actually then eliminate this problem of overestimation
+[00:49:43,050 --> 00:49:46,170] by essentially de-correlating the noise
+[00:49:46,170 --> 00:49:50,010] by using a different Q-function to estimate the Q actions here
+[00:49:50,010 --> 00:49:55,700] as to evaluate the [? action. ?]
+[00:49:55,700 --> 00:49:58,660] And so the key idea behind double Q-learning
+[00:49:58,660 --> 00:50:02,760] is to use two different networks-- one network,
+[00:50:02,760 --> 00:50:09,140] network a, for picking the action, and network b
+[00:50:09,140 --> 00:50:10,640] for evaluating.
+[00:50:16,227 --> 00:50:18,060] And then if they're noisy in different ways,
+[00:50:18,060 --> 00:50:20,540] then we're not going to then be exploiting
+[00:50:20,540 --> 00:50:22,520] noise in our Q-values.
+[00:50:22,520 --> 00:50:26,147] And then, as a result, not overestimating our Q-values.
+[00:50:26,147 --> 00:50:27,980] The question is, can you guarantee that they
+[00:50:27,980 --> 00:50:32,020] don't have the same noise?
+[00:50:32,020 --> 00:50:34,920] I guess you definitely can't guarantee it,
+[00:50:34,920 --> 00:50:36,460] and there might be some noise that's
+[00:50:36,460 --> 00:50:40,060] a result of the architecture of the network.
+[00:50:40,060 --> 00:50:44,340] But in practice, this ends up making a really--
+[00:50:44,340 --> 00:50:48,460] if you are using different neural networks for this,
+[00:50:48,460 --> 00:50:51,200] it generally does a very good job.
+[00:50:51,200 --> 00:50:54,620] There's still some overestimation.
+[00:50:54,620 --> 00:50:56,940] And if we looked at these values--
+[00:50:56,940 --> 00:50:58,560] like here, in this game, the Q-values
+[00:50:58,560 --> 00:51:01,640] are still an overestimate, still an overestimate here,
+[00:51:01,640 --> 00:51:03,200] and also here as well.
+[00:51:03,200 --> 00:51:07,760] But it helps substantially compared to not doing it.
+[00:51:07,760 --> 00:51:11,640] So it's not perfect, but it helps quite a bit.
+[00:51:11,640 --> 00:51:14,720] The question is, what if you did triple DQN or quadruple
+[00:51:14,720 --> 00:51:16,270] DQN, used even more networks?
+[00:51:19,792 --> 00:51:20,500] So good question.
+[00:51:20,500 --> 00:51:27,200] I could see that, yeah, perhaps if the noise correlation--
+[00:51:27,200 --> 00:51:30,173] if you're able to get even more samples of noise,
+[00:51:30,173 --> 00:51:30,840] that could help.
+[00:51:33,400 --> 00:51:35,400] It could be interesting to try that in practice.
+[00:51:35,400 --> 00:51:37,720] If the noise is coming from--
+[00:51:37,720 --> 00:51:40,427] if it's instead coming from a source that's kept constant,
+[00:51:40,427 --> 00:51:42,760] like the architecture of the neural network or something
+[00:51:42,760 --> 00:51:45,760] like that, then it might not help until you
+[00:51:45,760 --> 00:51:47,760] start to introduce those.
+[00:51:47,760 --> 00:51:53,010] And then in practice, using more than two neural networks
+[00:51:53,010 --> 00:51:54,760] is very impressive.
+[00:51:54,760 --> 00:51:56,510] How do you ensure that they don't diverge?
+[00:51:56,510 --> 00:51:59,550] So let's actually talk about what we actually do.
+[00:51:59,550 --> 00:52:06,610] So we're actually already using two neural networks.
+[00:52:06,610 --> 00:52:09,610] We have the current neural networks and the target neural
+[00:52:09,610 --> 00:52:12,290] network that was periodically frozen.
+[00:52:12,290 --> 00:52:18,010] And so what we can actually do is when we do our Q updates,
+[00:52:18,010 --> 00:52:22,570] we can use the target network--
+[00:52:22,570 --> 00:52:26,570] Q phi prime-- for evaluating, and the current neural network
+[00:52:26,570 --> 00:52:29,290] for [INAUDIBLE].
+[00:52:29,290 --> 00:52:32,670] And-- yeah.
+[00:52:32,670 --> 00:52:35,287] So that's essentially what double Q-learning looks like,
+[00:52:35,287 --> 00:52:37,370] where instead of using the target network for both
+[00:52:37,370 --> 00:52:40,090] of these, we're going to use the current network to take
+[00:52:40,090 --> 00:52:43,290] the action to pick the best action, and then the target
+[00:52:43,290 --> 00:52:44,890] network [INAUDIBLE].
+[00:52:44,890 --> 00:52:47,570] Yeah, so it's always going to be your previous Q,
+[00:52:47,570 --> 00:52:49,430] and so you can't [INAUDIBLE] yeah.
+[00:52:49,430 --> 00:52:49,930] Yeah.
+[00:52:49,930 --> 00:52:51,305] So the question is, why does this
+[00:52:51,305 --> 00:52:53,700] help, especially if the previous Q is the same noise?
+[00:52:53,700 --> 00:52:57,860] So the previous Q will be outdated,
+[00:52:57,860 --> 00:53:01,580] and the new Q will have gotten a lot of gradient updates
+[00:53:01,580 --> 00:53:06,580] since then, and seen new data points recently.
+[00:53:06,580 --> 00:53:09,820] And so oftentimes, the noise isn't just
+[00:53:09,820 --> 00:53:11,540] about the initialization, But it also
+[00:53:11,540 --> 00:53:15,300] has to do with what updates were applied.
+[00:53:15,300 --> 00:53:18,560] And so yeah, it helps a lot.
+[00:53:18,560 --> 00:53:19,060] OK.
+[00:53:19,060 --> 00:53:20,783] The last trick we'll talk about--
+[00:53:20,783 --> 00:53:23,200] which we've already talked about in actor-critic methods--
+[00:53:23,200 --> 00:53:25,100] is n-step returns.
+[00:53:25,100 --> 00:53:28,500] So our Q-learning target looks like this--
+[00:53:28,500 --> 00:53:32,955] the reward plus the max of Q. If your Q-values are good,
+[00:53:32,955 --> 00:53:35,580] then this term is actually going to be really, really important
+[00:53:35,580 --> 00:53:40,900] in playing most of the roles in Q-learning update.
+[00:53:40,900 --> 00:53:44,580] But if your Q-function is bad, like at the beginning
+[00:53:44,580 --> 00:53:46,900] of training, then these are really
+[00:53:46,900 --> 00:53:48,840] the only values that are going to matter,
+[00:53:48,840 --> 00:53:50,215] and these are the values that are
+[00:53:50,215 --> 00:53:52,790] going to be giving your learning algorithms [INAUDIBLE].
+[00:53:52,790 --> 00:53:55,870] And if you just have a single reward function here, then
+[00:53:55,870 --> 00:53:58,790] that might be a bit troublesome because just a single reward
+[00:53:58,790 --> 00:54:00,510] function might not tell you that much
+[00:54:00,510 --> 00:54:05,030] about how good your Q-value is.
+[00:54:05,030 --> 00:54:06,408] So if you remember when we talked
+[00:54:06,408 --> 00:54:07,950] about actor-critic methods, we talked
+[00:54:07,950 --> 00:54:11,130] about using n-step returns.
+[00:54:11,130 --> 00:54:14,090] So if we use this Monte Carlo, we would use the sum of rewards.
+[00:54:14,090 --> 00:54:18,430] If we use bootstrapping, we just do r plus V--
+[00:54:18,430 --> 00:54:22,070] so r, the current timestep, plus the V at the next timestep.
+[00:54:22,070 --> 00:54:23,710] And instead, we talked about this thing
+[00:54:23,710 --> 00:54:25,252] that we could do in the middle, where
+[00:54:25,252 --> 00:54:27,470] we sum the rewards over the next n timesteps,
+[00:54:27,470 --> 00:54:31,950] and then use the value at the timestep after that.
+[00:54:31,950 --> 00:54:35,350] We talked about how this has less variance and lower bias,
+[00:54:35,350 --> 00:54:39,710] and lower bias in the sense that if your targets are bad,
+[00:54:39,710 --> 00:54:43,390] the reward function is going to be more accurate.
+[00:54:43,390 --> 00:54:46,190] So can we do this for Q-values?
+[00:54:46,190 --> 00:54:51,000] And what this would look like for Q-values is instead
+[00:54:51,000 --> 00:54:55,080] of having something like this, I say, this is the target for--
+[00:54:57,800 --> 00:55:01,960] you're trying to get the target for st, at.
+[00:55:01,960 --> 00:55:09,120] Then you would define yi to be r at the current timestep
+[00:55:09,120 --> 00:55:15,800] plus r at the next timestep, up until r
+[00:55:15,800 --> 00:55:18,800] at e plus n minus 1 timestep.
+[00:55:22,240 --> 00:55:32,120] And then at the timestep after that, use the max of Q of st
+[00:55:32,120 --> 00:55:41,080] plus n, at plus n, where this maximization is over at plus n.
+[00:55:41,080 --> 00:55:47,820] This is what n-step returns could look like for Q-learning.
+[00:55:47,820 --> 00:55:55,480] Does anyone see any potential issue with using this target?
+[00:55:55,480 --> 00:55:55,980] Yeah.
+[00:55:55,980 --> 00:55:57,940] So if you're doing this off policy,
+[00:55:57,940 --> 00:56:00,900] these r's will be coming from whatever policy
+[00:56:00,900 --> 00:56:05,815] you used in the replay buffer, rather than the optimal policy,
+[00:56:05,815 --> 00:56:07,440] which is what you're trying to estimate
+[00:56:07,440 --> 00:56:10,260] the Q-function for that.
+[00:56:10,260 --> 00:56:11,880] So there's pros and cons here.
+[00:56:11,880 --> 00:56:14,220] One is that it's a lot less biased, a lot faster
+[00:56:14,220 --> 00:56:16,397] to learn on, especially early on.
+[00:56:16,397 --> 00:56:17,980] But the downside is that these rewards
+[00:56:17,980 --> 00:56:22,220] are for the policy that collected the data, not
+[00:56:22,220 --> 00:56:24,148] for the optimal policy.
+[00:56:24,148 --> 00:56:25,940] And we're trying to estimate the Q-function
+[00:56:25,940 --> 00:56:28,340] for the optimal policy.
+[00:56:28,340 --> 00:56:36,300] So this is a downside when using n-step returns with Q-learning.
+[00:56:36,300 --> 00:56:39,420] And this is not an issue with n equals 1
+[00:56:39,420 --> 00:56:43,760] because there, the reward will just be a function of s and a,
+[00:56:43,760 --> 00:56:50,670] and we're estimated the Q-value of s and a.
+[00:56:50,670 --> 00:56:52,430] Now, what do we do about this?
+[00:56:52,430 --> 00:56:56,070] Maybe the unsatisfying answer is that most commonly, just
+[00:56:56,070 --> 00:56:57,750] ignore this.
+[00:56:57,750 --> 00:57:03,270] Pretend it isn't true, and still use an n greater than 1.
+[00:57:03,270 --> 00:57:06,270] And n-step returns truly are often--
+[00:57:06,270 --> 00:57:09,550] truly very often improve the performance of the algorithm,
+[00:57:09,550 --> 00:57:11,950] despite being incorrect.
+[00:57:11,950 --> 00:57:14,110] That said, there are other things you can do.
+[00:57:14,110 --> 00:57:16,230] You can dynamically choose n, and only
+[00:57:16,230 --> 00:57:18,790] use data that follows the current policy.
+[00:57:18,790 --> 00:57:21,030] Basically looking at what actions were taken
+[00:57:21,030 --> 00:57:23,910] and seeing if those actions actually agree
+[00:57:23,910 --> 00:57:27,390] with the maximal Q-values.
+[00:57:27,390 --> 00:57:29,790] You could also, in principle, dynamically choose n
+[00:57:29,790 --> 00:57:32,070] and have n be smaller later in training,
+[00:57:32,070 --> 00:57:36,550] where your Q-values are likely to be more accurate.
+[00:57:36,550 --> 00:57:38,730] Now, for this particular choosing of n,
+[00:57:38,730 --> 00:57:40,750] you really would want to do this only
+[00:57:40,750 --> 00:57:44,520] if the action space is small and the data is mostly on policy.
+[00:57:44,520 --> 00:57:47,660] And you can also do importance sampling as well
+[00:57:47,660 --> 00:57:52,020] and weight these rewards by [INAUDIBLE].
+[00:57:55,940 --> 00:57:56,440] Great.
+[00:57:56,440 --> 00:58:02,760] So those were the three tricks for Q-learning in practice.
+[00:58:02,760 --> 00:58:05,280] There's a couple examples of Q-learning
+[00:58:05,280 --> 00:58:08,402] that have been very successful that I put on this slide.
+[00:58:08,402 --> 00:58:09,860] I think there's other examples too.
+[00:58:09,860 --> 00:58:15,360] But one of the most prominent examples was for playing games.
+[00:58:15,360 --> 00:58:19,840] And if you want to train an agent to play a game,
+[00:58:19,840 --> 00:58:23,400] or either just for the sake of seeing how well you can do
+[00:58:23,400 --> 00:58:26,360] or to play against the human, Q-learning
+[00:58:26,360 --> 00:58:30,760] was able to outperform most people on Atari games.
+[00:58:30,760 --> 00:58:32,535] So this bar right here is--
+[00:58:32,535 --> 00:58:34,160] everything above this bar are the games
+[00:58:34,160 --> 00:58:37,980] that it is at human level or above human level performance.
+[00:58:37,980 --> 00:58:42,280] And everything below is worse than human level performance.
+[00:58:42,280 --> 00:58:47,190] And then it also was used to train a robot grasping system.
+[00:58:47,190 --> 00:58:49,810] So this is actually a case of continuous action.
+[00:58:49,810 --> 00:58:57,330] And the robot on the right is using a Q-function that
+[00:58:57,330 --> 00:58:59,330] was trained with Q-learning.
+[00:58:59,330 --> 00:59:02,330] And then it is doing a continuous optimization
+[00:59:02,330 --> 00:59:06,490] over actions that will try to find
+[00:59:06,490 --> 00:59:11,130] a good way to grasp the object.
+[00:59:11,130 --> 00:59:14,050] And we talked a bit last time about how with RL, you
+[00:59:14,050 --> 00:59:17,510] can get much higher success rate and more reliable policies.
+[00:59:17,510 --> 00:59:20,130] And we see that here too, where this system
+[00:59:20,130 --> 00:59:24,970] was able to get a 96% success rate, so quite high at being
+[00:59:24,970 --> 00:59:28,265] able to grasp objects.
+[00:59:28,265 --> 00:59:29,890] The other thing that's nice about using
+[00:59:29,890 --> 00:59:38,010] RL for this application is in order to grasp,
+[00:59:38,010 --> 00:59:42,170] you need to not just go down and pick something up,
+[00:59:42,170 --> 00:59:44,830] but you actually need to move around the object.
+[00:59:44,830 --> 00:59:46,390] It's also able to learn how to do
+[00:59:46,390 --> 00:59:50,830] that using the reinforcement learning because it's
+[00:59:50,830 --> 00:59:52,646] treating it as [INAUDIBLE].
+[00:59:57,904 --> 00:59:59,350] Cool.
+[00:59:59,350 --> 01:00:02,510] I think that one of the last things I figured I would cover
+[01:00:02,510 --> 01:00:05,150] is some of my advice on when to use one online RL
+[01:00:05,150 --> 01:00:08,110] algorithm versus another, since this is the last online RL
+[01:00:08,110 --> 01:00:10,350] method that we'll talk about.
+[01:00:10,350 --> 01:00:14,530] So we talked a bit about PPO, SAC, and DQN.
+[01:00:14,530 --> 01:00:16,870] Those are some of the three main technical algorithms
+[01:00:16,870 --> 01:00:18,070] we talked about.
+[01:00:18,070 --> 01:00:21,010] So PPO, this is great when you care about stability
+[01:00:21,010 --> 01:00:22,070] and ease-of-use.
+[01:00:22,070 --> 01:00:24,270] Generally, doesn't require too much tuning,
+[01:00:24,270 --> 01:00:25,848] but it's very data inefficient.
+[01:00:25,848 --> 01:00:28,140] And so it's great to use when you care about stability,
+[01:00:28,140 --> 01:00:29,750] ease-of-use, and you don't really
+[01:00:29,750 --> 01:00:32,230] care about data efficiency.
+[01:00:32,230 --> 01:00:35,670] DQN works quite well when you have
+[01:00:35,670 --> 01:00:39,110] discrete actions or low dimensional continuous actions.
+[01:00:39,110 --> 01:00:41,660] And so in those cases, it can be a great choice.
+[01:00:41,660 --> 01:00:46,080] It can be fairly data efficient, depending on some of the details
+[01:00:46,080 --> 01:00:48,400] and how off policy you make it.
+[01:00:48,400 --> 01:00:51,920] And then soft actor-critic and variants of it
+[01:00:51,920 --> 01:00:54,680] are great when you care most about data efficiency,
+[01:00:54,680 --> 01:00:58,080] but require a bit more tuning and are a bit less stable
+[01:00:58,080 --> 01:01:00,053] than something like DQN.
+[01:01:03,840 --> 01:01:07,520] So what we talked about is Q-learning, also Q-learning
+[01:01:07,520 --> 01:01:09,380] in practice with respect to target networks,
+[01:01:09,380 --> 01:01:11,610] double DQN, and n-step returns.
+[01:01:11,610 --> 01:01:13,360] We define things like the Bellman equation
+[01:01:13,360 --> 01:01:16,280] and Bellman optimality equation.
+[01:01:16,280 --> 01:01:18,720] Yeah, and that was essentially an overview
+[01:01:18,720 --> 01:01:24,000] of how to do RL without learning an explicit policy.
+[01:01:24,000 --> 01:01:25,880] We're done with online reinforcement learning
+[01:01:25,880 --> 01:01:28,480] algorithms for now.
+[01:01:28,480 --> 01:01:31,800] And yeah, we covered a lot of the basics
+[01:01:31,800 --> 01:01:33,640] of different online reinforcement learning
+[01:01:33,640 --> 01:01:35,790] algorithms.

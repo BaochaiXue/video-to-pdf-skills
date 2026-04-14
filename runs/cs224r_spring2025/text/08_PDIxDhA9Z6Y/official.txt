@@ -1,0 +1,794 @@
+Conservative Offline RL and
+^
+
+Reward Learning
+CS 224R
+
+1
+
+Course reminders
+Homework
+
+Project
+- Fill out AWS form for GPU quota
+- Proposal due today
+
+- Homework 2 due next Friday.
+
+(start early!!)
+
+graded fairly lightly- it’s for your bene t!
+Guest lectures next week!
+Archit Sharma
+
+Aviral Kumar
+
+Researcher on Gemini team
+
+Prof at CMU
+
+Lead author of DPO
+
+At forefront of LLM reasoning
+
+Preference optimization for LLMs
+
+RL for LLM reasoning
+
+fi
+
+Both very useful for default project. Please join lecture in person!
+
+2
+
+The plan for today
+1. Offline reinforcement learning: recap & conservative methods
+
+Part of HW3
+
+2. Reward learning:
+a. Where do rewards come from?
+b. Learning rewards from example goals, behaviors
+c. Learning rewards from human preferences
+Key learning goals:
+- why task specification is hard (& why naïve methods fail)
+- methods for learning rewards from human supervision
+
+3
+
+Part of default
+project
+
+Recap: Of ine RL
+Problem: Can we learn a policy from a batch of existing data, without online data collection?
+Batch of data collected by unknown behavior policy πβ, want to maximize rewards under πθ
+
+X
+
+<latexit sha1_base64="xfJ+06L8ftPw7HX3tgfhC16tXHA=">AAADFHicjVJNbxMxEPUuXyV8peXIxSJCSYBGuxVqOVZ8SBxbibSV4nTldbxZq/buyp5Filz/CC78FS4cQIgrB278G5xkgbSlEiNZenrzxvPGnrSSwkAU/QzCK1evXb+xdrN16/adu/fa6xsHpqw140NWylIfpdRwKQo+BAGSH1WaU5VKfpievJznD99xbURZvIVZxceKTguRCUbBU8l68JgoUSSkygUmplaJ7RFFIU8za9xT/BvTFWxct++1Qi0ZRqV95RxukVNMcgp23y2uO7akEgmBnAN1l1zax5uYSJ5BD+tLJU8wmVKlaEOm9rVL7F9Bd2nlT68eYZMS8OkZvw6P/sdbd7Wzn3KMiRbTHPp+uOOtpN2JBtEi8EUQN6CDmthL2j/IpGS14gUwSY0ZxVEFY0s1CCa5a5Ha8IqyEzrlIw8LqrgZ28WnOvzIMxOcldqfAvCCXa2wVBkzU6lXzi2b87k5+a/cqIbs+diKoqqBF2zZKKslhhLPNwRPhOYM5MwDyrTwXjHLqaYM/B61/CPE50e+CA62BvH2YHv/WWf3RfMca+gBeoh6KEY7aBe9QXtoiFjwPvgYfA6+hB/CT+HX8NtSGgZNzX10JsLvvwDV4fw8</latexit>
+
+Recall: Off-policy critic objective min
+
+(s,a,s0 )⇠D
+
+Randomly init. Q-function for state s′
+
+Q(s′, a′)
+
+⇡✓
+
+kQ̂ (s, a)
+
+⇣
+
+⇡✓
+
+0
+
+0
+
+⌘
+
+2
+
+r(s, a) + Ea0 ⇠⇡✓ (·|s0 ) [Q̂ (s , a )] k
+
+Querying Q-function on OOD
+actions causes overestimation.
+
+IQL avoids queries beyond dataset actions altogether.
+π
+
+Fit V for policy π better than πβ using expectile loss:
+
+̂ a)
+̂ ← arg min E(s,a)∼D ℓ λ V(s) − Q(s,
+V(s)
+[ 2(
+)]
+
+I
+
+V
+
+action a′
+
+fl
+
+￼
+
+￼
+
+￼
+
+￼
+
+￼
+
+￼
+
+data support
+
+̂ a) ← arg min E(s,a,s′)∼D Q(s, a) − r + γV(s′
+̂ )
+Fit Q using V: Q(s,
+(
+(
+))
+[
+]
+Q
+2
+
+How to mitigate overestimation in of ine RL?
+Recall: Randomly init. Q-function for state s′
+Can we discourage overestimation?
+
+Q(s′, a′)
+
+while still estimating value of the learned policy
+
+I
+
+What if we just push down on large Q-values?
+
+action a′
+
+data support
+
+π
+̂
+Q = arg min max E(s,a,s′)∼D (Q(s, a) − (r(s, a) + γEa′∼π[Q(s′, a′)])) + αEs∼D,a∼μ(⋅|s)[Q(s, a)]
+[
+]
+Q
+μ
+2
+
+standard critic update
+
+push down on large Q-values
+
+Slide adapted from Sergey Levine
+
+￼
+
+5
+fl
+
+￼
+
+￼
+
+￼
+
+￼
+
+￼
+
+￼
+
+￼
+
+π
+π
+̂
+Can show that Q ≤ Q for large enough α
+
+How to mitigate overestimation in of ine RL?
+Can we discourage overestimation?
+
+while still estimating value of the learned policy
+standard critic update
+
+push down on large Q-values
+
+π
+̂
+Q = arg min max E(s,a,s′)∼D (Q(s, a) − (r(s, a) + γEa′∼π[Q(s′, a′)])) + αEs∼D,a∼μ(⋅|s)[Q(s, a)]
+[
+]
+Q
+μ
+2
+
+− αE(s,a)∼D[Q(s, a)]
+push up on Q-values for (s, a) in the data
+π
+π
+̂
+No longer guaranteed that Q ≤ Q for all (s, a).
+π
+π
+̂
+BUT, guaranteed that Eπ(a|s)[Q (s, a)] ≤ Eπ(a|s)[Q (s, a)] for all s ∈ D.
+
+6
+fl
+
+Slide adapted from Sergey Levine
+
+￼
+
+￼
+
+￼
+
+￼
+
+Conservative Q-learning (CQL)
+
+How to mitigate overestimation in of ine RL?
+Conservative Q-learning (CQL)
+Full algorithm
+π
+̂
+1. Update Q using LCQL using D
+
+2. Update policy π
+If actions are discrete: π(a | s) =
+
+π
+̂
+1 if a = arg max Q (s, ā)
+
+{0
+
+otherwise
+
+ā
+
+π
+̂
+If actions are continuous: θ ← θ + η ∇θ Es∼D,a∼πθ(⋅|s) [Q (s, a)]
+
+7
+fl
+
+Slide adapted from Sergey Levine
+
+How to mitigate overestimation in of ine RL?
+Conservative Q-learning (CQL)
+π
+̂
+1. Update Q using LCQL using D
+
+2. Update policy π
+How compute objective LCQL?
+
+π
+̂
+Q = arg min max E(s,a,s′)∼D (Q(s, a) − (r(s, a) + γEπ[Q(s′, a′)])) + αEs∼D,a∼μ(⋅|s)[Q(s, a)]
+[
+]
+Q
+μ
+− αE(s,a)∼D[Q(s, a)] +R(μ)
+2
+
+Common choice:
+
+With max entropy regularizer R, optimal μ(a | s) ∝ exp (Q(s, a))
+
+∑
+a
+
+exp (Q(s, a))
+
+fl
+
+Slide adapted from Sergey Levine
+
+￼
+
+Don’t need to construct μ directly.
+￼
+
+￼
+
+Then: Es∼D,a∼μ(⋅|s)[Q(s, a)] = log
+
+regularizer
+
+You will implement CQL
+in homework 3!
+
+An example application
+Optimizing policy for sending noti cations to users on LinkedIn
+WAU: weekly active users
+Volume: total # of noti cations
+
+CTR: click-through-rate
+of noti cations
+
+Prabhakar, Yuan, Yang, Sun, Muralidharan. Multi-Objective Optimization of Noti cations Using Of ine RL. ‘22
+
+fl
+
+fi
+
+fi
+
+fi
+
+fi
+
+9
+
+Why of ine RL? Online data is expensive. Reusing of ine data is good!
+Key challenge: Overestimating Q-values because of shift between πβ and πθ
+Approaches:
+1.
+
+ltered or weighted imitation learning is a simple baseline
+
+2. implicitly constrain the policy to πβ by only supervising on actions in data
+3. construct conservative objective by penalizing Q-values
+Trajectory stitching allows of ine RL methods to improve over imitation.
+fl
+
+fl
+
+10
+fl
+
+fi
+
+Summary
+
+The plan for today
+1. Offline reinforcement learning: recap & conservative methods
+2. Reward learning:
+a. Where do rewards come from?
+b. Learning rewards from example goals, behaviors
+c. Learning rewards from human preferences
+
+11
+
+Where does the reward come from?
+Computer Games
+reward
+
+Real World Scenarios
+robotics
+
+dialog
+
+autonomous driving
+
+what is the reward?
+often use a proxy
+
+Mnih et al. ‘15
+
+Are there other easier ways of providing task supervision?
+We’ve seen one alternative approach so far.
+12
+
+Where does the reward come from?
+Direct imitation learning: Mimic actions of expert
+- but no reasoning about outcomes or dynamics
+- the expert might have different degrees of freedom
+- might not be possible to provide demonstrations
+Can we reason about what
+an expert is trying to achieve?
+
+13
+
+The plan for today
+1. Offline reinforcement learning: recap & conservative methods
+2. Reward learning:
+a. Where do rewards come from?
+b. Learning rewards from example goals, behaviors
+c. Learning rewards from human preferences
+
+14
+
+Goal classifiers
+Key idea: Learn to discern goal states from other states
+Example task: put pencil case behind notebook
+Positive examples
+
+Negative examples
+
+Trained binary classifier
+
+↦1
+
+↦0
+
+Use output as reward signal.
+1. Collect examples of successful & unsuccessful states
+(states inside and outside of goal set G)
+2. Train binary classifier
+(with inputs si and labels 1(si ∈ G))
+3. Run RL with classifier as reward.
+15
+
+Goal classifiers
+Key idea: Learn to discern goal states from other states
+1. Collect examples of successful & unsuccessful states
+(states inside and outside of goal set G)
+2. Train binary classifier
+(with inputs si and labels 1(si ∈ G))
+3. Run RL with classifier as reward.
+
+What can go wrong?
+The RL algorithm will seek out states that the classifier thinks are good.
+It may simply find states that the classifier wasn’t trained on!
+—> exploiting the classifiers weaknesses
+16
+
+Goal classifiers
+Can we prevent the RL algorithm from exploiting the classifier’s weaknesses?
+A proposition: Add states that RL visits as negative examples for the classifier
+Specifically:
+
+1. Collect initial set of successful states D+ and unsuccessful states D−.
+2. Update classifier using D+ and D− (balance dataset 50/50)
+3. Collect experience st, at, … using policy π
+
+4. Update policy π using classifier-based reward.
+
+5. Add visited states to negatives: D−←D− ∪ {st}
+Why might this work or not work?
+Will it learn an accurate classifier?
+Do we expect the policy to work?
+What will the classifier output for successful states?
+17
+
+Goal classifiers
+A proposition: Add states that RL visits as negative examples for the classifier
+Specifically:
+
+1. Collect initial set of successful states D+ and unsuccessful states D−.
+2. Update classifier using D+ and D− (balance dataset 50/50)
+3. Collect experience st, at, … using policy π
+
+4. Update policy π using classifier-based reward.
+
+5. Add visited states to negatives: D−←D− ∪ {st}
+Why might this work or not work?
+Classifier can’t be exploited. 😌
+But, what if some of the visited states are successful? 😳
+As long as batches are balanced, classifier will output p≥0.5 for successful states. 😅
+18
+
+Goal classifiers for robotic reinforcement learning
+Collect 50 demonstrations:
+-
+
+use final states as success state examples
+
+-
+
+initialize RL replay buffer with demos
+
+Directly imitating demos:
+
+26% success rate
+
+Important to regularize
+the classifier!
+
+RL policy trained with learned classifier:
+
+62% success rate
+
+Sharma, Ahmed, Ahmad, Finn. Self-Improving Robots: End-to-End Autonomous Visuomotor Reinforcement Learning. ‘23
+
+Aside: Generative adversarial networks
+This is also how GANs work!
+1. Train classifier to discriminate between real data and generated data
+2. Train generator to generate data that the classifier thinks is real.
+“Yorkshire terrier” generated by VQ-GAN
+
+Phenaki video generation (uses GAN-loss)
+Side view of an astronaut is walking
+through a puddle on mars.
+The astronaut is dancing on mars.
+The astronaut walks his dog on mars.
+The astronaut and his dog watch
+fireworks.
+
+Yu et al. ViT-VQGAN. ICLR ’22.
+
+Villegas et al. Phenaki. ICLR ’23.
+
+At convergence: generator will match data distribution p(x)
+20
+
+Recap of reward classifiers
+-
+
+Pre-trained classifiers can be exploited when optimized against.
+
+-
+
+Solution: Update the classifier during RL, using policy data as negatives
+
+-
+
+Can learn goal classifier with success examples, full reward with demos.
++ practical framework for task specification
+~ adversarial training can be unstable
+
+(though variety of regularization tricks from GAN literature)
+
+- requires examples of desired behavior or outcomes
+
+21
+
+The plan for today
+1. Offline reinforcement learning: recap & conservative methods
+2. Reward learning:
+a. Where do rewards come from?
+b. Learning rewards from example goals, behaviors
+c. Learning rewards from human preferences
+
+22
+
+Can humans provide feedback on policy roll-outs?
+instead of requiring demos or example goals
+(or in addition to!)
+A couple options
+“How good is this trajectory?”
+
+“Which trajectory is better?”
+
+23
+
+Relative preferences are easier to provide!
+
+How to learn a reward function from human preferences?
+Human says τw is better than τl.
+
+(can write it as τw ≻ τl)
+
+We want a reward rθ such that
+
+∑
+
+∑
+
+(s,a)∈τl
+
+rθ(s, a).
+
+{
+
+(s,a)∈τw
+
+rθ(s, a) >
+
+Note: τ could be a full
+or partial roll-out!
+
+shorthand rθ(τw)
+
+Humans are classifying which trajectory is better.
+Reward should be discriminative as well.
+
+24
+
+How to learn a reward function from human preferences?
+Human says τw is better than τl.
+
+(can write it as τw ≻ τl)
+
+We want a reward rθ such that
+
+∑
+
+∑
+
+(s,a)∈τl
+
+rθ(s, a).
+
+{
+
+(s,a)∈τw
+
+rθ(s, a) >
+
+Note: τ could be a full
+or partial roll-out!
+
+shorthand rθ(τw)
+
+We can define σ(rθ(τa) − rθ(τb)) to be the estimated probability that τa ≻ τb.
+Then, we can maximize log probability: max τw,τl[logσ(rθ(τw) − rθ(τl))]
+𝔼
+
+θ
+
+25
+
+How to learn a reward function from human preferences?
+Complete reward learning algorithm
+1. Given dataset {τi}, sample batches of k trajectories and ask humans to rank.
+
+(for LLMs, these k trajectories all have the same prompt)
+
+2. Compute rθ(τ1), …, rθ(τk) under current reward model rθ
+k
+3. For all
+pairs per batch, compute ∇θ τw,τl[logσ(rθ(τw) − rθ(τl))] where τw ≻ τl
+(2)
+
+4. Update θ using computed gradient.
+
+𝔼
+
+Note: This can be done in the loop of online RL.
+26
+
+Learning rewards from human feedback
+Learning rewards in the loop of online RL
+
+Learning rewards for driving
+
+uses 900 human preference queries
+
+to weight different factors
+
+Christiano et al. Deep Reinforcement Learning from Human Preferences. NeurIPS 2017.
+Sadigh et al. Active Preference-Based Learning of Reward Functions. RSS 2017.
+
+Learning rewards from human feedback for LLMs
+Prompt x
+x:
+
+Sample replies
+y
+
+y’
+
+Ask human which response is better
+y ≻ y’
+
+Train reward model r(x, y) that judges how good a response y is for a prompt x.
+
+Learning rewards from human feedback for LLMs
+3a. Gather preference data.
+
+1. Large-scale pre-training
+
+Prompt x
+
+next token prediction, mixed quality
+
+2. Supervised fine-tuning
+
+x:
+
+Sample replies
+y
+y ≻ y’
+
+on higher-quality (prompt, response)
+
+3. RL from human feedback
+on higher-quality (prompt, response)
+
+y’
+
+3b. Train reward model.
+Train reward model r(x, y) that judges
+
+how good a response y is for a prompt x.
+
+3c. Reinforcement learning to maximize reward.
+Finetune model to predict y for prompt x with high reward
+
+Learning rewards from human AI feedback
+Reinforcement learning with AI feedback (RLAIF)
+Ask another language model “which of these responses is less harmful?”
+Key insight: critique is easier than generation!
+
+Bai et al. Constitutional AI: Harmlessness from AI Feedback. 2022.
+
+Summary of Reward Learning
+#1 Takeaway: Rewards can’t be taken for granted!
+Learning rewards from goals, demos
+
+Learning rewards from human preferences
+
++ practical framework for task specification
+
++ pairwise preferences easy to provide
+(doesn’t require example goals, demos!)
+
+~ adversarial training can be unstable
+
+(though variety of regularization tricks from
+GAN literature)
+
++ has been deployed at scale!
+- may require supervision in the loop of RL
+
+- requires examples of desired behavior
+or outcomes
+
+(usually requires more human time)
+
+Thought exercise: Are there other forms of feedback, supervision that might be helpful?
+31
+
+Can RL agents propose their own goals?
+Entire area of “unsupervised” RL
+One example: Formulate two-player game, with a goal-setter and a goal reacher
+
+Sukhbaatar et al. Intrinsic Motivation and Automatic Curricula via Asymmetric Self-Play. ICLR 2018
+
+32
+
+The plan for today
+1. Offline reinforcement learning: recap & conservative methods
+2. Reward learning:
+a. Where do rewards come from?
+b. Learning rewards from example goals, behaviors
+c. Learning rewards from human preferences
+Key learning goals:
+- why task specification is hard (& why naïve methods fail)
+- methods for learning rewards from human supervision
+
+33
+
+Course reminders
+Homework
+
+Project
+- Fill out AWS form for GPU quota
+- Proposal due today
+
+- Homework 2 due next Friday.
+
+(start early!!)
+
+graded fairly lightly- it’s for your bene t!
+Guest lectures next week!
+Archit Sharma
+
+Aviral Kumar
+
+Researcher on Gemini team
+
+Prof at CMU
+
+Lead author of DPO
+
+At forefront of LLM reasoning
+
+Preference optimization for LLMs
+
+RL for LLM reasoning
+
+fi
+
+Both very useful for default project. Please join lecture in person!
+
+34
+
+

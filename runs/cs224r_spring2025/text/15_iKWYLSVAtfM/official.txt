@@ -1,0 +1,846 @@
+Hierarchy in Imitation and Reinforcement Learning
+CS 224R
+
+1
+
+Course reminders
+- Project milestone due Friday.
+- Homework 4 due next Friday
+
+Based on course feedback
+- Posting tips on Ed for default project!
+
+2
+
+Brief recap
+Multi-task imitation and reinforcement learning
+Task descriptor zi
+State st
+
+π
+
+Goal state sg
+
+at
+
+π
+
+State st
+
+at
+
+Meta-reinforcement learning
+Few-shot experience s1, a1, r1, …
+State st
+
+π
+
+at
+
+Today: can we string together behaviors from multiple (sub)tasks?
+3
+
+Plan for today
+1. What’s the problem
+a. Why long-horizon tasks are hard
+b. Why hierarchy may help
+
+2. Key design choices
+a. How to represent skills/goals?
+b. When to move on from one goal to the next?
+c. Supervision for each level
+
+3. Example systems
+
+4
+
+Long horizon tasks
+🤖 Cook focaccia.
+🖥 Fix a bug that is causing neural network training loss to explode.
+🚗 Drive to Yosemite.
+✏ Give feedback on an 8-page report.
+Why are these hard?
+1. Very large # of states visited.
+2. Many opportunities to make mistakes.
+3. Many opportunities to get “stuck”.
+
+The main idea
+Can we break up hard tasks into easier subtasks?
+
+Bake a cheesecake
+
+<- doing this is really hard
+
+Buy ingredients
+Go to the store
+Walk to the door
+Take a step
+
+<- doing this is easy
+
+Contract quad muscle
+
+6
+
+The main idea
+Can we break up hard tasks into easier subtasks?
+
+“Bake a cheesecake”
+
+ot
+
+πHL
+
+gt
+ot
+
+High-level policy predicts
+intermediate goals gt
+
+πLL
+
+at
+
+Low-level policy tries to accomplish gt
+by predicting actions at
+
+It operates at a higher frequency than
+the high-level policy.
+Many names for gt: subgoals, subtasks, skills, options, high-level actions
+Could have more than 2 levels of hierarchy!
+7
+
+The main idea
+
+Can we break up hard tasks into easier subtasks?
+“Bake a cheesecake”
+
+ot
+
+πHL
+
+gt
+ot
+
+High-level policy predicts
+intermediate goals gt
+
+Rolling out the
+hierarchical policy:
+
+πLL
+
+at
+
+Low-level policy tries to accomplish gt
+by predicting actions at
+
+0. Observe initial observation o1 at t = 1
+
+1. Plan goal gt according to πHL( ⋅ | ot, prompt)
+2. Until new goal is selected:
+
+a. Execute predicted action at according to πLL( ⋅ | ot, gt)
+b. t ← t + 1, observe new observation ot
+
+Why may hierarchy help?
+1. Supervision signal on how to complete the task
+2. More direct knowledge sharing across similar subtasks
+3. In RL: structured exploration in higher-level space
+4. Practical challenge: Address speed requirements by running polices at different frequencies
+
+9
+
+Do we really need multiple policies?
+“Bake a cheesecake”
+Hierarchy
+
+ot
+
+“Bake a cheesecake”
+Flat policy
+
+ot
+
+“Bake a cheesecake”
+Chain of thought
+
+ot
+
+πHL
+
+gt
+ot
+
+π
+
+at
+
+π
+
+gt , at
+
+πLL
+
+at
+
+Do we really need multiple policies?
+“Bake a cheesecake”
+Hierarchy
+
+ot
+
+“Bake a cheesecake”
+Flat policy
+
+ot
+
+“Bake a cheesecake”
+
+fi
+
+Chain of thought
+
+ot
+
+πHL
+
+gt
+ot
+
+π
+
+π
+
+πLL
+
+at
+
+at
+
+Can bene t from same supervision!
+
+gt , at May be too computationally expensive (e.g. 50 Hz control)
+No conclusive empirical comparison (yet).
+
+Plan for today
+1. What’s the problem
+a. Why long-horizon tasks are hard
+b. Why hierarchy may help
+
+2. Key design choices
+a. How to represent skills/goals?
+b. Supervision for each level
+c. When to move on from one goal to the next?
+
+3. Example systems
+
+12
+
+What goal representation would you use?
+“Make focaccia”
+
+ot
+
+πHL
+
+gt
+ot
+
+πLL
+
+at
+
+Think-pair-share: for one task, discuss (1) intermediate goals, (2) the best representation for those goals
+
+🤖 1. Cook Italian dishes.
+
+✏ 3. Draft legal briefs.
+🖥 4. Plan and book 1-week vacations for users.
+
+🚲 2. Bike to various campus locations
+e.g. “Bike to the dish entrance.”
+13
+
+What goal representation would you use?
+“Make focaccia”
+
+ot
+
+πHL
+
+gt
+ot
+
+πLL
+
+at
+
+1. Best goal representations will likely be domain speci c!
+2. Properties of good goal representations:
+a. Expressive (can communicate many different low-level behaviors)
+b. Structured (similar behaviors should have similar g)
+c. Appropriate level of abstraction (not too hard for low-level or for high-level)
+
+fi
+
+14
+
+Plan for today
+1. What’s the problem
+a. Why long-horizon tasks are hard
+b. Why hierarchy may help
+
+2. Key design choices
+a. How to represent skills/goals?
+b. Supervision for each level
+c. When to move on from one goal to the next?
+
+3. Example systems
+
+15
+
+How to supervise each level?
+“Make focaccia”
+
+ot
+
+πHL
+
+gt
+ot
+
+πLL
+
+at
+
+Why not train everything end-to-end, with latent goal representation?
+Result: a flat policy
+
+Key: Think carefully about where the benefits are coming from!
+Generally good to do in
+any kind of research!!
+16
+
+How to supervise each level?
+“Make focaccia”
+
+ot
+
+πHL
+
+gt
+ot
+
+πLL
+
+at
+
+Low-level policy:
+
+Trained to accomplish g, not the original task!
+Key question: For which distribution of goals?
+
+Ideally whatever the high-level policy will output
+… but we haven’t learned a high-level policy yet.
+
+High-level policy:
+Trained to accomplish original, long-horizon task
+Key question: For which low-level policy?
+
+Ideally with the learned low-level policy
+… but we haven’t learned a low-level policy yet.
+17
+
+How to supervise each level?
+“Make focaccia”
+
+ot
+
+πHL
+
+gt
+ot
+
+πLL
+
+at
+
+Low-level policy:
+
+Trained to accomplish g, not the original task!
+High-level policy:
+Trained to accomplish original, long-horizon task
+Key: Can be trained separately first. But, at least one policy should be adapted
+to the deficiencies of the other.
+(if not both fine-tuned jointly)
+18
+
+Note: LLMs are often
+good high-level policies!
+
+Plan for today
+1. What’s the problem
+a. Why long-horizon tasks are hard
+b. Why hierarchy may help
+
+2. Key design choices
+a. How to represent skills/goals?
+b. Supervision for each level
+c. When to move on from one goal to the next?
+
+3. Example systems
+
+19
+
+When to move on from one subgoal to the next?
+“Make focaccia”
+
+ot
+
+πHL
+
+gt
+ot
+
+πLL
+
+at
+
+How often do you re-query the HL policy?
+
+0. Observe initial observation o1 at t = 1
+Rolling out the
+hierarchical policy:
+
+1. Plan goal gt according to πHL( ⋅ | ot, prompt)
+2. Until new goal is selected:
+
+a. Execute predicted action at according to πLL( ⋅ | ot, gt)
+b. t ← t + 1, observe new observation ot
+
+20
+
+When to move on from one subgoal to the next?
+“Make focaccia”
+
+ot
+
+πHL
+
+gt
+ot
+
+πLL
+
+at
+
+How often do you re-query the HL policy?
+Option 1: When the low-level policy has completed gt
+
+Option 2: After xed number of n timesteps.
+
+e.g. by estimating progress towards g
+
++ ideal in principle
+
+e.g. by choosing fairly frequent interval to replan
+
+- hard to estimate when done
+
++ simple
+
+- need to account for mistakes
+that require redoing past goals
+
+Errors in predicting subtask —>
+LL policy may take wrong actions for n steps.
+
+agent easily gets perpetually stuck.
+
+fi
+
+delay in transition to new goal
+
+- with small n, more burden on HL policy
+
+Errors in estimating when done —>
+These errors are more fatal!
+
+- tradeoff between more compute vs more
+
+21
+
+Plan for today
+1. What’s the problem
+a. Why long-horizon tasks are hard
+b. Why hierarchy may help
+
+2. Key design choices
+a. How to represent skills/goals?
+b. Supervision for each level
+c. When to move on from one goal to the next?
+
+3. Example systems
+
+22
+
+Hierarchy is hot 🌶
+Physical Intelligence π0.5
+
+NVIDIA Gr00t N1
+
+Figure Helix
+
+Gemini Robotics
+
+23
+
+Hierarchy is hot 🌶
+Physical Intelligence π0.5
+
+NVIDIA Gr00t N1
+
+Figure Helix
+
+Gemini Robotics
+
+24
+
+Let’s cover a few examples
+1. Hierarchical imitation learning
+a. with language subgoals
+b. with image subgoals
+2. Hierarchical reinforcement learning
+a. with language subgoals
+b. with state subgoals
+
+25
+
+Let’s cover a few examples
+1. Hierarchical imitation learning
+a. with language subgoals
+b. with image subgoals
+2. Hierarchical reinforcement learning
+a. with language subgoals
+b. with state subgoals
+
+26
+
+Hierarchical imitation with language subgoals
+Data
+Segmented demonstration data with associated language command
+Segment label:
+Robot data:
+
+Segment label:
+Robot data:
+Segment label:
+Robot data:
+
+Train high level and low-level policy with imitation learning.
+27
+
+Hierarchical imitation with language subgoals
+
+language
+
+obs
+
+High-level
+Language Policy
+
+(RGB images)
+
+action
+ALOHA Workcell
+
+Low-level
+LCBC
+Policy
+
+(joint targets)
+
+obs
+(RGB images, joints)
+
+Could we also use DAgger on either policy? Yes!
+Note: Can update the high-level policy with only languageintervention
+supervision!
+28
+
+28
+
+Hierarchical imitation with language subgoals
+Fine-tuning high-level policy with DAgger
+language
+
+obs
+
+High-level
+Language Policy
+
+(RGB images)
+
+intervention
+
+action
+ALOHA Workcell
+
+Low-level
+LCBC
+Policy
+
+(joint targets)
+
+❄
+
+obs
+(RGB images, joints)
+
+Language corrections override high-level policy prediction
+29
+
+Shi, Hu, Zhao, Sharma, Pertsch, Leo, Levine, Finn. Yell At Your Robot: Improving On-the-Fly from Language Corrections. RSS 2024
+
+Hierarchical imitation with language subgoals
+Fine-tuning high-level policy with DAgger
+language
+
+obs
+
+High-level
+Language Policy
+
+(RGB images)
+
+🔥
+��
+
+gradient
+update
+
+intervention
+
+action
+ALOHA Workcell
+
+Low-level
+LCBC
+Policy
+
+(joint targets)
+
+❄
+
+obs
+(RGB images, joints)
+
+Language corrections override high-level policy prediction
+One approach: Freeze low-level policy. Update high-level policy by supervising on language corrections.
+30
+
+Shi, Hu, Zhao, Sharma, Pertsch, Leo, Levine, Finn. Yell At Your Robot: Improving On-the-Fly from Language Corrections. RSS 2024
+
+Language correction on-the-fly
+(e.g. avoid pouring outside the bag)
+
+2x speed
+Shi, Hu, Zhao, Sharma, Pertsch, Leo, Levine, Finn. Yell At Your Robot: Improving On-the-Fly from Language Corrections. RSS 2024
+
+Language correction on-the-fly
+(e.g. avoid pouring outside the bag)
+
+2x speed
+Shi, Hu, Zhao, Sharma, Pertsch, Leo, Levine, Finn. Yell At Your Robot: Improving On-the-Fly from Language Corrections. RSS 2024
+
+After fine-tuning high-level policy with DAgger
+(the policy can self-correct)
+
+2x speed
+Shi, Hu, Zhao, Sharma, Pertsch, Leo, Levine, Finn. Yell At Your Robot: Improving On-the-Fly from Language Corrections. RSS 2024
+
+Hierarchical imitation with language abstraction
+Does hierarchy help compared to flat policy?
+
+Flat VLA policy
+Hierarchical VLA policy
+
+Does high-level DAgger help vs. vanilla imitation?
+
+Base hierarchical policy
+With high-level DAgger
+With human corrections (oracle)
+
+Lucy Shi et al. Hi Robot. ICML 2025
+Lucy Shi, Hu, Zhao, Sharma, Pertsch, Leo, Levine, Finn. Yell At Your Robot: Improving On-the-Fly from Language Corrections. RSS 2024
+
+With hierarchy, the robot is better at long-horizon tasks
+
+2X
+Shi, Hu, Zhao, Sharma, Pertsch, Leo, Levine, Finn. Yell At Your Robot: Improving On-the-Fly from Language Corrections. RSS 2024
+
+With hierarchy, the robot is better at long-horizon tasks
+
+2X
+Pi team. π0.5. arXiv 2025
+
+36
+
+Let’s cover a few examples
+1. Hierarchical imitation learning
+a. with language subgoals
+b. with image subgoals
+2. Hierarchical reinforcement learning
+a. with language subgoals
+b. with state subgoals
+
+37
+
+Hierarchical imitation with image subgoals
+obs
+
+Robot
+
+(RGB images)
+
+High-level
+High-level
+policy
+Language Policy
+
+action
+ALOHA Workcell
+
+Low-level
+LCBC
+Policy
+
+(joint targets)
+
+language goal image
+
+In practice: use an
+image editing model
+
+obs
+(RGB images, joints)
+
+goal image conditioned policy
+
+Bene ts: No need for segmented videos with language
+annotations.
+intervention
+High-level policy can incorporate unlabeled video data!
+fi
+
+38
+
+Hierarchical imitation with image subgoals
+A few examples
+
+“move the wooden bowl
+to the top of the table”
+
+“put the toothpaste into
+the wooden bowl”
+
+Black*, Nakamoto*, Atreya, Walke, Finn, Kumar, Levine. SuSIE: Subgoal Synthesis via Image Editing. ICLR 2024.
+
+“open the drawer”
+
+39
+
+Hierarchical imitation with image subgoals
+Is it helpful to include videos of humans in high-level policy training?
+
+Robot data only
+
+Black*, Nakamoto*, Atreya, Walke, Finn, Kumar, Levine. SuSIE: Subgoal Synthesis via Image Editing. ICLR 2024.
+
+Robot data + videos of humans
+
+40
+
+Let’s cover a few examples
+1. Hierarchical imitation learning
+
+Chain of thought version:
+
+a. with language subgoals
+b. with image subgoals
+2. Hierarchical reinforcement learning
+a. with language subgoals
+b. with state subgoals
+
+Visual from Chen, Belkhale, et al. Training Strategies
+for Ef cient Embodied Reasoning, 2025.
+
+fi
+
+Note: Fine-tuning large-scale hierarchical robot learning systems
+with RL is an open (and important!) research direction.
+
+41
+
+Let’s cover a few examples
+1. Hierarchical imitation learning
+a. with language subgoals
+b. with image subgoals
+2. Hierarchical reinforcement learning
+a. with language subgoals
+b. with state subgoals
+
+42
+
+Hierarchical reinforcement learning
+State reaching goals (e.g. relative target position of agent & objects)
+Low-level: Goal-conditioned policy, with goal-reaching reward
+High-level: Train policy to output goal states (these are the HL actions)
+Use hindsight relabeling on HL actions, using off-policy algorithm
+
+Nachum, Gu, Lee, Levine. Data-Ef cient Hierarchical Reinforcement Learning. NeurIPS '18.
+
+Language goals (for simple semantic tasks)
+Low-level: Language-conditioned policy, with hindsight language relabeling
+High-level: Train policy to output language
+fi
+
+Jiang, Gu, Murphy, Finn. Language as an Abstraction for Hierarchical Deep Reinforcement Learning. NeurIPS ‘19.
+
+Another active research area:
+Can you discover a set of diverse skills without supervision?
+
+Eysenbach, Gupta, Ibarz, Levine. Diversity is all you need: Learning diverse skills without a
+reward function. ICLR 2019
+
+44
+
+Hierarchy for Imitation and Reinforcement Learning
+1. What’s the problem
+a. Why long-horizon tasks are hard
+b. Why hierarchy may help
+
+2. Key design choices
+a. How to represent skills/goals?
+b. Supervision for each level
+c. When to move on from one goal to the next?
+
+3. Example systems
+
+45
+
+Next time
+Speci c considerations with RL for robotics:
+- learning with autonomy
+- sim2real transfer: guest lecture from Ashish Kumar! (Tesla Optimus)
+
+Course reminders
+- Project milestone due Friday.
+- Homework 4 due next Friday
+
+fi
+
+46
+
+
