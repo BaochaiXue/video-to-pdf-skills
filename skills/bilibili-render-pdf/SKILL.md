@@ -50,6 +50,7 @@ In addition to the shared workflow, this skill must:
 - fall back more aggressively from CC subtitles to ASR because platform subtitles are often sparse
 - use description links, pinned comments, uploader notes, 网盘材料, and linked repos as strong `course mode` signals
 - ignore danmaku as teaching evidence
+- for long videos, 分P workloads, or `course mode`, proactively recommend that the user explicitly request parallel subagents so `spawn_agent` can be used
 
 ## Bilibili-Specific Source Acquisition
 
@@ -107,6 +108,7 @@ yt-dlp --cookies-from-browser chrome "<URL>"
 - In course or lecture-series settings, default to lecture-by-lecture processing rather than one monolithic prose pass.
 - Build per-part or per-lecture source inventories rather than one coarse inventory when the parts have distinct materials.
 - If some parts are unavailable or missing official materials, record that explicitly instead of silently skipping them.
+- If the workload is large and the user did not explicitly ask for parallel agent work, recommend phrasing the request with wording such as `请 spawn 多个 subagents 并行执行`.
 
 ## Bilibili-Specific Non-Teaching Content
 

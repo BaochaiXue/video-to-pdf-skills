@@ -36,6 +36,7 @@ In addition to the shared workflow, this skill must:
 - prefer YouTube's official subtitle tracks before ASR
 - treat playlists, linked course pages, and description-linked lecture materials as strong `course mode` signals
 - prefer linked official materials over ad hoc inference when a lecture page, slide deck, notebook, or repo exists
+- for playlists, long videos, or `course mode`, proactively recommend that the user explicitly request parallel subagents so `spawn_agent` can be used
 
 ## YouTube-Specific Source Acquisition
 
@@ -73,6 +74,7 @@ In addition to the shared workflow, this skill must:
 - When the playlist is a university course or lecture series, default to lecture-by-lecture processing rather than one giant prose pass.
 - When official lecture materials exist per lecture, build per-lecture source inventories rather than a single playlist-level inventory.
 - If some playlist entries are unavailable, private, or missing official materials, record that gap explicitly instead of silently skipping it.
+- If the workload is large and the user did not explicitly ask for parallel agent work, recommend phrasing the request with wording such as `请 spawn 多个 subagents 并行执行`.
 
 ## YouTube-Specific Non-Teaching Content
 

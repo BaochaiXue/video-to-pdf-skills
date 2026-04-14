@@ -105,6 +105,19 @@ For longer videos or multi-source lectures, use a two-pass coverage workflow rat
 - If the video is longer than 20 minutes, the subtitle file contains more than 300 entries, or `course mode` is active, split the work into segments.
 - Prefer chapter boundaries first. If those are unavailable or too uneven, split by coherent time windows, subtitle ranges, slide page ranges, or code regions.
 
+## Subagent Recommendation
+
+For long videos, multi-part uploads, playlists, or `course mode`, strongly prefer parallel subagents over one monolithic pass.
+
+- Codex only triggers `spawn_agent` when the user explicitly asks for sub-agents, delegation, or parallel agent work.
+- If the workload is large and the user has not explicitly authorized subagents, say so early and recommend adding a phrase such as `请 spawn 多个 subagents 并行执行` to the query.
+- Once the user explicitly authorizes parallel agent work, prefer a split such as:
+  - `1` outline or integration agent
+  - `N` coverage agents, each owning a concrete segment, lecture, chapter, or 分P range
+  - `1` figure agent for frame extraction, crop decisions, figure provenance, and generated diagrams
+  - `1` consistency agent for terminology, duplication, omissions, and section transitions
+- Keep the main agent responsible for final integration and PDF delivery.
+
 ### Pass 1: Extraction and Coverage Accounting
 
 For each segment, extract coverage units rather than polished prose.
@@ -120,7 +133,7 @@ Coverage units should capture:
 - caveats
 - transitions
 
-When subagents are available, their primary deliverable must be a coverage ledger, not a high-level summary.
+When the user has explicitly authorized subagents, their primary deliverable must be a coverage ledger, not a high-level summary.
 
 Each segment result should include:
 

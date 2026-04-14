@@ -79,6 +79,9 @@
 ```bash
 mkdir -p ~/.codex/skills
 
+# shared references required by both skills
+cp -R skills/references ~/.codex/skills/
+
 # YouTube 版
 cp -R skills/youtube-render-pdf ~/.codex/skills/
 
@@ -116,6 +119,7 @@ cp -R skills/bilibili-render-pdf ~/.codex/skills/
 ## Subagents 的触发
 
 - Codex 中对 `spawn_agent` 的触发限制较严格："Only use spawn_agent if and only if the user explicitly asks for sub-agents, delegation, or parallel agent work." 因此需要在 query 中显式要求，才会触发 subagents。
+- 这两个 skill 现在会在长视频、playlist、course mode、分P 等大工作量场景下主动建议你这样写，因为否则 agent 只能单线程做完整覆盖。
 
 ```
 $youtube-render-pdf https://www.youtube.com/watch?v=vXb2QYOUzl4 请 spawn 多个 subagents 并行执行，隔离上下文，避免 master agent 的“上下文焦虑”，形成一个完整全面的 PDF：
