@@ -12,6 +12,11 @@ All lecture-note workers must follow this contract.
 
 For each owned lecture directory, produce:
 
+- `lecture_plan.json`
+- `contracts/segment_##_contract.md`
+- `figure_plan.json`
+- `eval_reports/pass_##.json`
+- `repair_log.jsonl`
 - `transcript.jsonl`
 - `slides.jsonl`
 - `segments.jsonl`
@@ -34,6 +39,8 @@ Use `XX` as the zero-padded lecture index.
 
 ## Coverage gate
 
+- Generate or refresh `lecture_plan.json` before prose writing.
+- Generate segment contracts under `contracts/` before prose writing.
 - Generate non-empty `coverage_units.jsonl` before writing or revising `lecture_XX_note.tex`.
 - Every required coverage unit must end in exactly one status: `covered`, `partial`, `duplicate`, `omitted`, or `unclassified`.
 - `covered` and `partial` units must have `mapped_section`.
@@ -50,6 +57,7 @@ Use `XX` as the zero-padded lecture index.
 
 ## Figure policy
 
+- Emit `figure_plan.json` before finalizing `figure_manifest.json`.
 - Every lecture note must include explanatory figures from the slide deck or video-derived assets.
 - Prefer slide diagrams, architecture illustrations, tables, plots, and process figures over decorative images.
 - Aim for at least 2 meaningful figures per lecture when source material permits.
@@ -68,6 +76,8 @@ Use `XX` as the zero-padded lecture index.
 
 ## Validation
 
+- The latest evaluator report under `eval_reports/` must be `pass` before the lecture is considered deliverable.
+- Record repairs in `repair_log.jsonl`.
 - Run `build/validate_youtube_note.py` before accepting a lecture as complete.
 - Compile with `xelatex -interaction=nonstopmode -halt-on-error`.
 - Fix broken relative paths before finishing.

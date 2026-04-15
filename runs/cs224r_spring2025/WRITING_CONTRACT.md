@@ -12,6 +12,14 @@ All lecture-note workers must follow this contract.
 
 For each owned lecture directory, produce:
 
+- `transcript.jsonl`
+- `slides.jsonl`
+- `segments.jsonl`
+- `lecture_plan.json`
+- `contracts/segment_##_contract.md`
+- `figure_plan.json`
+- `eval_reports/pass_##.json`
+- `repair_log.jsonl`
 - `lecture_XX_note.tex`
 - `lecture_XX_note.pdf`
 - `source_manifest.json`
@@ -23,12 +31,14 @@ Use `XX` as the zero-padded playlist index.
 
 ## Source usage
 
+- Treat `transcript.jsonl`, `slides.jsonl`, and `segments.jsonl` as the primary structured evidence layer whenever they exist.
 - Treat the subtitle, transcript, official slide PDF, slide page renders, course-page lecture title, and yt-dlp metadata as co-equal sources.
 - Preserve substantive technical content from both spoken explanation and slides.
 - If something cannot be covered cleanly, log it in `omission_log.jsonl` instead of silently dropping it.
 
 ## Figure policy
 
+- Emit `figure_plan.json` before finalizing `figure_manifest.json`.
 - Every lecture note must include explanatory figures from the slide deck or video-derived assets.
 - Prefer diagrams, algorithms, tables, plots, architecture schematics, and training-pipeline illustrations over decorative images.
 - Aim for at least 3 meaningful figures per lecture when the slides support it.
@@ -47,6 +57,9 @@ Use `XX` as the zero-padded playlist index.
 
 ## Validation
 
+- The latest evaluator report under `eval_reports/` must be `pass` before the lecture is considered deliverable.
+- Record repairs in `repair_log.jsonl`.
+- Run `build/validate_youtube_note.py` before accepting a lecture as complete.
 - Compile with `xelatex -interaction=nonstopmode -halt-on-error`.
 - Fix broken relative paths before finishing.
 - Ensure `figure_manifest.json` matches the figures actually present in the `.tex`.

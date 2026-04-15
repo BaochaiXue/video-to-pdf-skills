@@ -17,6 +17,7 @@ description: >-
 # Bilibili Render PDF
 
 Use this skill to turn a Bilibili video into a complete, compileable `.tex` note and a rendered PDF.
+This skill should be executed as a harness-managed lecture note pipeline, not as a one-shot writing prompt.
 
 This skill extends the `youtube-render-pdf` workflow with Bilibili-specific adaptations for subtitle scarcity, login-gated high resolution, multi-part (分P) videos, and platform-specific non-teaching content.
 
@@ -24,11 +25,16 @@ This skill extends the `youtube-render-pdf` workflow with Bilibili-specific adap
 
 Before doing anything else, read:
 
-- [../references/video-render-pdf-common.md](../references/video-render-pdf-common.md)
+1. [../references/video-render-pdf-common.md](../references/video-render-pdf-common.md)
+2. [../references/video-note-harness.md](../references/video-note-harness.md)
+3. [../references/note-quality-rubric.md](../references/note-quality-rubric.md)
+4. [../references/coverage-schema.md](../references/coverage-schema.md)
+5. [../references/figure-provenance.md](../references/figure-provenance.md)
+6. [../references/evaluator-playbook.md](../references/evaluator-playbook.md)
 
-That shared reference contains the common coverage-first workflow, long-video two-pass strategy, writing rules, coverage artifacts, figure handling, validation, and delivery requirements.
-
-When this file conflicts with the shared reference, follow this file for Bilibili-specific behavior.
+The common workflow defines coverage-first note behavior.
+The harness reference defines stage orchestration, evaluator gating, and repair loops.
+When this file conflicts with the shared references, follow this file only for Bilibili-specific acquisition behavior.
 
 ## Bilibili vs YouTube: Key Differences
 
@@ -50,6 +56,7 @@ In addition to the shared workflow, this skill must:
 - fall back more aggressively from CC subtitles to ASR because platform subtitles are often sparse
 - use description links, pinned comments, uploader notes, 网盘材料, and linked repos as strong `course mode` signals
 - ignore danmaku as teaching evidence
+- create harness artifacts such as `lecture_plan.json`, `contracts/segment_##_contract.md`, `figure_plan.json`, `eval_reports/pass_##.json`, and `repair_log.jsonl` when local lecture workspaces are available
 - for long videos, 分P workloads, or `course mode`, proactively recommend that the user explicitly request parallel subagents so `spawn_agent` can be used
 
 ## Bilibili-Specific Source Acquisition
@@ -109,6 +116,14 @@ yt-dlp --cookies-from-browser chrome "<URL>"
 - Build per-part or per-lecture source inventories rather than one coarse inventory when the parts have distinct materials.
 - If some parts are unavailable or missing official materials, record that explicitly instead of silently skipping them.
 - If the workload is large and the user did not explicitly ask for parallel agent work, recommend phrasing the request with wording such as `请 spawn 多个 subagents 并行执行`.
+
+## Harness Expectations
+
+- The planner must emit `lecture_plan.json` before any prose writing starts.
+- Segment contracts under `contracts/` must exist before the writer produces `lecture_XX_note.tex`.
+- The writer should consume contracts plus structured evidence, not flattened debug files.
+- The evaluator must emit `eval_reports/pass_##.json` and is allowed to fail the lecture.
+- Delivery should be blocked when the latest evaluator report is not `pass`.
 
 ## Bilibili-Specific Non-Teaching Content
 

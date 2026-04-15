@@ -352,6 +352,15 @@ def main() -> None:
     write_course_bundle()
     write_course_manifest_seed()
     write_lectures_index()
+    subprocess.run(
+        [
+            "python3",
+            str(REPO_ROOT / "scripts" / "video_note_harness" / "bootstrap_harness.py"),
+            "--run-root",
+            str(RUN_ROOT),
+        ],
+        check=True,
+    )
     print(f"bootstrapped={len(LECTURES)}")
     print(RUN_ROOT)
 

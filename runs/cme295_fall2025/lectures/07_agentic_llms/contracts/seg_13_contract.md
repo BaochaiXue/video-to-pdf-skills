@@ -1,0 +1,165 @@
+# seg_13 Contract
+
+Source range:
+- transcript: 01:41:04,240 -- 01:49:18,960
+- segment hint: Segment 13
+
+Must cover unit ids:
+- sub_1681
+- sub_1682
+- sub_1683
+- sub_1684
+- sub_1685
+- sub_1686
+- sub_1687
+- sub_1688
+- sub_1689
+- sub_1690
+- sub_1691
+- sub_1692
+- sub_1693
+- sub_1694
+- sub_1695
+- sub_1696
+- sub_1697
+- sub_1698
+- sub_1699
+- sub_1700
+- sub_1701
+- sub_1702
+- sub_1703
+- sub_1704
+- sub_1705
+- sub_1706
+- sub_1707
+- sub_1708
+- sub_1709
+- sub_1710
+- sub_1711
+- sub_1712
+- sub_1713
+- sub_1714
+- sub_1715
+- sub_1716
+- sub_1717
+- sub_1718
+- sub_1719
+- sub_1720
+- sub_1721
+- sub_1722
+- sub_1723
+- sub_1724
+- sub_1725
+- sub_1726
+- sub_1727
+- sub_1728
+- sub_1729
+- sub_1730
+- sub_1731
+- sub_1732
+- sub_1733
+- sub_1734
+- sub_1735
+- sub_1736
+- sub_1737
+- sub_1738
+- sub_1739
+- sub_1740
+- sub_1741
+- sub_1742
+- sub_1743
+- sub_1744
+- sub_1745
+- sub_1746
+- sub_1747
+- sub_1748
+- sub_1749
+- sub_1750
+- sub_1751
+- sub_1752
+- sub_1753
+- sub_1754
+- sub_1755
+- sub_1756
+- sub_1757
+- sub_1758
+- sub_1759
+- sub_1760
+- sub_1761
+- sub_1762
+- sub_1763
+- sub_1764
+- sub_1765
+- sub_1766
+- sub_1767
+- sub_1768
+- sub_1769
+- sub_1770
+- sub_1771
+- sub_1772
+- sub_1773
+- sub_1774
+- sub_1775
+- sub_1776
+- sub_1777
+- sub_1778
+- sub_1779
+- sub_1780
+- sub_1781
+- sub_1782
+- sub_1783
+- sub_1784
+- sub_1785
+- sub_1786
+- sub_1787
+- sub_1788
+- sub_1789
+- sub_1790
+- sub_1791
+- sub_1792
+- sub_1793
+- sub_1794
+- sub_1795
+- sub_1796
+- sub_1797
+- sub_1798
+- sub_1799
+- sub_1800
+- sub_1801
+- sub_1802
+- sub_1803
+- sub_1804
+- sub_1805
+- sub_1806
+- sub_1807
+- sub_1808
+- sub_1809
+- sub_1810
+- sub_1811
+- sub_1812
+- sub_1813
+- sub_1814
+- sub_1815
+- slide_0145
+- slide_0146
+- slide_0147
+- slide_0148
+- slide_0149
+- slide_0150
+- slide_0151
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

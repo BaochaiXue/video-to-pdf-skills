@@ -1,0 +1,157 @@
+# seg_10 Contract
+
+Source range:
+- transcript: 01:06:20,870 -- 01:12:37,530
+- segment hint: Segment 10
+
+Must cover unit ids:
+- sub_1261
+- sub_1262
+- sub_1263
+- sub_1264
+- sub_1265
+- sub_1266
+- sub_1267
+- sub_1268
+- sub_1269
+- sub_1270
+- sub_1271
+- sub_1272
+- sub_1273
+- sub_1274
+- sub_1275
+- sub_1276
+- sub_1277
+- sub_1278
+- sub_1279
+- sub_1280
+- sub_1281
+- sub_1282
+- sub_1283
+- sub_1284
+- sub_1285
+- sub_1286
+- sub_1287
+- sub_1288
+- sub_1289
+- sub_1290
+- sub_1291
+- sub_1292
+- sub_1293
+- sub_1294
+- sub_1295
+- sub_1296
+- sub_1297
+- sub_1298
+- sub_1299
+- sub_1300
+- sub_1301
+- sub_1302
+- sub_1303
+- sub_1304
+- sub_1305
+- sub_1306
+- sub_1307
+- sub_1308
+- sub_1309
+- sub_1310
+- sub_1311
+- sub_1312
+- sub_1313
+- sub_1314
+- sub_1315
+- sub_1316
+- sub_1317
+- sub_1318
+- sub_1319
+- sub_1320
+- sub_1321
+- sub_1322
+- sub_1323
+- sub_1324
+- sub_1325
+- sub_1326
+- sub_1327
+- sub_1328
+- sub_1329
+- sub_1330
+- sub_1331
+- sub_1332
+- sub_1333
+- sub_1334
+- sub_1335
+- sub_1336
+- sub_1337
+- sub_1338
+- sub_1339
+- sub_1340
+- sub_1341
+- sub_1342
+- sub_1343
+- sub_1344
+- sub_1345
+- sub_1346
+- sub_1347
+- sub_1348
+- sub_1349
+- sub_1350
+- sub_1351
+- sub_1352
+- sub_1353
+- sub_1354
+- sub_1355
+- sub_1356
+- sub_1357
+- sub_1358
+- sub_1359
+- sub_1360
+- sub_1361
+- sub_1362
+- sub_1363
+- sub_1364
+- sub_1365
+- sub_1366
+- sub_1367
+- sub_1368
+- sub_1369
+- sub_1370
+- sub_1371
+- sub_1372
+- sub_1373
+- sub_1374
+- sub_1375
+- sub_1376
+- sub_1377
+- sub_1378
+- sub_1379
+- sub_1380
+- sub_1381
+- sub_1382
+- sub_1383
+- sub_1384
+- sub_1385
+- sub_1386
+- sub_1387
+- sub_1388
+- sub_1389
+- sub_1390
+- sub_1391
+- sub_1392
+- sub_1393
+- sub_1394
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

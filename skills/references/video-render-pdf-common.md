@@ -2,7 +2,17 @@
 
 Read this file immediately after `youtube-render-pdf` or `bilibili-render-pdf` triggers.
 
+Read it together with:
+
+- `video-note-harness.md`
+- `note-quality-rubric.md`
+- `coverage-schema.md`
+- `figure-provenance.md`
+- `evaluator-playbook.md`
+
 This is the shared coverage-first workflow for both platforms. Platform-specific acquisition rules in the skill-local `SKILL.md` take precedence when they conflict with this file.
+The harness references define stage orchestration, evaluator gating, and repair loops.
+This file defines the shared coverage-first note-writing behavior inside that harness.
 
 ## Goal
 
@@ -238,6 +248,10 @@ For long videos and always in `course mode`, create these sidecars when practica
 - `transcript.jsonl`
 - `slides.jsonl`
 - `segments.jsonl`
+- `lecture_plan.json`
+- `figure_plan.json`
+- `eval_reports/pass_##.json`
+- `repair_log.jsonl`
 - `source_manifest.json`
 - `coverage_units.jsonl`
 - `omission_log.jsonl`
@@ -341,6 +355,10 @@ Deliver all of the following:
 - the final `.tex` file
 - the downloaded cover image
 - any extracted or generated figure assets
+- `lecture_plan.json`
+- `figure_plan.json`
+- latest `eval_reports/pass_##.json`
+- `repair_log.jsonl`
 - `transcript.jsonl`
 - `slides.jsonl`
 - `segments.jsonl` when segmentation is required
