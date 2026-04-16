@@ -1,0 +1,304 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\lstdefinelanguage{Julia}{
+    morekeywords={using,for,in,end,if,else,elseif,begin,let,return,function,mutable,struct,macro,quote,try,catch,do,global,local,const,true,false,nothing},
+    sensitive=true,
+    morecomment=[l]\#,
+    morestring=[b]"
+}
+\lstset{
+    language=Julia,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false,
+    literate={₊}{{\ensuremath{+}}}1
+}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newcommand{\notetitle}{MIT Neuroblox 教材笔记 07：回路模型总览}
+\newcommand{\noteauthors}{MIT Neuroblox 课程组 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{MIT Video Productions（讲者：Haris Organtzidis）}
+\newcommand{\videopublishdate}{课程标题标注 2025-01-15；YouTube 上传 2025-04-10}
+\newcommand{\videoduration}{13:16}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=ih7IELQ5W50}
+\newcommand{\videocoverpath}{figures/video_cover.png}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{importantbox}{证据说明}
+本讲以 MIT Neuroblox 官方课程页 \texttt{circuits.html}、对应的官方字幕，以及课程页中的代码和示意图为主证据。当前工作区没有找到独立的官方 slide PDF，因此正文以“课程页文本 + 字幕 + 代码块 + 官方课程图像”作为覆盖层；缺失项已在侧车日志中显式记录。
+\end{importantbox}
+
+\section{导论：课程定位与两个回路示例}
+这一讲承接前面“神经元、神经团块与外部源”的内容，目标不是再发明一种新对象，而是把前面已经学过的三类对象组合成 \emph{circuits}。讲者一开始就把范围说得很清楚：这一讲只做两个文学来源明确的例子，一个是 biomimetic corticostriatal micro-assembly，另一个是 PING，也就是 pyramidal-interneuron gamma network。
+
+更重要的是，这一讲的学习目标不是“看懂一个漂亮的图”，而是建立一个层级式建模观。课程页把目标写得很直接：从系统神经科学文献里抽取复杂模型，构造带层级结构的 composite Bloxs，并用更高级的 plotting recipes 去看这些复合块和它们形成的回路。
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+示例 & 主要结构 & 这一讲想让你学会什么 \\
+\midrule
+Corticostriatal micro-assembly & 多层 composite Blox + 多尺度输入 & 从局部竞争扩展到层级回路 \\
+PING & 兴奋-抑制环路 + 节律驱动 & 用节律性抑制解释 gamma / beta 注意机制 \\
+\bottomrule
+\end{tabular}
+\caption{本讲两个回路示例的教学分工。}
+\end{table}
+
+\begin{knowledgebox}{这一讲的核心转折}
+前面几讲关心的是“单个 Blox 怎么定义、怎么连线、怎么仿真”。这一讲关心的是“当 Blox 里面还有 Blox 时，外层名字如何被正确继承、连接项如何被正确汇总、以及如何把多个层次的生物过程放进同一个系统里”。
+\end{knowledgebox}
+
+字幕里最早的几句也把这个转折点说明了：讲者说，前面已经看过如何定义和仿真 neurons、neural masses 和 external sources，现在要把这些元素不同组合起来，做成 circuits。这个问题设置很重要，因为它决定了后面所有例子的共同骨架。
+
+\subsection{本章小结}
+这一部分只做了一件事：把课程主题从“单元对象”推进到“层级回路”。后面的所有技术细节，都是围绕如何组织层级结构、如何解释两类典型回路展开的。
+
+\section{总览页的真正用途：把读者分流到两条详细建模路线}
+如果只把 \texttt{circuits} 页面当成一个“短介绍页”，就会低估它的教学作用。官方页面虽然内容不长，但它承担的是一个路由器（routing page）的角色：它告诉读者，本讲的回路建模主要沿两条路径展开，一条进入 \texttt{CS\_circuit}，一条进入 \texttt{PING\_circuit}。换句话说，这一页并不是要把所有细节一次讲完，而是要给出“从总览到深入”的阅读结构。
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}p{0.22\textwidth}p{0.28\textwidth}p{0.34\textwidth}@{}}
+\toprule
+入口页 & 对应深入单元 & 继续阅读时应该重点追踪什么 \\
+\midrule
+\texttt{circuits} & \texttt{CS\_circuit} & 层级 composite Bloxs、视觉输入、升行调制、群体绘图 recipe \\
+\texttt{circuits} & \texttt{PING\_circuit} & E/I 环路、gamma/beta 节律、注意与时序锁定 \\
+\bottomrule
+\end{tabular}
+\caption{官方总览页给出的两条后续阅读路线。}
+\end{table}
+
+从教材组织的角度看，这种写法有两个好处。第一，它把“回路模型”定义成一个比单神经元更高的教学层级，但又不要求你在总览页一次掌握所有细节。第二，它为后续单元建立了一个明确的分工：\texttt{CS\_circuit} 负责讲层级结构与多尺度视觉回路，\texttt{PING\_circuit} 负责讲节律性 E/I 环路及其功能解释。因此，\texttt{circuits} 页真正传递的，不只是两个例子名称，而是“阅读时先抓哪条主线”的方法提示。
+
+\begin{knowledgebox}{为什么总览页仍然值得单独成章}
+因为它把建模语言提升了一层。前几讲更多是在讲对象如何被定义，这一页则开始讲“对象如何被组织成课程后半段真正关心的回路单元”。如果跳过这一步，读者会直接掉进两个专项案例，而失去它们之间的共同语法。
+\end{knowledgebox}
+
+\subsection{本章小结}
+总览页的功能不是替代后续专题，而是把后续专题的阅读顺序、角色分工和共同建模语言先交代清楚。把这一步讲透，后面的 corticostriatal 与 PING 两章就不会显得像两份彼此无关的案例报告。
+
+\section{命名空间与复合 Blox}
+官方课程页的 ``Namespaces'' 小节是这一讲最关键的建模约定。对于 atomic Blox，`namespace = nothing` 通常就够了，因为它们没有子结构；但一旦进入 composite Blox，尤其是多层 composite Blox，外层名字就不能省。原因很直接：Neuroblox 要靠这个外层命名空间，把所有连接项累积起来，再正确地匹配到每个子块的输入变量上。
+
+\begin{knowledgebox}{为什么复合块必须显式命名}
+atomic Blox 只有一个层级，变量名直接对应动力学状态；composite Blox 内部还有 Blox，因此变量名必须能表达“我属于哪一个外层块、哪一个中层块、哪一个局部神经元”。命名空间的作用就是把这种层级关系编码进变量名里，并让连接方程在展开后仍然可追踪。
+\end{knowledgebox}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+类型 & 是否有自己的动力学 & 是否需要 namespace \\
+\midrule
+atomic Blox & 有 & 通常不需要 \\
+CompositeBlox & 没有，内部只组织子块 & 需要，尤其是多层结构 \\
+Source & 只有输出，没有输入 & 视连接上下文而定 \\
+\bottomrule
+\end{tabular}
+\caption{命名空间约定在不同类型 Blox 上的含义。}
+\end{table}
+
+官方页给出的例子是两个 `WinnerTakeAllBlox`，把外层名字设成 \texttt{model\_name = :g}，再用 \texttt{system\_from\_graph} 生成最终系统。这里的关键不是语法，而是语义：同一个图对象里可以并排存在多个 composite Blox，而 \texttt{model\_name} 则是最终被写入系统名的外层标识。
+
+\begin{lstlisting}[caption={两个 WTA 复合块的命名与建系统写法。},label={lst:wta-namespace}]
+model_name = :g
+
+@named
+ wta1 = WinnerTakeAllBlox(namespace = model_name)
+
+@named
+ wta2 = WinnerTakeAllBlox(namespace = model_name)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={把图结构转换成最终系统。},label={lst:wta-graph}]
+g = MetaDiGraph()
+add_edge!(g, wta1 => wta2, weight=
+10
+)
+
+sys = system_from_graph(g, name = model_name)
+\end{lstlisting}
+
+这两段代码的工作方式很简单，但非常有代表性。第一段先实例化两个 WTA 复合块，并让它们共享同一个外层命名空间 \texttt{model\_name}。第二段把这两个复合块放进 \texttt{MetaDiGraph()}，再用 \texttt{add\_edge!} 声明块之间的连接权重。最后 \texttt{system\_from\_graph(g, name = model\_name)} 把整个图编译成一个最终的方程系统。换句话说，图不只是画出来，而是直接成为模型定义本身。
+
+对照课程页里的变量名，`wta1₊exci1₊V` 和 `wta2₊exci2₊V` 是两个局部神经元的膜电位；一旦外层命名空间 `g` 被加进去，它们就变成 `g₊wta1₊exci1₊V` 和 `g₊wta2₊exci2₊V`。这里每一个 `₊` 都表示向外多挂一层命名空间，读法是从右往左回溯：先是局部 neuron，再是 WTA block，再是最外层 model name。
+
+\begin{equation}
+\texttt{wta1₊exci1₊V},\ \texttt{wta2₊exci2₊V}
+\quad\longrightarrow\quad
+\texttt{g₊wta1₊exci1₊V},\ \texttt{g₊wta2₊exci2₊V}
+\end{equation}
+
+其中，`\texttt{g}` 是外层模型名，`\texttt{wta1}` / `\texttt{wta2}` 是两个复合块，`\texttt{exci1}` 是 WTA 里的一个兴奋性神经元，`\texttt{V}` 是膜电位状态变量。这个例子本质上是在告诉你：层级化建模时，变量名本身就是结构信息。
+
+\includegraphics[width=\linewidth]{figures/cs_extended.png}
+
+\begin{importantbox}{为什么这一段不是“语法演示”而已}
+如果只把这些代码看成 Julia 语法，就会漏掉重点。这里真正重要的是：复合块之间的连接不是手工把方程一条条写死，而是先建立图，再让系统从图中展开。命名空间就是保证这种自动展开正确无误的索引机制。
+\end{importantbox}
+
+\subsection{本章小结}
+这一节把讲座最底层的约定钉住了：atomic Blox 可以简单，composite Blox 必须显式命名，而 \texttt{system\_from\_graph} 则负责把层级图编译成最终系统。只要这个约定没搞错，后面的所有回路都能沿着同一条路线扩展。
+
+\section{Corticostriatal 微组装：从局部竞争到层级回路}
+讲者把 corticostriatal 模型定位成一个多尺度、强生物约束的例子。它不是为了展示某个单一方程，而是为了说明一个完整的神经系统模型如何从突触、单神经元、局部集合一路扩展到脑区和更大尺度的回路。字幕里说得很明确：这个模型从神经受体层面一直跨到行为层面，输入可以是外界图像，输出可以是左/右决策。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/cs_extended.png}
+\caption{官方课程页中的 corticostriatal 扩展示意。它把视觉输入、两个 cortical block 和 brainstem 的升行调制放在同一张图上，最能说明这一讲的层级化建模思路。}
+\end{figure}
+
+这张图的教学价值在于：它把“模型从底层开始搭”这句话变成了可视化结构。最小层是 superficial cortical layer 的 lateral inhibition；再往上是多个 winner-take-all blocks 组成的 cortical block；再往上是两个 cortical blocks 彼此连接，一个代表 visual cortex，一个代表 anterior cortex；最后，image stimulus 和 brainstem 作为外部源接入，前者连到 visual cortex，后者作为 ascending system 同时调制两个 cortex。
+
+\begin{knowledgebox}{多尺度不是口号，而是连接约束}
+讲者强调这个模型“约束于 biology”，不仅体现在参数上，也体现在结构上。也就是说，你不是随便堆积模块，而是要让连接规则、层级关系和外部源的类型都尽量贴近文献里的机制假设。
+\end{knowledgebox}
+
+在这个例子里，winner-take-all 不是抽象概念，而是局部 lateral inhibition 的直接结果：四个兴奋性神经元和一个 feedback interneuron 互相作用，最后通常是某一个 excitatory neuron 赢得竞争并继续放电。讲者解释得很清楚，最初更频繁地发放的那个神经元，更容易通过自己驱动 interneuron，再由 interneuron 抑制其他兴奋性神经元，从而把竞争锁定下来。
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+层级 & 作用 & 对行为的意义 \\
+\midrule
+superficial cortical layer & 局部 WTA / lateral inhibition & 决定哪个局部群体先赢 \\
+cortical block & 聚合多个 WTA 结构 & 支持更复杂的表征与任务分工 \\
+visual/anterior cortex & 跨区耦合 & 把局部竞争放进更大回路 \\
+image stimulus + brainstem & 外部输入与升行调制 & 让模型对感知与状态敏感 \\
+\bottomrule
+\end{tabular}
+\caption{corticostriatal 例子中各层级的功能分工。}
+\end{table}
+
+课程视频还特别强调了一个可视化层面的事实：Neuroblox 提供的不只是仿真接口，还有适合复合块的绘图方式。讲者提到可以把一个 composite block 直接喂给 stack plot，也可以传入一个神经元向量，或者做 mean field plot，再或者看 power spectrum。这个设计很重要，因为复合模型的状态太多，单看某一条轨迹很容易丢失整体结构。
+
+\begin{importantbox}{为什么要用多种 plot recipe}
+stack plot 更像结构视图，mean field plot 更像群体平均视图，power spectrum 则更适合看节律或频域特征。对这种层级回路来说，三者回答的问题不同，不能互相替代。
+\end{importantbox}
+
+\subsection{本章小结}
+这一节的重点是“从局部竞争到层级回路”的建模路径。corticostriatal 例子把 WTA、层级 cortical block、图像输入和脑干调制串成一个完整故事，也把“复合 Blox 如何嵌套”讲成了一个可以运行的系统。
+
+\section{PING：节律性抑制与注意}
+第二个例子是 PING，Pyramidal-Interneuron Gamma network。讲者把它描述成一个由 pyramidal neurons 和 interneurons 组成的网络，目标是生成 gamma rhythms，并用这种节律性解释 attention。这里的核心思想不是“哪个神经元最强”，而是“抑制-兴奋的时序关系如何把某一群神经元锁定到合适的节律上”。
+
+\includegraphics[width=\linewidth]{figures/ping_basic.png}
+
+这个图的作用很直接：它把兴奋性群体、抑制性群体和外部输入放在一起，说明 gamma rhythm 是怎么从 E/I 反馈里冒出来的。讲者在视频里说得很明确：某些 excitatory neurons 会对刺激更敏感，在与 interneurons 的相互作用中，它们会对齐节律并与外部刺激同步；一旦峰值和 stimulus 对齐，就可以认为模型“在注意这个刺激”。
+
+\begin{knowledgebox}{这里的 attention 是一个节律假说}
+讲者并不是在给注意做完整的认知理论，而是在采用一个工作性假设：如果节律峰值与刺激对齐，那么该刺激更容易被处理。于是 attention 在这个模型里就等价于 rhythmic alignment。
+\end{knowledgebox}
+
+更进一步，视频还提到了原始工作里的一个重要细节：gamma rhythm 其实嵌在 beta rhythm 之中，也就是 beta rhythm 驱动 gamma。教程里先让你生成 gamma rhythm，如果想在上面再叠加 beta，就只需要再加一个外部源，形式上是一个 beta 频率的 sinusoidal current。
+
+\begin{equation}
+\text{gamma rhythm} \subset \text{beta rhythm}
+\end{equation}
+
+这里不是在做严格的包含关系证明，而是在表达一个建模事实：beta 作为慢一些的调制层，会影响 gamma 的出现时机和相位。讲者接着强调，真正起作用的是 interneurons 对 pyramidal neurons 的负反馈，以及这些 spike timing 的细节。换句话说，节律不是背景噪声，而是注意机制的一部分。
+
+在讲到 tutorial 时，视频也给出了非常实用的提醒：先把 gamma rhythm 搭出来，beta 可以之后再加；而课程页面上的 Introduction 部分对于 namespace 有重要说明，应该先读，因为后面做 circuit models 时会频繁遇到层级变量名的展开问题。这个提醒和前一节的命名空间讨论是连在一起的。
+
+\begin{importantbox}{PING 例子要抓住的两个层次}
+第一层是结构：兴奋性群体和抑制性群体如何构成竞争-反馈环。第二层是时序：为什么 rhythmic inhibition 会比完全 asynchronous 的 inhibition 更有效地把注意“锁”到某个刺激上。
+\end{importantbox}
+
+\subsection{本章小结}
+PING 这一节说明，回路模型不只是空间上的连接图，也可以是时间上的节律组织。gamma / beta 的关系把 E/I 反馈、刺激对齐和注意机制绑在一起，让“节律性抑制”成为可计算的假说。
+
+\section{总结与延伸}
+这一讲的技术主线其实只有一条：当模型从单个神经元走向复合回路时，最重要的不是再多加几个方程，而是把层级关系、命名空间和外部输入的角色定义清楚。corticostriatal 例子展示了如何把局部 WTA、多个 cortical block、视觉输入和升行调制拼成一个大系统；PING 例子则展示了如何用节律性抑制把“注意”写成一个可运行的动力学过程。
+
+\begin{warningbox}{阅读顺序的建议}
+讲者在结尾明确提醒：先去官方网站的 Circuit Models \textrm{Introduction} 页面，确认 namespace 的规则，再回头做 corticostriatal model。这个顺序不是形式主义，而是为了避免在层级模型里把变量名和连接项展开错。
+\end{warningbox}
+
+如果把这一讲压缩成一句话，那就是：\emph{从 atomic Blox 到 composite Blox，再到多层 circuit model，Neuroblox 的关键能力是把结构信息直接编码进系统构造过程}。这也是为什么这一讲虽然只给了两个例子，却已经足够覆盖后面更复杂的电路建模路线。
+
+最后，视频也给了作业层面的预告：这些示例和 challenge problems 会比较长，不需要一次做完；先把基础的 namespace 和层级结构弄明白，再继续往后推进即可。
+
+\subsection{本章小结}
+这一节做的是收束：回到最初的目标，理解层级结构、命名空间和节律性反馈如何成为同一套建模语言。读完这一讲后，后续课程页里的更复杂电路，本质上只是这套语言的进一步组合。
+
+\end{document}

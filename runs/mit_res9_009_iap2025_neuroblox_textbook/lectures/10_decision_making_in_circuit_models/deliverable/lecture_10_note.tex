@@ -1,0 +1,392 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\graphicspath{{figures/}}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstdefinelanguage{Julia}{
+    morekeywords={using,for,in,end,if,else,elseif,begin,let,return,function,mutable,struct,macro,quote,try,catch,do,global,local,const,true,false,nothing},
+    sensitive=true,
+    morecomment=[l]\#,
+    morestring=[b]"
+}
+\lstset{
+    language=Julia,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false,
+    inputencoding=utf8,
+    literate=
+      {μ}{{\ensuremath{\mu}}}1
+      {ρ}{{\ensuremath{\rho}}}1
+      {σ}{{\ensuremath{\sigma}}}1
+      {₊}{{\ensuremath{+}}}1
+      {₋}{{\ensuremath{-}}}1
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{MIT RES.9-009 第10讲：回路模型中的决策}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{MIT Video Productions（讲者：Haris Organtzidis）}
+\newcommand{\videopublishdate}{课程日期 2025-01-16；YouTube 上传 2025-04-10}
+\newcommand{\videoduration}{14:03}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=ULAe2VvQgms}
+\newcommand{\videocoverpath}{figures/cover.png}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{importantbox}{证据说明}
+本讲正文以 MIT Neuroblox 官方课程页 \texttt{decision\_making.html}、YouTube 官方字幕，以及课程页中嵌入的代码与结果图为主证据。当前工作区未找到独立的官方 slide PDF，因此正文采用“课程页文字 + 字幕 + 代码 + 图像”的覆盖方式；缺失项已写入 \texttt{omission\_log.jsonl}。
+\end{importantbox}
+
+\section{讲座定位：从塑性与强化学习转向感知决策}
+这一讲延续课程前几节“把神经动力学变成可运行回路”的路线，但对象换成了\emph{感知决策}。讲者一开始就把它描述成一个更专门的应用：前面讲过 reinforcement learning 和 plasticity，这一讲则要搭建一个真正“做决策”的 circuit model，并把它放进行为任务里。
+
+\subsection{问题语义：先验类别已知，难点在于证据分辨}
+这里研究的不是 category learning 那种“靠反馈学类别”的问题。对于 perceptual decision making，类别通常是 \emph{a priori} 已知的，参与者不需要先学哪一类正确，而是要在模糊刺激里把两个可能答案分开。课程强调的核心，是随着时间积累 evidence，直到足够有把握地判断刺激更像 A 还是 B。
+
+\begin{knowledgebox}{决策任务的关键差异}
+感知决策里，困难主要来自刺激本身的不确定性；类别学习里，困难则更多来自“类别边界要靠经验学出来”。前者是 evidence accumulation，后者是 feedback-based learning。
+\end{knowledgebox}
+
+\subsection{漂移-扩散模型的教材化写法}
+讲者把 drift-diffusion family 作为这一类任务的经典起点。它的吸引力在于：当你要求模型达到某个准确率时，可以把它调成“在这个准确率下最快”的模型；反过来，在固定时间或固定证据量下，它也能被调成“最准确”的模型。这个速度-准确率折中，是整类模型最重要的原则之一。
+
+教材化地写，最简 drift-diffusion 过程可表示为
+\begin{equation}
+dx_t = \mu\,dt + \sigma\,dW_t, \qquad
+\tau = \inf\{t \ge 0 : x_t \in \{-B, +B\}\}.
+\end{equation}
+其中：
+\begin{itemize}
+    \item $x_t$ 是随时间累积的证据变量；
+    \item $\mu$ 是漂移项，表示证据朝某一方向的平均偏置；
+    \item $\sigma\,dW_t$ 是扩散噪声，表示不确定性；
+    \item $B$ 是决策边界；
+    \item $\tau$ 是第一次碰到边界的时间，也就是决策时刻。
+\end{itemize}
+如果再加上非决策时间 $t_{\mathrm{nd}}$，观测到的 response time 往往写成 $\mathrm{RT}=\tau+t_{\mathrm{nd}}$。课程里明确说，非决策时间可以吸收真实反应里和“思考”无关的部分，例如 motor execution。
+
+\subsection{本章小结}
+这一段先把问题的语义钉牢：这一讲不是在学一般分类器，而是在学一个带时间维度、带边界条件、带速度-准确率权衡的决策系统。后面所有回路结构，都是为这个语义服务的。
+
+\section{随机点运动任务：用纯感知刺激驱动左/右选择}
+课程选择 random dot motion task 作为行为范式，是因为它非常适合把“感知不确定性”和“证据积累”绑定在一起。参与者看到一个点云在 aperture 里移动，需要判断平均运动方向是 left 还是 right。
+
+\subsection{coherence 控制难度}
+实验者可以操控 dot coherence。coherence 为 0\% 时，所有点随机运动，任务几乎只剩噪声；当 coherence 提高到 50\% 时，一半 dot 朝正确方向运动，另一半随机；如果更高，方向会越来越清楚，任务也更容易。
+
+\begin{importantbox}{课程里的关键判断}
+这类任务的难点不是“学会正确类别”，而是“在噪声中把方向差异抠出来”。因此它是检验 perceptual decision-making 的经典范式。
+\end{importantbox}
+
+讲者还强调，这个任务是 purely perceptual。reward feedback 在这里不是主要难点来源，主要难点是如何从时间上逐步分辨不确定刺激。也正因为如此，它是 drift-diffusion 和后续 circuit model 的理想测试床。
+
+\subsection{本章小结}
+random dot motion task 把抽象的 evidence accumulation 具体化成“点云朝哪边动”的判断。coherence 越高，平均证据越清楚；coherence 越低，模型越依赖积累过程和内部竞争机制。
+
+\section{Wang 回路模型：把决策写成竞争网络}
+课程把重点放在 Wang 2002 的经典回路模型上。它不是纯行为学模型，而是一个明确的 circuit abstraction：两个选择对应两个 selective excitatory populations，再配一个 non-selective excitatory population 和一个 inhibitory population，让 A/B 之间发生竞争。
+
+\subsection{回路结构}
+这个模型可以直接翻译成四类功能单元：
+\begin{itemize}
+    \item selective excitatory population A，对应一个候选类别；
+    \item selective excitatory population B，对应另一个候选类别；
+    \item non-selective excitatory population，作为共享兴奋性背景；
+    \item inhibitory population，提供竞争所需的抑制回路。
+\end{itemize}
+每个 selective population 都接收独立的 spike train 输入：\texttt{stim\_A} 与 \texttt{stim\_B}。课程解释它们分别表示对 left / right dot direction 的视觉编码。与此同时，所有 Bloxs 都收到来自未显式建模上游区域的 background Poisson spike trains。
+
+\subsection{为什么它像 winner-take-all}
+讲者明确指出，这个 circuit 带有 winner-take-all 的味道：一个群体逐渐赢得竞争，另一个群体逐渐被压下去。与此同时，他也提醒这并不是非常 biologically realistic 的密集连接，而更像对生物结构的抽象。它之所以值得保留，是因为它能抓住行为结果，并且能把 receptor dynamics 单独拎出来研究。
+
+\subsection{缩放后的参数与自由变量}
+为了让缩小后的模型仍然保留原始 Wang 模型的竞争行为，课程使用缩放因子去调整 conductance 参数：
+\begin{equation}
+s_E = \frac{1600}{N_E}, \qquad s_I = \frac{400}{N_I}.
+\end{equation}
+这里，$N_E$ 与 $N_I$ 分别是兴奋性与抑制性神经元总数。课程还给出两种突触权重的设置：$w_+=1.7$，而
+\begin{equation}
+w_- = 1 - f\frac{w_+ - 1}{1 - f},
+\end{equation}
+其中 $f$ 是 selective excitatory neurons 在兴奋性群体里的比例。这个表达式的作用，是让缩小版电路仍保持原始模型里那种“一个群体胜出、另一个群体被压制”的结构。
+
+\subsection{本章小结}
+Wang 模型的重点不只是“有两个选择”，而是它把行为上的决策竞争写成了一个明确的网络竞争问题。缩放、输入和权重设置共同决定了这个竞争能否在缩小模型里继续成立。
+
+\section{模型定义：显式 receptor dynamics 与电流分解}
+这一讲的模型定义部分，真正值得记住的不是某个单独参数，而是它的\emph{建模层次}：行为任务先被翻译成输入流，再被翻译成带 receptor dynamics 的 LIF population，最后再拼成图结构。
+
+\subsection{代码骨架：参数、输入与神经元对象}
+下面保留课程页里的关键代码骨架，帮助你把“文字描述”对上“可执行对象”。
+
+\begin{lstlisting}[caption={模型参数、随机种子与输入对象},label={lst:dm_params}]
+using Neuroblox
+using OrdinaryDiffEq
+using Distributions
+using CairoMakie
+using Random
+
+Random.seed!(1)
+
+model_name = :g
+tspan = (0, 1000)  ## Simulation time span [ms]
+spike_rate = 2.4   ## spikes / ms
+
+N = 150            ## total number of neurons
+f = 0.15           ## ratio of selective excitatory to non-selective excitatory neurons
+f_inh = 0.2        ## ratio of inhibitory neurons to all neurons
+N_E = Int(N * (1 - f_inh))
+N_I = Int(ceil(N * f_inh))      ## total number of inhibitory neurons
+N_E_selective = Int(ceil(f * N_E))
+N_E_nonselective = N_E - 2 * N_E_selective
+
+# We use two distinct weight values as per Wang [1]
+w_plus = 1.7
+w_minus = 1 - f * (w_plus - 1) / (1 - f)
+\end{lstlisting}
+
+这段代码最重要的不是变量名，而是它把“尺度缩放”和“结构比例”显式写出来：总神经元数、选择性兴奋性比例、抑制性比例、以及从原始 Wang 模型抽取出来的两类权重。
+
+\begin{equation}
+w_- = 0.8764705882352941 \quad \text{（在课程参数下的实际数值）}
+\end{equation}
+
+\begin{lstlisting}[caption={缩放因子、随机 dot coherence 与神经元块},label={lst:dm_blocks}]
+exci_scaling_factor = 1600 / N_E
+inh_scaling_factor = 400 / N_I
+
+coherence = 0                 # random dot motion coherence [%]
+dt_spike_rate = 50            # update interval for the stimulus spike rate [ms]
+
+mu_0 = 40e-3                  # mean stimulus spike rate [spikes / ms]
+rho_A = rho_B = mu_0 / 100
+
+mu_A = mu_0 + rho_A * coherence
+mu_B = mu_0 - rho_B * coherence
+sigma = 4e-3                  # standard deviation of stimulus spike rate [spikes / ms]
+
+spike_rate_A = (distribution=Normal(mu_A, sigma), dt=dt_spike_rate)
+spike_rate_B = (distribution=Normal(mu_B, sigma), dt=dt_spike_rate)
+
+@named background_input = PoissonSpikeTrain(spike_rate, tspan; namespace = model_name)
+@named stim_A = PoissonSpikeTrain(spike_rate_A, tspan; namespace = model_name)
+@named stim_B = PoissonSpikeTrain(spike_rate_B, tspan; namespace = model_name)
+
+@named n_A = LIFExciCircuitBlox(; namespace = model_name, N_neurons = N_E_selective, weight = w_plus, exci_scaling_factor, inh_scaling_factor)
+@named n_B = LIFExciCircuitBlox(; namespace = model_name, N_neurons = N_E_selective, weight = w_plus, exci_scaling_factor, inh_scaling_factor)
+@named n_ns = LIFExciCircuitBlox(; namespace = model_name, N_neurons = N_E_nonselective, weight = 1.0, exci_scaling_factor, inh_scaling_factor)
+@named n_inh = LIFInhCircuitBlox(; namespace = model_name, N_neurons = N_I, weight = 1.0, exci_scaling_factor, inh_scaling_factor)
+\end{lstlisting}
+
+这里有三个值得直接对照的点。第一，\texttt{stim\_A} 和 \texttt{stim\_B} 的均值随 coherence 分离，正好把刺激不确定性编码进输入。第二，background input 让未显式建模的上游区域以 Poisson spike trains 的方式进入系统。第三，课程用 \texttt{LIFExciCircuitBlox} 与 \texttt{LIFInhCircuitBlox} 直接表达“一个选择性兴奋性群体 / 一个抑制性群体”的语义。
+
+\subsection{电压方程与 receptor 组成}
+讲者在字幕里说，他想展示的是“model equations”，重点是这套模型\emph{显式包含 receptor dynamics}。为了把这个口头说明整理成教材化表达，可以写成
+\begin{equation}
+C_m \frac{dV}{dt} = -g_L(V - E_L) - I_{\mathrm{syn}}.
+\end{equation}
+其中 synaptic current 可以按课程叙述拆成
+\begin{equation}
+I_{\mathrm{syn}} =
+I_{\mathrm{ext}}^{\mathrm{AMPA}}
++
+I_{\mathrm{rec}}^{\mathrm{AMPA}}
++
+I_{\mathrm{rec}}^{\mathrm{NMDA}}
++
+I^{\mathrm{GABA}}.
+\end{equation}
+对应的符号含义如下：
+\begin{itemize}
+    \item $V$ 是膜电位；
+    \item $C_m$ 是膜电容；
+    \item $g_L$ 和 $E_L$ 分别是漏电导与漏电反转电位；
+    \item $I_{\mathrm{ext}}^{\mathrm{AMPA}}$ 表示代表视觉刺激的外部 AMPA 电流；
+    \item $I_{\mathrm{rec}}^{\mathrm{AMPA}}$ 与 $I_{\mathrm{rec}}^{\mathrm{NMDA}}$ 表示来自其他兴奋性神经元的 recurrent excitatory currents；
+    \item $I^{\mathrm{GABA}}$ 表示来自抑制性中间神经元的抑制电流。
+\end{itemize}
+课程特别强调，NMDA 的动力学比 AMPA 和 GABA 更复杂，但这种复杂性是值得保留的，因为它让模型能够显式研究不同 receptor 对证据积累的作用。
+
+\begin{warningbox}{为什么这个模型虽然粗糙却仍然有价值}
+讲者直说：这个网络不算非常 biologically realistic，尤其因为它的连接是 dense 的。不过它的价值在于，它能把行为层面的竞争结果和 receptor-level dynamics 绑在一起，从而让“谁在起作用”这件事变得可测。
+\end{warningbox}
+
+\subsection{本章小结}
+这一节完成了从任务到方程的翻译：随机点运动的输入被压缩成 selective Poisson spike trains，回路动力学被展开成包含 AMPA、NMDA 和 GABA 的 LIF 方程。模型的抽象程度不低，但它保留了最重要的可解释层次。
+
+\section{系统构建与仿真：从图结构到 ODEProblem}
+模型写出来后，课程把关键动作交给图结构和数值求解器。这里的重点不是“把代码抄一遍”，而是看清楚 graph 先于 system、system 先于 solver 的建模顺序。
+
+\subsection{连接图与求解器}
+\begin{lstlisting}[caption={图结构、系统构造与数值求解},label={lst:dm_graph}]
+g = MetaDiGraph()
+add_edge!(g, background_input => n_A; weight = 1)
+add_edge!(g, background_input => n_B; weight = 1)
+add_edge!(g, background_input => n_ns; weight = 1)
+add_edge!(g, background_input => n_inh; weight = 1)
+
+add_edge!(g, stim_A => n_A; weight = 1)
+add_edge!(g, stim_B => n_B; weight = 1)
+
+add_edge!(g, n_A => n_B; weight = w_minus)
+add_edge!(g, n_A => n_ns; weight = 1)
+add_edge!(g, n_A => n_inh; weight = 1)
+
+add_edge!(g, n_B => n_A; weight = w_minus)
+add_edge!(g, n_B => n_ns; weight = 1)
+add_edge!(g, n_B => n_inh; weight = 1)
+
+add_edge!(g, n_ns => n_A; weight = w_minus)
+add_edge!(g, n_ns => n_B; weight = w_minus)
+add_edge!(g, n_ns => n_inh; weight = 1)
+
+add_edge!(g, n_inh => n_A; weight = 1)
+add_edge!(g, n_inh => n_B; weight = 1)
+add_edge!(g, n_inh => n_ns; weight = 1)
+
+sys = system_from_graph(g; name=model_name, graphdynamics = true)
+prob = ODEProblem(sys, [], tspan)
+sol = solve(prob, Euler(); dt = 0.01)
+\end{lstlisting}
+
+课程页特别提醒，\texttt{system\_from\_graph} 和后续 \texttt{ODEProblem} 的构造会花几分钟，因为系统规模比前面的例子大得多。这里打开 \texttt{graphdynamics=true}，是为了启用更快的编译路径；讲者还补充说，并不是所有模型都兼容 GraphDynamics.jl，但兼容时通常能显著加速。
+
+\subsection{本章小结}
+图结构把连接关系从方程里剥离出来，先让“谁连谁”变成显式对象；然后求解器再把这个图变成可运行动力学。对于大型回路，这种建模顺序比手工写方程更清晰，也更便于调参。
+
+\section{结果解读：竞争如何在图上显现}
+课程的结果部分非常直接：给定某个 coherence 和输入设置，A/B 两个 selective excitatory populations 会表现出互相竞争的行为。一个群体上升，另一个群体下降，抑制群体维持较稳定的 tonic activity。
+
+\subsection{Spike raster：谁先赢，谁就把对方压下去}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{dm_raster.png}
+\caption{Population A、Population B 与 inhibitory population 的 spike raster。图源：MIT 官方课程页。}
+\end{figure}
+
+这个图最重要的不是“看到了 spike”，而是看到了时间上的竞争逻辑。课程字幕明确说，在一个 excitatory population 迅速 ramp up 的同时，另一个 population 会同步下降；抑制群体则提供维持竞争的 tonic activity。也就是说，胜负不是只看最终谁更强，而是看竞争过程中的时间轨迹。
+
+\subsection{Firing-rate 视图：把竞争幅度看得更清楚}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{dm_fr.png}
+\caption{Population A 与 Population B 的 firing rate 对比。图源：MIT 官方课程页。}
+\end{figure}
+
+第二张图把同样的竞争过程改写成 firing-rate 轨迹。课程强调，单轴图更容易看清两群体之间的差距，因此更适合观察 competition magnitude。和 raster 相比，firing rate 图更适合看“谁赢得更多”，而 raster 更适合看“谁在什么时刻开始压制对方”。
+
+\subsection{coherence 增加时会发生什么}
+在 0\% coherence 时，两条输入电流分布高度重叠，因此 A/B 的初期活动也很相似；到 6\% 或更高 coherence 时，两类电流的均值差逐渐增大，分布分离得更明显，决策也更容易。课程最后还提到，论文里可以进一步得到 response time distributions 和 psychophysical curves：前者是自由反应任务里非常常见的指标，后者则说明 accuracy 会随 coherence 改变而形成典型的 sigmoid-like 曲线。
+
+\subsection{本章小结}
+结果部分验证了前面的建模目标：这个回路不是只会“有活动”，而是真的会产生竞争和胜负分化。coherence 越高，胜负越早分出；coherence 越低，竞争越接近随机过程。
+
+\section{挑战问题：把讲义变成可做实验}
+课程最后没有停在“看懂结果”上，而是直接给了两个开放式练习。这两个问题其实就是把 lecture 变成 notebook 实验的入口。
+
+\begin{itemize}
+    \item \textbf{响应时间分布：}电路是 real-time decision model。你需要记录何时到达决策边界，再把这些时刻整理成 response time distribution。进一步可以改变 dot coherence，观察 RT 分布如何整体前移或后移。
+    \item \textbf{受体消融：}比较 NMDA、AMPA 与 GABA 哪一种 receptor 对竞争行为最关键。课程提示你去看 \texttt{LIFExciNeuron} 和 \texttt{LIFInhNeuron} 的方程，并直接改 receptor conductance 做 intervention。
+\end{itemize}
+
+\begin{importantbox}{实现提示}
+这两个练习的核心不是“猜答案”，而是让你把 circuit 的可解释组件拆开：速度-准确率关系靠什么维持，竞争行为靠哪类 receptor 撑住，哪些改动会让模型从竞争状态退回到平庸状态。
+\end{importantbox}
+
+课程页还把这些练习和论文里的更多结果连在一起：不同 coherence 下的 RT 统计、accuracy 曲线，以及你对受体 conductance 的干预，都是可以继续复现实验的方向。
+
+\subsection{本章小结}
+挑战题的意义在于把 lecture 变成一个“可以动手验证”的模型。真正值得做的是比较干预前后的曲线，而不是只看单次仿真。
+
+\section{参考文献与收束}
+官方课程页列出的两篇参考文献都很关键。Wang 2002 是这讲的主理论来源，而 GraphDynamics.jl 则解释了为什么课程能把较大的回路在可接受时间内编译和仿真出来。
+
+\begin{itemize}
+    \item Wang XJ. \emph{Probabilistic decision making by slow reverberation in cortical circuits}. Neuron. 2002 Dec;36(5):955--968. DOI: \href{https://doi.org/10.1016/S0896-6273(02)01092-9}{10.1016/S0896-6273(02)01092-9}. PMID: 12467598.
+    \item Protter, M. (2024). \emph{GraphDynamics.jl -- Efficient dynamics of interacting collections of modular subsystems} (v0.2.2). Zenodo. DOI: \href{https://doi.org/10.5281/zenodo.14183153}{10.5281/zenodo.14183153}.
+\end{itemize}
+
+讲者在结束时提醒大家，到 course 页的决策页面打开 \texttt{decision\_making.ipynb}，再去做题和改参数。这个收尾很典型：不是把 lecture 当成一个终点，而是把它当成 notebook 实验的起点。
+
+\subsection{本章小结}
+这一讲把 perceptual decision making 变成了一个 receptor-explicit circuit model：先用 drift-diffusion 的语义理解速度-准确率权衡，再用 Wang 式竞争回路和显式 receptor dynamics 复现行为结果。下一步最自然的工作，就是在 notebook 里改变 coherence、边界、以及 NMDA/AMPA/GABA 的 conductance，看看 decision behavior 如何变化。
+
+\end{document}

@@ -1,0 +1,355 @@
+{
+  "source_file": "runs/mit_res9_009_iap2025_neuroblox_textbook/materials/course_pages/neuron_mass.html",
+  "title": "Neurons, Neural Masses and Sources",
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Neurons, Neural Masses and Sources"
+    },
+    {
+      "level": "h2",
+      "text": "Introduction"
+    },
+    {
+      "level": "h2",
+      "text": "Neurons and Neural Masses"
+    },
+    {
+      "level": "h2",
+      "text": "Sources"
+    },
+    {
+      "level": "h3",
+      "text": "Continuous Input Sources"
+    },
+    {
+      "level": "h3",
+      "text": "Event-based Spike Sources"
+    },
+    {
+      "level": "h3",
+      "text": "Deep Brain Stimulation"
+    },
+    {
+      "level": "h2",
+      "text": "Challenge Problems"
+    },
+    {
+      "level": "h2",
+      "text": "References"
+    }
+  ],
+  "paragraphs": [
+    "Introduction Neurons and Neural Masses Sources Continuous Input Sources Event-based Spike Sources Deep Brain Stimulation Challenge Problems References",
+    "Neurons and Neural Masses Sources Continuous Input Sources Event-based Spike Sources Deep Brain Stimulation Challenge Problems References",
+    "Sources Continuous Input Sources Event-based Spike Sources Deep Brain Stimulation Challenge Problems References",
+    "Continuous Input Sources Event-based Spike Sources Deep Brain Stimulation",
+    "Event-based Spike Sources Deep Brain Stimulation",
+    "Deep Brain Stimulation",
+    "Challenge Problems References",
+    "References",
+    "Jupyter Notebook : Please work on neuron_mass.ipynb .",
+    "The main distinction between the neuron, neural mass and source Blox we will encounter on this session is the mechanism by which they communicate with other Bloxs. All neural mass Bloxs, some sources, and neurons of the Hodgkin-Huxley (HH) family have continuous output variables which are included as terms in the postsynaptic Blox's differential equations. The alternative is an event-based connection. Neurons of the Izhikevich and the Integrate-and-fire families of models operate this way as we have previosuly seen. Sources that simulate spike trains may also operate the same way via callbacks.",
+    "Learning goals :",
+    "visualize results from neuron and neural mass Blox simulations introduce external sources as Blox drive single neuron and neural mass activity using external sources",
+    "visualize results from neuron and neural mass Blox simulations",
+    "introduce external sources as Blox drive single neuron and neural mass activity using external sources",
+    "introduce external sources as Blox",
+    "drive single neuron and neural mass activity using external sources",
+    "drive single neuron and neural mass activity using external sources",
+    "As a first example we will consider a neural mass WilsonCowan Blox of Excitation-Inhibition (E-I) balance. This is a two-dimensional reduction over a population of excitatory and inhibitory neurons with continuous dynamics.",
+    "Using the generic plot function we visualize all states of our model. We can retrieve specific variables by using",
+    "Moving on to neurons, we will use a Quadratic Integrate-and-fire (QIF) neuron model with an added callback that increases the input current after 60 ms.",
+    "Besides the generic plot function, Neuroblox includes some plotting recipes specifically for neuron models. A raster plot with chosen spike threshold",
+    "and a firing rate plot, again by setting the spike threshold and the window size for averaging",
+    "We can easily extract the voltage timeseries of neurons by",
+    "Finally we simulate an HH neuron with stochastic dynamics which was introduced in this article on deep brain stimulation in the subthalamic nucleus . The model includes a brownian noise term affecting D(V) which you can inspect using the equations function.",
+    "We can use all other plots from above with this stochastic HH neuron since it is a subtype of Neuron . Given its stochastic nature it might be additionally meaningful to show the powerspectrum of its activity.",
+    "Exercise: Try changing the influence of the stochastic term. What do you notice about the powerspectrum of HHNeuronExci_STN_Adam_Blox ?",
+    "External sources in Neuroblox are a particular Blox subtype ( <: AbstractBlox ) which contains a system with output and no input variables. Naturally source Bloxs can only connect to other (non-source) Blox and can not receive connections from any Blox. There are two main categories of sources, ones with continuous dynamics for their variables and ones that operate through events (callbacks).",
+    "These sources are comprised of algebraic (and potentially differential) equations that become part of the dynamics of Bloxs that the source connects to. We will drive the WilsonCowan Blox above with a ConstantInput source. The connection between the two Bloxs looks like",
+    "This source simply adds a fixed current to the input variable ( nm₊jcn ) of the downstream (destination) Blox.",
+    "Notice how the E-I balance has shifted after adding our input. We will work with a more complex circuit for E-I balance on the next session and learn more about its intricacies.",
+    "We can create custom sources with continuous input the same way we create custom Bloxs and write custom connection rules for them as we have seen in the previous session.",
+    "This type of source operates entirely through callbacks. One common example is a source that simulates spiking from presynaptic neurons that we do not explicitly include in our model. Each time the source's callback is triggered, it affects parameters and/or variables of its postsynaptic neurons which are part of our model. Commonly it is assumed that the spiking of neurons follows a Poisson process. Therefore we have implemented a source in Neuroblox that generates spikes that are distributed according to a Poisson distribution for any finite length of time.",
+    "The PoissonSpikeTrain needs a timespan Tuple ( tspan ) to generate spikes within it. Above we have set a fixed spike_rate for our process. Alternatively we can also define the spike train with a variable spike_rate that is sampled according to any univariate distribution.",
+    "When choosing a variable spike_rate we need to set a dt that dictates how often the distribution will generate a new spike_rate sample. The units of dt match the units of tspan which by default is ms in Neuroblox.",
+    "Exercise: Define a LIFExciNeuron , connect a PoissonSpikeTrain to it and tune the source parameters to make the neuron spike. You can visualize spiking using rasterplot and frplot as above.",
+    "We can create custom event-based spike sources with a bit more effort compared to continuous ones. Here is a worked example with comments on the necessary steps :",
+    "We import generate_spike_times and write our own dispatch that generates and returns a vector of spike times.",
+    "We also import connection_spike_affects and dispatch it by pairing our new source with any neuron that we want to affect. In this function we write all equations that should be evaluated each time source spikes. The w input is necessary and it is the symbolic connection weight, same as in connection_equations .",
+    "Notice how spikes become more and more frequently over time. Can you tell why this is happening?",
+    "Neuroblox contains specialized sources that are common to the field of Deep Brain Stimulation (DBS). These sources simulate stimulation patterns by external probes that are continuous in time, yet contain discrete changes (jumps) on their variables. Even though these sources are often used in DBS protocols, they are implemented as any other source so they can be connected to any other Bloxs given a connection rule. We will first visualize the sources on their own and then connect them to an HH excitatory neuron.",
+    "// Image matching '/assets/pages/neuron_mass/code/stim' not found. //",
+    "We can also generate a smoothed pulse train as",
+    "// Image matching '/assets/pages/neuron_mass/code/stim_comparison' not found. //",
+    "It is also possible to create a stimulus protocol that does not follow a simple periodic stimulation schedule as above and contains multiple pulses before a quiet time window:",
+    "// Image matching '/assets/pages/neuron_mass/code/stim_protocol' not found. //",
+    "Now let's finally connect our ProtocolDBS source to an HH excitatory neuron and simulate",
+    "NOTE : We have used detect_transitions to find all points where the stimulation switches on and off. Such points can lead to discontinuities in the dynamics of our model and thus to imprecise solutions. Adding the transition points explicitly as tstops when solving will force the chosen solver to stop righ before and after each transition and evaluate the equations for greater precision and stability.",
+    "// Image matching '/assets/pages/neuron_mass/code/stim_hh' not found. //",
+    "Implement a custom SpikeSource of your choice. Hint: the BernoulliSpikes implementation above. Write a function that plots the f-I curve of a Blox. Hint: Consider a ContantInput source to vary input currents and firing_rate(blox, solution; threshold=...) to calculate firing rates. Write a function that plots the Peristimulus time histogram of a Blox around a given timepoint. Hint: use the hist or barplot plotting functions from Makie and detect_spikes(blox, solution; threshold=...) to find spikes.",
+    "Implement a custom SpikeSource of your choice. Hint: the BernoulliSpikes implementation above.",
+    "Write a function that plots the f-I curve of a Blox. Hint: Consider a ContantInput source to vary input currents and firing_rate(blox, solution; threshold=...) to calculate firing rates. Write a function that plots the Peristimulus time histogram of a Blox around a given timepoint. Hint: use the hist or barplot plotting functions from Makie and detect_spikes(blox, solution; threshold=...) to find spikes.",
+    "Write a function that plots the f-I curve of a Blox. Hint: Consider a ContantInput source to vary input currents and firing_rate(blox, solution; threshold=...) to calculate firing rates.",
+    "Write a function that plots the Peristimulus time histogram of a Blox around a given timepoint. Hint: use the hist or barplot plotting functions from Makie and detect_spikes(blox, solution; threshold=...) to find spikes.",
+    "Write a function that plots the Peristimulus time histogram of a Blox around a given timepoint. Hint: use the hist or barplot plotting functions from Makie and detect_spikes(blox, solution; threshold=...) to find spikes.",
+    "[1] Gerstner W, Kistler WM, Naud R, Paninski L. Neuronal Dynamics: From Single Neurons to Networks and Models of Cognition, Parts I & II. Cambridge University Press; 2014. [2] Adam, Elie M., et al. \"Deep brain stimulation in the subthalamic nucleus for Parkinson's disease can restore dynamics of striatal networks.\" Proceedings of the National Academy of Sciences 119.19 (2022): e2120808119.",
+    "[1] Gerstner W, Kistler WM, Naud R, Paninski L. Neuronal Dynamics: From Single Neurons to Networks and Models of Cognition, Parts I & II. Cambridge University Press; 2014.",
+    "[2] Adam, Elie M., et al. \"Deep brain stimulation in the subthalamic nucleus for Parkinson's disease can restore dynamics of striatal networks.\" Proceedings of the National Academy of Sciences 119.19 (2022): e2120808119.",
+    "[2] Adam, Elie M., et al. \"Deep brain stimulation in the subthalamic nucleus for Parkinson's disease can restore dynamics of striatal networks.\" Proceedings of the National Academy of Sciences 119.19 (2022): e2120808119."
+  ],
+  "code_blocks": [
+    {
+      "id": "code_01",
+      "text": "using\n Neuroblox\n\nusing\n OrdinaryDiffEq\n\nusing\n CairoMakie\n\n\n# Set the random seed for reproducible results\n\n\nusing\n Random\nRandom.seed!(\n1\n)\n\n\n@named\n nm = WilsonCowan()\n\n# Retrieve the simplified ODESystem of the Blox\n\nsys = system(nm)\ntspan = (\n0\n, \n100\n) \n# ms\n\nprob = ODEProblem(sys, [], tspan)\nsol = solve(prob, Tsit5())\n\nfig, ax = plot(sol);\naxislegend(ax) \n## add legend to the plot\n\nfig"
+    },
+    {
+      "id": "code_02",
+      "text": "E = state_timeseries(nm, sol, \n\"E\"\n) \n## retrieves state `E` of Blox `nm`\n\nfig = lines(E); \n## simple line plot\n\nfig"
+    },
+    {
+      "id": "code_03",
+      "text": "@named\n qif = QIFNeuron(; I_in=\n4\n)\n\n# We can pass additional events to be included in the final system.\n\nsys = system(qif; discrete_events = [\n60\n] => [qif.I_in ~ \n10\n])\ntspan = (\n0\n, \n100\n) \n# ms\n\nprob = ODEProblem(sys, [], tspan)\nsol = solve(prob, Tsit5());"
+    },
+    {
+      "id": "code_04",
+      "text": "fig = rasterplot(qif, sol; threshold=-\n40\n);\nfig"
+    },
+    {
+      "id": "code_05",
+      "text": "fig = frplot(qif, sol; threshold=-\n40\n, win_size=\n20\n);\nfig"
+    },
+    {
+      "id": "code_06",
+      "text": "V = voltage_timeseries(qif, sol) \n## equivalent to `state_timeseries(qif, sol, \"V\")`\n\nfig = lines(V);\nfig"
+    },
+    {
+      "id": "code_07",
+      "text": "using\n StochasticDiffEq \n## to access stochastic DE solvers\n\n\n\n@named\n hh = HHNeuronExci_STN_Adam_Blox(; σ=\n2\n) \n## σ is the brownian noise amplitude\n\n\nsys = system(hh)\nprob = SDEProblem(sys, [], (\n0\n, \n1000\n))\nsol = solve(prob, RKMil())\n\n\n# Plot the powerspectrum of the solution\n\nfig = powerspectrumplot(hh, sol; sampling_rate=\n0.01\n);\nfig"
+    },
+    {
+      "id": "code_08",
+      "text": "@named\n inp = ConstantInput(; I=\n3\n)\n\nconnection_rule(inp, nm, weight=\n1\n)"
+    },
+    {
+      "id": "code_09",
+      "text": "Connections :\n\t inp => nm\nEquations :\n\t nm₊jcn(t) ~ w_inp_nm*inp₊u(t)\nWeights :\n\t w_inp_nm\n"
+    },
+    {
+      "id": "code_10",
+      "text": "g = MetaDiGraph()\nadd_edge!(g, inp => nm, weight = \n1\n)\n\n\n@named\n sys = system_from_graph(g)\nprob = ODEProblem(sys, [], tspan)\nsol = solve(prob, Tsit5())\n\nfig, ax = plot(sol);\naxislegend(ax)\nfig"
+    },
+    {
+      "id": "code_11",
+      "text": "tspan = (\n0\n, \n200\n) \n# ms\n\nspike_rate = \n0.01\n \n# spikes / ms\n\n\n\n@named\n spike_train_rate = PoissonSpikeTrain(spike_rate, tspan)"
+    },
+    {
+      "id": "code_12",
+      "text": "Neuroblox.PoissonSpikeTrain{Vector{Float64}}(:spike_train_rate, nothing, 1, [0.01], [(0, 200)], 0.01, Random.TaskLocalRNG())"
+    },
+    {
+      "id": "code_13",
+      "text": "using\n Distributions\n\ntspan = (\n0\n, \n200\n) \n# ms\n\n\n# Define a `NamedTuple` holding a `distribution` and a `dt` field\n\nspike_rate = (distibution = Normal(\n1\n, \n0.1\n), dt = \n10\n)\n\n\n@named\n spike_train_dist = PoissonSpikeTrain(spike_rate, tspan)"
+    },
+    {
+      "id": "code_14",
+      "text": "Neuroblox.PoissonSpikeTrain{@NamedTuple{distibution::Distributions.Normal{Float64}, dt::Int64}}(:spike_train_dist, nothing, 1, (distibution = Distributions.Normal{Float64}(μ=1.0, σ=0.1), dt = 10), (0, 200), 0.01, Random.TaskLocalRNG())"
+    },
+    {
+      "id": "code_15",
+      "text": "struct\n BernoulliSpikes <: SpikeSource\n    name \n## necessary field\n\n    namespace \n## necessary field\n\n    tspan \n## necessary field\n\n    probability_spike\n    dt\n    \nfunction\n BernoulliSpikes(probability_spike, tspan, dt; name, namespace=\nnothing\n)\n        new(name, namespace, tspan, probability_spike, dt)\n    \nend\n\n\nend"
+    },
+    {
+      "id": "code_16",
+      "text": "import\n Neuroblox: generate_spike_times, connection_spike_affects\n\n\nfunction\n generate_spike_times(source::BernoulliSpikes)\n    t_range = source.tspan[\n1\n]:source.dt:source.tspan[\n2\n]\n    t_spikes = \nFloat64\n[]\n    \nfor\n t \nin\n t_range\n        \nif\n rand(Bernoulli(source.probability_spike))\n            push!(t_spikes, t)\n        \nend\n\n    \nend\n\n    \nreturn\n t_spikes\n\nend"
+    },
+    {
+      "id": "code_17",
+      "text": "generate_spike_times (generic function with 3 methods)"
+    },
+    {
+      "id": "code_18",
+      "text": "function\n connection_spike_affects(source::BernoulliSpikes, ifn::IFNeuron, w)\n    eqs = [ifn.I_in ~ ifn.I_in + w]\n    \nreturn\n eqs\n\nend\n\n\ntspan = (\n0\n, \n500\n)\n\n@named\n s = BernoulliSpikes(\n0.05\n, tspan, \n5\n)\n\n@named\n ifn = IFNeuron()\n\ng = MetaDiGraph()\nadd_edge!(g, s => ifn, weight=\n1\n)\n\n@named\n sys = system_from_graph(g)\n\nprob = ODEProblem(sys, [], tspan)\nsol = solve(prob, Tsit5())\n\nfig = rasterplot(ifn, sol);\nfig"
+    },
+    {
+      "id": "code_19",
+      "text": "# Square pulse stimulus\n\n\n@named\n stim = DBS(\n                frequency=\n100.0\n, \n## Hz\n\n                amplitude=\n200.0\n, \n## arbitrary units, depends on how the stimulus is used in the model\n\n                pulse_width=\n0.5\n, \n## ms\n\n                offset=\n0.0\n,\n                start_time=\n5.0\n, \n## ms\n\n                smooth=\n0.0\n \n## modulates smoothing effect\n\n);\n\ntspan = (\n0\n, \n100\n) \n## ms\n\ndt = \n0.001\n \n## ms\n\n\ntime = tspan[\n1\n]:dt:tspan[\n2\n]\n\n# `stimulus` is a function that is also a field of `DBS` objects.\n\n\n# It turns a time vector into a vector of stimulus values of the same length given the object's parameters.\n\nstimulus = stim.stimulus.(time)\n\nfig = Figure();\nax1 = Axis(fig[\n1\n,\n1\n]; xlabel = \n\"time (ms)\"\n, ylabel = \n\"stimulus\"\n)\nlines!(ax1, time, stimulus)\nfig"
+    },
+    {
+      "id": "code_20",
+      "text": "type DBS has no field stimulus\n"
+    },
+    {
+      "id": "code_21",
+      "text": "@named\n stim_smooth = DBS(\n                frequency=\n100.0\n,\n                amplitude=\n200.0\n,\n                pulse_width=\n0.5\n,\n                offset=\n0.0\n,\n                start_time=\n5.0\n,\n                smooth=\n1e-3\n\n);\n\nsmooth_stimulus = stim_smooth.stimulus.(time)\n\nfig = Figure();\nax1 = Axis(fig[\n1\n,\n1\n]; xlabel = \n\"time (ms)\"\n, ylabel = \n\"stimulus\"\n)\nlines!(ax1, time, stimulus) \n## plot the un-smoothed stimulus from above\n\nxlims!(ax1, \n4.9\n, \n5.6\n) \n## set the x-axis limits for better visibility of a smoothed pulse\n\n\nax2 = Axis(fig[\n2\n,\n1\n]; xlabel = \n\"time (ms)\"\n, ylabel = \n\"stimulus\"\n)\nlines!(ax2, time, smooth_stimulus) \n## plot the smoothed stimulus\n\nxlims!(ax2, \n4.9\n, \n5.6\n) \n## set the x-axis limits for better visibility of a smoothed pulse\n\n\nfig"
+    },
+    {
+      "id": "code_22",
+      "text": "type DBS has no field stimulus\n"
+    },
+    {
+      "id": "code_23",
+      "text": "frequency = \n20.0\n\namplitude = \n1.0\n\npulse_width = \n20.0\n\nsmooth = \n3e-4\n\npulse_start_time = \n0.01\n\noffset = \n0\n\npulses_per_burst = \n3\n\nbursts_per_block = \n2\n\npre_block_time = \n200.0\n\ninter_burst_time = \n200.0\n\n\n\n@named\n dbs = ProtocolDBS(\n                frequency=frequency,\n                amplitude=amplitude,\n                pulse_width=pulse_width,\n                smooth=smooth,\n                offset=offset,\n                pulses_per_burst=pulses_per_burst,\n                bursts_per_block=bursts_per_block,\n                pre_block_time=pre_block_time,\n                inter_burst_time=inter_burst_time,\n                start_time = pulse_start_time);\n\nt_end = get_protocol_duration(dbs)\nt_end = t_end + inter_burst_time\ntspan = (\n0.0\n, t_end)\ndt = \n0.001\n\n\ntime = tspan[\n1\n]:dt:tspan[\n2\n]\nstimulus = dbs.stimulus.(time)\n\nfig = Figure();\nax1 = Axis(fig[\n1\n,\n1\n]; xlabel = \n\"time (ms)\"\n, ylabel = \n\"stimulus\"\n)\nlines!(ax1, time, stimulus)\nfig"
+    },
+    {
+      "id": "code_24",
+      "text": "type ProtocolDBS has no field stimulus\n"
+    },
+    {
+      "id": "code_25",
+      "text": "@named\n nn = HHNeuronExciBlox(I_bg=\n0.4\n)\n\ng = MetaDiGraph()\nadd_edge!(g, dbs => nn, weight = \n10.0\n)\n\n\n@named\n sys = system_from_graph(g)\nprob = ODEProblem(sys, [], tspan)\n\ntransitions_inds = detect_transitions(time, stimulus; atol=\n0.001\n)\ntransition_times = time[transitions_inds]\ntransition_values = stimulus[transitions_inds]\nsol = solve(prob, Vern7(), saveat=dt, tstops = transition_times);"
+    },
+    {
+      "id": "code_26",
+      "text": "UndefVarError: `stimulus` not defined in `Main.FD_SANDBOX_15689578915208419032`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_27",
+      "text": "# Retrive the timeseries of the voltage variable (`nn₊V`) from the solution\n\nv = voltage_timeseries(nn, sol)\n\n\n# Plot the voltage and stimulation timeseries on two axes on the same window.\n\nfig = Figure();\nax1 = Axis(fig[\n1\n,\n1\n]; xlabel = \n\"time (ms)\"\n, ylabel = \n\"Voltage (mV)\"\n)\nlines!(ax1, sol.t, v)\n\nax2 = Axis(fig[\n2\n,\n1\n]; xlabel = \n\"time (ms)\"\n, ylabel = \n\"Stimulus (μA/cm²)\"\n)\nlines!(ax2, sol.t, stimulus)\nfig"
+    },
+    {
+      "id": "code_28",
+      "text": "KeyError: key :nn₊V not found\n"
+    }
+  ],
+  "images": [
+    {
+      "id": "image_01",
+      "src": "/course/assets/pages/neuron_mass/code/output/wc_all.svg",
+      "alt": ""
+    },
+    {
+      "id": "image_02",
+      "src": "/course/assets/pages/neuron_mass/code/output/wc_timeseries.svg",
+      "alt": ""
+    },
+    {
+      "id": "image_03",
+      "src": "/course/assets/pages/neuron_mass/code/output/qif_raster.svg",
+      "alt": ""
+    },
+    {
+      "id": "image_04",
+      "src": "/course/assets/pages/neuron_mass/code/output/qif_fr.svg",
+      "alt": ""
+    },
+    {
+      "id": "image_05",
+      "src": "/course/assets/pages/neuron_mass/code/output/qif_timeseries.svg",
+      "alt": ""
+    },
+    {
+      "id": "image_06",
+      "src": "/course/assets/pages/neuron_mass/code/output/hh_power.svg",
+      "alt": ""
+    },
+    {
+      "id": "image_07",
+      "src": "/course/assets/pages/neuron_mass/code/output/wc_input.svg",
+      "alt": ""
+    },
+    {
+      "id": "image_08",
+      "src": "/course/assets/pages/neuron_mass/code/output/ifn_input.svg",
+      "alt": ""
+    }
+  ],
+  "links": [
+    {
+      "text": "Introduction",
+      "href": "#introduction"
+    },
+    {
+      "text": "Neurons and Neural Masses",
+      "href": "#neurons_and_neural_masses"
+    },
+    {
+      "text": "Sources",
+      "href": "#sources"
+    },
+    {
+      "text": "Continuous Input Sources",
+      "href": "#continuous_input_sources"
+    },
+    {
+      "text": "Event-based Spike Sources",
+      "href": "#event-based_spike_sources"
+    },
+    {
+      "text": "Deep Brain Stimulation",
+      "href": "#deep_brain_stimulation"
+    },
+    {
+      "text": "Challenge Problems",
+      "href": "#challenge_problems"
+    },
+    {
+      "text": "References",
+      "href": "#references"
+    },
+    {
+      "text": "Neurons, Neural Masses and Sources",
+      "href": "#neurons_neural_masses_and_sources"
+    },
+    {
+      "text": "Introduction",
+      "href": "#introduction"
+    },
+    {
+      "text": "Neurons and Neural Masses",
+      "href": "#neurons_and_neural_masses"
+    },
+    {
+      "text": "this article on deep brain stimulation in the subthalamic nucleus",
+      "href": "https://doi.org/10.1073/pnas.2120808119"
+    },
+    {
+      "text": "Sources",
+      "href": "#sources"
+    },
+    {
+      "text": "Continuous Input Sources",
+      "href": "#continuous_input_sources"
+    },
+    {
+      "text": "Event-based Spike Sources",
+      "href": "#event-based_spike_sources"
+    },
+    {
+      "text": "Deep Brain Stimulation",
+      "href": "#deep_brain_stimulation"
+    },
+    {
+      "text": "Challenge Problems",
+      "href": "#challenge_problems"
+    },
+    {
+      "text": "f-I curve",
+      "href": "https://en.wikipedia.org/wiki/F-I_curve"
+    },
+    {
+      "text": "Peristimulus time histogram",
+      "href": "https://en.wikipedia.org/wiki/Peristimulus_time_histogram"
+    },
+    {
+      "text": "References",
+      "href": "#references"
+    },
+    {
+      "text": "CC BY-SA 4.0",
+      "href": "http://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    {
+      "text": "Franklin.jl",
+      "href": "https://github.com/tlienart/Franklin.jl"
+    },
+    {
+      "text": "Julia programming language",
+      "href": "https://julialang.org"
+    }
+  ],
+  "youtube_embeds": [
+    "Ptqv16fhOtg"
+  ]
+}

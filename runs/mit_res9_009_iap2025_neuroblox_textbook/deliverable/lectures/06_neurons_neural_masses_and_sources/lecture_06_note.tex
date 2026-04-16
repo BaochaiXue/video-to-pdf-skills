@@ -1,0 +1,440 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    literate={σ}{{$\sigma$}}1 {μ}{{$\mu$}}1 {₊}{{+}}1,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{MIT Neuroblox 教材笔记 06：神经元、神经团块与源}
+\newcommand{\noteauthors}{MIT Neuroblox 课程组 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{MIT Video Productions}
+\newcommand{\videopublishdate}{2025-04-10；课程标题标注 2025-01-15}
+\newcommand{\videoduration}{12分54秒}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=Ptqv16fhOtg}
+\newcommand{\videocoverpath}{figures/video_cover.png}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{导论：学习目标与对象总览}
+本讲把 Neuroblox 的三类基础对象放在同一张地图上：\emph{神经元}、\emph{神经团块（neural mass）} 和 \emph{源（source）}。视频开场先明确：在前面几讲已经讲过 Julia 和 Neuroblox 的编程语法之后，这一讲开始回到神经科学本体，先看最基本的神经元，再看群体平均后的神经团块，最后看如何用外部源驱动模型。
+
+\begin{knowledgebox}{这堂课真正关心的不是“画什么图”，而是“变量如何通信”}
+Neuroblox 中三类对象的核心差别，不是名字，而是它们如何把自己的状态送进下游方程：
+\begin{itemize}
+  \item 神经元通常通过连续状态或事件触发来影响别的 Blox；
+  \item 神经团块把群体行为压缩成更少的状态变量，强调平均活动、同步/去同步和参数区间；
+  \item 源本身没有输入，只负责向下游注入连续驱动、脉冲列或刺激协议。
+\end{itemize}
+这也是本讲所有例子的共同骨架。
+\end{knowledgebox}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+对象 & 通信方式 & 代表例子 & 适合回答的问题 \\
+\midrule
+Neuron & 连续状态 / 事件触发 & QIF, HH, Izhikevich & 单细胞兴奋性、发放、噪声影响 \\
+Neural mass & 群体平均 / 振荡器 / 解析导出 & Wilson-Cowan, Jensen, next generation & 平均活动、同步状态、参数诱导的 regime \\
+Source & 仅输出、无输入 & ConstantInput, PoissonSpikeTrain, DBS & 外部驱动、实验协议、闭环刺激 \\
+\bottomrule
+\end{tabular}
+\caption{本讲三类 Blox 的接口差异。}
+\end{table}
+
+课程页在首页就把学习目标写得很直接：先可视化神经元与神经团块的仿真结果，再把外部源作为 Blox 引入，最后用这些源去驱动单神经元与群体活动。这个目标虽然朴素，但它实际上定义了后面所有 API 的使用边界：先建模，再连接，再看输出。
+
+\subsection{本章小结}
+本节只做了框架搭建：后面的所有细节，都可以看成是在回答同一个问题——“不同层级的神经模型，究竟通过什么接口把状态送到下游？”
+
+\section{神经元：单元动力学、发放率与随机性}
+神经元部分先从生物结构讲起：树突接收输入，胞体整合信号，轴突负责把动作电位传给别的神经元。课程视频特意强调了一个数量级事实：人脑里神经元数量极大，而且多数神经元并不是孤立工作的，树突平均会接收到很多其他神经元的输入。这个背景解释了为什么单神经元模型既要足够简洁，又要保留“输入--整合--输出”这条基本链路。
+
+动作电位在课堂里被描述成一个从化学信号转成电信号的过程：突触前释放递质，递质进入突触间隙，被突触后受体接收，受体打开离子通道，离子流入引发突触后电位。也就是说，单神经元模型里最关键的不是“会不会放电”这个结论，而是受体、通道、离子流和膜电位之间怎样协同。
+
+\subsection{Hodgkin-Huxley 的意义：不仅是生物细节，也是等效电路}
+课程视频把 Hodgkin-Huxley 模型放在很核心的位置：它不仅刻画了受体动力学和膜电位变化，还提供了一个等效电路视角。这个视角很重要，因为它把“生物过程”翻译成了“受体、电容、电源”组成的电路，使得单神经元可以既像生物系统，又像一个可计算的动力学系统。
+
+\begin{lstlisting}[caption={QIF 与 HH 的标准仿真接口示意。},label={lst:qif-hh}]
+using Neuroblox
+using OrdinaryDiffEq
+using CairoMakie
+using Random
+Random.seed!(1)
+
+@named qif = QIFNeuron(; I_in=4)
+sys = system(qif; discrete_events = [60] => [qif.I_in ~ 10])
+tspan = (0, 100) # ms
+prob = ODEProblem(sys, [], tspan)
+sol = solve(prob, Tsit5())
+
+fig = rasterplot(qif, sol; threshold=-40)
+fig = frplot(qif, sol; threshold=-40, win_size=20)
+V = voltage_timeseries(qif, sol)
+fig = lines(V)
+
+using StochasticDiffEq
+@named hh = HHNeuronExci_STN_Adam_Blox(; sigma = 2)
+sys = system(hh)
+prob = SDEProblem(sys, [], (0, 1000))
+sol = solve(prob, RKMil())
+fig = powerspectrumplot(hh, sol; sampling_rate=0.01)
+\end{lstlisting}
+
+上面的代码块把本讲最重要的三种可观测量放在一起了：\texttt{rasterplot} 看离散放电，\texttt{frplot} 看滑动窗意义下的发放率，\texttt{powerspectrumplot} 则把随机扰动下的频谱结构显示出来。课程页还特地指出，随机 HH 神经元的模型中含有 brownian noise 项，它会改变频谱上的能量分布，所以只看时域波形是不够的。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.47\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/neuron_mass__qif_raster.png}
+\subcaption{QIF 的 rasterplot。}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.47\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/neuron_mass__qif_fr.png}
+\subcaption{QIF 的 firing-rate plot。}
+\end{subfigure}
+\caption{QIF 神经元的两个典型可视化视角。课程页把它们配在一起，用来说明“是否发放”与“发放率变化”是两层不同信息。}
+\label{fig:qif-recipes}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/neuron_mass__hh_power.png}
+\caption{随机 HH 神经元的功率谱。课程页用它提醒读者：噪声并不只是“扰动”，它会重塑频谱结构。}
+\label{fig:hh-power}
+\end{figure}
+
+\subsection{Integrator 与 Resonator：FI 曲线不是装饰图}
+视频接着把神经元分成两类：integrator 与 resonator。课程页用 FI curve 把二者区分开来。integrator 的直觉是“注入越多电流，平均发放率越高”；resonator 更像一个带阈值的开关，在某些输入范围内几乎不发放，跨过某个区间后才进入明显放电状态。
+
+这一段的关键不是分类名，而是课程视频强调的 \emph{bifurcation} 观点：同一个神经模型，通过改变参数，可以在静默、节律发放、burst、单发放之间切换。换句话说，FI 曲线和分岔图不是附录，而是神经元动力学的相图。
+
+\subsection{Izhikevich 模型的教学价值}
+视频用 Izhikevich 作为例子，原因很朴素：二维系统足够简单，所以可以真的把很多 regime 画出来。课程页也延续这个思路，用 QIF / Izhikevich 类模型演示 raster、firing rate 和电压轨迹。相比 HH 这样更细的生物模型，Izhikevich 的优势是参数和变量更少，便于把“模型能做什么”先看清楚；代价则是生物解释力更弱。
+
+\begin{importantbox}{这一讲对单神经元模型的态度}
+更简单的模型不一定更“假”。如果你的研究问题是发放模式、阈值效应、分岔或噪声如何改变群体行为，那么更小的模型常常更有解释力，因为你能直接看见它的 regime 变化。
+\end{importantbox}
+
+\subsection{本章小结}
+神经元部分真正传递的是一个方法论：先把单细胞动力学抽象成可计算的状态，再用合适的可视化去读它的 regime。发放率曲线、raster、电压轨迹和频谱分别回答不同的问题，不能互相替代。
+
+\section{神经团块：平均场、振荡器与下一代模型}
+神经团块模型比单神经元更上一层抽象楼梯。它们要描述的不是某个细胞逐毫秒的膜电位，而是群体平均活动、同步性和振荡结构。视频里给出的第一个例子是 Wilson-Cowan，它用兴奋/抑制两个变量就能描述一个神经群体的平均 E-I 平衡。
+
+\begin{lstlisting}[caption={Wilson-Cowan Blox 的标准仿真与状态提取。},label={lst:wilson-cowan}]
+using Neuroblox
+using OrdinaryDiffEq
+using CairoMakie
+using Random
+Random.seed!(1)
+
+@named nm = WilsonCowan()
+sys = system(nm)
+tspan = (0, 100) # ms
+prob = ODEProblem(sys, [], tspan)
+sol = solve(prob, Tsit5())
+
+fig, ax = plot(sol)
+axislegend(ax)
+fig
+
+E = state_timeseries(nm, sol, "E")
+fig = lines(E)
+fig
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\linewidth]{figures/wc_all.png}
+\caption{Wilson-Cowan Blox 的全部状态轨迹。它展示了一个典型的二维平均场模型如何在时间上收敛到稳定状态。}
+\label{fig:wc-all}
+\end{figure}
+
+视频对神经团块的定义很有帮助：它们通常是 oscillator 或 oscillator 的集合，主要关注平均活动与相位关系，而不是单个细胞的微观机理。课程页进一步指出，很多这类模型是 phenomenological 的，也就是说，它们并不直接依赖完整生物过程，而是刻意保留最能解释数据的动力学骨架。
+
+这就解释了为什么同一个模型在改变一个参数后，可以从“所有振荡器都在近似同频地同步振荡”，切换到“振荡器更分散、没有同步、甚至分成不同 cluster”的 regime。对神经科学来说，这种 regime 变化比某个单一状态值更重要，因为很多实验现象本质上就是同步性变化。
+
+\subsection{下一代神经团块模型：从假设到解析推导}
+视频后半段把神经团块进一步分层：除了 Wilson-Cowan 和更经验化的 rate model 之外，还有 next generation neural mass models。它们的关键词是 \emph{analytically derived}。先假设底层神经元的行为，再从一群这样的神经元及其连接结构出发，解析推导出群体方程。
+
+课程视频特别点名了 QIF 神经元和 Izhikevich 神经元：如果先假设一个这样的神经元群体，再配上连接结构，就可以导出更灵活的群体模型。这里的“更灵活”不是口号，而是从图像上可以看出来的：一些同步区段比静默区段更长，说明模型能够表达更复杂的非周期行为，而不是简单的纯正弦振荡。
+
+\subsection{本章小结}
+神经团块不是“神经元的简写版”，而是一个不同层级的问题：当我们关心平均活动、同步、去同步和 regime 切换时，群体模型比单细胞模型更直接。下一代模型进一步把“群体平均”与“底层单元假设”连接起来，既保留解释力，也保留灵活性。
+
+\section{Sources：连续输入、事件触发与 DBS}
+这一节是本讲最实用的部分。课程页先把 source 定义清楚：它是一个特殊的 Blox 子类型，只有输出、没有输入，因此只能连到别的 Blox 上，而不能被别的 Blox 反向连接。这个定义非常关键，因为它把“外部驱动”从普通模型里拆了出来，变成一个一等公民。
+
+\subsection{连续输入源}
+连续输入源由代数方程，甚至微分方程构成。课程页用 ConstantInput 驱动 Wilson-Cowan 作为例子。课程页里给出的连接关系可以抽象成下面的形式：
+\[
+\mathrm{nm}_{+jcn}(t) \sim w_{\mathrm{inp}\to\mathrm{nm}}\, \mathrm{inp}_{+u}(t).
+\]
+这里，\(\mathrm{nm}_{+jcn}(t)\) 是下游 Blox 中被注入的电流项，\(w_{\mathrm{inp}\to\mathrm{nm}}\) 是连接权重，\(\mathrm{inp}_{+u}(t)\) 是 source 的输出。
+
+\begin{lstlisting}[caption={ConstantInput 连接 Wilson-Cowan 的写法。},label={lst:constant-input}]
+@named inp = ConstantInput(; I=3)
+connection_rule(inp, nm, weight=1)
+
+g = MetaDiGraph()
+add_edge!(g, inp => nm, weight = 1)
+@named sys = system_from_graph(g)
+prob = ODEProblem(sys, [], tspan)
+sol = solve(prob, Tsit5())
+
+fig, ax = plot(sol)
+axislegend(ax)
+fig
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/neuron_mass__wc_input.png}
+\caption{ConstantInput 连接后 Wilson-Cowan 的输出。输入把原先的 E-I 平衡整体推移了。}
+\label{fig:wc-input}
+\end{figure}
+
+这张图的教学意义很直接：source 不只是“多加一个常数”，而是可以把整个系统的平衡点拖到新的位置。视频也明确指出，后续课程会用更复杂的 circuit 来继续研究 E-I balance 的变化。
+
+\subsection{事件触发 spike 源}
+下一类 source 是事件触发式的 spike source。课程页先给出 PoissonSpikeTrain：先定一个时间区间 \texttt{tspan}，再给固定 spike rate；或者把 rate 设成一个带 \texttt{distribution} 和 \texttt{dt} 的结构，让 rate 自己也随时间随机变化。
+
+\begin{lstlisting}[caption={固定速率与随机速率的 PoissonSpikeTrain。},label={lst:poisson-spike}]
+tspan = (0, 200) # ms
+spike_rate = 0.01 # spikes / ms
+@named spike_train_rate = PoissonSpikeTrain(spike_rate, tspan)
+
+using Distributions
+spike_rate = (distibution = Normal(1, 0.1), dt = 10)
+@named spike_train_dist = PoissonSpikeTrain(spike_rate, tspan)
+\end{lstlisting}
+
+课程页接着给出一个自定义事件源的完整示例：\texttt{BernoulliSpikes}。实现思路很清楚：先定义 source 结构体，再重载 \texttt{generate\_spike\_times} 来生成 spike 时间，最后重载 \texttt{connection\_spike\_affects} 来指定每次 spike 到来时如何修改下游神经元的方程。
+
+\begin{lstlisting}[caption={BernoulliSpikes 与事件回调的自定义示例。},label={lst:bernoulli-spikes}]
+struct BernoulliSpikes <: SpikeSource
+    name
+    namespace
+    tspan
+    probability_spike
+    dt
+    function BernoulliSpikes(probability_spike, tspan, dt; name, namespace=nothing)
+        new(name, namespace, tspan, probability_spike, dt)
+    end
+end
+
+import Neuroblox: generate_spike_times, connection_spike_affects
+
+function generate_spike_times(source::BernoulliSpikes)
+    t_range = source.tspan[1]:source.dt:source.tspan[2]
+    t_spikes = Float64[]
+    for t in t_range
+        if rand(Bernoulli(source.probability_spike))
+            push!(t_spikes, t)
+        end
+    end
+    return t_spikes
+end
+
+function connection_spike_affects(source::BernoulliSpikes, ifn::IFNeuron, w)
+    eqs = [ifn.I_in ~ ifn.I_in + w]
+    return eqs
+end
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\linewidth]{figures/neuron_mass__ifn_input.png}
+\caption{Bernoulli / Poisson 风格 spike source 驱动 IF 神经元的输出。}
+\label{fig:ifn-input}
+\end{figure}
+
+\begin{importantbox}{为什么这里的 spike 会越来越密？}
+课程页最后问了一个很好的问题：为什么这里的 spikes 会越来越频繁？答案就在 \texttt{connection\_spike\_affects} 里。每次 source spike 到来，代码都把 \texttt{ifn.I\_in} 再加上一个权重 \(w\)。这等价于给神经元加了正反馈，所以输入会逐渐抬升，发放就会越来越密。
+\end{importantbox}
+
+这也是这段示例最有价值的地方：它不是单纯演示“怎么写自定义 source”，而是在演示“事件驱动系统如何通过回调改变下游动力学”。
+
+\subsection{深部脑刺激}
+DBS 是课程页里最贴近真实应用的 source 例子。视频把它解释成一种神经外科手术：经典应用之一是帕金森病，用于减轻震颤和僵直。视频同时强调了 DBS 的两个优点：可调、可逆；这使它在真实临床中很有价值，也让它成为一个很好的建模协议对象。
+
+课程页展示了几类 DBS 结构。最基础的是周期性方波脉冲：通过 \texttt{frequency}、\texttt{amplitude}、\texttt{pulse\_width}、\texttt{start\_time} 和 \texttt{smooth} 等参数，就可以定义一个刺激源。更进一步的 \texttt{ProtocolDBS} 则允许 bursts、silence window 和更复杂的协议结构。
+
+\begin{lstlisting}[caption={DBS 与 ProtocolDBS 的参数化思路。},label={lst:dbs}]
+@named stim = DBS(
+    frequency=100.0,
+    amplitude=200.0,
+    pulse_width=0.5,
+    offset=0.0,
+    start_time=5.0,
+    smooth=0.0
+)
+
+frequency = 20.0
+amplitude = 1.0
+pulse_width = 20.0
+smooth = 3e-4
+pulse_start_time = 0.01
+offset = 0
+pulses_per_burst = 3
+bursts_per_block = 2
+pre_block_time = 200.0
+inter_burst_time = 200.0
+
+@named dbs = ProtocolDBS(
+    frequency=frequency,
+    amplitude=amplitude,
+    pulse_width=pulse_width,
+    smooth=smooth,
+    offset=offset,
+    pulses_per_burst=pulses_per_burst,
+    bursts_per_block=bursts_per_block,
+    pre_block_time=pre_block_time,
+    inter_burst_time=inter_burst_time,
+    start_time=pulse_start_time
+)
+\end{lstlisting}
+
+\begin{warningbox}{DBS 例子里的两个“错误输出”其实是教学内容}
+课程页保留了两类报错：\texttt{type DBS has no field stimulus} 和 \texttt{KeyError: key :nn+V not found}。它们提醒读者两件事：第一，不要想当然地把对象当字段容器；第二，连接后的状态名要以实际系统暴露的变量为准。换句话说，这不是“代码坏了”，而是课程页在提醒你检查 API 和变量命名。
+\end{warningbox}
+
+当 stimulus 有跳变时，课程页强调必须把 transition points 作为 \texttt{tstops} 传给求解器：
+\[
+t_{\mathrm{transition}} = \{\, t_i \mid \text{detect\_transitions}(\text{stimulus}) \,\}.
+\]
+这样做的目的不是“让 solver 更慢”，而是避免 discontinuity 被跨步积分抹平。课程页还明确提到，加入这些 stop points 可以提高精度和稳定性。
+
+\begin{warningbox}{本地导出缺失的刺激图}
+课程页里本来还有几张 DBS 刺激图，但当前本地导出没有对应的渲染资产，所以只能根据代码和文字描述来重建它们的含义。相关缺失已经记录在 omission log 中。
+\end{warningbox}
+
+\subsection{本章小结}
+Sources 的重点不是“再造一个模型”，而是把外部驱动变成结构化对象：连续输入改变平衡点，事件源改变事件时序，DBS 则把临床协议变成可求解的刺激信号。对 Neuroblox 来说，这些 source 和神经元、神经团块一样重要，因为它们决定系统到底被什么外部条件驱动。
+
+\section{练习与参考}
+课程页最后留了三道练习题，而且每一道都很有教学针对性。第一题是实现一个自定义 \texttt{SpikeSource}，提示就是前面的 \texttt{BernoulliSpikes}。第二题是写一个 Blox 的 f-I curve 画图函数，提示是用 \texttt{ConstantInput} 改变输入电流，再用 \texttt{firing\_rate(blox, solution; threshold=...)} 计算发放率。第三题是写一个围绕给定时间点的 peri-stimulus time histogram，提示是结合 \texttt{detect\_spikes(blox, solution; threshold=...)} 和 \texttt{hist} 或 \texttt{barplot}。
+
+\begin{itemize}
+  \item 自定义 spike source：先复用 \texttt{BernoulliSpikes} 的结构，再换掉 spike 生成规则。
+  \item f-I curve：循环改变输入电流，记录不同输入下的平均发放率。
+  \item PSTH：先找出 spike，再围绕参考时刻做直方图。
+\end{itemize}
+
+\subsection{参考文献}
+课程页给出的两条参考文献是：
+\begin{itemize}
+  \item Gerstner W, Kistler WM, Naud R, Paninski L. \emph{Neuronal Dynamics: From Single Neurons to Networks and Models of Cognition, Parts I \& II}. Cambridge University Press, 2014.
+  \item Adam, Elie M., et al. “Deep brain stimulation in the subthalamic nucleus for Parkinson's disease can restore dynamics of striatal networks.” \emph{PNAS} 119.19 (2022): e2120808119.
+\end{itemize}
+
+这页还回到课程页本身的操作提示：本节对应的 notebook 是 \texttt{neuron\_mass.ipynb}。对于实际练习而言，最值得复现的不是某一张图，而是前面四个工具链：\texttt{plot / rasterplot / frplot / powerspectrumplot}、\texttt{connection\_rule}、\texttt{generate\_spike\_times} 和 \texttt{detect\_transitions}。
+
+\subsection{本章小结}
+练习题和参考文献把整讲收束到一个明确的学习路径：把单神经元、神经团块和 source 的接口都写一遍，再去读文献，就会更容易理解“为什么这些模型要这么分层”。
+
+\section{总结与延伸}
+这一讲的主线其实非常清楚：Neuroblox 不是把所有神经科学问题都压成一个统一方程，而是把不同层次的建模对象保留下来，让你按问题选择合适的抽象层。单神经元模型更擅长回答兴奋性、阈值和噪声问题；神经团块更擅长回答平均活动、同步性和 regime 切换；source 则把外部输入、刺激协议和实验条件显式化。
+
+如果把这讲压缩成一句话，就是：\emph{先决定通信方式，再决定动力学细节}。这也是为什么课程页会反复演示 \texttt{connection\_rule}、\texttt{plot}、\texttt{rasterplot}、\texttt{frplot}、\texttt{powerspectrumplot} 以及 \texttt{detect\_transitions}。这些函数不是附属工具，而是帮助你读懂系统层级的“观察窗口”。
+
+从研究角度看，这讲最有价值的地方在于它并没有把“更简单”与“更粗糙”画等号。QIF、Izhikevich、Wilson-Cowan、Jensen、next generation model、Poisson spike source、ProtocolDBS，这些对象各自占据一个不同的抽象区间。你真正要做的，不是把它们统一成一个形式，而是知道什么时候该用哪一个。
+
+\subsection{拓展阅读}
+如果要继续往下读，建议优先回到课程页的 notebooks，把这讲的几组最小闭环都跑一遍：
+\begin{itemize}
+  \item 单神经元闭环：\texttt{QIFNeuron}、\texttt{rasterplot}、\texttt{frplot}、\texttt{voltage\_timeseries}；
+  \item 随机动力学闭环：\texttt{HHNeuronExci\_STN\_Adam\_Blox} 与 \texttt{powerspectrumplot}；
+  \item 外部输入闭环：\texttt{ConstantInput}、\texttt{PoissonSpikeTrain}、\texttt{BernoulliSpikes}；
+  \item DBS 闭环：\texttt{DBS}、\texttt{ProtocolDBS}、\texttt{detect\_transitions}、\texttt{tstops}。
+\end{itemize}
+
+\subsection{本章小结}
+这一讲的最终结论很简单：抽象层次不是为了省略生物学，而是为了让问题和模型的通信结构对齐。只要你能分清“谁在输出、谁在接收、谁在被调制”，Neuroblox 里的很多功能就不再是 API，而是模型语义本身。
+
+\end{document}

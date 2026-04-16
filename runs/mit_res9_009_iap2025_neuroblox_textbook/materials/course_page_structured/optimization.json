@@ -1,0 +1,177 @@
+{
+  "source_file": "runs/mit_res9_009_iap2025_neuroblox_textbook/materials/course_pages/optimization.html",
+  "title": "Parameter Fitting using Optimization",
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Parameter Fitting using Optimization"
+    },
+    {
+      "level": "h2",
+      "text": "Introduction"
+    },
+    {
+      "level": "h2",
+      "text": "Model Definition"
+    },
+    {
+      "level": "h2",
+      "text": "Initial Guess for Parameters"
+    },
+    {
+      "level": "h2",
+      "text": "Parameter Fit using Optimization"
+    },
+    {
+      "level": "h2",
+      "text": "Results"
+    },
+    {
+      "level": "h2",
+      "text": "References"
+    }
+  ],
+  "paragraphs": [
+    "Introduction Model Definition Initial Guess for Parameters Parameter Fit using Optimization Results References",
+    "Model Definition Initial Guess for Parameters Parameter Fit using Optimization Results References",
+    "Initial Guess for Parameters Parameter Fit using Optimization Results References",
+    "Parameter Fit using Optimization Results References",
+    "Results References",
+    "References",
+    "Until now we have worked on solving what is known as the forward problem, that is constructing and simulating systems of differential equations. We will now work on the inverse problem, which is also known as parameter fitting. Our current workflow starts with a given dataset and a model and in the end we want to retrieve the model parameters that best match the dataset. In other words, if we are to simulate the model using these optimized parameters, then we will get back data that is as close as possible to our original dataset.",
+    "We will work with fictive data, that is we will use a model to generate our fictive dataset given some ground truth parameters and then we will use this data to fit the model. Ideally we want the optimized parameters after the fitting process to be the same as the ground truth parameters we used to generate our data. Even though this example is using fictive data, this workflow is a recommended first step in a parameter fitting analysis, as it tells us if and which parameters are even possible to retrieve using our current model and data.",
+    "The workflow to fit a model to real data is almost identical to this example with the exception that we do not need to run an initial simulation to generate data. Instead we would just read it from a file, as we have previously done, e.g. using CSV.jl and DataFrames.jl .",
+    "In this parameter fitting process we will use an optimization approach to minimize the least squares error between the fictive data and the model simulations. One can easily swap the least squares loss function with any other optimization objective. Namely we will use the LBFGS optimizer, a quasi-Newton method that computes the Jacobian matrix of the objective function and approximates the inverse of its Hessian [1].",
+    "Learning goals",
+    "implement parameter fitting using optimization methods. introduce this workflow as a first step in any parameter fitting analysis to check the limits of our approach.",
+    "implement parameter fitting using optimization methods.",
+    "introduce this workflow as a first step in any parameter fitting analysis to check the limits of our approach.",
+    "introduce this workflow as a first step in any parameter fitting analysis to check the limits of our approach.",
+    "We will be using a next generation neural mass model of E-I balance here, which we have seen before. We will treat the four coupling coefficients between the excitatory and inhibitory componenets of the model (excitatory-excitatory, excitatory-inhibitory, inhibitory-excitatory and inhibitory-inhibitory) as the unknown parameters to be fitted.",
+    "We add some observation noise to our fictive data to make it look more realistic. At each timepoint each state receives noise that is sampled from a Normal distribution around 0 with a standard deviation of 0.1 .",
+    "For most optimization methods we need to provide an initial guess for the parameters to be fitted. Let's add a guess and visualize the result of using these parameters in our model compared to the ground truth data.",
+    "We are now ready to define the loss function and the optimization problem and then solve it to get the optimized values for the four coupling parameters.",
+    "Since the least squares optimization was run successfully, we can use the returned parameters as the ones that best fit the data. First of all let's compare them to the ground truth.",
+    "We observe that the fitted parameters are close to the groudn truth ones, certainly much closer than our initial guess. Let's now simulate the model using these optimized parameters and compare the timeseries with the original data.",
+    "Notice how the simulation using the fitted parameters is much closer to the ground truth data compared to the previous figure where we compared the data to a simulation using our initial guess. The parameter fitting worked on two levels; the parameter values are close to the ground truth, and the simulation results when using them come close to the data. So even though the parameters do not exactly match their ground truth values, we notice that the simulation results closely match the underlying data, excluding the added observation noise.",
+    "[1] Byrd, R.H., Lu, P., Nocedal, J., & Zhu, C. (1995). A Limited Memory Algorithm for Bound Constrained Optimization. SIAM J. Sci. Comput., 16, 1190-1208.",
+    "[1] Byrd, R.H., Lu, P., Nocedal, J., & Zhu, C. (1995). A Limited Memory Algorithm for Bound Constrained Optimization. SIAM J. Sci. Comput., 16, 1190-1208."
+  ],
+  "code_blocks": [
+    {
+      "id": "code_01",
+      "text": "using\n Neuroblox\n\nusing\n OrdinaryDiffEq\n\nusing\n Optimization \n## the general interface for solving optimization problems\n\n\nusing\n CairoMakie\n\nusing\n SymbolicIndexingInterface \n## a package to handle parameter changes in our ODEProblem on every optimization iteration\n\n\nusing\n Distributions\n\nusing\n Random\n\nRandom.seed!(\n1\n)\n\n\n@named\n nm = NextGenerationEIBlox(; kₑₑ=\n2\n, kᵢᵢ=\n1.5\n, kₑᵢ=\n5.5\n, kᵢₑ=\n7\n);\n\nsys = system(nm)\n\ntspan = (\n0\n, \n100\n)\nt_save = first(tspan):last(tspan) \n## define the exact timepoints when data/simulation will be saved\n\n\n\n# ground truth parameter values, ideally the ones to be retrieved after optimization\n\np_ground_truth = [\n2\n, \n1.5\n, \n5.5\n, \n7\n]\nprob = ODEProblem(\n    sys,\n    [],\n    tspan,\n    [nm.kₑₑ => p_ground_truth[\n1\n], nm.kᵢᵢ => p_ground_truth[\n2\n], nm.kₑᵢ => p_ground_truth[\n3\n], nm.kᵢₑ => p_ground_truth[\n4\n]];\n    saveat=t_save\n)\n\n\n# generate fictive data, aka the ground truth\n\ndata = solve(prob, Tsit5());"
+    },
+    {
+      "id": "code_02",
+      "text": "noise_distribution = Normal(\n0\n, \n0.1\n)\ndata .+= rand(noise_distribution, size(data));"
+    },
+    {
+      "id": "code_03",
+      "text": "# define a setter function to easily change parameter values during each optimization iteration\n\nsetter! = setp(sys, [nm.kₑₑ, nm.kᵢᵢ, nm.kₑᵢ, nm.kᵢₑ])\n\n\n# initial guess for the parameters to be optimized\n\np0 = [\n0.2\n, \n3.3\n, \n2\n, \n3.5\n]\nsetter!(prob, p0)\nsol = solve(prob, Tsit5())\n\nstates = unknowns(sys)\nfig = Figure(size = (\n1600\n, \n800\n), fontsize=\n22\n)\naxs = [\n    Axis(fig[\n1\n,\n1\n], title=\nString\n(\nSymbol\n(states[\n1\n]))),\n    Axis(fig[\n1\n,\n2\n], title=\nString\n(\nSymbol\n(states[\n2\n]))),\n    Axis(fig[\n2\n,\n1\n], title=\nString\n(\nSymbol\n(states[\n3\n]))),\n    Axis(fig[\n2\n,\n2\n], title=\nString\n(\nSymbol\n(states[\n4\n]))),\n    Axis(fig[\n3\n,\n1\n], title=\nString\n(\nSymbol\n(states[\n5\n]))),\n    Axis(fig[\n3\n,\n2\n], title=\nString\n(\nSymbol\n(states[\n6\n]))),\n    Axis(fig[\n4\n,\n1\n], title=\nString\n(\nSymbol\n(states[\n7\n]))),\n    Axis(fig[\n4\n,\n2\n], title=\nString\n(\nSymbol\n(states[\n8\n])))\n]\n\nfor\n (i,s) \nin\n enumerate(states)\n    lines!(axs[i], data[s], label=\n\"Data\"\n)\n    lines!(axs[i], sol[s], label=\n\"Initial Guess\"\n)\n\nend\n\ncolsize!(fig.layout, \n1\n, Relative(\n1\n/\n2\n))\nLegend(fig[\n5\n,\n1\n], last(axs))\nfig"
+    },
+    {
+      "id": "code_04",
+      "text": "# define the least squares loss function\n\n\nfunction\n loss(p, data, prob)\n    setter!(prob, p)\n    sol = solve(prob, Tsit5())\n\n    \nreturn\n sum(abs2, sol .- data)\n\nend\n\n\n\n# Use finite differences to calculate gradients of the loss function\n\nobjective = OptimizationFunction((p, data) -> loss(p, data, prob), AutoFiniteDiff())\nprob_opt = OptimizationProblem(objective, p0, data)\n\n# run the optimization using the LBFGS optimizer\n\nres = solve(prob_opt, Optimization.LBFGS())\n\n# print the return code to check that the optimization was successful\n\n\n@show\n res.retcode"
+    },
+    {
+      "id": "code_05",
+      "text": "res.retcode = SciMLBase.ReturnCode.Success\n"
+    },
+    {
+      "id": "code_06",
+      "text": "println(\n\"Ground truth parameters are \n$(p_ground_truth)\n\"\n)\nprintln(\n\"Fitted parameters are \n$(res.u)\n\"\n)"
+    },
+    {
+      "id": "code_07",
+      "text": "Ground truth parameters are [2.0, 1.5, 5.5, 7.0]\nFitted parameters are [0.6622357784988369, 1.5202233128437863, 4.586785049600296, 6.986278917765284]\n"
+    },
+    {
+      "id": "code_08",
+      "text": "setter!(prob, res.u)\nsol = solve(prob, Tsit5())\n\nfig = Figure(size = (\n1600\n, \n800\n), fontsize=\n22\n)\naxs = [\n    Axis(fig[\n1\n,\n1\n], title=\nString\n(\nSymbol\n(states[\n1\n]))),\n    Axis(fig[\n1\n,\n2\n], title=\nString\n(\nSymbol\n(states[\n2\n]))),\n    Axis(fig[\n2\n,\n1\n], title=\nString\n(\nSymbol\n(states[\n3\n]))),\n    Axis(fig[\n2\n,\n2\n], title=\nString\n(\nSymbol\n(states[\n4\n]))),\n    Axis(fig[\n3\n,\n1\n], title=\nString\n(\nSymbol\n(states[\n5\n]))),\n    Axis(fig[\n3\n,\n2\n], title=\nString\n(\nSymbol\n(states[\n6\n]))),\n    Axis(fig[\n4\n,\n1\n], title=\nString\n(\nSymbol\n(states[\n7\n]))),\n    Axis(fig[\n4\n,\n2\n], title=\nString\n(\nSymbol\n(states[\n8\n])))\n]\n\nfor\n (i,s) \nin\n enumerate(states)\n    lines!(axs[i], data[s], label=\n\"Data\"\n)\n    lines!(axs[i], sol[s], label=\n\"Optimized Solution\"\n)\n\nend\n\ncolsize!(fig.layout, \n1\n, Relative(\n1\n/\n2\n))\nLegend(fig[\n5\n,\n1\n], last(axs))\nfig"
+    }
+  ],
+  "images": [
+    {
+      "id": "image_01",
+      "src": "/course/assets/pages/optimization/code/output/opt_init.svg",
+      "alt": ""
+    },
+    {
+      "id": "image_02",
+      "src": "/course/assets/pages/optimization/code/output/opt_final.svg",
+      "alt": ""
+    }
+  ],
+  "links": [
+    {
+      "text": "Introduction",
+      "href": "#introduction"
+    },
+    {
+      "text": "Model Definition",
+      "href": "#model_definition"
+    },
+    {
+      "text": "Initial Guess for Parameters",
+      "href": "#initial_guess_for_parameters"
+    },
+    {
+      "text": "Parameter Fit using Optimization",
+      "href": "#parameter_fit_using_optimization"
+    },
+    {
+      "text": "Results",
+      "href": "#results"
+    },
+    {
+      "text": "References",
+      "href": "#references"
+    },
+    {
+      "text": "Parameter Fitting using Optimization",
+      "href": "#parameter_fitting_using_optimization"
+    },
+    {
+      "text": "Introduction",
+      "href": "#introduction"
+    },
+    {
+      "text": "Model Definition",
+      "href": "#model_definition"
+    },
+    {
+      "text": "Initial Guess for Parameters",
+      "href": "#initial_guess_for_parameters"
+    },
+    {
+      "text": "Parameter Fit using Optimization",
+      "href": "#parameter_fit_using_optimization"
+    },
+    {
+      "text": "Results",
+      "href": "#results"
+    },
+    {
+      "text": "References",
+      "href": "#references"
+    },
+    {
+      "text": "Byrd, R.H., Lu, P., Nocedal, J., & Zhu, C. (1995). A Limited Memory Algorithm for Bound Constrained Optimization. SIAM J. Sci. Comput., 16, 1190-1208.",
+      "href": "https://doi.org/10.1137/0916069"
+    },
+    {
+      "text": "CC BY-SA 4.0",
+      "href": "http://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    {
+      "text": "Franklin.jl",
+      "href": "https://github.com/tlienart/Franklin.jl"
+    },
+    {
+      "text": "Julia programming language",
+      "href": "https://julialang.org"
+    }
+  ],
+  "youtube_embeds": []
+}

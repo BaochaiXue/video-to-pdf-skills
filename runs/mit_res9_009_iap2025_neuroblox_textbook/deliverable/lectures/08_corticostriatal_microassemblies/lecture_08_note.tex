@@ -1,0 +1,332 @@
+
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstdefinelanguage{Julia}{
+    morekeywords={using,for,in,end,if,else,elseif,begin,let,return,function,mutable,struct,macro,quote,try,catch,do,global,local,const,true,false,nothing},
+    sensitive=true,
+    morecomment=[l]\#,
+    morestring=[b]"
+}
+\lstset{
+    language=Julia,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false,
+    inputencoding=utf8
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{MIT RES.9-009 第08讲：皮层-纹状体微组装的仿生模型}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{MIT OCW Neuroblox course page}
+\newcommand{\videopublishdate}{January IAP 2025}
+\newcommand{\videoduration}{课程页 / notebook}
+\newcommand{\videourl}{https://ocw.mit.edu/courses/res-9-009-introduction-to-computational-neuroscience-with-neuroblox-january-iap-2025/}
+\newcommand{\videocoverpath}{figures/cover.png}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{课程目标与层级建模}
+这讲的目标，不是把一个孤立回路讲成一个“能跑起来的例子”，而是把 Neuroblox 的层级建模思想讲清楚：先从单个神经元对象出发，再把若干神经元封装成一个局部功能块，最后把多个功能块再组合成更高一级的皮层模型。官方课程页明确给出三层路线：从 \emph{Neuron Blox} 到包含神经元对象的 \emph{CompositeBlox}，再到包含前者的更大 \emph{CompositeBlox}。这个自下而上的路线很重要，因为后面要做的 category learning 不是靠一个神经元回路完成的，而是靠若干层结构叠加出微组装、节律调制和视觉输入的联动。
+
+\begin{importantbox}{先看结构，再看代码}
+这一讲的关键不在“代码跑通”，而在于理解每一级封装解决了什么问题。单神经元层负责可解释的电生理动力学，WTA 层负责局部竞争，CorticalBlox 负责把许多局部竞争拼成浅层皮层块，最后再加上 ASC1 与图像刺激，才得到可用于后续 category learning 的扩展系统。
+\end{importantbox}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/cover.png}
+\caption{WTA 侧抑制回路示意图，也是本讲的封面图。}
+\end{figure}
+
+这也解释了为什么课程页在开头就要求先处理 \texttt{CS\_circuit.ipynb}：它不是一个“附录式练习”，而是后续带塑性、带分类学习的大模型的结构前导。换句话说，这讲真正教的是一种搭建顺序，而不是单个对象的 API 使用。
+
+\subsection{本章小结}
+本讲先把“神经元--微回路--皮层块--扩展输入”这条层级链条立起来。只要把这个链条抓住，后面的 WTA、ASC1 和视觉输入就不是零散技巧，而是同一个建模框架中的不同层级。
+
+\section{Winner-Take-All 与侧抑制回路}
+第一段主体内容是手工搭建一个侧抑制回路，也就是 winner-takes-all（WTA）回路。官方页把它作为 Figure 1，并明确说这个回路受浅层皮层结构启发。电路里有 5 个兴奋性神经元，它们都和同一个抑制性中间神经元形成互惠连接：兴奋性神经元把活动送给抑制神经元，抑制神经元再把抑制回送给各个兴奋性神经元。这样一来，局部的共同兴奋会被一个共享抑制器“裁决”，最终往往只留下少数赢家。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/wta_stack.png}
+\caption{5 个兴奋性神经元与 1 个抑制性神经元构成的 stackplot。}
+\end{figure}
+
+\begin{lstlisting}[caption={手工搭建 WTA 回路的核心逻辑},label={lst:wta_manual}]
+using Neuroblox
+using OrdinaryDiffEq
+using Random
+using CairoMakie
+
+model_name = :g
+@named inh = HHNeuronInhibBlox(namespace=model_name, G_syn = 4.0)
+@named exci1 = HHNeuronExciBlox(namespace=model_name, I_bg = 5 * rand())
+@named exci2 = HHNeuronExciBlox(namespace=model_name, I_bg = 5 * rand())
+@named exci3 = HHNeuronExciBlox(namespace=model_name, I_bg = 5 * rand())
+@named exci4 = HHNeuronExciBlox(namespace=model_name, I_bg = 5 * rand())
+@named exci5 = HHNeuronExciBlox(namespace=model_name, I_bg = 5 * rand())
+
+g = MetaDiGraph()
+for exci_neuron in [exci1, exci2, exci3, exci4, exci5]
+    add_edge!(g, inh => exci_neuron, weight = 1)
+    add_edge!(g, exci_neuron => inh, weight = 1)
+end
+
+@named sys = system_from_graph(g)
+prob = ODEProblem(sys, [], (0.0, 1000), [])
+sol = solve(prob, Vern7())
+fig = stackplot([exci1, exci2, exci3, exci4, exci5, inh], sol)
+\end{lstlisting}
+
+这段代码有三个层次的语义。第一，`HHNeuronExciBlox` 和 `HHNeuronInhibBlox` 不是把电生理细节压扁成一个黑箱，而是把兴奋/抑制神经元作为可组合对象暴露出来。第二，`MetaDiGraph()` 让连接关系先于系统方程存在，图决定了后续 \texttt{system\_from\_graph} 会生成怎样的动力学系统。第三，`stackplot` 只是可视化接口，但它在教学上很重要，因为它把每个神经元的时序活动按固定偏移堆叠起来，方便看出谁先活跃、谁被抑制。
+
+\begin{knowledgebox}{`density` 代表什么}
+在把两个 WTA 进一步连接时，`density` 不是权重，而是连接概率。官方页明确说，它对应于从一个 WTA 的兴奋性神经元到另一个 WTA 的兴奋性神经元是否连边的 Bernoulli 成功概率。换句话说，`density` 控制的是结构稀疏性，`weight` 才控制突触强度。
+\end{knowledgebox}
+
+\begin{lstlisting}[caption={把 WTA 封装成复合块并连接两个 WTA},label={lst:wta_composite}]
+N_exci = 5
+@named wta1 = WinnerTakeAllBlox(namespace=model_name, I_bg = 5, N_exci = N_exci)
+@named wta2 = WinnerTakeAllBlox(namespace=model_name, I_bg = 4, N_exci = N_exci)
+
+g = MetaDiGraph()
+add_edge!(g, wta1 => wta2, weight = 1, density = 0.5)
+
+sys = system_from_graph(g, name = model_name)
+prob = ODEProblem(sys, [], (0.0, 1000), [])
+sol = solve(prob, Vern7())
+neuron_set = get_neurons([wta1, wta2])
+fig = stackplot(neuron_set, sol)
+\end{lstlisting}
+
+这里真正值得学的，不是两个 WTA 连到一起这件事本身，而是 `WinnerTakeAllBlox` 把“一个局部竞争单元”封装成了可复用模块。这样一来，上层模型就不再关心每个神经元之间的细枝末节，而只需要调节块与块之间的连线密度和背景输入。课程页还提示可以改变兴奋性神经元个数，或让连接拓扑保持不变，这实际上是在让你体会“局部竞争单元的规模”和“跨单元耦合”各自对群体动力学的作用。
+
+\subsection{本章小结}
+WTA 回路的核心机制是共享抑制带来的局部竞争。Neuroblox 的价值在于，它把这个机制封装成能复用的 `Blox`，并让你用图结构和概率连边去控制模块间耦合，而不是手写一大堆方程和索引。
+
+\section{浅层皮层微回路与上行调制}
+从两个 WTA 走向十个 WTA，课程页开始构造一个更像“浅层皮层块”的系统。官方页把它称为 SCORT，并展示了多个 WTA 互联后的皮层结构图。这里多出的角色是 feedforward interneuron（前馈抑制性中间神经元），它会连接到模块内的所有兴奋性细胞，同时接受来自上层或相邻块的输入。它的教学意义在于：它不是简单地再加一个抑制神经元，而是把节律控制从局部 WTA 提升到了多微回路的群体层面。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/cortical_model.png}
+\caption{由多个 WTA 微回路组成的浅层皮层块示意图。}
+\end{figure}
+
+\begin{lstlisting}[caption={浅层皮层块与 ASC1 上行系统的核心参数},label={lst:cortical_asc}]
+N_wta = 10
+N_exci = 5
+G_syn_exci = 3.0
+G_syn_inhib = 4.0
+G_syn_ff_inhib = 3.5
+I_bg = 5.0
+density = 0.01
+
+wtas = [WinnerTakeAllBlox(name = Symbol("wta$i"),
+                          namespace = model_name,
+                          N_exci = N_exci,
+                          G_syn_exci = G_syn_exci,
+                          G_syn_inhib = G_syn_inhib,
+                          I_bg = I_bg)
+        for i in 1:N_wta]
+
+@named n_ff_inh = HHNeuronInhibBlox(; namespace=model_name, G_syn=G_syn_ff_inhib)
+
+@named ASC1 = NextGenerationEIBlox(; namespace=model_name,
+    Ce = 2*26, Ci = 26,
+    v_syn_ee = 10.0, v_syn_ei = -10.0,
+    v_syn_ie = 10.0, v_syn_ii = -10.0,
+    alpha_inv_ee = 10.0/26, alpha_inv_ei = 0.8/26,
+    alpha_inv_ie = 10.0/26, alpha_inv_ii = 0.8/26,
+    k_ei = 0.6*26, k_ie = 0.6*26)
+\end{lstlisting}
+
+这段代码的语义可以分成两层。第一层是 WTA 簇本身：每个簇仍然维护自己的局部侧抑制。第二层是上行调制器 ASC1，它被建模成 `NextGenerationEIBlox`，也就是下一代兴奋-抑制神经质量模型。课程页特别强调参数被固定到一个 16 Hz 的调制频率，这不是随便选的，而是为了把可见的频带峰值和皮层节律联系起来。换句话说，这里不是在做“任意振荡器”，而是在做“能驱动皮层块节律的上行系统”。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{figures/cort_meanfield.png}
+\caption{平均膜电位}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{figures/cort_power.png}
+\caption{功率谱}
+\end{subfigure}
+\caption{ASC1 作用下的群体平均活动与频谱，峰值位于约 16 Hz。}
+\end{figure}
+
+\begin{lstlisting}[caption={把 ASC1 连接到 CorticalBlox 并分析群体统计},label={lst:cortical_stats}]
+@named CB = CorticalBlox(N_wta = 10, N_exci = 5, density = 0.01,
+                         weight = 1, I_bg_ar = 7; namespace = model_name)
+
+g = MetaDiGraph()
+add_edge!(g, ASC1 => CB, weight = 44)
+
+sys = system_from_graph(g, name = model_name)
+prob = ODEProblem(sys, [], (0.0, 1000))
+sol = solve(prob, Vern7())
+
+neuron_set = get_neurons(CB)
+fig = stackplot(neuron_set[1:50], sol)
+fig_mean = meanfield(CB, sol)
+fig_pow = powerspectrumplot(CB, sol; sampling_rate = 0.01)
+\end{lstlisting}
+
+这里最值得注意的是 `meanfield` 和 `powerspectrumplot`。前者把大量神经元的时域活动压缩成一个平均膜电位轨迹，后者进一步把频率内容提取出来。课件在这里做了一个很重要的教学动作：它不满足于“网络在动”，而是让你用频谱去确认“网络为什么在某个节律上动”。这比单看栅格图更接近机制分析。
+
+\subsection{本章小结}
+浅层皮层块的关键不是更多神经元，而是更多层级的抽象：WTA 负责局部竞争，`CorticalBlox` 负责把竞争单元拼成皮层块，`NextGenerationEIBlox` 则把上行调制和节律峰值显式带进模型。这样一来，结构、频率和行为就被统一到同一个图模型里。
+
+\section{扩展视觉处理模型}
+最后一步是把视觉处理接进来，形成更接近任务驱动的扩展模型。课程页引入了 `VAC`（visual area cortex）和 `AC` 两个 `CorticalBlox`，并通过 `ImageStimulus` 把图像样本作为外部输入源接入。这里最重要的概念是：图像不是一个“背景图片”，而是一个由像素变量组成的输入场，每个像素都被映射到视觉皮层中的一个神经元或一组神经元上。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/extended_model.png}
+\caption{扩展后的皮层模型，包含 Cortex、Brainstem 和 ImageStimulus。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.55\textwidth]{figures/image_stim.png}
+\caption{图像样本与像素连接的示意。像素不再是静态图片，而是网络输入变量。}
+\end{figure}
+
+\begin{lstlisting}[caption={视觉输入与扩展皮层模型},label={lst:visual_model}]
+@named VAC = CorticalBlox(namespace = model_name, N_wta = 10, N_exci = 5,
+                          density = 0.01, weight = 1)
+@named AC = CorticalBlox(namespace = model_name, N_wta = 10, N_exci = 5,
+                         density = 0.01, weight = 1)
+
+using CSV
+using DataFrames
+using Downloads
+image_set = CSV.read(Downloads.download(
+    "raw.githubusercontent.com/Neuroblox/NeurobloxDocsHost/refs/heads/main/data/image_example.csv"), DataFrame)
+image_sample = 2
+
+@named stim = ImageStimulus(image_set[[image_sample], :], namespace = model_name,
+                            t_stimulus = 1000, t_pause = 0)
+
+pixels = Array(image_set[image_sample, 1:end-1])
+pixels = reshape(pixels, 15, 15)
+fig = heatmap(pixels, colormap = :gray1)
+
+g = MetaDiGraph()
+add_edge!(g, stim => VAC, weight = 14)
+add_edge!(g, ASC1 => VAC, weight = 44)
+add_edge!(g, ASC1 => AC, weight = 44)
+add_edge!(g, VAC => AC, weight = 3, density = 0.08)
+
+sys = system_from_graph(g, name = model_name)
+prob = ODEProblem(sys, [], (0.0, 1000))
+sol = solve(prob, Vern7())
+\end{lstlisting}
+
+这段代码把两个层次的输入都体现出来了：一类是外部图像刺激 `stim`，另一类是上行系统 `ASC1`。它们分别控制视觉皮层的驱动和节律背景，而 `VAC => AC` 的稀疏连接又把局部特征流向更高层级。课件建议你尝试不同图像样本，并观察 `VAC` 和 `AC` 的空间放电模式变化，这其实就是在提醒你：这个模型不是单纯的节律模型，而是一个能承载感知任务的层级电路。
+
+\subsection{本章小结}
+扩展模型的意义在于把“视觉输入”从一个外部文件，变成了可以沿着图图结构传播的神经动力学变量。到这里，WTA、浅层皮层块、上行调制和图像刺激都被放进一个统一框架，后续 category learning 才有了可计算的底座。
+
+\section{练习、敏感性分析与研究联系}
+课程页最后给出的练习非常有价值，因为它们不是机械复现，而是参数敏感性和拓扑敏感性的入口。第一类练习是改变 ASC1 的参数，把 16 Hz 调到 5 Hz、10 Hz 或 20 Hz，观察功率谱峰值如何移动。第二类练习是加入第二个上行系统 `ASC2`，让 `ASC1` 只连 `VAC`，`ASC2` 只连 `AC`，再看两个调制器叠加后是否出现双峰。第三类练习是改变刺激时长 \texttt{t\_stimulus} 和静息时长 \texttt{t\_pause}，测试刺激停止后皮层块是否还能在反馈环路里维持活动。
+
+这些练习的共同点，是它们把“节律生成”“输入持续时间”和“反馈拓扑”拆成了三个可独立操作的控制变量。对教材学习者而言，这比只记住“模型会振荡”更重要，因为它告诉你振荡不是魔法，而是参数、连接和驱动共同塑造出来的。
+
+\begin{warningbox}{这里哪些是课件原话，哪些是教材补充}
+上面的练习项都来自官方课程页；但如果你进一步去推导“为什么某个参数会把频率从 16 Hz 推到 10 Hz”，那就已经进入教材补充和研究解释层面，不再是页面的直接陈述。阅读时要把“课件说明”与“我对机制的解释”分开。
+\end{warningbox}
+
+\subsection{本章小结}
+这一讲真正想训练的，不是按图索骥地复现单个回路，而是把局部竞争、节律调制和视觉输入做成可调的模块化系统。练习题之所以重要，是因为它们把模型从“演示”推进到“实验对象”。
+
+\section{总结与延伸}
+如果把这一讲压缩成一句话，那就是：Neuroblox 不是在教你写一个神经网络脚本，而是在教你用层级化对象组织生物物理模型。WTA 提供局部竞争，CorticalBlox 把竞争单元组织成浅层皮层块，ASC1 把上行节律注入系统，ImageStimulus 则把视觉输入接入动力学网络。四者合起来，就形成了一个能承载后续 category learning 的底层平台。
+
+从研究视角看，这种建模方式有两个直接价值。第一，它让你能在保持生物解释性的前提下快速搭建不同层级的电路。第二，它让你把结构、节律和输入分开调节，从而做出更像“实验”的模型分析，而不是只看一次仿真的截图。课程页所引用的 Pathak 等工作和 Next-generation neural mass 文献，实际上都在提醒你：真正有解释力的模型，往往来自对层级和接口的精确定义，而不只是更复杂的方程。
+
+\subsection{本章小结}
+本讲的核心收获是三个接口：局部竞争接口、皮层块接口和上行调制接口。只要这三个接口清楚，后续任何更大的分类学习模型，都可以沿着同样的方法继续堆叠和验证。
+
+\end{document}

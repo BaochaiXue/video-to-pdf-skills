@@ -1,0 +1,7863 @@
+1
+00:00:00,000 --> 00:00:01,458
+RUSS SALAKHUTDINOV:
+Today I'm going
+
+2
+00:00:01,458 --> 00:00:02,930
+to talk about
+multimodal AI agents,
+
+3
+00:00:02,930 --> 00:00:05,252
+and give you a little bit
+of overview of what we've
+
+4
+00:00:05,252 --> 00:00:07,460
+been doing and some of the
+work that's been happening
+
+5
+00:00:07,460 --> 00:00:08,970
+around that space.
+
+6
+00:00:08,970 --> 00:00:10,410
+It's a very exciting space.
+
+7
+00:00:10,410 --> 00:00:14,285
+I think that a lot of people are
+thinking that the year 2025-2026
+
+8
+00:00:14,285 --> 00:00:15,660
+is going to be
+the year of aging.
+
+9
+00:00:15,660 --> 00:00:18,650
+So we'll see a lot more
+work coming out of academia
+
+10
+00:00:18,650 --> 00:00:20,240
+and industry in that space.
+
+11
+00:00:20,240 --> 00:00:24,350
+So when we think about
+large language models,
+
+12
+00:00:24,350 --> 00:00:27,650
+we think a lot of
+different innovations
+
+13
+00:00:27,650 --> 00:00:30,630
+that happened in
+the last few years.
+
+14
+00:00:30,630 --> 00:00:34,590
+We see examples of in-context
+learning, zero-shot learning.
+
+15
+00:00:34,590 --> 00:00:37,260
+You have very good
+representations of text.
+
+16
+00:00:37,260 --> 00:00:40,970
+You have general long and
+coherent text that these models
+
+17
+00:00:40,970 --> 00:00:43,290
+can generate, world knowledge.
+
+18
+00:00:43,290 --> 00:00:46,430
+And so amazing things
+has been happening
+
+19
+00:00:46,430 --> 00:00:49,090
+in the space of large
+language models, right?
+
+20
+00:00:49,090 --> 00:00:52,970
+But what I would like to
+talk to you about today
+
+21
+00:00:52,970 --> 00:00:57,330
+is this notion of going beyond
+just the language models.
+
+22
+00:00:57,330 --> 00:01:01,060
+So you can think of language
+models as, given the question,
+
+23
+00:01:01,060 --> 00:01:03,800
+the language model can
+generate the answer, instead,
+
+24
+00:01:03,800 --> 00:01:05,860
+we can try building
+systems where--
+
+25
+00:01:05,860 --> 00:01:10,330
+that basically can automate
+a lot of laborious tasks.
+
+26
+00:01:10,330 --> 00:01:14,500
+And a lot of productive tasks we
+perform today on the computer,
+
+27
+00:01:14,500 --> 00:01:18,130
+potentially, as well as many
+tasks that we perform on the web
+
+28
+00:01:18,130 --> 00:01:20,300
+could potentially
+be automated, OK?
+
+29
+00:01:20,300 --> 00:01:23,770
+So, for example, how
+many of you have tried
+
+30
+00:01:23,770 --> 00:01:28,000
+setting up AWS instance, right?
+
+31
+00:01:28,000 --> 00:01:30,910
+My students are basically saying
+it's a really difficult process
+
+32
+00:01:30,910 --> 00:01:31,610
+to do.
+
+33
+00:01:31,610 --> 00:01:34,960
+The question is, couldn't you
+have an agentic model that
+
+34
+00:01:34,960 --> 00:01:37,670
+goes and sets up AWS
+instance for you,
+
+35
+00:01:37,670 --> 00:01:40,240
+so you can start running
+your experiments.
+
+36
+00:01:40,240 --> 00:01:43,330
+Or wouldn't it be nice, and I
+think the technology is getting
+
+37
+00:01:43,330 --> 00:01:46,600
+there a little bit at this point
+is, create a set of PowerPoint
+
+38
+00:01:46,600 --> 00:01:48,710
+slides to present the
+content of this paper.
+
+39
+00:01:48,710 --> 00:01:51,730
+So I give you the paper,
+the agent reads and goes
+
+40
+00:01:51,730 --> 00:01:53,830
+to the PowerPoint and
+organize the slides
+
+41
+00:01:53,830 --> 00:01:58,543
+and creates and gives you a
+presentation of the paper.
+
+42
+00:01:58,543 --> 00:01:59,960
+Can you automate
+some of the tasks
+
+43
+00:01:59,960 --> 00:02:04,010
+that we're doing on Excel,
+going on the web, and so forth?
+
+44
+00:02:04,010 --> 00:02:07,310
+You can imagine a
+lot of useful outcome
+
+45
+00:02:07,310 --> 00:02:13,040
+if you actually able to design
+models that can do those tasks.
+
+46
+00:02:13,040 --> 00:02:16,940
+In this lecture, I'm going to be
+focusing primarily on web agents
+
+47
+00:02:16,940 --> 00:02:18,740
+and give you a little
+bit of overview
+
+48
+00:02:18,740 --> 00:02:23,540
+of what these models are,
+how we evaluate these models.
+
+49
+00:02:23,540 --> 00:02:27,350
+And the idea here is that,
+you have a basic language
+
+50
+00:02:27,350 --> 00:02:29,880
+model, some sort of
+a foundation model.
+
+51
+00:02:29,880 --> 00:02:33,390
+Obviously, you need some form of
+text understanding like in HTML,
+
+52
+00:02:33,390 --> 00:02:35,780
+and you also need to have
+a very good understanding
+
+53
+00:02:35,780 --> 00:02:39,720
+of the visual information,
+like the actual website itself.
+
+54
+00:02:39,720 --> 00:02:43,430
+So you can think of visual
+encoding plus some form of text
+
+55
+00:02:43,430 --> 00:02:45,930
+understanding that goes
+into large language model,
+
+56
+00:02:45,930 --> 00:02:48,020
+and that gives you some
+form of web grounding,
+
+57
+00:02:48,020 --> 00:02:53,670
+that you can then use for
+performing tasks on the web.
+
+58
+00:02:53,670 --> 00:02:55,020
+And there's been a lot of work.
+
+59
+00:02:55,020 --> 00:02:57,310
+I'm not going to list-- .
+there's been a lot of work
+
+60
+00:02:57,310 --> 00:03:01,180
+in the last few years where
+people are trying to understand
+
+61
+00:03:01,180 --> 00:03:04,270
+and trying to build systems
+that can do these tasks.
+
+62
+00:03:04,270 --> 00:03:05,930
+Let me show you an example.
+
+63
+00:03:05,930 --> 00:03:10,310
+An example of a system
+where I can say--
+
+64
+00:03:10,310 --> 00:03:13,480
+suppose I give the
+task to my agent.
+
+65
+00:03:13,480 --> 00:03:16,130
+Get me to the page of a good
+Thai restaurant in Pittsburgh.
+
+66
+00:03:16,130 --> 00:03:19,160
+It should have, at least,
+200 reviews and 4.3 stars.
+
+67
+00:03:19,160 --> 00:03:21,632
+Pick the one with
+the highest rating.
+
+68
+00:03:21,632 --> 00:03:24,560
+And this is what
+the system does.
+
+69
+00:03:24,560 --> 00:03:27,640
+So it goes on Yelp.
+
+70
+00:03:27,640 --> 00:03:30,940
+It searches for
+Thai restaurants.
+
+71
+00:03:30,940 --> 00:03:35,058
+It types in autonomously,
+Thai restaurant.
+
+72
+00:03:35,058 --> 00:03:38,200
+It's then searching
+through possible restaurant
+
+73
+00:03:38,200 --> 00:03:39,260
+in Pittsburgh.
+
+74
+00:03:39,260 --> 00:03:42,490
+It finds one of
+these restaurants
+
+75
+00:03:42,490 --> 00:03:44,690
+which has 4.5 star rating.
+
+76
+00:03:44,690 --> 00:03:45,662
+It's a Pusadee Garden.
+
+77
+00:03:45,662 --> 00:03:47,870
+It's actually a pretty good
+restaurant in Pittsburgh.
+
+78
+00:03:47,870 --> 00:03:49,037
+It's a good Thai restaurant.
+
+79
+00:03:49,037 --> 00:03:50,150
+Now it's complete.
+
+80
+00:03:50,150 --> 00:03:52,040
+Now, imagine I'm
+asking it to say,
+
+81
+00:03:52,040 --> 00:03:54,850
+well, get me a
+reservation at this
+
+82
+00:03:54,850 --> 00:03:56,770
+for two people at
+the earliest date,
+
+83
+00:03:56,770 --> 00:04:00,310
+and use my name JY Koh, who
+is the student who built this,
+
+84
+00:04:00,310 --> 00:04:01,810
+and the phone number.
+
+85
+00:04:01,810 --> 00:04:03,640
+And so the agent
+goes on Google, finds
+
+86
+00:04:03,640 --> 00:04:06,230
+this particular restaurant,
+looks at the dates,
+
+87
+00:04:06,230 --> 00:04:08,360
+looks at the next
+available date,
+
+88
+00:04:08,360 --> 00:04:13,360
+and actually successfully
+making a reservation.
+
+89
+00:04:13,360 --> 00:04:15,520
+And putting the phone
+number, and then basically
+
+90
+00:04:15,520 --> 00:04:18,062
+stops because you need to get
+a confirmation to actually book
+
+91
+00:04:18,062 --> 00:04:19,480
+something.
+
+92
+00:04:19,480 --> 00:04:22,370
+So it basically says, in
+summary, the next section
+
+93
+00:04:22,370 --> 00:04:23,330
+I'll perform is stop.
+
+94
+00:04:23,330 --> 00:04:25,180
+Unable to proceed
+without confirmation code
+
+95
+00:04:25,180 --> 00:04:27,388
+for further instructions to
+complete the reservation.
+
+96
+00:04:27,388 --> 00:04:30,368
+So you have this notion of
+the agent that takes tasks,
+
+97
+00:04:30,368 --> 00:04:32,410
+it generates a chain of
+thoughts within thinking,
+
+98
+00:04:32,410 --> 00:04:35,060
+and then takes the action.
+
+99
+00:04:35,060 --> 00:04:37,600
+Or I can give the example
+of, help me navigate
+
+100
+00:04:37,600 --> 00:04:38,870
+to the shirt that has on it.
+
+101
+00:04:38,870 --> 00:04:41,950
+So it goes on Amazon.
+
+102
+00:04:41,950 --> 00:04:44,920
+It's trying to basically
+look for something similar,
+
+103
+00:04:44,920 --> 00:04:51,776
+and finds a shirt that
+has something similar.
+
+104
+00:04:51,776 --> 00:04:56,190
+These are the examples that I
+heavily cherry-picked out of--
+
+105
+00:04:56,190 --> 00:04:58,820
+I think that we've tried
+maybe like 30 times.
+
+106
+00:04:58,820 --> 00:05:00,990
+And out of 30 times,
+1 of them succeeded.
+
+107
+00:05:00,990 --> 00:05:04,820
+So that basically means that
+these systems are not really
+
+108
+00:05:04,820 --> 00:05:07,070
+working very well at
+this point, but it
+
+109
+00:05:07,070 --> 00:05:09,110
+has the potential
+of give you a flavor
+
+110
+00:05:09,110 --> 00:05:10,560
+of what these systems can do.
+
+111
+00:05:10,560 --> 00:05:12,650
+I think in today's
+world, OpenAI is
+
+112
+00:05:12,650 --> 00:05:16,220
+operating like-- sort of
+moving in that direction.
+
+113
+00:05:16,220 --> 00:05:20,900
+It's one of the very strong
+models that's out there.
+
+114
+00:05:20,900 --> 00:05:23,460
+So today I'm going to talk
+about three different things.
+
+115
+00:05:23,460 --> 00:05:25,610
+I'm going to talk about
+VisualWebArena, which
+
+116
+00:05:25,610 --> 00:05:31,340
+is a way of evaluating
+multimodal agents on some
+
+117
+00:05:31,340 --> 00:05:33,390
+of the realistic visual tasks.
+
+118
+00:05:33,390 --> 00:05:36,823
+I'll talk about some of the
+inference time algorithm, what
+
+119
+00:05:36,823 --> 00:05:38,990
+we call the Tree Search
+Algorithm for large language
+
+120
+00:05:38,990 --> 00:05:45,167
+model agents, which allows
+you to potentially do
+
+121
+00:05:45,167 --> 00:05:47,000
+interesting search,
+apply interesting search
+
+122
+00:05:47,000 --> 00:05:50,250
+techniques to find necessary
+information on the web.
+
+123
+00:05:50,250 --> 00:05:52,470
+And then the last part,
+I'll talk a little bit
+
+124
+00:05:52,470 --> 00:05:54,870
+about some of the
+way of scaling up
+
+125
+00:05:54,870 --> 00:05:56,380
+data for training these agents.
+
+126
+00:05:56,380 --> 00:06:00,720
+Because one of the aspects
+of these agents in general
+
+127
+00:06:00,720 --> 00:06:01,990
+is the availability of data.
+
+128
+00:06:01,990 --> 00:06:05,310
+What can you do online, and how
+can you get the data online?
+
+129
+00:06:05,310 --> 00:06:09,210
+So let's look at
+the VisualWebArena.
+
+130
+00:06:09,210 --> 00:06:16,230
+One of the earlier versions
+was developed by folks at CMU.
+
+131
+00:06:16,230 --> 00:06:23,190
+It was done by Shuyan
+Zhou and Frank Xu.
+
+132
+00:06:23,190 --> 00:06:25,090
+They've introduced the
+notion of WebArena,
+
+133
+00:06:25,090 --> 00:06:27,940
+which is a fairly realistic
+environment at the moment.
+
+134
+00:06:27,940 --> 00:06:30,310
+It has popular
+categories like shopping,
+
+135
+00:06:30,310 --> 00:06:33,450
+Reddit, and GitLab, which is
+equivalent to Amazon and Reddit
+
+136
+00:06:33,450 --> 00:06:34,560
+and GitHub.
+
+137
+00:06:34,560 --> 00:06:38,020
+It's a self-hosted open
+source essential environment,
+
+138
+00:06:38,020 --> 00:06:41,740
+which is a reimplementation
+of the environment.
+
+139
+00:06:41,740 --> 00:06:43,560
+And the data comes
+from real websites
+
+140
+00:06:43,560 --> 00:06:46,413
+from Amazon, Reddit, and GitHub.
+
+141
+00:06:46,413 --> 00:06:48,330
+And what's interesting
+about this environment,
+
+142
+00:06:48,330 --> 00:06:49,590
+and I'll talk about
+this, the tasks
+
+143
+00:06:49,590 --> 00:06:51,910
+are fairly easy for humans,
+about 78% success rate,
+
+144
+00:06:51,910 --> 00:06:53,535
+but very difficult
+for language models.
+
+145
+00:06:53,535 --> 00:06:55,860
+At that time, they
+reported numbers like 14%.
+
+146
+00:06:55,860 --> 00:06:57,840
+The only problem with
+this particular task
+
+147
+00:06:57,840 --> 00:07:02,100
+is that tasks are designed
+to use just HTML source code.
+
+148
+00:07:02,100 --> 00:07:06,150
+And we found that a lot
+of times, whenever you're
+
+149
+00:07:06,150 --> 00:07:08,350
+dealing with HTML
+and JavaScript,
+
+150
+00:07:08,350 --> 00:07:12,000
+it's a very messy type
+of representation.
+
+151
+00:07:12,000 --> 00:07:13,623
+Interactive
+elements, when you're
+
+152
+00:07:13,623 --> 00:07:15,040
+interacting with
+the environments,
+
+153
+00:07:15,040 --> 00:07:16,920
+they don't get displayed
+correctly in HTML.
+
+154
+00:07:16,920 --> 00:07:21,510
+There is Java, a CSS code,
+and it's very hard to process.
+
+155
+00:07:21,510 --> 00:07:24,850
+In the context length, HTML
+pages can be fairly complex.
+
+156
+00:07:24,850 --> 00:07:28,150
+They can easily fill
+up to 100,000 tokens,
+
+157
+00:07:28,150 --> 00:07:33,865
+if you're trying
+to look at that.
+
+158
+00:07:33,865 --> 00:07:35,910
+And this is how it looks like.
+
+159
+00:07:35,910 --> 00:07:41,260
+You have this HTML-based
+representation.
+
+160
+00:07:41,260 --> 00:07:45,580
+Spatial layout is also not
+conveyed very well in HTML.
+
+161
+00:07:45,580 --> 00:07:49,180
+So it looks like just a
+text only representation.
+
+162
+00:07:49,180 --> 00:07:53,510
+It's very difficult to deal
+with just because HTML is messy.
+
+163
+00:07:53,510 --> 00:07:57,430
+So we've tried building
+what we call VisualWebArena,
+
+164
+00:07:57,430 --> 00:07:59,530
+which is we try
+to build and track
+
+165
+00:07:59,530 --> 00:08:01,150
+the process of
+multimodal agents.
+
+166
+00:08:01,150 --> 00:08:04,360
+Agents that can actually
+have visual grounding.
+
+167
+00:08:04,360 --> 00:08:06,880
+So we've designed these
+visually-grounded tasks
+
+168
+00:08:06,880 --> 00:08:08,930
+to test the abilities
+of these models.
+
+169
+00:08:08,930 --> 00:08:13,060
+And it's inspired by WebArena,
+so we call it VisualWebArena.
+
+170
+00:08:13,060 --> 00:08:16,540
+And you have visual
+inputs and outputs
+
+171
+00:08:16,540 --> 00:08:19,940
+that allows you to work with
+unique and interesting--
+
+172
+00:08:19,940 --> 00:08:22,150
+and something that's real world.
+
+173
+00:08:22,150 --> 00:08:25,240
+And, again, we have
+the environments
+
+174
+00:08:25,240 --> 00:08:28,780
+of what we call one-stop
+shop, which is, essentially,
+
+175
+00:08:28,780 --> 00:08:31,610
+Amazon-like environment,
+Reddit, and Osclass,
+
+176
+00:08:31,610 --> 00:08:34,059
+which is more like a
+Craigslist type of environment,
+
+177
+00:08:34,059 --> 00:08:36,430
+the class field
+type of environment.
+
+178
+00:08:36,430 --> 00:08:38,500
+So let me show you--
+
+179
+00:08:38,500 --> 00:08:40,250
+and then you can
+think about that,
+
+180
+00:08:40,250 --> 00:08:43,039
+you have some representation,
+I have some visual input,
+
+181
+00:08:43,039 --> 00:08:46,530
+and I ask you to
+solve something that
+
+182
+00:08:46,530 --> 00:08:48,030
+actually requires
+a visual grounding
+
+183
+00:08:48,030 --> 00:08:49,440
+and visual understanding.
+
+184
+00:08:49,440 --> 00:08:52,740
+So let me show you
+some examples of this.
+
+185
+00:08:52,740 --> 00:08:55,060
+Let's say I ask--
+
+186
+00:08:55,060 --> 00:08:56,050
+I give you the task.
+
+187
+00:08:56,050 --> 00:08:57,940
+I ask you to find
+this exact bike.
+
+188
+00:08:57,940 --> 00:09:01,390
+So I'm looking for this bike
+that's listed for $300 to $500,
+
+189
+00:09:01,390 --> 00:09:05,610
+and post a comment offering
+$10 less than the asking price.
+
+190
+00:09:05,610 --> 00:09:07,630
+And this is what
+the agent has to do.
+
+191
+00:09:07,630 --> 00:09:08,920
+Again, it's a simulator.
+
+192
+00:09:08,920 --> 00:09:11,800
+It's a fully
+self-hosted environment.
+
+193
+00:09:11,800 --> 00:09:14,530
+You go, you navigate,
+you find this bike,
+
+194
+00:09:14,530 --> 00:09:18,480
+and then you basically
+make a posting
+
+195
+00:09:18,480 --> 00:09:23,050
+by offering $10 less than
+what the asking price is.
+
+196
+00:09:23,050 --> 00:09:24,850
+That's just one example.
+
+197
+00:09:24,850 --> 00:09:28,800
+And then, basically,
+you've successfully
+
+198
+00:09:28,800 --> 00:09:30,010
+completed that task.
+
+199
+00:09:30,010 --> 00:09:31,710
+And I can imagine in
+the future there's
+
+200
+00:09:31,710 --> 00:09:34,180
+going to be agents that's going
+to be bargaining on your behalf,
+
+201
+00:09:34,180 --> 00:09:36,540
+and there's going to be agents
+on the other side that's
+
+202
+00:09:36,540 --> 00:09:39,480
+going to be making
+you counter offers.
+
+203
+00:09:39,480 --> 00:09:41,200
+Here's another example.
+
+204
+00:09:41,200 --> 00:09:43,900
+Let's say I ask you, buy the
+cheapest color photo printer
+
+205
+00:09:43,900 --> 00:09:46,580
+and send it to Emily's
+place as shown in the image.
+
+206
+00:09:46,580 --> 00:09:50,200
+And what you can see,
+this image is upside down,
+
+207
+00:09:50,200 --> 00:09:52,810
+which makes it fairly
+difficult for existing models
+
+208
+00:09:52,810 --> 00:09:54,850
+to look at this and
+actually figure out
+
+209
+00:09:54,850 --> 00:09:56,090
+what the address should be.
+
+210
+00:09:56,090 --> 00:09:58,000
+So some of these
+kind of tasks we
+
+211
+00:09:58,000 --> 00:10:00,430
+designed so that it wouldn't
+be that easy for the models
+
+212
+00:10:00,430 --> 00:10:02,890
+to solve.
+
+213
+00:10:02,890 --> 00:10:05,870
+And so what the agent needs
+to do, it needs to go,
+
+214
+00:10:05,870 --> 00:10:08,120
+it needs to find, it
+needs to by price.
+
+215
+00:10:08,120 --> 00:10:11,240
+It gets the printer,
+it adds to the cart,
+
+216
+00:10:11,240 --> 00:10:14,750
+then it goes and it starts
+completing the address.
+
+217
+00:10:14,750 --> 00:10:17,750
+So it has pull-down menus.
+
+218
+00:10:17,750 --> 00:10:20,270
+So it looks fairly realistic.
+
+219
+00:10:20,270 --> 00:10:23,480
+And then you go and then
+you place the order.
+
+220
+00:10:23,480 --> 00:10:26,663
+And when you end up in this
+state, that particular state,
+
+221
+00:10:26,663 --> 00:10:29,080
+that basically means that
+you've successfully accomplished
+
+222
+00:10:29,080 --> 00:10:31,300
+the task, right?
+
+223
+00:10:31,300 --> 00:10:34,580
+Again, just to reemphasize,
+it's a simulation.
+
+224
+00:10:34,580 --> 00:10:36,410
+It's not actually doing
+it on the real web.
+
+225
+00:10:36,410 --> 00:10:39,110
+It's a self-hosted environment.
+
+226
+00:10:39,110 --> 00:10:42,390
+Here's another one where
+it requires you to jump
+
+227
+00:10:42,390 --> 00:10:44,530
+between two different websites.
+
+228
+00:10:44,530 --> 00:10:47,790
+You can ask, what's the
+2022 total nominal GDP
+
+229
+00:10:47,790 --> 00:10:51,990
+of the area that produced most
+sugarcane in the year of 2021
+
+230
+00:10:51,990 --> 00:10:52,630
+in billions?
+
+231
+00:10:52,630 --> 00:10:54,790
+And that's your landing page.
+
+232
+00:10:54,790 --> 00:10:57,300
+What's interesting here
+is that you're essentially
+
+233
+00:10:57,300 --> 00:11:01,120
+asking the model to
+understand the images.
+
+234
+00:11:01,120 --> 00:11:04,950
+Because if you look at the
+year 2021, that's over here,
+
+235
+00:11:04,950 --> 00:11:08,650
+and you look, I
+think in this case,
+
+236
+00:11:08,650 --> 00:11:13,620
+Asia produced more sugarcane
+than Brazil or the other way
+
+237
+00:11:13,620 --> 00:11:14,760
+around.
+
+238
+00:11:14,760 --> 00:11:16,540
+Brazil produced more
+sugarcane than Asia.
+
+239
+00:11:16,540 --> 00:11:17,998
+So you have to look
+at these graphs
+
+240
+00:11:17,998 --> 00:11:23,410
+and understand which country
+you should be looking at.
+
+241
+00:11:23,410 --> 00:11:27,780
+So if you zoom in,
+you can say, OK, I
+
+242
+00:11:27,780 --> 00:11:29,830
+think that was Asia that
+produced more sugarcane.
+
+243
+00:11:29,830 --> 00:11:32,950
+So you have to go on Wikipedia
+and then find the answer.
+
+244
+00:11:32,950 --> 00:11:39,030
+And the answer is
+339 trillion GDP.
+
+245
+00:11:39,030 --> 00:11:42,420
+So you can see that you have
+to have this visual grounding.
+
+246
+00:11:42,420 --> 00:11:43,710
+You have to understand images.
+
+247
+00:11:43,710 --> 00:11:49,320
+You have to understand graphs
+to solve some of these tasks.
+
+248
+00:11:49,320 --> 00:11:51,750
+So the way that the
+environment is represented,
+
+249
+00:11:51,750 --> 00:11:54,450
+we can think of this environment
+as a POMDP environment.
+
+250
+00:11:54,450 --> 00:11:57,120
+So it is partially observable
+Markov decision process.
+
+251
+00:11:57,120 --> 00:12:00,800
+So you have states, you
+have actions, observations,
+
+252
+00:12:00,800 --> 00:12:01,800
+and transition function.
+
+253
+00:12:01,800 --> 00:12:05,210
+And so for those of you who've
+worked in reinforcement learning
+
+254
+00:12:05,210 --> 00:12:08,730
+or who have been dealing
+with Markov decision, MDPs,
+
+255
+00:12:08,730 --> 00:12:10,020
+that should be familiar.
+
+256
+00:12:10,020 --> 00:12:13,160
+And that was the goal to design
+the environment in such a way
+
+257
+00:12:13,160 --> 00:12:16,790
+that it becomes an MDP so
+that you can potentially
+
+258
+00:12:16,790 --> 00:12:19,070
+train your favorite
+reinforcement learning
+
+259
+00:12:19,070 --> 00:12:20,900
+algorithms on this.
+
+260
+00:12:20,900 --> 00:12:23,370
+So the environment
+itself have observations,
+
+261
+00:12:23,370 --> 00:12:27,810
+whether it's an HTML, whether
+it's the visual representation,
+
+262
+00:12:27,810 --> 00:12:30,550
+like the actual website
+itself, and something
+
+263
+00:12:30,550 --> 00:12:32,300
+that we call the
+accessibility tree, which
+
+264
+00:12:32,300 --> 00:12:35,600
+is a cleaned up
+representation of HTML.
+
+265
+00:12:35,600 --> 00:12:36,950
+You have a set of actions.
+
+266
+00:12:36,950 --> 00:12:39,350
+And the set of actions is
+actually a fairly diverse set
+
+267
+00:12:39,350 --> 00:12:39,850
+of actions.
+
+268
+00:12:39,850 --> 00:12:42,010
+You can click on a
+particular element.
+
+269
+00:12:42,010 --> 00:12:43,915
+You can hover over a
+particular element.
+
+270
+00:12:43,915 --> 00:12:45,040
+This is an interesting one.
+
+271
+00:12:45,040 --> 00:12:47,380
+You can type in a
+particular element and text.
+
+272
+00:12:47,380 --> 00:12:49,990
+So you can think, it's not
+just a set of discrete actions.
+
+273
+00:12:49,990 --> 00:12:52,355
+Basically, you can
+type in whatever,
+
+274
+00:12:52,355 --> 00:12:53,730
+if you're searching
+for something
+
+275
+00:12:53,730 --> 00:12:58,020
+or you're feeling certain boxes.
+
+276
+00:12:58,020 --> 00:13:02,110
+You can have a new tab, so
+you can jump to a new website.
+
+277
+00:13:02,110 --> 00:13:04,750
+You can focus on
+a particular tab.
+
+278
+00:13:04,750 --> 00:13:06,250
+You can close the tab.
+
+279
+00:13:06,250 --> 00:13:07,600
+You can go a particular URL.
+
+280
+00:13:07,600 --> 00:13:09,250
+You can go forward, go
+backwards, scroll up,
+
+281
+00:13:09,250 --> 00:13:09,880
+scroll down.
+
+282
+00:13:09,880 --> 00:13:11,760
+And then you have an action
+called stop and then answer.
+
+283
+00:13:11,760 --> 00:13:14,218
+Stop is the action where the
+model basically says, OK, I've
+
+284
+00:13:14,218 --> 00:13:18,702
+solved the task, stop, and then
+I give you the final answer.
+
+285
+00:13:18,702 --> 00:13:20,160
+In this particular
+environment, you
+
+286
+00:13:20,160 --> 00:13:22,030
+have deterministic
+transition function.
+
+287
+00:13:22,030 --> 00:13:25,240
+You have the state that
+generates the HTML page.
+
+288
+00:13:25,240 --> 00:13:27,333
+And given the state
+and an action,
+
+289
+00:13:27,333 --> 00:13:28,500
+you generate the next state.
+
+290
+00:13:28,500 --> 00:13:31,008
+And the next state generation
+is actually deterministic.
+
+291
+00:13:31,008 --> 00:13:33,300
+Basically meaning that if
+you want a particular website
+
+292
+00:13:33,300 --> 00:13:36,070
+and you click on a particular
+element or you type something,
+
+293
+00:13:36,070 --> 00:13:37,410
+there is only one--
+
+294
+00:13:37,410 --> 00:13:40,770
+there is no stochasticity so
+gets you to the next state.
+
+295
+00:13:40,770 --> 00:13:42,775
+And we also defined
+the reward functions.
+
+296
+00:13:42,775 --> 00:13:44,330
+And the reward
+function is primarily
+
+297
+00:13:44,330 --> 00:13:48,750
+to evaluate when you've
+successfully solved a task.
+
+298
+00:13:48,750 --> 00:13:50,660
+So it's a fairly
+sparse reward signal
+
+299
+00:13:50,660 --> 00:13:52,520
+that we get in this environment.
+
+300
+00:13:52,520 --> 00:13:54,920
+But let me show
+you-- just walk you
+
+301
+00:13:54,920 --> 00:13:58,642
+through what the model
+actually needs to do here.
+
+302
+00:13:58,642 --> 00:14:00,410
+So what the model
+needs to do is it
+
+303
+00:14:00,410 --> 00:14:03,510
+has to start on the home page.
+
+304
+00:14:03,510 --> 00:14:06,555
+So here you're trying to
+find the cheapest printer.
+
+305
+00:14:06,555 --> 00:14:08,180
+And you have to
+navigate to the printer
+
+306
+00:14:08,180 --> 00:14:10,760
+category in terms of the
+actions that you need to take.
+
+307
+00:14:10,760 --> 00:14:12,690
+Then you have to sort
+by descending order.
+
+308
+00:14:12,690 --> 00:14:15,890
+So if you click Sort by Price.
+
+309
+00:14:15,890 --> 00:14:17,820
+Then you click on the
+cheapest color printer.
+
+310
+00:14:17,820 --> 00:14:19,740
+So you have to choose
+what's the cheapest one.
+
+311
+00:14:19,740 --> 00:14:22,520
+So you have to understand how
+much each printer cost and you
+
+312
+00:14:22,520 --> 00:14:24,090
+have to choose the cheapest one.
+
+313
+00:14:24,090 --> 00:14:26,130
+Then you have to add it
+to the shopping cart.
+
+314
+00:14:26,130 --> 00:14:27,120
+That's another step.
+
+315
+00:14:27,120 --> 00:14:28,560
+You have to proceed to checkout.
+
+316
+00:14:28,560 --> 00:14:29,280
+That's another step.
+
+317
+00:14:29,280 --> 00:14:30,655
+Then you have to
+fill in the form
+
+318
+00:14:30,655 --> 00:14:35,950
+correctly with the information
+given to you in this image,
+
+319
+00:14:35,950 --> 00:14:37,670
+and then you have
+to place the order.
+
+320
+00:14:37,670 --> 00:14:40,020
+So if you look at the
+entire trajectory here,
+
+321
+00:14:40,020 --> 00:14:42,350
+it's a fairly
+complex trajectory.
+
+322
+00:14:42,350 --> 00:14:45,350
+The model has to reason about
+what it's seeing on the web.
+
+323
+00:14:45,350 --> 00:14:48,370
+It has to understand what
+I mean by the cheapest,
+
+324
+00:14:48,370 --> 00:14:51,580
+so it has to have a
+notion of sorting.
+
+325
+00:14:51,580 --> 00:14:54,190
+Then it has to really understand
+good multimodal abilities
+
+326
+00:14:54,190 --> 00:14:57,400
+to understand what I'm
+seeing in the images.
+
+327
+00:14:57,400 --> 00:14:58,370
+What's the edges?
+
+328
+00:14:58,370 --> 00:15:00,400
+And they have to go in
+and fill in the address
+
+329
+00:15:00,400 --> 00:15:01,910
+with the right information.
+
+330
+00:15:01,910 --> 00:15:06,230
+So if you look at it, it's not a
+very trivial task to accomplish.
+
+331
+00:15:06,230 --> 00:15:09,070
+And that's just one
+of a thousand tasks
+
+332
+00:15:09,070 --> 00:15:10,780
+that we've designed.
+
+333
+00:15:10,780 --> 00:15:15,991
+So in terms of the distribution
+of tasks across the websites,
+
+334
+00:15:15,991 --> 00:15:18,880
+we've looked at how
+difficult those tasks are.
+
+335
+00:15:18,880 --> 00:15:21,170
+I think we have
+950 tasks in total,
+
+336
+00:15:21,170 --> 00:15:22,550
+close to a thousand tasks.
+
+337
+00:15:22,550 --> 00:15:24,920
+And you can see
+about 15% are easy.
+
+338
+00:15:24,920 --> 00:15:26,920
+Basically what that
+means is that it's
+
+339
+00:15:26,920 --> 00:15:28,880
+easy in terms of
+reasoning difficulty,
+
+340
+00:15:28,880 --> 00:15:31,310
+and easy in terms of
+visually understanding
+
+341
+00:15:31,310 --> 00:15:32,320
+what I'm asking you.
+
+342
+00:15:32,320 --> 00:15:34,680
+Basically means you have
+to do only a few clicks
+
+343
+00:15:34,680 --> 00:15:36,220
+to actually solve the task.
+
+344
+00:15:36,220 --> 00:15:40,380
+And then you have this corner
+here, which is fairly difficult.
+
+345
+00:15:40,380 --> 00:15:41,880
+Reasoning difficulty,
+so I really
+
+346
+00:15:41,880 --> 00:15:44,050
+have to understand what
+I'm seeing in the image,
+
+347
+00:15:44,050 --> 00:15:45,713
+and visual difficulty--
+
+348
+00:15:45,713 --> 00:15:47,130
+and reasoning
+difficulty basically
+
+349
+00:15:47,130 --> 00:15:49,005
+means that I have to
+click on a lot of things
+
+350
+00:15:49,005 --> 00:15:54,490
+and explore to successfully
+accomplish this particular task.
+
+351
+00:15:54,490 --> 00:15:56,565
+So in this particular
+environment,
+
+352
+00:15:56,565 --> 00:15:58,440
+you can actually split
+and try to understand,
+
+353
+00:15:58,440 --> 00:16:00,270
+is it my visual
+models are missing,
+
+354
+00:16:00,270 --> 00:16:04,830
+or is it my
+reasoning is missing?
+
+355
+00:16:04,830 --> 00:16:09,220
+Here's how we're evaluating
+in this environment.
+
+356
+00:16:09,220 --> 00:16:11,230
+So we have execution-based
+evaluation.
+
+357
+00:16:11,230 --> 00:16:14,320
+So, for example, a lot of times,
+we want to find the exact match.
+
+358
+00:16:14,320 --> 00:16:15,912
+So if I'm asking
+the question, what's
+
+359
+00:16:15,912 --> 00:16:17,370
+the ISIN number of
+the company that
+
+360
+00:16:17,370 --> 00:16:19,990
+occupies the largest portion
+of Warren Buffett portfolio?
+
+361
+00:16:19,990 --> 00:16:23,380
+Then I go to Wikipedia, I find
+Warren Buffett's portfolio,
+
+362
+00:16:23,380 --> 00:16:25,380
+and then I get the
+information, and I
+
+363
+00:16:25,380 --> 00:16:27,280
+need to get this exact number.
+
+364
+00:16:27,280 --> 00:16:29,310
+Sometimes if I
+said, add something
+
+365
+00:16:29,310 --> 00:16:31,600
+like that to the man's wear--
+
+366
+00:16:31,600 --> 00:16:33,740
+whatever this man is
+wearing to my wish list,
+
+367
+00:16:33,740 --> 00:16:38,150
+then I find something and
+I basically have visual QA.
+
+368
+00:16:38,150 --> 00:16:40,930
+Is this a polo shirt, yes or
+no, is this a green shirt,
+
+369
+00:16:40,930 --> 00:16:42,892
+and so forth.
+
+370
+00:16:42,892 --> 00:16:45,130
+And then you have--
+sometimes when you're looking
+
+371
+00:16:45,130 --> 00:16:48,640
+for something, you say, it
+has to include above 200,
+
+372
+00:16:48,640 --> 00:16:53,210
+or below 30, above 20,000,
+below 30,000, and so forth.
+
+373
+00:16:53,210 --> 00:16:57,610
+So you can have these
+verifiers that once I give you
+
+374
+00:16:57,610 --> 00:17:01,030
+the final states, I can
+actually run these verifiers
+
+375
+00:17:01,030 --> 00:17:03,710
+and tell you, have you
+solved the task or not?
+
+376
+00:17:03,710 --> 00:17:06,940
+And for a lot of these prompts,
+there's only one solution.
+
+377
+00:17:06,940 --> 00:17:09,349
+Because the environment
+is not the full internet,
+
+378
+00:17:09,349 --> 00:17:11,200
+it's fairly constrained,
+but, at least, you
+
+379
+00:17:11,200 --> 00:17:14,170
+can verify whether your model
+actually successfully solved
+
+380
+00:17:14,170 --> 00:17:15,680
+the task or not.
+
+381
+00:17:15,680 --> 00:17:19,569
+Now, when we think about
+LLMs or visual language,
+
+382
+00:17:19,569 --> 00:17:23,200
+VLM agents, visual
+language models,
+
+383
+00:17:23,200 --> 00:17:26,710
+the way to think about
+this is the following.
+
+384
+00:17:26,710 --> 00:17:29,670
+One thing I can do is
+I can look at the HTML
+
+385
+00:17:29,670 --> 00:17:35,010
+and try to use that as a
+representation into my LLM.
+
+386
+00:17:35,010 --> 00:17:38,560
+It's also cluttered with a lot
+of unnecessary information.
+
+387
+00:17:38,560 --> 00:17:40,540
+It has a long and
+confusing context.
+
+388
+00:17:40,540 --> 00:17:43,050
+There's been a lot of work with
+people doing markups, where
+
+389
+00:17:43,050 --> 00:17:46,540
+they're trying to identify
+the relevant parts of the HTML
+
+390
+00:17:46,540 --> 00:17:48,630
+and trying to use that.
+
+391
+00:17:48,630 --> 00:17:50,585
+Another representation
+is to use something
+
+392
+00:17:50,585 --> 00:17:51,960
+that's called
+Set-of-Marks, which
+
+393
+00:17:51,960 --> 00:17:54,510
+is simplified representations.
+
+394
+00:17:54,510 --> 00:17:57,240
+So what it does is it
+basically puts bounding boxes
+
+395
+00:17:57,240 --> 00:18:00,035
+around elements, around
+clickable elements.
+
+396
+00:18:00,035 --> 00:18:02,400
+So whether I can click
+on certain elements
+
+397
+00:18:02,400 --> 00:18:05,920
+or not, and that's something
+that you can get from any HTML.
+
+398
+00:18:05,920 --> 00:18:07,500
+So that Set-of-Marks
+representation
+
+399
+00:18:07,500 --> 00:18:09,090
+is something that you can do.
+
+400
+00:18:09,090 --> 00:18:10,702
+Both of these
+representations have
+
+401
+00:18:10,702 --> 00:18:11,910
+advantages and disadvantages.
+
+402
+00:18:11,910 --> 00:18:14,130
+Set-of-Marks is useful
+because, actually, visually,
+
+403
+00:18:14,130 --> 00:18:16,600
+I understand what I'm
+seeing in the image
+
+404
+00:18:16,600 --> 00:18:19,080
+and what I can click on.
+
+405
+00:18:19,080 --> 00:18:21,848
+But it's also a very cluttered
+type of representation.
+
+406
+00:18:21,848 --> 00:18:23,640
+And there is a third
+type of representation
+
+407
+00:18:23,640 --> 00:18:25,210
+that people are now
+beginning to use,
+
+408
+00:18:25,210 --> 00:18:26,770
+which is coordinate-based
+representation,
+
+409
+00:18:26,770 --> 00:18:28,520
+where I'm just trying to
+predict the coordinate of where
+
+410
+00:18:28,520 --> 00:18:29,203
+I need to click.
+
+411
+00:18:29,203 --> 00:18:30,620
+So ultimately,
+it's probably going
+
+412
+00:18:30,620 --> 00:18:32,840
+to be a combination
+of both HTML,
+
+413
+00:18:32,840 --> 00:18:35,870
+Set-of-Marks some kind of
+coordinate-based representation.
+
+414
+00:18:35,870 --> 00:18:39,050
+And the way you can think about
+these set of representation
+
+415
+00:18:39,050 --> 00:18:41,430
+is that if, let's say, I
+have a regional web page,
+
+416
+00:18:41,430 --> 00:18:44,130
+I can use the Set-of-Marks
+representation,
+
+417
+00:18:44,130 --> 00:18:48,320
+so I can put the bounding
+boxes and have IDs for each box
+
+418
+00:18:48,320 --> 00:18:51,990
+and have some representation of
+what each box is actually doing,
+
+419
+00:18:51,990 --> 00:18:55,470
+and perhaps have some form
+of captioning of each image.
+
+420
+00:18:55,470 --> 00:18:59,480
+So I have this
+Set-of-Marks elements
+
+421
+00:18:59,480 --> 00:19:02,485
+in the text, as well as the
+actual visual representation.
+
+422
+00:19:02,485 --> 00:19:04,800
+And if I say, if I'm
+trying to find this post,
+
+423
+00:19:04,800 --> 00:19:06,510
+navigate to the
+comment section of it,
+
+424
+00:19:06,510 --> 00:19:09,480
+then you pass it to the
+LLM or the LLM agent,
+
+425
+00:19:09,480 --> 00:19:12,770
+and then the agent actually
+executes a precise action
+
+426
+00:19:12,770 --> 00:19:13,950
+to do next.
+
+427
+00:19:13,950 --> 00:19:16,850
+For example, I want to
+click on Element ID 31,
+
+428
+00:19:16,850 --> 00:19:20,940
+and Element ID 31 is one
+of the elements here.
+
+429
+00:19:20,940 --> 00:19:24,260
+And so, again, the way that we
+typically have a representation.
+
+430
+00:19:24,260 --> 00:19:25,350
+I have a goal.
+
+431
+00:19:25,350 --> 00:19:26,820
+I get an observation.
+
+432
+00:19:26,820 --> 00:19:29,100
+I had represented
+using Set-of-Marks.
+
+433
+00:19:29,100 --> 00:19:32,310
+That goes to the multimodal
+large language models, both
+
+434
+00:19:32,310 --> 00:19:34,950
+the text and the image
+as well as the goal,
+
+435
+00:19:34,950 --> 00:19:37,050
+and the model generates
+a chain of thoughts.
+
+436
+00:19:37,050 --> 00:19:38,550
+So in this case,
+it would generate--
+
+437
+00:19:38,550 --> 00:19:39,670
+let's think step by step.
+
+438
+00:19:39,670 --> 00:19:42,000
+The objective is to navigate
+to the food, the post,
+
+439
+00:19:42,000 --> 00:19:44,280
+and so forth.
+
+440
+00:19:44,280 --> 00:19:45,900
+To navigate to this
+listing, I need
+
+441
+00:19:45,900 --> 00:19:48,670
+to click on the comment link
+associated with the sushi.
+
+442
+00:19:48,670 --> 00:19:50,670
+In summary, my next
+action will be--
+
+443
+00:19:50,670 --> 00:19:52,575
+I'll perform action, click 34.
+
+444
+00:19:52,575 --> 00:19:54,700
+And, again, that's the
+action that you're clicking.
+
+445
+00:19:54,700 --> 00:20:01,710
+So that's one particular action
+that the model is taking.
+
+446
+00:20:01,710 --> 00:20:02,800
+And then it goes--
+
+447
+00:20:02,800 --> 00:20:04,680
+once you click on that
+particular element,
+
+448
+00:20:04,680 --> 00:20:09,370
+the simulator will go to the
+next web page, the next state,
+
+449
+00:20:09,370 --> 00:20:12,310
+and then you repeat
+this process.
+
+450
+00:20:12,310 --> 00:20:15,690
+And here, again, the action is
+you take a particular action
+
+451
+00:20:15,690 --> 00:20:19,410
+from the list of actions
+that I've mentioned before.
+
+452
+00:20:19,410 --> 00:20:22,710
+Now, if I look at
+baseline models
+
+453
+00:20:22,710 --> 00:20:26,150
+and try to understand which
+models are working well
+
+454
+00:20:26,150 --> 00:20:28,310
+and which models are
+not, what's interesting
+
+455
+00:20:28,310 --> 00:20:32,420
+is that, if I only use text
+only-based representation,
+
+456
+00:20:32,420 --> 00:20:35,000
+then I hit something
+like 90% accuracy.
+
+457
+00:20:35,000 --> 00:20:37,310
+If I use text plus
+caption, so if I
+
+458
+00:20:37,310 --> 00:20:40,280
+caption any visual
+information, any images
+
+459
+00:20:40,280 --> 00:20:43,500
+that I have on the web
+pages, you have improvement.
+
+460
+00:20:43,500 --> 00:20:46,110
+If I actually try to
+use multimodal model,
+
+461
+00:20:46,110 --> 00:20:47,760
+you get further improvement.
+
+462
+00:20:47,760 --> 00:20:50,060
+If I use Set-of-Marks
+representation,
+
+463
+00:20:50,060 --> 00:20:53,070
+like, I understand clickable
+elements and what I can do,
+
+464
+00:20:53,070 --> 00:20:55,590
+you get a little bit
+of improvement as well.
+
+465
+00:20:55,590 --> 00:20:58,860
+So you go from 9% to
+something like 18%.
+
+466
+00:20:58,860 --> 00:21:00,650
+And then you get human
+level performance,
+
+467
+00:21:00,650 --> 00:21:03,707
+and the human level performance
+hits close to, in this case,
+
+468
+00:21:03,707 --> 00:21:05,540
+for VisualWebArena, it
+was hitting something
+
+469
+00:21:05,540 --> 00:21:09,240
+like 85%, 86% accuracy.
+
+470
+00:21:09,240 --> 00:21:11,690
+So there is a big
+gap between what
+
+471
+00:21:11,690 --> 00:21:15,230
+people are capable of doing it
+and what existing models are
+
+472
+00:21:15,230 --> 00:21:17,150
+capable of doing.
+
+473
+00:21:17,150 --> 00:21:18,088
+This was interesting.
+
+474
+00:21:18,088 --> 00:21:19,880
+The way that we've
+collected the data is we
+
+475
+00:21:19,880 --> 00:21:24,108
+actually asked students at
+CMU to solve these tasks.
+
+476
+00:21:24,108 --> 00:21:26,150
+We give them the prompts,
+we give them the tasks,
+
+477
+00:21:26,150 --> 00:21:27,490
+we give them the
+environment, and they just
+
+478
+00:21:27,490 --> 00:21:30,073
+interact with the environment,
+and then they end in the state,
+
+479
+00:21:30,073 --> 00:21:32,650
+and then we evaluate using
+our execution-based evaluation
+
+480
+00:21:32,650 --> 00:21:35,380
+whether they successfully
+solved the task.
+
+481
+00:21:35,380 --> 00:21:37,660
+What's interesting
+is that we found
+
+482
+00:21:37,660 --> 00:21:41,450
+that humans were not at 100%.
+
+483
+00:21:41,450 --> 00:21:44,080
+And what's interesting, a lot
+of mistakes that people make
+
+484
+00:21:44,080 --> 00:21:45,830
+are silly mistakes.
+
+485
+00:21:45,830 --> 00:21:49,350
+So, for example, if I
+ask you to find the--
+
+486
+00:21:49,350 --> 00:21:53,300
+if I ask you to say, well,
+find me the cheapest bicycle
+
+487
+00:21:53,300 --> 00:21:56,510
+that has these specific
+constraints or these conditions.
+
+488
+00:21:56,510 --> 00:21:57,680
+I want it to be black.
+
+489
+00:21:57,680 --> 00:21:59,120
+I want it to be of this color.
+
+490
+00:21:59,120 --> 00:22:01,250
+I want it to be
+less than $2,000.
+
+491
+00:22:01,250 --> 00:22:04,360
+Go find me the cheapest bike.
+
+492
+00:22:04,360 --> 00:22:06,190
+What people tend
+to do, people tend
+
+493
+00:22:06,190 --> 00:22:09,910
+to go through the
+simulator, they
+
+494
+00:22:09,910 --> 00:22:12,520
+look at-- they find one bike,
+they find a second bike,
+
+495
+00:22:12,520 --> 00:22:14,020
+and then they
+basically say, OK, I'm
+
+496
+00:22:14,020 --> 00:22:16,280
+tired of looking
+for anything else.
+
+497
+00:22:16,280 --> 00:22:17,420
+So I have two bicycles.
+
+498
+00:22:17,420 --> 00:22:20,110
+I take the cheapest
+one and say, I'm done.
+
+499
+00:22:20,110 --> 00:22:22,742
+Whereas, actually,
+there are 10 bicycles
+
+500
+00:22:22,742 --> 00:22:23,950
+that satisfy the constraints.
+
+501
+00:22:23,950 --> 00:22:27,220
+So people are just not very good
+at information-seeking tasks.
+
+502
+00:22:27,220 --> 00:22:30,220
+Or, at least, we didn't
+pay students enough.
+
+503
+00:22:30,220 --> 00:22:35,010
+We gave them pizza to go and
+spend more than a few minutes
+
+504
+00:22:35,010 --> 00:22:36,010
+to solve these tasks.
+
+505
+00:22:36,010 --> 00:22:38,790
+So majority of the
+information-seeking task
+
+506
+00:22:38,790 --> 00:22:41,110
+is where people were
+not really good at.
+
+507
+00:22:41,110 --> 00:22:44,230
+And sometimes people
+were a little bit--
+
+508
+00:22:44,230 --> 00:22:46,230
+They would solve the task,
+but they would forget
+
+509
+00:22:46,230 --> 00:22:48,605
+to click on Place the order.
+
+510
+00:22:48,605 --> 00:22:50,980
+So they would solve the task,
+they would add to the cart,
+
+511
+00:22:50,980 --> 00:22:52,730
+they find the right
+thing, but they forget
+
+512
+00:22:52,730 --> 00:22:54,240
+to click on Place the order.
+
+513
+00:22:54,240 --> 00:22:58,630
+And if they forget
+to place the order,
+
+514
+00:22:58,630 --> 00:23:00,810
+then our system basically
+says that, well, you
+
+515
+00:23:00,810 --> 00:23:02,800
+haven't solved it
+because you actually
+
+516
+00:23:02,800 --> 00:23:05,220
+haven't bought the item.
+
+517
+00:23:05,220 --> 00:23:08,190
+And so this is an
+interesting part
+
+518
+00:23:08,190 --> 00:23:11,072
+because I think that
+agentic systems should
+
+519
+00:23:11,072 --> 00:23:12,280
+be able to solve these tasks.
+
+520
+00:23:12,280 --> 00:23:14,670
+Agentic system should be
+much better at information
+
+521
+00:23:14,670 --> 00:23:17,520
+seeking and finding
+the information
+
+522
+00:23:17,520 --> 00:23:20,360
+just because it requires
+less cognitive load,
+
+523
+00:23:20,360 --> 00:23:23,320
+whereas people are not
+very good at doing that.
+
+524
+00:23:23,320 --> 00:23:27,160
+If I look at trying
+to understand where
+
+525
+00:23:27,160 --> 00:23:30,100
+we are with these
+models, you can
+
+526
+00:23:30,100 --> 00:23:33,890
+see that Llama, the
+older versions of Llama,
+
+527
+00:23:33,890 --> 00:23:36,410
+they all were really bad.
+
+528
+00:23:36,410 --> 00:23:39,020
+If I have accessibility
+tree plus captions,
+
+529
+00:23:39,020 --> 00:23:42,140
+a lot of these models
+would go higher.
+
+530
+00:23:42,140 --> 00:23:44,350
+And then once I
+have multimodals,
+
+531
+00:23:44,350 --> 00:23:46,160
+you have much better
+representation.
+
+532
+00:23:46,160 --> 00:23:49,660
+And then once I have the
+multimodal models, at that time,
+
+533
+00:23:49,660 --> 00:23:51,880
+looking at Gemini
+Pro and GPT-4, I
+
+534
+00:23:51,880 --> 00:23:54,470
+think GPT-4 now hits
+something like 90%
+
+535
+00:23:54,470 --> 00:23:58,870
+So these models do climb,
+they do better, but they still
+
+536
+00:23:58,870 --> 00:24:02,270
+far below what people can do.
+
+537
+00:24:02,270 --> 00:24:04,570
+Even the best models
+today are sitting
+
+538
+00:24:04,570 --> 00:24:11,110
+around 20% accuracy in terms
+of solving these tasks.
+
+539
+00:24:11,110 --> 00:24:13,960
+And here's one example
+I wanted to show you.
+
+540
+00:24:13,960 --> 00:24:17,640
+It's an interesting example
+where the GPT model was
+
+541
+00:24:17,640 --> 00:24:19,180
+able to successfully solve it.
+
+542
+00:24:19,180 --> 00:24:21,810
+I ask you, I don't like
+the author of this image
+
+543
+00:24:21,810 --> 00:24:23,770
+from the posts,
+one of the posts.
+
+544
+00:24:23,770 --> 00:24:26,410
+Can you help me block them?
+
+545
+00:24:26,410 --> 00:24:28,090
+And the engine
+would actually go,
+
+546
+00:24:28,090 --> 00:24:31,000
+it would click on the right
+things, it would find the post,
+
+547
+00:24:31,000 --> 00:24:34,620
+it would go to the settings,
+and through executing
+
+548
+00:24:34,620 --> 00:24:36,900
+multiple clicks,
+it would actually
+
+549
+00:24:36,900 --> 00:24:39,428
+block a specific user,
+just as an example.
+
+550
+00:24:39,428 --> 00:24:41,220
+You give it this
+instruction, and the model
+
+551
+00:24:41,220 --> 00:24:44,010
+would actually go and do that.
+
+552
+00:24:44,010 --> 00:24:46,770
+And this has this
+notion of-- that I'd
+
+553
+00:24:46,770 --> 00:24:49,000
+like to think about web
+agent architectures,
+
+554
+00:24:49,000 --> 00:24:52,830
+and I'll make that reference
+later on for physical agents.
+
+555
+00:24:52,830 --> 00:24:54,990
+But you can think about
+these sort of architectures
+
+556
+00:24:54,990 --> 00:24:59,850
+where you observe some
+input, say, a web page, you
+
+557
+00:24:59,850 --> 00:25:02,920
+do some form of parsing
+of the web page,
+
+558
+00:25:02,920 --> 00:25:05,220
+whether it's visual
+and HTML or some kind
+
+559
+00:25:05,220 --> 00:25:08,640
+of compressed representation of
+HTML plus visual understanding.
+
+560
+00:25:08,640 --> 00:25:10,810
+You have an objective.
+
+561
+00:25:10,810 --> 00:25:13,120
+And the objective is
+what I need to do,
+
+562
+00:25:13,120 --> 00:25:15,890
+and a lot of times, what a
+lot of these models would do
+
+563
+00:25:15,890 --> 00:25:17,715
+is they would generate
+a high-level plan.
+
+564
+00:25:17,715 --> 00:25:19,590
+They would generate a
+plan of how to execute,
+
+565
+00:25:19,590 --> 00:25:21,980
+how you should proceed
+to solve the task.
+
+566
+00:25:21,980 --> 00:25:26,160
+And then you execute
+the low-level actions,
+
+567
+00:25:26,160 --> 00:25:28,200
+which is clicking on
+a specific element.
+
+568
+00:25:28,200 --> 00:25:30,180
+And that goes in loop.
+
+569
+00:25:30,180 --> 00:25:32,220
+You can define the
+high-level plan.
+
+570
+00:25:32,220 --> 00:25:33,890
+You can execute the
+low-level action up
+
+571
+00:25:33,890 --> 00:25:36,500
+until you hit a stop
+action, which basically
+
+572
+00:25:36,500 --> 00:25:38,390
+means that the agent is done.
+
+573
+00:25:38,390 --> 00:25:41,954
+I think I've solved the task.
+
+574
+00:25:41,954 --> 00:25:45,703
+And you can think of
+planning as a system.
+
+575
+00:25:45,703 --> 00:25:47,120
+There's been some
+work on building
+
+576
+00:25:47,120 --> 00:25:50,820
+these hierarchical systems
+where, for example, step 1,
+
+577
+00:25:50,820 --> 00:25:54,650
+I can say, navigate me
+to a particular category.
+
+578
+00:25:54,650 --> 00:25:59,067
+Step 2, I want to sort based
+on the rating of that category.
+
+579
+00:25:59,067 --> 00:26:01,400
+And that would be two low-level
+actions you're selecting
+
+580
+00:26:01,400 --> 00:26:02,665
+and then you're sorting.
+
+581
+00:26:02,665 --> 00:26:06,110
+And then maybe you
+select an item under $20,
+
+582
+00:26:06,110 --> 00:26:08,252
+and then maybe you're
+buying a selected item.
+
+583
+00:26:08,252 --> 00:26:10,460
+You need to buy it, and then
+three low-level actions,
+
+584
+00:26:10,460 --> 00:26:12,502
+you add to the cart, you
+proceed to the checkout,
+
+585
+00:26:12,502 --> 00:26:14,230
+and you do shipping.
+
+586
+00:26:14,230 --> 00:26:16,570
+So there is some sort
+of work right now
+
+587
+00:26:16,570 --> 00:26:18,940
+that's trying to have the
+planning model that actually
+
+588
+00:26:18,940 --> 00:26:23,320
+plans what you need to do
+and then you execute those.
+
+589
+00:26:23,320 --> 00:26:25,660
+So VisualWebArena,
+we think of it
+
+590
+00:26:25,660 --> 00:26:28,850
+as a step towards building
+general purpose agents.
+
+591
+00:26:28,850 --> 00:26:30,530
+It's a simulator.
+
+592
+00:26:30,530 --> 00:26:32,932
+So you can evaluate
+those models.
+
+593
+00:26:32,932 --> 00:26:34,390
+Tasks that we
+designed are not very
+
+594
+00:26:34,390 --> 00:26:35,780
+consequential at this point.
+
+595
+00:26:35,780 --> 00:26:38,200
+They don't really represent
+significant economic value
+
+596
+00:26:38,200 --> 00:26:39,170
+at this point.
+
+597
+00:26:39,170 --> 00:26:41,830
+And we've designed these
+tasks to be simpler
+
+598
+00:26:41,830 --> 00:26:44,050
+because the current
+large language model
+
+599
+00:26:44,050 --> 00:26:46,880
+agents or AI agents do not
+even do well on these tasks.
+
+600
+00:26:46,880 --> 00:26:49,600
+The gap is still
+fairly significant.
+
+601
+00:26:49,600 --> 00:26:52,180
+And the long-term
+question is, can we
+
+602
+00:26:52,180 --> 00:26:56,080
+automate productive,
+economically valuable tasks?
+
+603
+00:26:56,080 --> 00:26:59,548
+
+604
+00:26:59,548 --> 00:27:02,200
+One of the interesting
+failure modes
+
+605
+00:27:02,200 --> 00:27:03,950
+that we see these in models--
+
+606
+00:27:03,950 --> 00:27:05,630
+and, again, we're fixing those.
+
+607
+00:27:05,630 --> 00:27:09,500
+A lot of that progresses as the
+models become better and better.
+
+608
+00:27:09,500 --> 00:27:11,200
+But one of the things
+that we're seeing
+
+609
+00:27:11,200 --> 00:27:15,660
+is this notion of long horizon
+reasoning and planning.
+
+610
+00:27:15,660 --> 00:27:19,680
+So models sometimes oscillate
+between two web pages,
+
+611
+00:27:19,680 --> 00:27:21,330
+or sometimes they
+get stuck in a loop.
+
+612
+00:27:21,330 --> 00:27:23,868
+So it's, I'm trying to do
+something, I go to this web page
+
+613
+00:27:23,868 --> 00:27:26,160
+and then I go back and then
+I go forward and I go back.
+
+614
+00:27:26,160 --> 00:27:28,500
+So there's this notion
+of persistent memory.
+
+615
+00:27:28,500 --> 00:27:31,800
+A lot of times,
+memory is missing,
+
+616
+00:27:31,800 --> 00:27:35,820
+so good representation of what
+I've done so far is missing.
+
+617
+00:27:35,820 --> 00:27:38,120
+Of course, I can concatenate
+every single web page
+
+618
+00:27:38,120 --> 00:27:40,380
+I visited with
+every single HTML,
+
+619
+00:27:40,380 --> 00:27:42,120
+but that becomes
+fairly cumbersome.
+
+620
+00:27:42,120 --> 00:27:44,180
+You need to have a good
+persistent representation
+
+621
+00:27:44,180 --> 00:27:45,110
+of the memory.
+
+622
+00:27:45,110 --> 00:27:47,720
+A lot of times,
+models would correctly
+
+623
+00:27:47,720 --> 00:27:50,130
+start on performing tasks,
+and then undoing them.
+
+624
+00:27:50,130 --> 00:27:51,090
+I don't know why.
+
+625
+00:27:51,090 --> 00:27:53,630
+It just basically means they
+don't have very good reasoning
+
+626
+00:27:53,630 --> 00:27:54,660
+abilities.
+
+627
+00:27:54,660 --> 00:27:58,660
+And a lot of times, agents tend
+to stop exploration execution
+
+628
+00:27:58,660 --> 00:27:59,160
+too early.
+
+629
+00:27:59,160 --> 00:28:01,980
+So instead of exploring what
+are the possibilities there,
+
+630
+00:28:01,980 --> 00:28:04,280
+they actually try to do
+something, and then you stop
+
+631
+00:28:04,280 --> 00:28:05,420
+and you basically execute.
+
+632
+00:28:05,420 --> 00:28:08,580
+The stop action says like,
+I can't solve the task.
+
+633
+00:28:08,580 --> 00:28:11,920
+I'm not seeing how I
+can solve the task.
+
+634
+00:28:11,920 --> 00:28:14,480
+And there's also some
+failures in visual processing.
+
+635
+00:28:14,480 --> 00:28:16,960
+So sometimes you can
+click on the wrong items,
+
+636
+00:28:16,960 --> 00:28:20,300
+identifying specific items
+in complex web pages.
+
+637
+00:28:20,300 --> 00:28:23,890
+There is also-- they lack a
+little bit of spatial reasoning.
+
+638
+00:28:23,890 --> 00:28:25,450
+If you're asking
+the question, what
+
+639
+00:28:25,450 --> 00:28:27,470
+are the prices of
+products in the first row?
+
+640
+00:28:27,470 --> 00:28:29,622
+You have to understand
+what the first row is,
+
+641
+00:28:29,622 --> 00:28:31,580
+what the second row, and
+what's the middle row.
+
+642
+00:28:31,580 --> 00:28:35,022
+So certain spatial
+understanding is missing,
+
+643
+00:28:35,022 --> 00:28:36,730
+but I think those
+things will potentially
+
+644
+00:28:36,730 --> 00:28:41,770
+get better and better as we
+can get the data for training
+
+645
+00:28:41,770 --> 00:28:43,210
+these models.
+
+646
+00:28:43,210 --> 00:28:45,880
+So what we need to do,
+we need to do a lot more
+
+647
+00:28:45,880 --> 00:28:47,620
+to close the gap.
+
+648
+00:28:47,620 --> 00:28:50,653
+Definitely, reasoning and
+planning over long horizons.
+
+649
+00:28:50,653 --> 00:28:52,070
+I'll talk a little
+bit about this,
+
+650
+00:28:52,070 --> 00:28:55,030
+but that's one of the
+key failure modes.
+
+651
+00:28:55,030 --> 00:28:57,650
+We also need to allow
+agents to search.
+
+652
+00:28:57,650 --> 00:29:00,460
+You can think of it as
+executing and coordinating
+
+653
+00:29:00,460 --> 00:29:04,160
+multiple instances in parallel,
+and asking for clarifications
+
+654
+00:29:04,160 --> 00:29:04,910
+and confirmations.
+
+655
+00:29:04,910 --> 00:29:07,420
+So a lot of times,
+search is actually--
+
+656
+00:29:07,420 --> 00:29:10,420
+you can think of it as test
+time inference technique.
+
+657
+00:29:10,420 --> 00:29:13,950
+Basically tries to explore
+possibilities to figure out
+
+658
+00:29:13,950 --> 00:29:15,810
+what's the right way
+to solve the task.
+
+659
+00:29:15,810 --> 00:29:17,910
+And asking for
+clarification, this
+
+660
+00:29:17,910 --> 00:29:19,690
+is where uncertainty
+estimation comes in.
+
+661
+00:29:19,690 --> 00:29:22,438
+It's also fairly challenging
+where, basically, the model
+
+662
+00:29:22,438 --> 00:29:23,980
+has to understand
+that it's confused,
+
+663
+00:29:23,980 --> 00:29:25,680
+and then it has to
+go and ask humans
+
+664
+00:29:25,680 --> 00:29:28,150
+for clarifications or guidance.
+
+665
+00:29:28,150 --> 00:29:31,680
+And, obviously, you need strong
+visual language code models.
+
+666
+00:29:31,680 --> 00:29:34,050
+And also, identifying
+appropriate levels
+
+667
+00:29:34,050 --> 00:29:35,760
+of abstractions
+for agents like, do
+
+668
+00:29:35,760 --> 00:29:38,560
+you rely on screenshots,
+what you are seeing visually?
+
+669
+00:29:38,560 --> 00:29:42,040
+Do you rely on HTML, or
+maybe you rely on APIs?
+
+670
+00:29:42,040 --> 00:29:44,655
+There's a lot of websites
+that would have APIs.
+
+671
+00:29:44,655 --> 00:29:46,780
+So maybe instead of actually
+going through the web,
+
+672
+00:29:46,780 --> 00:29:50,070
+you actually go
+through API calls.
+
+673
+00:29:50,070 --> 00:29:53,580
+And, again, I think that
+multimodal models here
+
+674
+00:29:53,580 --> 00:29:55,980
+becomes very important because
+a lot of real-world tasks
+
+675
+00:29:55,980 --> 00:29:57,820
+will require some form
+of visual grounding.
+
+676
+00:29:57,820 --> 00:30:02,200
+So, for example, if you're
+interacting with PowerPoint,
+
+677
+00:30:02,200 --> 00:30:04,873
+if you're interacting with
+Photoshop, a lot of it-- yes,
+
+678
+00:30:04,873 --> 00:30:06,790
+you can do it through
+API, but a lot of things
+
+679
+00:30:06,790 --> 00:30:08,560
+are also done through
+visual grounding
+
+680
+00:30:08,560 --> 00:30:10,690
+and visual understanding.
+
+681
+00:30:10,690 --> 00:30:13,480
+So we definitely need to
+train and build stronger
+
+682
+00:30:13,480 --> 00:30:16,420
+visual language models.
+
+683
+00:30:16,420 --> 00:30:20,523
+So that gives me this
+notion of VisualWebArena,
+
+684
+00:30:20,523 --> 00:30:22,940
+which is the environment that
+we use for doing evaluation.
+
+685
+00:30:22,940 --> 00:30:28,330
+Now, let's talk
+about that research.
+
+686
+00:30:28,330 --> 00:30:32,530
+Or we can think of it as,
+again, test time inference.
+
+687
+00:30:32,530 --> 00:30:38,050
+One interesting thing about
+agentic agents in general
+
+688
+00:30:38,050 --> 00:30:43,010
+is that you have this notion of
+exponential error compounding.
+
+689
+00:30:43,010 --> 00:30:48,170
+So, for example, if your
+model accurately can--
+
+690
+00:30:48,170 --> 00:30:51,560
+can be accurate at one
+step prediction at 90%,
+
+691
+00:30:51,560 --> 00:30:55,330
+then if you're
+executing 30 actions,
+
+692
+00:30:55,330 --> 00:30:59,110
+then your accuracy
+goes down to 4%.
+
+693
+00:30:59,110 --> 00:31:02,450
+So you basically need to
+be very, very accurate.
+
+694
+00:31:02,450 --> 00:31:05,670
+So you need to be very precise
+in terms of executing each step
+
+695
+00:31:05,670 --> 00:31:07,920
+in order to be able to
+successfully-- solving
+
+696
+00:31:07,920 --> 00:31:09,460
+long horizon tasks.
+
+697
+00:31:09,460 --> 00:31:11,760
+And that's pretty
+well-known, and any time
+
+698
+00:31:11,760 --> 00:31:14,640
+you have sequential
+decision making process,
+
+699
+00:31:14,640 --> 00:31:16,740
+you have this issue.
+
+700
+00:31:16,740 --> 00:31:20,410
+The errors do
+compound over time,
+
+701
+00:31:20,410 --> 00:31:25,410
+which makes it a very,
+very difficult task.
+
+702
+00:31:25,410 --> 00:31:27,940
+So what happens here?
+
+703
+00:31:27,940 --> 00:31:32,250
+Well, local decisions have
+global consequences So,
+
+704
+00:31:32,250 --> 00:31:34,330
+for example, let's say
+I ask you the question,
+
+705
+00:31:34,330 --> 00:31:36,480
+add coconut milk to my cart.
+
+706
+00:31:36,480 --> 00:31:40,560
+Well, I can click
+on Element ID 31
+
+707
+00:31:40,560 --> 00:31:42,100
+and that gives me
+to the next state,
+
+708
+00:31:42,100 --> 00:31:44,190
+or maybe I can click
+Element ID 24 that
+
+709
+00:31:44,190 --> 00:31:47,530
+gets me to the next
+state, and then so forth.
+
+710
+00:31:47,530 --> 00:31:49,598
+So it's different choices.
+
+711
+00:31:49,598 --> 00:31:50,640
+There is a lot of action.
+
+712
+00:31:50,640 --> 00:31:52,770
+And the action space could
+be exponential especially
+
+713
+00:31:52,770 --> 00:31:54,062
+if I'm doing searching as well.
+
+714
+00:31:54,062 --> 00:31:56,760
+So I can type text.
+
+715
+00:31:56,760 --> 00:32:01,710
+And so you can imagine
+that each one of these
+
+716
+00:32:01,710 --> 00:32:04,070
+leads to a trajectory.
+
+717
+00:32:04,070 --> 00:32:07,610
+Once I execute the
+trajectory, then potentially
+
+718
+00:32:07,610 --> 00:32:10,740
+I can evaluate which one is
+right, which one is wrong.
+
+719
+00:32:10,740 --> 00:32:14,400
+And let's say, basically, this
+state gives me the right outcome
+
+720
+00:32:14,400 --> 00:32:16,220
+and all the other states don't.
+
+721
+00:32:16,220 --> 00:32:18,200
+And especially if
+you're executing
+
+722
+00:32:18,200 --> 00:32:22,980
+actions, 30 or 40 or 50 actions,
+that becomes very challenging.
+
+723
+00:32:22,980 --> 00:32:25,520
+And if you have a policy
+right now that-- you
+
+724
+00:32:25,520 --> 00:32:29,330
+can think of VLM as your
+policy that basically predicts
+
+725
+00:32:29,330 --> 00:32:31,070
+the probability 0.5,
+you should click on
+
+726
+00:32:31,070 --> 00:32:32,510
+this action, and
+probability 0.1,
+
+727
+00:32:32,510 --> 00:32:35,120
+you should click on this
+action, then, obviously,
+
+728
+00:32:35,120 --> 00:32:39,458
+finding the correct path is
+going to be very difficult.
+
+729
+00:32:39,458 --> 00:32:43,250
+So you basically
+have to-- you have
+
+730
+00:32:43,250 --> 00:32:48,995
+to be able to explore the
+environment very efficiently
+
+731
+00:32:48,995 --> 00:32:52,130
+in this exponential space.
+
+732
+00:32:52,130 --> 00:32:56,600
+Now, one of the things that
+turns out to work okay-ish,
+
+733
+00:32:56,600 --> 00:32:59,240
+or, at least, is a first
+step, is doing search
+
+734
+00:32:59,240 --> 00:33:01,500
+by repeated sampling.
+
+735
+00:33:01,500 --> 00:33:03,260
+It's a very simple idea.
+
+736
+00:33:03,260 --> 00:33:05,060
+Very easy idea.
+
+737
+00:33:05,060 --> 00:33:07,570
+You sample action
+from your model
+
+738
+00:33:07,570 --> 00:33:09,865
+until you hit the stop action.
+
+739
+00:33:09,865 --> 00:33:12,880
+So let's say you
+sample this path.
+
+740
+00:33:12,880 --> 00:33:15,020
+And then you evaluate
+the resulting trajectory.
+
+741
+00:33:15,020 --> 00:33:16,937
+So you look at the
+trajectory and you can say,
+
+742
+00:33:16,937 --> 00:33:19,550
+have you solved the task or
+did you not solve the task?
+
+743
+00:33:19,550 --> 00:33:21,213
+If you have verifiers
+that can tell you
+
+744
+00:33:21,213 --> 00:33:22,630
+that you solved
+the task, then you
+
+745
+00:33:22,630 --> 00:33:25,870
+know whether it's
+success or not success.
+
+746
+00:33:25,870 --> 00:33:30,650
+And if it's a not
+success, then you repeat.
+
+747
+00:33:30,650 --> 00:33:32,650
+This would be an
+instance of what's
+
+748
+00:33:32,650 --> 00:33:34,280
+called rejection sampling.
+
+749
+00:33:34,280 --> 00:33:38,450
+You generate the trajectory,
+you look at the outcome,
+
+750
+00:33:38,450 --> 00:33:43,195
+and if you didn't solve it, you
+generate another trajectory.
+
+751
+00:33:43,195 --> 00:33:49,400
+This is a very simplistic way
+called rejection sampling.
+
+752
+00:33:49,400 --> 00:33:52,270
+You basically sample until
+you hit the right answer.
+
+753
+00:33:52,270 --> 00:33:56,530
+It's fairly inefficient, but
+it's surprising that a lot
+
+754
+00:33:56,530 --> 00:33:58,780
+of work that's happening
+right now, for example,
+
+755
+00:33:58,780 --> 00:34:03,990
+in the space of reasoning,
+models like 01, 03 or Deep Seek,
+
+756
+00:34:03,990 --> 00:34:06,900
+they are essentially
+doing exactly this.
+
+757
+00:34:06,900 --> 00:34:09,000
+They're essentially
+doing rejection sampling.
+
+758
+00:34:09,000 --> 00:34:10,290
+I give you the math problem.
+
+759
+00:34:10,290 --> 00:34:13,460
+I start generating
+thinking tokens up
+
+760
+00:34:13,460 --> 00:34:15,030
+until I get the right answer.
+
+761
+00:34:15,030 --> 00:34:17,825
+And so I start with
+simpler prompts,
+
+762
+00:34:17,825 --> 00:34:21,179
+I generate sometimes right
+answer, sometimes wrong answers.
+
+763
+00:34:21,179 --> 00:34:24,860
+I use reinforcement learning
+to reinforce positive and then
+
+764
+00:34:24,860 --> 00:34:28,409
+dereinforce negative,
+and start scaling it up.
+
+765
+00:34:28,409 --> 00:34:30,889
+So the simple idea
+of rejection sampling
+
+766
+00:34:30,889 --> 00:34:33,560
+is essentially what's
+driving a lot of innovation
+
+767
+00:34:33,560 --> 00:34:36,150
+right now in reasoning
+capabilities.
+
+768
+00:34:36,150 --> 00:34:40,159
+Which is amazing and was
+very surprising to me
+
+769
+00:34:40,159 --> 00:34:42,560
+that it actually works.
+
+770
+00:34:42,560 --> 00:34:45,659
+So we've started looking at
+exactly the same problem.
+
+771
+00:34:45,659 --> 00:34:49,350
+But, for us, in this
+particular domain,
+
+772
+00:34:49,350 --> 00:34:52,199
+it's not that you can
+generate thinking tokens
+
+773
+00:34:52,199 --> 00:34:54,310
+and then you basically
+get the answer here.
+
+774
+00:34:54,310 --> 00:34:56,570
+Here you actually have
+to execute actions
+
+775
+00:34:56,570 --> 00:34:58,360
+in the environment
+and you change
+
+776
+00:34:58,360 --> 00:35:00,320
+the state of the environment.
+
+777
+00:35:00,320 --> 00:35:03,580
+Which makes it much
+more difficult.
+
+778
+00:35:03,580 --> 00:35:05,480
+So here you do
+rejection sampling
+
+779
+00:35:05,480 --> 00:35:09,020
+and hopefully at some point
+you'll hit the right answer.
+
+780
+00:35:09,020 --> 00:35:14,270
+What happens is that repeated
+sampling tends to help.
+
+781
+00:35:14,270 --> 00:35:16,970
+So here is the
+number of 10 runs.
+
+782
+00:35:16,970 --> 00:35:20,780
+And this is what
+we call pass at 10.
+
+783
+00:35:20,780 --> 00:35:23,170
+Which basically
+means that if you're
+
+784
+00:35:23,170 --> 00:35:28,930
+running your model
+10 times, in terms
+
+785
+00:35:28,930 --> 00:35:32,620
+of-- you hit like 15%
+probability of getting
+
+786
+00:35:32,620 --> 00:35:34,190
+the right answer.
+
+787
+00:35:34,190 --> 00:35:36,580
+So the more you
+sample, the probability
+
+788
+00:35:36,580 --> 00:35:38,770
+that you'll hit the right
+answer among these samples
+
+789
+00:35:38,770 --> 00:35:43,190
+is increasing, and that's
+what this graph is showing.
+
+790
+00:35:43,190 --> 00:35:49,130
+And, however, the space
+is exponentially large.
+
+791
+00:35:49,130 --> 00:35:51,860
+So can we guide
+this exploration?
+
+792
+00:35:51,860 --> 00:35:54,820
+And the key idea here is
+to apply the value function
+
+793
+00:35:54,820 --> 00:35:56,970
+to intermediate nodes.
+
+794
+00:35:56,970 --> 00:36:01,680
+It's a very old idea, but
+you can apply it, actually,
+
+795
+00:36:01,680 --> 00:36:03,580
+in this space as well.
+
+796
+00:36:03,580 --> 00:36:06,150
+So how does this work?
+
+797
+00:36:06,150 --> 00:36:10,380
+So the idea is to, basically,
+do a form of a best-first search
+
+798
+00:36:10,380 --> 00:36:12,850
+algorithm with a few tweaks.
+
+799
+00:36:12,850 --> 00:36:15,190
+So what are the ingredients
+of the algorithm?
+
+800
+00:36:15,190 --> 00:36:17,440
+So the baseline agent
+proposes actions.
+
+801
+00:36:17,440 --> 00:36:19,830
+The baseline agent
+actually says, OK,
+
+802
+00:36:19,830 --> 00:36:22,133
+here's two actions
+that I can take.
+
+803
+00:36:22,133 --> 00:36:23,550
+These are the most
+probable action
+
+804
+00:36:23,550 --> 00:36:25,950
+according to the
+base model, according
+
+805
+00:36:25,950 --> 00:36:28,740
+to your original policy.
+
+806
+00:36:28,740 --> 00:36:33,016
+You have to have a way to
+backtrack in the environment.
+
+807
+00:36:33,016 --> 00:36:35,920
+So that basically means
+that, in this state,
+
+808
+00:36:35,920 --> 00:36:39,330
+you want to be able to
+backtrack to the original state.
+
+809
+00:36:39,330 --> 00:36:41,640
+This is sometimes
+difficult to do, especially
+
+810
+00:36:41,640 --> 00:36:46,120
+in web environments
+because some actions,
+
+811
+00:36:46,120 --> 00:36:48,870
+you can't backtrack from,
+and these actions that we
+
+812
+00:36:48,870 --> 00:36:52,320
+call destructive actions.
+
+813
+00:36:52,320 --> 00:36:56,640
+If I place the order, I can't
+just go back and unplace it.
+
+814
+00:36:56,640 --> 00:36:58,050
+That's just one example.
+
+815
+00:36:58,050 --> 00:36:59,880
+So we'll talk a
+little bit about this.
+
+816
+00:36:59,880 --> 00:37:01,890
+And then you also have
+to have a value function.
+
+817
+00:37:01,890 --> 00:37:03,473
+You can think of a
+value function that
+
+818
+00:37:03,473 --> 00:37:07,280
+takes the input, whatever
+your presentation is, plus
+
+819
+00:37:07,280 --> 00:37:11,480
+it takes a sequence of previous
+observations or previous steps
+
+820
+00:37:11,480 --> 00:37:14,810
+and outputs a score.
+
+821
+00:37:14,810 --> 00:37:18,740
+And you can think a value
+function essentially
+
+822
+00:37:18,740 --> 00:37:23,630
+looking at the expected
+value, expected reward.
+
+823
+00:37:23,630 --> 00:37:27,290
+In our settings, think of it as
+the probability of successfully
+
+824
+00:37:27,290 --> 00:37:28,212
+solving the task.
+
+825
+00:37:28,212 --> 00:37:30,170
+So it's a number between
+0 and 1 that basically
+
+826
+00:37:30,170 --> 00:37:34,470
+says, if I'm in this state
+and my value function is 0.5,
+
+827
+00:37:34,470 --> 00:37:39,060
+then the probability of
+me succeeding is 50%.
+
+828
+00:37:39,060 --> 00:37:41,090
+And if the value
+function in this state
+
+829
+00:37:41,090 --> 00:37:44,490
+is 0.3, then the probability
+of me succeeding is 30%.
+
+830
+00:37:44,490 --> 00:37:46,640
+So maybe this state is
+better than this state.
+
+831
+00:37:46,640 --> 00:37:49,140
+So you have to have a
+good value function,
+
+832
+00:37:49,140 --> 00:37:52,590
+and these are values
+that you can associate.
+
+833
+00:37:52,590 --> 00:37:55,530
+And what we've done in this
+work is we're basically
+
+834
+00:37:55,530 --> 00:37:57,130
+using LLM as a judge.
+
+835
+00:37:57,130 --> 00:38:00,700
+So in this case,
+you take a GPT-4o,
+
+836
+00:38:00,700 --> 00:38:03,550
+you take the full trace,
+the full trajectory,
+
+837
+00:38:03,550 --> 00:38:08,490
+and you're asking
+the model to say
+
+838
+00:38:08,490 --> 00:38:11,680
+how good the state is in terms
+of solving a particular task.
+
+839
+00:38:11,680 --> 00:38:16,870
+So there's a way to use
+this LLM as a judge.
+
+840
+00:38:16,870 --> 00:38:18,720
+There's a few tricks
+of self-consistency
+
+841
+00:38:18,720 --> 00:38:19,690
+that you can use.
+
+842
+00:38:19,690 --> 00:38:23,040
+But essentially, you can just
+use a large language model
+
+843
+00:38:23,040 --> 00:38:24,940
+as a judge to judge each state.
+
+844
+00:38:24,940 --> 00:38:29,310
+Ultimately, I do believe that
+the next-generation models will
+
+845
+00:38:29,310 --> 00:38:30,880
+create their own
+value functions.
+
+846
+00:38:30,880 --> 00:38:33,060
+You'll train your own value
+function that basically
+
+847
+00:38:33,060 --> 00:38:35,340
+will guide this exploration.
+
+848
+00:38:35,340 --> 00:38:35,860
+OK.
+
+849
+00:38:35,860 --> 00:38:37,360
+So how does this work?
+
+850
+00:38:37,360 --> 00:38:40,210
+Let's say that I
+give you a task.
+
+851
+00:38:40,210 --> 00:38:41,670
+The task construction
+is, can you
+
+852
+00:38:41,670 --> 00:38:44,970
+add this and the other canned
+fruit of the same brand
+
+853
+00:38:44,970 --> 00:38:47,790
+that looks like this,
+but red instead of brown
+
+854
+00:38:47,790 --> 00:38:50,680
+to the comparison page?
+
+855
+00:38:50,680 --> 00:38:51,930
+So how does this work?
+
+856
+00:38:51,930 --> 00:38:55,790
+Well, you take the action,
+and then at this point
+
+857
+00:38:55,790 --> 00:38:57,870
+you have three possible
+actions to take.
+
+858
+00:38:57,870 --> 00:38:59,840
+They all have a
+probability-- they all have
+
+859
+00:38:59,840 --> 00:39:02,200
+the value function of 0.45.
+
+860
+00:39:02,200 --> 00:39:04,770
+So you pick one of
+them, you proceed,
+
+861
+00:39:04,770 --> 00:39:07,340
+and then you go to the
+next kind of state,
+
+862
+00:39:07,340 --> 00:39:08,880
+and your value
+function decreases.
+
+863
+00:39:08,880 --> 00:39:10,797
+So you basically say,
+OK, I'm actually-- maybe
+
+864
+00:39:10,797 --> 00:39:13,130
+I'm on the wrong path
+to solving this task.
+
+865
+00:39:13,130 --> 00:39:16,940
+And then I backtrack and
+I take another action.
+
+866
+00:39:16,940 --> 00:39:18,630
+So I backtrack to
+the previous state,
+
+867
+00:39:18,630 --> 00:39:20,550
+and I take the other action.
+
+868
+00:39:20,550 --> 00:39:23,550
+And let's say here I go in,
+my probability increases.
+
+869
+00:39:23,550 --> 00:39:25,830
+I go in, my
+probability increases.
+
+870
+00:39:25,830 --> 00:39:28,130
+And then I hit a
+particular state
+
+871
+00:39:28,130 --> 00:39:30,560
+where I'm not actually
+going to solve
+
+872
+00:39:30,560 --> 00:39:33,260
+this task because my
+value of the state
+
+873
+00:39:33,260 --> 00:39:36,140
+is actually pretty
+small because I ended up
+
+874
+00:39:36,140 --> 00:39:37,940
+in a very wrong state.
+
+875
+00:39:37,940 --> 00:39:41,670
+So then I have to be able to
+backtrack again from this state.
+
+876
+00:39:41,670 --> 00:39:45,320
+I have to be able to backtrack
+back to the original state,
+
+877
+00:39:45,320 --> 00:39:51,550
+and then go and, again,
+take the next states,
+
+878
+00:39:51,550 --> 00:39:55,730
+and then if it's bad, backtrack
+and eventually solve the task.
+
+879
+00:39:55,730 --> 00:40:01,630
+So you can see that
+it's more expensive,
+
+880
+00:40:01,630 --> 00:40:04,190
+there are different
+ways of exploring,
+
+881
+00:40:04,190 --> 00:40:07,480
+but the key here that drives
+a lot of this exploration
+
+882
+00:40:07,480 --> 00:40:09,590
+is the value of the state.
+
+883
+00:40:09,590 --> 00:40:13,120
+Which basically is telling you
+how good the particular state is
+
+884
+00:40:13,120 --> 00:40:14,720
+in terms of solving the task.
+
+885
+00:40:14,720 --> 00:40:18,320
+And you can spot the errors
+early on and say, no, no, no,
+
+886
+00:40:18,320 --> 00:40:21,580
+backtrack and restart again.
+
+887
+00:40:21,580 --> 00:40:25,570
+So it's a little bit better
+than just doing random rejection
+
+888
+00:40:25,570 --> 00:40:31,990
+sampling because here you're
+doing guided exploration.
+
+889
+00:40:31,990 --> 00:40:36,430
+It's very similar to-- some of
+you are familiar with AlphaGo
+
+890
+00:40:36,430 --> 00:40:37,240
+setting, right?
+
+891
+00:40:37,240 --> 00:40:40,840
+Where you basically have
+an environment where
+
+892
+00:40:40,840 --> 00:40:42,820
+you have a value of
+the state and then
+
+893
+00:40:42,820 --> 00:40:45,050
+you try to explore
+which actions to take,
+
+894
+00:40:45,050 --> 00:40:47,630
+and you evaluate those states
+given the value function
+
+895
+00:40:47,630 --> 00:40:49,880
+that you have.
+
+896
+00:40:49,880 --> 00:40:52,610
+And so if we look at the
+results, what we found
+
+897
+00:40:52,610 --> 00:40:59,210
+is that, for Web Arena, there
+is pretty decent improvement
+
+898
+00:40:59,210 --> 00:41:01,790
+in terms of the ability
+to solve these tasks.
+
+899
+00:41:01,790 --> 00:41:05,510
+For the VisualWebArena, we
+also see quite reasonable
+
+900
+00:41:05,510 --> 00:41:08,040
+improvements by using
+this exploration.
+
+901
+00:41:08,040 --> 00:41:10,708
+It's more expensive.
+
+902
+00:41:10,708 --> 00:41:15,530
+And so we do see that
+these search at test time
+
+903
+00:41:15,530 --> 00:41:19,710
+actually improves model's
+ability to solve the task,
+
+904
+00:41:19,710 --> 00:41:21,680
+or, at least, to solve
+some of the tasks.
+
+905
+00:41:21,680 --> 00:41:24,230
+You can still see that
+we're still very far away
+
+906
+00:41:24,230 --> 00:41:27,710
+from hitting 90% accuracy.
+
+907
+00:41:27,710 --> 00:41:30,290
+But nonetheless, it's
+actually a progress, where
+
+908
+00:41:30,290 --> 00:41:32,940
+we're progressively improving.
+
+909
+00:41:32,940 --> 00:41:38,450
+And we do see that if you
+look at the success rate,
+
+910
+00:41:38,450 --> 00:41:40,920
+c 0 indicates no search.
+
+911
+00:41:40,920 --> 00:41:44,040
+And then the more node
+expansions you have,
+
+912
+00:41:44,040 --> 00:41:45,830
+the better your performances.
+
+913
+00:41:45,830 --> 00:41:48,470
+And then you can also
+look at the success rate
+
+914
+00:41:48,470 --> 00:41:52,170
+relative to how
+you want to expand.
+
+915
+00:41:52,170 --> 00:41:55,640
+Do you control the depth
+versus the breadth,
+
+916
+00:41:55,640 --> 00:41:59,930
+and, again, how much you
+want to explore versus
+
+917
+00:41:59,930 --> 00:42:02,360
+what's the branching factor?
+
+918
+00:42:02,360 --> 00:42:06,690
+And then if we keep exploring
+and doing the branching,
+
+919
+00:42:06,690 --> 00:42:09,320
+then the accuracy tends to go
+up just because the model is
+
+920
+00:42:09,320 --> 00:42:14,637
+able to explore possible
+different possibilities
+
+921
+00:42:14,637 --> 00:42:15,720
+or different environments.
+
+922
+00:42:15,720 --> 00:42:19,760
+A lot of times what we
+see in these settings
+
+923
+00:42:19,760 --> 00:42:23,590
+is that, if I ask it to
+buy a blue polo shirt,
+
+924
+00:42:23,590 --> 00:42:25,650
+if you don't do the search,
+the model, let's say,
+
+925
+00:42:25,650 --> 00:42:27,650
+goes and let's say it
+clicks on the wrong thing,
+
+926
+00:42:27,650 --> 00:42:31,850
+and it ends up on a web page
+that only has blue polo shirts.
+
+927
+00:42:31,850 --> 00:42:33,350
+So you're asking
+black polo shirt
+
+928
+00:42:33,350 --> 00:42:35,000
+and gives you blue polo shirts.
+
+929
+00:42:35,000 --> 00:42:36,500
+And then the model
+says, well, there
+
+930
+00:42:36,500 --> 00:42:38,930
+are no black polo
+shirts because I'm only
+
+931
+00:42:38,930 --> 00:42:40,080
+seeing blue polo shirts.
+
+932
+00:42:40,080 --> 00:42:41,090
+I can't solve the task.
+
+933
+00:42:41,090 --> 00:42:42,390
+Done.
+
+934
+00:42:42,390 --> 00:42:44,430
+And, obviously, this
+is the case that if you
+
+935
+00:42:44,430 --> 00:42:48,190
+can backtrack and explore, you
+will find the right answer.
+
+936
+00:42:48,190 --> 00:42:51,090
+So this notion of
+search actually
+
+937
+00:42:51,090 --> 00:42:55,020
+becomes fairly
+important and such.
+
+938
+00:42:55,020 --> 00:42:57,810
+And we also found that
+having a good value function
+
+939
+00:42:57,810 --> 00:43:00,231
+is essential.
+
+940
+00:43:00,231 --> 00:43:03,438
+There is still a lot of headroom
+for improving the base policy.
+
+941
+00:43:03,438 --> 00:43:05,230
+Obviously, your base
+policy has to be good.
+
+942
+00:43:05,230 --> 00:43:06,960
+It can't just take
+random actions.
+
+943
+00:43:06,960 --> 00:43:08,448
+If your base policy is--
+
+944
+00:43:08,448 --> 00:43:10,240
+if your base model is
+actually pretty weak,
+
+945
+00:43:10,240 --> 00:43:12,720
+then you'll just be
+taking random actions
+
+946
+00:43:12,720 --> 00:43:17,940
+and there's only that much
+you can do with exploration,
+
+947
+00:43:17,940 --> 00:43:20,842
+but you need to improve both.
+
+948
+00:43:20,842 --> 00:43:25,170
+And you can see, if you use
+different value functions,
+
+949
+00:43:25,170 --> 00:43:27,270
+then the performance
+actually improves.
+
+950
+00:43:27,270 --> 00:43:31,150
+With no search, if you say
+lava, which is a weaker version,
+
+951
+00:43:31,150 --> 00:43:32,290
+you get the improvement.
+
+952
+00:43:32,290 --> 00:43:37,530
+If you use something for all
+type of models, then you have--
+
+953
+00:43:37,530 --> 00:43:39,430
+so if you have a
+better value function,
+
+954
+00:43:39,430 --> 00:43:41,380
+kind of looks at
+the full trajectory,
+
+955
+00:43:41,380 --> 00:43:45,210
+then you have improvements
+in performance.
+
+956
+00:43:45,210 --> 00:43:47,390
+And the interesting
+thing is that using
+
+957
+00:43:47,390 --> 00:43:51,540
+LLM as a judge, judging whether
+the trajectory is good or bad,
+
+958
+00:43:51,540 --> 00:43:54,590
+is much easier than predicting
+what the next action
+
+959
+00:43:54,590 --> 00:43:59,070
+you should take or what the
+next element you should click on
+
+960
+00:43:59,070 --> 00:44:00,570
+and what you should
+be searching on.
+
+961
+00:44:00,570 --> 00:44:06,260
+And so that's why starting--
+using value function as an LLM,
+
+962
+00:44:06,260 --> 00:44:08,640
+initially, I think it's
+a reasonable thing to do,
+
+963
+00:44:08,640 --> 00:44:11,400
+but, obviously, you want
+to be able to improve this.
+
+964
+00:44:11,400 --> 00:44:13,050
+Here's just some examples.
+
+965
+00:44:13,050 --> 00:44:15,950
+You can basically say, I
+recall seeing this exact item
+
+966
+00:44:15,950 --> 00:44:16,800
+on the side.
+
+967
+00:44:16,800 --> 00:44:18,960
+Help me find the most
+recent post of it.
+
+968
+00:44:18,960 --> 00:44:21,250
+I recall seeing it in either
+collectibles or antiques
+
+969
+00:44:21,250 --> 00:44:21,750
+section.
+
+970
+00:44:21,750 --> 00:44:25,020
+So the models would go
+to the starting state,
+
+971
+00:44:25,020 --> 00:44:27,350
+it would explore, and
+then eventually find
+
+972
+00:44:27,350 --> 00:44:30,302
+that particular posting.
+
+973
+00:44:30,302 --> 00:44:32,670
+Or this one where I can
+say, hey, I like this.
+
+974
+00:44:32,670 --> 00:44:35,930
+I need something like
+this in my apartment.
+
+975
+00:44:35,930 --> 00:44:38,190
+Can you add one to my wish list?
+
+976
+00:44:38,190 --> 00:44:41,490
+So the model have to
+go, it has to search
+
+977
+00:44:41,490 --> 00:44:44,790
+through different environments,
+find this specific item,
+
+978
+00:44:44,790 --> 00:44:47,790
+and add it to your wish list.
+
+979
+00:44:47,790 --> 00:44:50,357
+It would be great if you
+have something like that.
+
+980
+00:44:50,357 --> 00:44:52,440
+You take a picture of
+something, and you basically
+
+981
+00:44:52,440 --> 00:44:55,420
+tell your agent, hey, go
+and find it on Amazon,
+
+982
+00:44:55,420 --> 00:44:59,250
+Best Buy, or wherever, get
+me the best price for this,
+
+983
+00:44:59,250 --> 00:45:03,600
+and see where I can buy it.
+
+984
+00:45:03,600 --> 00:45:05,640
+Just as an example.
+
+985
+00:45:05,640 --> 00:45:08,620
+Now, in terms of
+limitations of this,
+
+986
+00:45:08,620 --> 00:45:12,210
+well, search is pretty slow.
+
+987
+00:45:12,210 --> 00:45:17,080
+So you, obviously, need a fast
+way of doing backtracking.
+
+988
+00:45:17,080 --> 00:45:19,930
+We did the backtracking
+in a relatively naive way.
+
+989
+00:45:19,930 --> 00:45:22,440
+You store all actions
+in a queue and then
+
+990
+00:45:22,440 --> 00:45:24,600
+take them again to get
+to the original state.
+
+991
+00:45:24,600 --> 00:45:26,885
+So if you've taking
+20 actions, you
+
+992
+00:45:26,885 --> 00:45:29,010
+store what you've done so
+far, and then to go back,
+
+993
+00:45:29,010 --> 00:45:31,450
+you rerun that again.
+
+994
+00:45:31,450 --> 00:45:34,300
+So it's not very
+efficient what we've done.
+
+995
+00:45:34,300 --> 00:45:38,570
+I think it's just requires
+infrastructure work.
+
+996
+00:45:38,570 --> 00:45:40,490
+And the other interesting
+piece is dealing
+
+997
+00:45:40,490 --> 00:45:42,330
+with destructive actions.
+
+998
+00:45:42,330 --> 00:45:46,790
+Certain things on the web
+are very difficult to undo.
+
+999
+00:45:46,790 --> 00:45:48,860
+Especially if you're
+operating on the real web
+
+1000
+00:45:48,860 --> 00:45:50,930
+for testing these models.
+
+1001
+00:45:50,930 --> 00:45:53,850
+You can't order the item
+and then unorder it.
+
+1002
+00:45:53,850 --> 00:45:56,510
+It's not like you can order the
+item, and then your model says,
+
+1003
+00:45:56,510 --> 00:45:59,430
+you know what, that was
+actually the wrong order.
+
+1004
+00:45:59,430 --> 00:46:01,080
+Let's try ordering
+something else.
+
+1005
+00:46:01,080 --> 00:46:03,470
+You can't do that.
+
+1006
+00:46:03,470 --> 00:46:06,080
+And so the other thing that
+you can't, unfortunately,
+
+1007
+00:46:06,080 --> 00:46:08,390
+do in the real web
+is it's very hard
+
+1008
+00:46:08,390 --> 00:46:12,900
+to do some form of
+learning in the real web.
+
+1009
+00:46:12,900 --> 00:46:15,740
+Because anything that changes
+the state of the environment
+
+1010
+00:46:15,740 --> 00:46:20,600
+is actually fairly difficult.
+I can't go on the United
+
+1011
+00:46:20,600 --> 00:46:24,350
+and start booking flights from
+Pittsburgh to San Francisco
+
+1012
+00:46:24,350 --> 00:46:26,550
+to learn how to
+book the flights.
+
+1013
+00:46:26,550 --> 00:46:29,580
+Because if I'm exploring
+and I'm saying,
+
+1014
+00:46:29,580 --> 00:46:32,270
+why don't I click here, well,
+maybe I should click here,
+
+1015
+00:46:32,270 --> 00:46:34,870
+and then maybe I should
+try to book this flight
+
+1016
+00:46:34,870 --> 00:46:37,370
+and then maybe it's wrong and
+try to book this other flight.
+
+1017
+00:46:37,370 --> 00:46:39,970
+And so it becomes a
+little bit tricky to do
+
+1018
+00:46:39,970 --> 00:46:42,160
+because, essentially,
+United will block you.
+
+1019
+00:46:42,160 --> 00:46:44,595
+Or United will
+basically say, oh,
+
+1020
+00:46:44,595 --> 00:46:45,970
+there's so many
+people are trying
+
+1021
+00:46:45,970 --> 00:46:48,380
+to book flights from
+Pittsburgh to San Francisco.
+
+1022
+00:46:48,380 --> 00:46:51,310
+Maybe we should
+increase the prices.
+
+1023
+00:46:51,310 --> 00:46:53,560
+So you have to be careful
+how you're actually
+
+1024
+00:46:53,560 --> 00:46:56,710
+operating in the real world.
+
+1025
+00:46:56,710 --> 00:46:58,510
+So what's the current work?
+
+1026
+00:46:58,510 --> 00:47:01,040
+Obviously, search as a
+policy improvement function.
+
+1027
+00:47:01,040 --> 00:47:04,840
+You can use search as a way
+of finding the correct trace
+
+1028
+00:47:04,840 --> 00:47:06,320
+or the correct trajectory.
+
+1029
+00:47:06,320 --> 00:47:08,935
+And you can use this potentially
+either in reinforcement
+
+1030
+00:47:08,935 --> 00:47:11,470
+type of learning algorithm
+or actually in SFT
+
+1031
+00:47:11,470 --> 00:47:15,820
+to try to fine-tuning this.
+
+1032
+00:47:15,820 --> 00:47:17,865
+Improving value
+function by fine-tuning
+
+1033
+00:47:17,865 --> 00:47:18,740
+instead of prompting.
+
+1034
+00:47:18,740 --> 00:47:22,900
+So if you can improve the value
+function by using Monte Carlo
+
+1035
+00:47:22,900 --> 00:47:26,680
+rollouts, you can do that.
+
+1036
+00:47:26,680 --> 00:47:29,740
+Obviously, exploring tradeoffs
+between improving baseline
+
+1037
+00:47:29,740 --> 00:47:31,930
+agent, how much your
+base model has to be,
+
+1038
+00:47:31,930 --> 00:47:35,260
+versus how much more search you
+have to do at inference time.
+
+1039
+00:47:35,260 --> 00:47:38,280
+And today we see this
+notion of test time
+
+1040
+00:47:38,280 --> 00:47:42,850
+inference scaling loss where,
+well, if I do search for more,
+
+1041
+00:47:42,850 --> 00:47:44,410
+I can probably get
+a better answer.
+
+1042
+00:47:44,410 --> 00:47:46,740
+And I think that
+it's true, but it's--
+
+1043
+00:47:46,740 --> 00:47:48,340
+both models need to improve.
+
+1044
+00:47:48,340 --> 00:47:51,010
+Your base model
+needs to be better,
+
+1045
+00:47:51,010 --> 00:47:54,180
+and also search needs
+to be more efficient.
+
+1046
+00:47:54,180 --> 00:47:57,220
+And, obviously, one of
+the biggest questions,
+
+1047
+00:47:57,220 --> 00:47:59,280
+if we don't have a
+simulator of the web
+
+1048
+00:47:59,280 --> 00:48:02,260
+environment, how can we
+collect data at scale?
+
+1049
+00:48:02,260 --> 00:48:05,640
+And that's one of the
+interesting problems
+
+1050
+00:48:05,640 --> 00:48:08,850
+that we also started
+looking at, what can we do
+
+1051
+00:48:08,850 --> 00:48:11,320
+and how we can collect
+the data at scale?
+
+1052
+00:48:11,320 --> 00:48:15,360
+Because the interesting thing
+about agentic models in general
+
+1053
+00:48:15,360 --> 00:48:18,120
+is that it's the kind of
+data that's very difficult
+
+1054
+00:48:18,120 --> 00:48:19,690
+to find on the web.
+
+1055
+00:48:19,690 --> 00:48:21,810
+So what we see with
+existing LLMs is
+
+1056
+00:48:21,810 --> 00:48:26,170
+that I can crawl the web, I
+can scrape images and HTML,
+
+1057
+00:48:26,170 --> 00:48:28,350
+and then I can pre-train
+these models just doing
+
+1058
+00:48:28,350 --> 00:48:30,116
+the next token prediction.
+
+1059
+00:48:30,116 --> 00:48:33,010
+For agentic work,
+it's very difficult.
+
+1060
+00:48:33,010 --> 00:48:35,560
+It's very difficult for
+me to say, hey, give me
+
+1061
+00:48:35,560 --> 00:48:37,450
+a whole bunch of
+examples and show me
+
+1062
+00:48:37,450 --> 00:48:39,820
+how I should be booking
+my flight from Pittsburgh
+
+1063
+00:48:39,820 --> 00:48:42,290
+to San Francisco.
+
+1064
+00:48:42,290 --> 00:48:45,760
+Or show me, in
+this setting, like,
+
+1065
+00:48:45,760 --> 00:48:47,660
+hey, I like something like this.
+
+1066
+00:48:47,660 --> 00:48:49,010
+Add me to my wish list.
+
+1067
+00:48:49,010 --> 00:48:51,700
+It's not like you can find
+a lot of these examples
+
+1068
+00:48:51,700 --> 00:48:57,160
+on the web of examples
+of people showing you
+
+1069
+00:48:57,160 --> 00:48:58,720
+how to solve these tasks.
+
+1070
+00:48:58,720 --> 00:49:02,770
+So this notion of giving the
+task and the full trajectory
+
+1071
+00:49:02,770 --> 00:49:05,800
+of how you should take
+actions and solve the task
+
+1072
+00:49:05,800 --> 00:49:09,680
+is actually very limited
+data that we have today.
+
+1073
+00:49:09,680 --> 00:49:12,070
+In fact, we don't
+have any of that data.
+
+1074
+00:49:12,070 --> 00:49:14,620
+A lot of companies, they're
+essentially collecting this data
+
+1075
+00:49:14,620 --> 00:49:17,950
+in-house by asking people
+to solve these tasks
+
+1076
+00:49:17,950 --> 00:49:20,720
+and do massive annotations.
+
+1077
+00:49:20,720 --> 00:49:23,380
+So the question for
+us was, how can we
+
+1078
+00:49:23,380 --> 00:49:24,890
+collect the data at scale?
+
+1079
+00:49:24,890 --> 00:49:26,600
+And that gives me
+to the third point,
+
+1080
+00:49:26,600 --> 00:49:30,610
+which is, how can we,
+at least, try thinking
+
+1081
+00:49:30,610 --> 00:49:33,930
+about what we can do here?
+
+1082
+00:49:33,930 --> 00:49:37,080
+So as I've mentioned
+before, agents
+
+1083
+00:49:37,080 --> 00:49:39,760
+suffer from a data problem.
+
+1084
+00:49:39,760 --> 00:49:44,310
+And you can see the gap
+is still pretty big.
+
+1085
+00:49:44,310 --> 00:49:47,670
+And when we think about LLMs,
+the way that we're training them
+
+1086
+00:49:47,670 --> 00:49:50,530
+today, a lot of times
+they're often trained online.
+
+1087
+00:49:50,530 --> 00:49:54,360
+I just collect a bunch of
+data, and then I deploy them
+
+1088
+00:49:54,360 --> 00:49:56,110
+as zero-shots as agents.
+
+1089
+00:49:56,110 --> 00:49:58,060
+And then I collect
+a lot of data,
+
+1090
+00:49:58,060 --> 00:50:00,943
+I do some form of
+supervised fine-tuning,
+
+1091
+00:50:00,943 --> 00:50:02,860
+at least, that's what's
+happening in academia,
+
+1092
+00:50:02,860 --> 00:50:07,605
+and then I try to deploy
+them and see how they work.
+
+1093
+00:50:07,605 --> 00:50:12,870
+The question is, can we
+somehow go on the real web
+
+1094
+00:50:12,870 --> 00:50:17,760
+and generate synthetic tasks to
+unlock this large-scale training
+
+1095
+00:50:17,760 --> 00:50:19,357
+of agents?
+
+1096
+00:50:19,357 --> 00:50:27,900
+And the question is, how can
+we, again, get these models
+
+1097
+00:50:27,900 --> 00:50:31,850
+to generate something synthetic
+and actually build something
+
+1098
+00:50:31,850 --> 00:50:34,250
+that we can train on
+and improve our edges
+
+1099
+00:50:34,250 --> 00:50:38,970
+without human intervention, or
+without actually task generated
+
+1100
+00:50:38,970 --> 00:50:39,470
+by humans?
+
+1101
+00:50:39,470 --> 00:50:45,290
+Because it's fairly expensive to
+ask humans to generate or create
+
+1102
+00:50:45,290 --> 00:50:47,360
+those tasks.
+
+1103
+00:50:47,360 --> 00:50:50,030
+So one of the things that
+we've been trying to build
+
+1104
+00:50:50,030 --> 00:50:52,250
+is we've been trying to
+build this internet scale
+
+1105
+00:50:52,250 --> 00:50:57,932
+training for agents that
+we call InSTA, which is--
+
+1106
+00:50:57,932 --> 00:51:02,150
+the idea here is, with
+using Llama models,
+
+1107
+00:51:02,150 --> 00:51:06,630
+to generate and verify
+synthetic agentic tasks.
+
+1108
+00:51:06,630 --> 00:51:10,050
+So we're thinking
+about three stages.
+
+1109
+00:51:10,050 --> 00:51:12,993
+There is a task
+generation stage.
+
+1110
+00:51:12,993 --> 00:51:14,660
+For example, I can
+ask the model to say,
+
+1111
+00:51:14,660 --> 00:51:20,776
+find me a code base for
+generating images with Flux.1.
+
+1112
+00:51:20,776 --> 00:51:21,930
+That's the first task.
+
+1113
+00:51:21,930 --> 00:51:23,805
+I'll show you examples
+of how we can do that.
+
+1114
+00:51:23,805 --> 00:51:25,850
+The second task is evaluation.
+
+1115
+00:51:25,850 --> 00:51:28,920
+Actually, executing this
+task, and then trying
+
+1116
+00:51:28,920 --> 00:51:32,700
+to see whether the
+model solved the task.
+
+1117
+00:51:32,700 --> 00:51:36,660
+And then the third step
+is actually collection--
+
+1118
+00:51:36,660 --> 00:51:38,500
+basically, collecting
+it at scale.
+
+1119
+00:51:38,500 --> 00:51:40,050
+But you can think
+of this environment
+
+1120
+00:51:40,050 --> 00:51:41,950
+is that the model
+proposes tasks,
+
+1121
+00:51:41,950 --> 00:51:44,580
+the model executes those
+tasks, the model then evaluates
+
+1122
+00:51:44,580 --> 00:51:48,670
+those tasks, and then if
+it's successfully it says,
+
+1123
+00:51:48,670 --> 00:51:50,410
+yeah, I propose the task.
+
+1124
+00:51:50,410 --> 00:51:53,410
+I executed this task on
+the real web, I evaluated,
+
+1125
+00:51:53,410 --> 00:51:55,120
+I think I've solved the task.
+
+1126
+00:51:55,120 --> 00:52:01,350
+Then that becomes a very useful
+data for training our agents.
+
+1127
+00:52:01,350 --> 00:52:05,880
+So let's see how we can do.
+
+1128
+00:52:05,880 --> 00:52:08,200
+So, for example,
+given the web domain,
+
+1129
+00:52:08,200 --> 00:52:11,580
+for example, there's
+a domain, just
+
+1130
+00:52:11,580 --> 00:52:16,020
+random domain, Mersey Ferries,
+it's a website in the UK,
+
+1131
+00:52:16,020 --> 00:52:18,480
+and we can ask the
+system to propose
+
+1132
+00:52:18,480 --> 00:52:20,430
+realistic tasks that
+an average user could
+
+1133
+00:52:20,430 --> 00:52:21,490
+complete in one session.
+
+1134
+00:52:21,490 --> 00:52:22,907
+So there's a certain
+system prompt
+
+1135
+00:52:22,907 --> 00:52:26,300
+that we're asking the
+model to generate the task.
+
+1136
+00:52:26,300 --> 00:52:30,390
+And what's interesting is that
+if you look at Llama-70B-3.1,
+
+1137
+00:52:30,390 --> 00:52:32,640
+I think we're also
+training on Llama 3.3,
+
+1138
+00:52:32,640 --> 00:52:34,680
+which is actually better,
+has better results,
+
+1139
+00:52:34,680 --> 00:52:37,010
+so these models
+continue improving.
+
+1140
+00:52:37,010 --> 00:52:38,780
+So if I ask the
+model to describe,
+
+1141
+00:52:38,780 --> 00:52:41,700
+what is this website about,
+it's actually pretty good.
+
+1142
+00:52:41,700 --> 00:52:44,120
+It says, well, this
+particular website
+
+1143
+00:52:44,120 --> 00:52:47,300
+is the official website for
+famous Mersey Ferries service
+
+1144
+00:52:47,300 --> 00:52:49,380
+in Liverpool,
+England, and so forth.
+
+1145
+00:52:49,380 --> 00:52:50,670
+Certain things you can do.
+
+1146
+00:52:50,670 --> 00:52:52,610
+You can plan a journey.
+
+1147
+00:52:52,610 --> 00:52:57,110
+You can book tickets
+and gives you
+
+1148
+00:52:57,110 --> 00:53:00,350
+ideas of what you can
+do with this website.
+
+1149
+00:53:00,350 --> 00:53:02,720
+And so that gave
+us this notion of,
+
+1150
+00:53:02,720 --> 00:53:05,160
+if the model understands
+what this website is about,
+
+1151
+00:53:05,160 --> 00:53:08,660
+maybe I can ask it to
+actually generate the task.
+
+1152
+00:53:08,660 --> 00:53:12,740
+And what we found is
+that we can scale it
+
+1153
+00:53:12,740 --> 00:53:16,820
+across many, many different
+websites from Common Crawl.
+
+1154
+00:53:16,820 --> 00:53:19,590
+I think we started with
+about a million websites,
+
+1155
+00:53:19,590 --> 00:53:21,840
+and we started thinking
+about what kind of tasks
+
+1156
+00:53:21,840 --> 00:53:23,160
+these models can generate.
+
+1157
+00:53:23,160 --> 00:53:26,590
+And a lot of tasks
+actually involve
+
+1158
+00:53:26,590 --> 00:53:29,090
+some form of information
+retrieval, some sort of search.
+
+1159
+00:53:29,090 --> 00:53:31,970
+You're finding the right
+ticket information.
+
+1160
+00:53:31,970 --> 00:53:35,420
+You're finding
+booking-- opening hours.
+
+1161
+00:53:35,420 --> 00:53:41,950
+You find specific information
+on a particular topic.
+
+1162
+00:53:41,950 --> 00:53:46,040
+But crucially, we do not modify
+the state of the internet.
+
+1163
+00:53:46,040 --> 00:53:49,870
+So that was one of
+the settings for us,
+
+1164
+00:53:49,870 --> 00:53:52,270
+where we asking the
+model to come up
+
+1165
+00:53:52,270 --> 00:53:55,580
+with a task that don't modify
+the state of the environment.
+
+1166
+00:53:55,580 --> 00:53:59,320
+So, for example, booking
+something, we can do.
+
+1167
+00:53:59,320 --> 00:54:02,500
+Or clicking on something that
+actually changes the state
+
+1168
+00:54:02,500 --> 00:54:05,410
+of the environment, we can do.
+
+1169
+00:54:05,410 --> 00:54:09,670
+This specifically was done to
+avoid any sort of complications
+
+1170
+00:54:09,670 --> 00:54:10,850
+of us being blocked.
+
+1171
+00:54:10,850 --> 00:54:13,030
+And as I mentioned
+before, we can't
+
+1172
+00:54:13,030 --> 00:54:17,698
+go on united.com or
+booking.com and start
+
+1173
+00:54:17,698 --> 00:54:21,820
+running a lot of tasks, booking
+a lot of hotels randomly.
+
+1174
+00:54:21,820 --> 00:54:23,650
+So we can only navigate
+to these websites,
+
+1175
+00:54:23,650 --> 00:54:29,220
+but we actually cannot change
+the state of the environment.
+
+1176
+00:54:29,220 --> 00:54:32,520
+What we found is that a lot of
+tasks that the models actually
+
+1177
+00:54:32,520 --> 00:54:35,640
+come up with are
+diverse, and many require
+
+1178
+00:54:35,640 --> 00:54:37,690
+multiple steps of reasoning.
+
+1179
+00:54:37,690 --> 00:54:41,170
+So, for example, if I
+go to fonts.adobe.com,
+
+1180
+00:54:41,170 --> 00:54:43,200
+some of the generated
+task is browse fonts
+
+1181
+00:54:43,200 --> 00:54:45,368
+suitable for a children's book.
+
+1182
+00:54:45,368 --> 00:54:47,160
+So you have to understand
+what makes a font
+
+1183
+00:54:47,160 --> 00:54:50,220
+suitable for a children's book.
+
+1184
+00:54:50,220 --> 00:54:54,970
+A lot of tasks can identify
+facts that's likely to contain.
+
+1185
+00:54:54,970 --> 00:54:58,650
+So, for example, if I'm
+going to ancient-symbols.com,
+
+1186
+00:54:58,650 --> 00:55:02,100
+the generated task would be,
+look up the meaning of the word
+
+1187
+00:55:02,100 --> 00:55:06,756
+Om symbol in ancient cultures.
+
+1188
+00:55:06,756 --> 00:55:09,403
+You have to go on this
+website, this is the task,
+
+1189
+00:55:09,403 --> 00:55:11,070
+and I have to crawl
+through this website
+
+1190
+00:55:11,070 --> 00:55:12,528
+to actually find
+what's the meaning
+
+1191
+00:55:12,528 --> 00:55:14,820
+of that particular symbol.
+
+1192
+00:55:14,820 --> 00:55:23,170
+Or, I can go to this particular
+obscure Scottish design studio
+
+1193
+00:55:23,170 --> 00:55:26,310
+and ask, view the
+latest fabric designs
+
+1194
+00:55:26,310 --> 00:55:28,190
+by this particular studio.
+
+1195
+00:55:28,190 --> 00:55:29,890
+So I end up on
+this website and I
+
+1196
+00:55:29,890 --> 00:55:33,880
+have to find the latest
+designs, fabric designs.
+
+1197
+00:55:33,880 --> 00:55:36,230
+And this is how it looks like.
+
+1198
+00:55:36,230 --> 00:55:38,900
+I actually have to end up
+on this particular web page
+
+1199
+00:55:38,900 --> 00:55:41,800
+because that lists the
+latest fabric designs
+
+1200
+00:55:41,800 --> 00:55:44,000
+by that particular studio.
+
+1201
+00:55:44,000 --> 00:55:47,140
+So these tasks are
+grounded even for sites
+
+1202
+00:55:47,140 --> 00:55:49,660
+in the tail of the
+data distributions.
+
+1203
+00:55:49,660 --> 00:55:53,660
+So these are-- we wanted
+to go for breadth,
+
+1204
+00:55:53,660 --> 00:55:59,020
+not necessarily to only cover
+a hundred most commonly visited
+
+1205
+00:55:59,020 --> 00:56:01,630
+websites, but also
+going to these--
+
+1206
+00:56:01,630 --> 00:56:05,410
+which gives us the diversity
+of the environments
+
+1207
+00:56:05,410 --> 00:56:11,680
+and different websites and
+different generated tasks.
+
+1208
+00:56:11,680 --> 00:56:18,990
+So that's the first step,
+try to generate the tasks.
+
+1209
+00:56:18,990 --> 00:56:24,000
+Now, the second
+state is, OK, how
+
+1210
+00:56:24,000 --> 00:56:26,850
+do we know when these
+tasks are solved?
+
+1211
+00:56:26,850 --> 00:56:30,100
+And that gives us the
+task evaluation part.
+
+1212
+00:56:30,100 --> 00:56:32,340
+And the way we do
+this is we basically
+
+1213
+00:56:32,340 --> 00:56:36,850
+say, OK, if we're given
+the task, generate a task,
+
+1214
+00:56:36,850 --> 00:56:39,940
+we can execute this task
+using the current model.
+
+1215
+00:56:39,940 --> 00:56:43,690
+Let's say you have a GPT model
+or you have your Llama model,
+
+1216
+00:56:43,690 --> 00:56:46,900
+in this case, it was a Llama
+model that we're using,
+
+1217
+00:56:46,900 --> 00:56:48,720
+you observe a
+sequence of actions
+
+1218
+00:56:48,720 --> 00:56:51,360
+and the last
+observation, and you now
+
+1219
+00:56:51,360 --> 00:56:54,640
+estimate the probability
+of a task being successful.
+
+1220
+00:56:54,640 --> 00:56:56,910
+So you're basically
+asking the model--
+
+1221
+00:56:56,910 --> 00:57:00,070
+given the last state in
+the sequence of actions,
+
+1222
+00:57:00,070 --> 00:57:03,340
+you're asking it to estimate
+the probability of the success.
+
+1223
+00:57:03,340 --> 00:57:06,270
+This is, again, the same
+idea as using large language
+
+1224
+00:57:06,270 --> 00:57:08,070
+model as a judge.
+
+1225
+00:57:08,070 --> 00:57:11,080
+Here we're actually evaluating
+the full trajectory,
+
+1226
+00:57:11,080 --> 00:57:13,020
+but you can think of it as--
+
+1227
+00:57:13,020 --> 00:57:16,180
+in the previous part when we
+were looking at the search,
+
+1228
+00:57:16,180 --> 00:57:18,310
+we essentially we're
+using the same piece,
+
+1229
+00:57:18,310 --> 00:57:20,850
+but only evaluating
+partial trajectories
+
+1230
+00:57:20,850 --> 00:57:22,850
+to try to figure out
+what we should explore
+
+1231
+00:57:22,850 --> 00:57:24,100
+and what we shouldn't explore.
+
+1232
+00:57:24,100 --> 00:57:26,800
+Here we're actually trying to
+evaluate the full trajectory.
+
+1233
+00:57:26,800 --> 00:57:29,360
+But, obviously, you can combine
+search with this technique
+
+1234
+00:57:29,360 --> 00:57:29,860
+as well.
+
+1235
+00:57:29,860 --> 00:57:35,290
+So you can search around and
+try to find the best outcome.
+
+1236
+00:57:35,290 --> 00:57:37,710
+And you prompt Llama to rate
+the confidence of the tasks
+
+1237
+00:57:37,710 --> 00:57:40,890
+it solved from 0 to 1.
+
+1238
+00:57:40,890 --> 00:57:48,270
+And what we found is that, for
+example, out of 150,000 tasks,
+
+1239
+00:57:48,270 --> 00:57:53,580
+about 15% are rated as success
+with high confidence by Llama,
+
+1240
+00:57:53,580 --> 00:57:55,660
+roughly 22,000 tasks.
+
+1241
+00:57:55,660 --> 00:58:01,570
+We actually did verify how
+good using Llama as a judge.
+
+1242
+00:58:01,570 --> 00:58:07,570
+And I think that in terms of
+the success, it was about 90%.
+
+1243
+00:58:07,570 --> 00:58:10,270
+So, for example,
+when the model says,
+
+1244
+00:58:10,270 --> 00:58:13,930
+I'm pretty sure I've solved the
+task, with human evaluations,
+
+1245
+00:58:13,930 --> 00:58:17,843
+we're seeing close to 90%
+accuracy among those ones.
+
+1246
+00:58:17,843 --> 00:58:19,260
+So basically means,
+whenever Llama
+
+1247
+00:58:19,260 --> 00:58:22,170
+says, yes, I've solved
+the task, 90% of the time,
+
+1248
+00:58:22,170 --> 00:58:24,302
+it actually solved the
+task, 10% of the time,
+
+1249
+00:58:24,302 --> 00:58:25,510
+no, it didn't solve the task.
+
+1250
+00:58:25,510 --> 00:58:28,330
+So these verifiers
+are not perfect,
+
+1251
+00:58:28,330 --> 00:58:29,850
+but they are pretty
+decent in terms
+
+1252
+00:58:29,850 --> 00:58:32,580
+of approximately telling you
+whether you solved the task
+
+1253
+00:58:32,580 --> 00:58:34,230
+or not.
+
+1254
+00:58:34,230 --> 00:58:41,640
+So that gives you this notion of
+showing that you've successfully
+
+1255
+00:58:41,640 --> 00:58:44,940
+found the task, executed,
+and then verified it.
+
+1256
+00:58:44,940 --> 00:58:47,730
+Let me give you a
+visual representation
+
+1257
+00:58:47,730 --> 00:58:50,490
+of what that looks like.
+
+1258
+00:58:50,490 --> 00:58:53,190
+So on a different
+project, we have a project
+
+1259
+00:58:53,190 --> 00:58:54,960
+where we're working
+with ecologists
+
+1260
+00:58:54,960 --> 00:59:01,860
+on identifying invasive plants
+in different environments.
+
+1261
+00:59:01,860 --> 00:59:06,060
+And we basically
+thought, OK, let's
+
+1262
+00:59:06,060 --> 00:59:09,600
+look at this website,
+Invasive Plants Atlas,
+
+1263
+00:59:09,600 --> 00:59:12,810
+and prompt the model
+to generate a task
+
+1264
+00:59:12,810 --> 00:59:14,520
+and see if the model
+can solve the task.
+
+1265
+00:59:14,520 --> 00:59:16,187
+So the model basically
+generates a task,
+
+1266
+00:59:16,187 --> 00:59:18,770
+find invasive plant species
+native to North America.
+
+1267
+00:59:18,770 --> 00:59:21,720
+So that's more like
+information extraction.
+
+1268
+00:59:21,720 --> 00:59:25,280
+And the agent response is to
+find an invasive plant species
+
+1269
+00:59:25,280 --> 00:59:26,010
+in North America.
+
+1270
+00:59:26,010 --> 00:59:28,700
+I will first click
+on link all species
+
+1271
+00:59:28,700 --> 00:59:30,420
+to view the list of all species.
+
+1272
+00:59:30,420 --> 00:59:31,172
+OK.
+
+1273
+00:59:31,172 --> 00:59:33,860
+So it takes and, based
+on this information,
+
+1274
+00:59:33,860 --> 00:59:35,640
+it clicks on All Species.
+
+1275
+00:59:35,640 --> 00:59:37,590
+And that's what the
+action looks like.
+
+1276
+00:59:37,590 --> 00:59:41,410
+It's a little JSON that you
+have an action key click,
+
+1277
+00:59:41,410 --> 00:59:44,060
+you have action
+arguments that can go in,
+
+1278
+00:59:44,060 --> 00:59:48,050
+and you have a target element
+ID, the ID that you associated
+
+1279
+00:59:48,050 --> 00:59:50,990
+with that particular click.
+
+1280
+00:59:50,990 --> 00:59:53,480
+Then it basically says,
+to find invasive plant
+
+1281
+00:59:53,480 --> 00:59:56,390
+species native to
+North America, I
+
+1282
+00:59:56,390 --> 00:59:58,910
+will first click
+on the link home
+
+1283
+00:59:58,910 --> 01:00:01,100
+because it's trying
+to go to the sources.
+
+1284
+01:00:01,100 --> 01:00:08,752
+And it sort of misses the point
+because there is a sources here.
+
+1285
+01:00:08,752 --> 01:00:10,730
+But it actually
+insists on going home
+
+1286
+01:00:10,730 --> 01:00:12,060
+and then to find the sources.
+
+1287
+01:00:12,060 --> 01:00:16,235
+So it misread, so it made
+a mistake in this case.
+
+1288
+01:00:16,235 --> 01:00:18,610
+Since the link to sources is
+not on the current web page,
+
+1289
+01:00:18,610 --> 01:00:20,450
+but it is, so it's
+making a mistake,
+
+1290
+01:00:20,450 --> 01:00:23,420
+I will first click on the Home
+and go back to the main page.
+
+1291
+01:00:23,420 --> 01:00:25,310
+So it goes back
+to the main page,
+
+1292
+01:00:25,310 --> 01:00:29,000
+and then it identifies
+the sources.
+
+1293
+01:00:29,000 --> 01:00:33,010
+So it clicks on the Sources.
+
+1294
+01:00:33,010 --> 01:00:35,890
+It actually gets
+to the right piece,
+
+1295
+01:00:35,890 --> 01:00:38,480
+to find invasive plants
+native to North America,
+
+1296
+01:00:38,480 --> 01:00:41,800
+I will first click on the
+A under the native range
+
+1297
+01:00:41,800 --> 01:00:42,980
+taxonomic references.
+
+1298
+01:00:42,980 --> 01:00:48,110
+So it execute pieces, and
+it does clicks on that,
+
+1299
+01:00:48,110 --> 01:00:50,060
+on the correct element.
+
+1300
+01:00:50,060 --> 01:00:53,200
+And then once it gets
+to the correct element,
+
+1301
+01:00:53,200 --> 01:00:59,800
+it then basically says, I
+need to sort based on US--
+
+1302
+01:00:59,800 --> 01:01:03,790
+plants that are native to the
+US, gets it in a JSON format,
+
+1303
+01:01:03,790 --> 01:01:06,940
+and then gives you the answer.
+
+1304
+01:01:06,940 --> 01:01:09,160
+Since the list is already
+sorted by US nativity
+
+1305
+01:01:09,160 --> 01:01:10,670
+by ascending order, that's it.
+
+1306
+01:01:10,670 --> 01:01:13,980
+I can find the first like
+165 plant species that
+
+1307
+01:01:13,980 --> 01:01:15,510
+are native to North America.
+
+1308
+01:01:15,510 --> 01:01:17,440
+So this gives you the list.
+
+1309
+01:01:17,440 --> 01:01:19,770
+And the answer is, basically,
+I give you the web page,
+
+1310
+01:01:19,770 --> 01:01:22,335
+and I tell you, the first
+165 plant species on the list
+
+1311
+01:01:22,335 --> 01:01:24,460
+are invasive plant species
+native to North America.
+
+1312
+01:01:24,460 --> 01:01:28,660
+So in terms of me finding
+information seeking,
+
+1313
+01:01:28,660 --> 01:01:32,670
+again, this was a completely
+synthetically generated task
+
+1314
+01:01:32,670 --> 01:01:35,830
+where the model
+proposed the task.
+
+1315
+01:01:35,830 --> 01:01:40,260
+It's now executed the task,
+even though it made a mistake,
+
+1316
+01:01:40,260 --> 01:01:42,700
+and then it gave you the action.
+
+1317
+01:01:42,700 --> 01:01:47,432
+And in this case, despite
+reasoning, some of the reasoning
+
+1318
+01:01:47,432 --> 01:01:49,390
+failures, because it
+clicked on the wrong thing
+
+1319
+01:01:49,390 --> 01:01:53,320
+but then it recovered, it
+found the target information,
+
+1320
+01:01:53,320 --> 01:01:55,830
+and in this case, Llama verifier
+evaluates this trajectory
+
+1321
+01:01:55,830 --> 01:01:58,112
+successfully with
+confidence 1.0.
+
+1322
+01:01:58,112 --> 01:02:00,670
+And, again, whenever it
+does this verification,
+
+1323
+01:02:00,670 --> 01:02:02,380
+it's about 90% accurate.
+
+1324
+01:02:02,380 --> 01:02:04,470
+Maybe close to-- maybe
+85%, 90% accurate
+
+1325
+01:02:04,470 --> 01:02:09,130
+when we did the
+studies, human studies.
+
+1326
+01:02:09,130 --> 01:02:15,985
+So that gives you an interesting
+synthetic generation.
+
+1327
+01:02:15,985 --> 01:02:19,510
+Where you're proposing the task,
+you're executing this task,
+
+1328
+01:02:19,510 --> 01:02:22,010
+and then you verify, did
+you solve the task or not?
+
+1329
+01:02:22,010 --> 01:02:25,720
+And, again, only 14%
+or 15% of the tasks
+
+1330
+01:02:25,720 --> 01:02:29,510
+that the model proposed and
+executes, only 15% of them,
+
+1331
+01:02:29,510 --> 01:02:32,440
+the model basically says, yes,
+I think I solved the task.
+
+1332
+01:02:32,440 --> 01:02:35,330
+85% of them, you
+can't solve the task.
+
+1333
+01:02:35,330 --> 01:02:38,810
+But that's OK because it's
+all done automatically.
+
+1334
+01:02:38,810 --> 01:02:41,800
+There is no human
+in the loop here.
+
+1335
+01:02:41,800 --> 01:02:43,840
+Let me show you some
+examples, other examples
+
+1336
+01:02:43,840 --> 01:02:45,110
+of what the model does.
+
+1337
+01:02:45,110 --> 01:02:46,430
+So here's the example.
+
+1338
+01:02:46,430 --> 01:02:49,160
+Find me the opening hours
+of La Sagrada Familia.
+
+1339
+01:02:49,160 --> 01:02:52,010
+It's a fairly famous
+church in Barcelona.
+
+1340
+01:02:52,010 --> 01:02:57,820
+So it proposes a task,
+it browses the web,
+
+1341
+01:02:57,820 --> 01:03:00,895
+and it finds the answer.
+
+1342
+01:03:00,895 --> 01:03:04,040
+So, again, this is the
+task that it proposes.
+
+1343
+01:03:04,040 --> 01:03:05,420
+It goes to the website.
+
+1344
+01:03:05,420 --> 01:03:08,980
+It actually finds
+the Sagrada Familia,
+
+1345
+01:03:08,980 --> 01:03:11,850
+it clicks, it finds, and it
+basically, from the table,
+
+1346
+01:03:11,850 --> 01:03:13,243
+finds what the right answer is.
+
+1347
+01:03:13,243 --> 01:03:15,660
+Well, find the information on
+the European Union's climate
+
+1348
+01:03:15,660 --> 01:03:17,080
+action policies.
+
+1349
+01:03:17,080 --> 01:03:20,550
+So it goes to the European Union
+Commission, it crawls the web,
+
+1350
+01:03:20,550 --> 01:03:23,160
+and then this is a
+success where it actually
+
+1351
+01:03:23,160 --> 01:03:28,290
+finds the documents related
+to the climate action progress
+
+1352
+01:03:28,290 --> 01:03:29,980
+or climate action policies.
+
+1353
+01:03:29,980 --> 01:03:36,240
+And, again, this tasks are
+completely created by model
+
+1354
+01:03:36,240 --> 01:03:40,230
+proposing what the task should
+be, model executing this task,
+
+1355
+01:03:40,230 --> 01:03:43,380
+and then the model verifying
+whether it successfully
+
+1356
+01:03:43,380 --> 01:03:44,650
+completed the task or not.
+
+1357
+01:03:44,650 --> 01:03:47,320
+So we went through
+these two stages.
+
+1358
+01:03:47,320 --> 01:03:51,160
+And, again, I'm not saying
+that that's a perfect setting.
+
+1359
+01:03:51,160 --> 01:03:54,700
+I think that if you
+incorporate search,
+
+1360
+01:03:54,700 --> 01:03:58,950
+if you have better models,
+and then you iterate it
+
+1361
+01:03:58,950 --> 01:04:02,670
+multiple times, I think
+the quality of generation
+
+1362
+01:04:02,670 --> 01:04:06,690
+of these tasks could
+improve substantially.
+
+1363
+01:04:06,690 --> 01:04:09,480
+So let me talk a little bit
+about the data collection.
+
+1364
+01:04:09,480 --> 01:04:12,090
+So what happens with
+the data collection?
+
+1365
+01:04:12,090 --> 01:04:15,110
+Now we can scale up
+the data collection.
+
+1366
+01:04:15,110 --> 01:04:17,990
+So we've used the
+Common Crawl PageRank
+
+1367
+01:04:17,990 --> 01:04:19,800
+to find the most
+important websites.
+
+1368
+01:04:19,800 --> 01:04:24,170
+We start with the top
+1 million web pages.
+
+1369
+01:04:24,170 --> 01:04:29,630
+We filtered it down to
+about 150,000 live websites
+
+1370
+01:04:29,630 --> 01:04:31,928
+by filtering harmful content.
+
+1371
+01:04:31,928 --> 01:04:33,470
+So we're prompting
+the model so if we
+
+1372
+01:04:33,470 --> 01:04:36,330
+think that there is harmful
+content on the website,
+
+1373
+01:04:36,330 --> 01:04:38,000
+we basically ignore it.
+
+1374
+01:04:38,000 --> 01:04:40,310
+So we're about 97%,
+actually, pretty high,
+
+1375
+01:04:40,310 --> 01:04:42,690
+in terms of detecting and
+filtering harmful content.
+
+1376
+01:04:42,690 --> 01:04:44,820
+This is used using Llama models.
+
+1377
+01:04:44,820 --> 01:04:48,650
+We are about 89% success
+rate in generating
+
+1378
+01:04:48,650 --> 01:04:52,250
+feasible tasks, and about
+80%, so it's like 90%,
+
+1379
+01:04:52,250 --> 01:04:54,380
+in generating feasible
+tasks, which basically means
+
+1380
+01:04:54,380 --> 01:04:59,900
+that when we're verifying
+whether the task is successful
+
+1381
+01:04:59,900 --> 01:05:02,510
+or not, we're 89%.
+
+1382
+01:05:02,510 --> 01:05:05,750
+And 82% accuracy in judging
+successful task completion.
+
+1383
+01:05:05,750 --> 01:05:07,000
+Sorry, that's the one where--
+
+1384
+01:05:07,000 --> 01:05:10,815
+82% whether the task is
+successfully completed or not.
+
+1385
+01:05:10,815 --> 01:05:13,394
+
+1386
+01:05:13,394 --> 01:05:18,080
+And, again, we went through
+150,000 live websites,
+
+1387
+01:05:18,080 --> 01:05:23,140
+and then we attempting it and
+verifying it and creating data
+
+1388
+01:05:23,140 --> 01:05:26,050
+based on whether we successfully
+generate the task and whether we
+
+1389
+01:05:26,050 --> 01:05:29,200
+successfully execute it
+and then verified success.
+
+1390
+01:05:29,200 --> 01:05:33,370
+What's interesting is that we
+found that on toy-ish examples
+
+1391
+01:05:33,370 --> 01:05:35,300
+and small examples,
+Mind2Web, WebLINX.
+
+1392
+01:05:35,300 --> 01:05:40,100
+These are some of the
+data sets that people use.
+
+1393
+01:05:40,100 --> 01:05:42,310
+We found that
+training on synthetic
+
+1394
+01:05:42,310 --> 01:05:44,620
+and human demonstration scale
+faster than just training
+
+1395
+01:05:44,620 --> 01:05:46,960
+on human demonstrations.
+
+1396
+01:05:46,960 --> 01:05:50,950
+So actually, if you're mixing
+what humans collected versus
+
+1397
+01:05:50,950 --> 01:05:55,250
+if you're mixing synthetic and
+humans, we can see improvements.
+
+1398
+01:05:55,250 --> 01:05:57,550
+We also see that
+adding synthetic data
+
+1399
+01:05:57,550 --> 01:06:05,400
+improves step accuracy by
+certain numbers, so that's good.
+
+1400
+01:06:05,400 --> 01:06:10,550
+We also found that if you
+only use human annotations,
+
+1401
+01:06:10,550 --> 01:06:13,290
+human annotations do
+struggle with generalization.
+
+1402
+01:06:13,290 --> 01:06:15,560
+Because a lot of times what
+actually ends up happening
+
+1403
+01:06:15,560 --> 01:06:17,185
+is that with human
+annotations, they're
+
+1404
+01:06:17,185 --> 01:06:23,060
+typically done on a small subset
+of highly-visited websites.
+
+1405
+01:06:23,060 --> 01:06:27,870
+And the ability to generalize
+to the tail of the distribution,
+
+1406
+01:06:27,870 --> 01:06:30,890
+that's where synthetic data
+really helps us because it can
+
+1407
+01:06:30,890 --> 01:06:34,340
+help us generalize to the tail
+of the distribution, where
+
+1408
+01:06:34,340 --> 01:06:37,800
+it's very difficult for
+humans to collect the data.
+
+1409
+01:06:37,800 --> 01:06:39,890
+Obviously, the
+ultimate choice would
+
+1410
+01:06:39,890 --> 01:06:43,020
+be to get humans to
+annotate the entire web.
+
+1411
+01:06:43,020 --> 01:06:45,110
+That would be the
+best because then we
+
+1412
+01:06:45,110 --> 01:06:47,240
+can just do imitation learning.
+
+1413
+01:06:47,240 --> 01:06:51,200
+But we do find that, the
+ability to crawl the web
+
+1414
+01:06:51,200 --> 01:06:53,220
+and look at this
+tail distribution,
+
+1415
+01:06:53,220 --> 01:06:57,230
+we do see improvements
+in generalization.
+
+1416
+01:06:57,230 --> 01:07:01,490
+Now, there are 385
+million unique domains,
+
+1417
+01:07:01,490 --> 01:07:04,330
+suggesting maybe another
+1,000x more data that could be
+
+1418
+01:07:04,330 --> 01:07:05,990
+available by scaling further.
+
+1419
+01:07:05,990 --> 01:07:09,100
+We were constrained by
+compute and academic resources
+
+1420
+01:07:09,100 --> 01:07:10,690
+when we did this work.
+
+1421
+01:07:10,690 --> 01:07:13,030
+And, of course, there
+is also this notion
+
+1422
+01:07:13,030 --> 01:07:15,470
+of moving towards online
+reinforcement learning.
+
+1423
+01:07:15,470 --> 01:07:19,730
+So you can think about settings
+where you run this procedure.
+
+1424
+01:07:19,730 --> 01:07:23,170
+You collect the synthetic data,
+and then you update the model
+
+1425
+01:07:23,170 --> 01:07:23,990
+and do it again.
+
+1426
+01:07:23,990 --> 01:07:28,190
+So you can do it
+in online fashion.
+
+1427
+01:07:28,190 --> 01:07:30,350
+You crawl the web, you
+generate these tasks,
+
+1428
+01:07:30,350 --> 01:07:32,845
+you try to solve
+some of these tasks,
+
+1429
+01:07:32,845 --> 01:07:34,970
+you update the model
+parameters, and do that again.
+
+1430
+01:07:34,970 --> 01:07:36,195
+So if you have an online--
+
+1431
+01:07:36,195 --> 01:07:38,320
+and that could be an online
+reinforcement learning,
+
+1432
+01:07:38,320 --> 01:07:41,240
+but done at scale, at
+the internet scale,
+
+1433
+01:07:41,240 --> 01:07:44,780
+I think these models would
+improve significantly.
+
+1434
+01:07:44,780 --> 01:07:46,570
+And, of course,
+it's very difficult
+
+1435
+01:07:46,570 --> 01:07:49,210
+to do that on the
+real web because it's
+
+1436
+01:07:49,210 --> 01:07:51,320
+very hard to change--
+
+1437
+01:07:51,320 --> 01:07:54,550
+you can't change the
+state of the environment.
+
+1438
+01:07:54,550 --> 01:08:01,320
+So you have to be careful how
+you're actually scaling it up
+
+1439
+01:08:01,320 --> 01:08:05,430
+when you go to the real
+world or the real web.
+
+1440
+01:08:05,430 --> 01:08:07,890
+Let me just, in the
+last 10 minutes and I'll
+
+1441
+01:08:07,890 --> 01:08:09,960
+leave the room for
+questions, I wanted
+
+1442
+01:08:09,960 --> 01:08:15,900
+to point out that this
+notion of agentic environment
+
+1443
+01:08:15,900 --> 01:08:19,380
+is also applicable to
+the physical agents
+
+1444
+01:08:19,380 --> 01:08:22,120
+or robots in general, right?
+
+1445
+01:08:22,120 --> 01:08:24,790
+So we've also-- very
+parallel effort,
+
+1446
+01:08:24,790 --> 01:08:28,950
+we basically thought,
+OK, these AI agents have
+
+1447
+01:08:28,950 --> 01:08:32,502
+the same notion whether
+we're operating on the web
+
+1448
+01:08:32,502 --> 01:08:34,710
+and taking actions on the
+web, or whether we actually
+
+1449
+01:08:34,710 --> 01:08:37,979
+have a physical agent, like
+a robot that takes actions
+
+1450
+01:08:37,979 --> 01:08:39,220
+in the real world, right?
+
+1451
+01:08:39,220 --> 01:08:41,939
+So, for example, you can
+think about observing
+
+1452
+01:08:41,939 --> 01:08:44,500
+the data, which could be the
+image plus maybe the depths.
+
+1453
+01:08:44,500 --> 01:08:46,350
+You do some form of
+semantic segmentation
+
+1454
+01:08:46,350 --> 01:08:47,710
+to understand the environment.
+
+1455
+01:08:47,710 --> 01:08:48,670
+You have an objective.
+
+1456
+01:08:48,670 --> 01:08:50,490
+You generate a
+high-level plan and then
+
+1457
+01:08:50,490 --> 01:08:52,050
+you generate the
+low-level actions
+
+1458
+01:08:52,050 --> 01:08:54,430
+like interacting with
+the actual environment.
+
+1459
+01:08:54,430 --> 01:08:58,630
+So we have this work on
+planning learning, what
+
+1460
+01:08:58,630 --> 01:09:01,180
+we call plan, sequence, and
+learn, where the idea is
+
+1461
+01:09:01,180 --> 01:09:03,189
+a language model
+basically gives you
+
+1462
+01:09:03,189 --> 01:09:06,920
+a sequence of high-level
+plan, what you need to do.
+
+1463
+01:09:06,920 --> 01:09:09,069
+You have a sequencing
+or parsing module
+
+1464
+01:09:09,069 --> 01:09:12,470
+that basically understands the
+environment, sequences this.
+
+1465
+01:09:12,470 --> 01:09:14,258
+And then we have a
+low-level action,
+
+1466
+01:09:14,258 --> 01:09:16,300
+which we learn with
+reinforcement learning, which
+
+1467
+01:09:16,300 --> 01:09:18,160
+is a little policy that
+actually learns how
+
+1468
+01:09:18,160 --> 01:09:19,609
+to take a particular action.
+
+1469
+01:09:19,609 --> 01:09:22,930
+So very much in
+flavor, very similar
+
+1470
+01:09:22,930 --> 01:09:25,100
+to what the web
+agents are doing,
+
+1471
+01:09:25,100 --> 01:09:27,500
+but now we're actually
+interacting in the real world.
+
+1472
+01:09:27,500 --> 01:09:31,750
+So, for example, a planning
+module can say, OK, here's
+
+1473
+01:09:31,750 --> 01:09:33,562
+the task.
+
+1474
+01:09:33,562 --> 01:09:37,630
+Get me-- I'm trying to put the
+silver nut on the silver peg
+
+1475
+01:09:37,630 --> 01:09:39,253
+and the gold nut
+on the gold peg,
+
+1476
+01:09:39,253 --> 01:09:41,420
+and then give me the simple
+plan to solve this task.
+
+1477
+01:09:41,420 --> 01:09:45,250
+And so the LLM basically
+produces a fairly simple task
+
+1478
+01:09:45,250 --> 01:09:47,660
+of how I should solve it.
+
+1479
+01:09:47,660 --> 01:09:52,520
+We have a sequencing model,
+which looks at the observation.
+
+1480
+01:09:52,520 --> 01:09:54,189
+There's a depth.
+
+1481
+01:09:54,189 --> 01:09:58,270
+We do segmentation and a
+little bit of projections,
+
+1482
+01:09:58,270 --> 01:10:00,330
+so have some form
+of 3D representation
+
+1483
+01:10:00,330 --> 01:10:01,590
+of the environment.
+
+1484
+01:10:01,590 --> 01:10:03,752
+And then it goes through
+the inverse kinematic,
+
+1485
+01:10:03,752 --> 01:10:04,960
+and we have a motion planner.
+
+1486
+01:10:04,960 --> 01:10:06,377
+But you can think
+of this as like,
+
+1487
+01:10:06,377 --> 01:10:08,670
+again, understanding
+the environment
+
+1488
+01:10:08,670 --> 01:10:12,100
+and doing a little bit
+of motion planning.
+
+1489
+01:10:12,100 --> 01:10:15,270
+And then the low-level
+action module actually
+
+1490
+01:10:15,270 --> 01:10:16,570
+learns the local policy.
+
+1491
+01:10:16,570 --> 01:10:19,740
+So here you have reinforcement
+learning for interactions.
+
+1492
+01:10:19,740 --> 01:10:21,990
+Kind of locally learning
+how to interact with it.
+
+1493
+01:10:21,990 --> 01:10:24,400
+Much like when you're clicking
+on a particular element.
+
+1494
+01:10:24,400 --> 01:10:28,230
+Here we're actually learning how
+to control our joint angles so
+
+1495
+01:10:28,230 --> 01:10:32,110
+that we can accomplish
+a low-level task.
+
+1496
+01:10:32,110 --> 01:10:33,970
+And so this is
+how it looks like,
+
+1497
+01:10:33,970 --> 01:10:37,235
+where a local model is
+actually learning how to--
+
+1498
+01:10:37,235 --> 01:10:38,610
+with reinforcement
+learning, it's
+
+1499
+01:10:38,610 --> 01:10:41,830
+actually learning how to
+interact with the environment.
+
+1500
+01:10:41,830 --> 01:10:45,820
+And so in the full pipeline,
+very much in similar spirit,
+
+1501
+01:10:45,820 --> 01:10:50,700
+you have a planning
+model that plans high--
+
+1502
+01:10:50,700 --> 01:10:52,670
+gives you a high-level plan.
+
+1503
+01:10:52,670 --> 01:10:55,460
+For each high-level
+plan, you're executing
+
+1504
+01:10:55,460 --> 01:10:58,670
+this lower-level actions
+where you basically
+
+1505
+01:10:58,670 --> 01:11:01,430
+have pose estimation, motion
+planning, a little bit
+
+1506
+01:11:01,430 --> 01:11:03,930
+of reinforcement learning
+to take the action.
+
+1507
+01:11:03,930 --> 01:11:08,450
+And then you have this low-level
+control that actually controls
+
+1508
+01:11:08,450 --> 01:11:10,530
+low-level actions via
+reinforcement learning,
+
+1509
+01:11:10,530 --> 01:11:11,430
+and then you proceed.
+
+1510
+01:11:11,430 --> 01:11:13,410
+And that's just the first
+step, and you go to the next,
+
+1511
+01:11:13,410 --> 01:11:15,800
+and then you go to the next,
+and execute that according
+
+1512
+01:11:15,800 --> 01:11:19,460
+to the plan, and so forth.
+
+1513
+01:11:19,460 --> 01:11:24,840
+And we found that these sort
+of models work reasonably well.
+
+1514
+01:11:24,840 --> 01:11:28,520
+PSL solves about 25
+long-horizon robotic tasks
+
+1515
+01:11:28,520 --> 01:11:33,590
+across, in this case, four
+benchmarks, with about 85%
+
+1516
+01:11:33,590 --> 01:11:34,760
+success rate.
+
+1517
+01:11:34,760 --> 01:11:41,370
+We also tried extending this
+to the actual real environment.
+
+1518
+01:11:41,370 --> 01:11:43,010
+So here is the--
+
+1519
+01:11:43,010 --> 01:11:45,180
+I give it a task, put
+mouse in the drawer.
+
+1520
+01:11:45,180 --> 01:11:47,730
+So the model basically
+generates the plan,
+
+1521
+01:11:47,730 --> 01:11:49,410
+and, again, it looks
+at the environment,
+
+1522
+01:11:49,410 --> 01:11:53,444
+parses the environment, and
+then executes low-level actions.
+
+1523
+01:11:53,444 --> 01:11:59,570
+And it does a lot of
+interesting things.
+
+1524
+01:11:59,570 --> 01:12:01,540
+But the point I do
+want to make here
+
+1525
+01:12:01,540 --> 01:12:04,990
+is that, whether you're
+operating in a virtual space
+
+1526
+01:12:04,990 --> 01:12:09,280
+or whether you are operating
+in the real-world space,
+
+1527
+01:12:09,280 --> 01:12:14,030
+the ideas are fairly
+similar across domains.
+
+1528
+01:12:14,030 --> 01:12:17,290
+And so here, you can generalize
+to new object, object
+
+1529
+01:12:17,290 --> 01:12:18,980
+geometries, new categories.
+
+1530
+01:12:18,980 --> 01:12:23,435
+And so we've never trained
+on this particular--
+
+1531
+01:12:23,435 --> 01:12:25,000
+for this particular
+object, but you
+
+1532
+01:12:25,000 --> 01:12:27,440
+can successfully complete it.
+
+1533
+01:12:27,440 --> 01:12:32,360
+You can deal with multiple novel
+objects with unseen receptacles.
+
+1534
+01:12:32,360 --> 01:12:39,710
+So these models can
+do reasonably well.
+
+1535
+01:12:39,710 --> 01:12:41,390
+It's not perfect, by all means.
+
+1536
+01:12:41,390 --> 01:12:46,180
+I think we're hitting success
+rates about 80% to 90%.
+
+1537
+01:12:46,180 --> 01:12:47,720
+But these models do generalize.
+
+1538
+01:12:47,720 --> 01:12:49,640
+They can manipulate
+deformable objects.
+
+1539
+01:12:49,640 --> 01:12:52,400
+You don't observe them when
+we're training these models
+
+1540
+01:12:52,400 --> 01:12:54,590
+in the simulator, but
+training in the simulator
+
+1541
+01:12:54,590 --> 01:12:57,650
+does translate into
+the real world.
+
+1542
+01:12:57,650 --> 01:12:58,430
+OK.
+
+1543
+01:12:58,430 --> 01:13:02,570
+Now, to summarize, we've
+talked about VisualWebArena
+
+1544
+01:13:02,570 --> 01:13:06,440
+as a benchmark for these
+realistic tasks designed
+
+1545
+01:13:06,440 --> 01:13:09,870
+to evaluate the capabilities of
+autonomous multimodal agents.
+
+1546
+01:13:09,870 --> 01:13:13,080
+We've talked about inference
+time search algorithm,
+
+1547
+01:13:13,080 --> 01:13:17,600
+which is designed to enhance the
+capabilities of language models
+
+1548
+01:13:17,600 --> 01:13:22,440
+for realistic web tasks, and
+how we can do the search.
+
+1549
+01:13:22,440 --> 01:13:24,710
+And there's a lot
+of research that
+
+1550
+01:13:24,710 --> 01:13:26,190
+needs to be done in that space.
+
+1551
+01:13:26,190 --> 01:13:28,730
+And then we've talked
+about the data pipeline
+
+1552
+01:13:28,730 --> 01:13:30,740
+for large-scale generation
+and verification
+
+1553
+01:13:30,740 --> 01:13:33,590
+of these synthetic
+tasks that the model can
+
+1554
+01:13:33,590 --> 01:13:36,540
+create powered by Llama models.
+
+1555
+01:13:36,540 --> 01:13:39,080
+And the interesting thing
+about all of these settings
+
+1556
+01:13:39,080 --> 01:13:42,210
+is that you can try to
+generate these synthetic tasks.
+
+1557
+01:13:42,210 --> 01:13:45,210
+You can use inference time
+to generate something better.
+
+1558
+01:13:45,210 --> 01:13:46,990
+You can use data
+collection with humans,
+
+1559
+01:13:46,990 --> 01:13:48,490
+and ultimately,
+it's the combination
+
+1560
+01:13:48,490 --> 01:13:51,760
+of all of these pieces
+that will potentially
+
+1561
+01:13:51,760 --> 01:13:55,720
+lead to models that
+can work very well
+
+1562
+01:13:55,720 --> 01:13:57,880
+in the real-world environments.
+
+1563
+01:13:57,880 --> 01:14:00,220
+One last thing I
+do want to mention
+
+1564
+01:14:00,220 --> 01:14:04,900
+is that, AI safety
+and robustness
+
+1565
+01:14:04,900 --> 01:14:07,240
+becomes fairly
+important, especially
+
+1566
+01:14:07,240 --> 01:14:09,140
+in the age of
+autonomous systems.
+
+1567
+01:14:09,140 --> 01:14:11,050
+And what's essentially
+happening today
+
+1568
+01:14:11,050 --> 01:14:14,510
+is that these systems
+are not-- first of all,
+
+1569
+01:14:14,510 --> 01:14:17,170
+they're not very robust.
+
+1570
+01:14:17,170 --> 01:14:21,975
+If I ask it to do some task,
+sometimes it completes the task,
+
+1571
+01:14:21,975 --> 01:14:22,850
+sometimes it doesn't.
+
+1572
+01:14:22,850 --> 01:14:25,630
+And it's very
+difficult-- like, if I
+
+1573
+01:14:25,630 --> 01:14:29,145
+want to have a system that
+books my flights as an example,
+
+1574
+01:14:29,145 --> 01:14:32,300
+I don't want to have a system
+that's only 80% correct.
+
+1575
+01:14:32,300 --> 01:14:37,120
+I don't want a system that 80%
+books the right stuff and 20%
+
+1576
+01:14:37,120 --> 01:14:39,560
+doesn't book the right--
+books the wrong planes for me.
+
+1577
+01:14:39,560 --> 01:14:41,320
+That's unacceptable.
+
+1578
+01:14:41,320 --> 01:14:44,290
+So having these agentic
+capabilities that actually
+
+1579
+01:14:44,290 --> 01:14:47,100
+are very good at executing
+tasks and perhaps
+
+1580
+01:14:47,100 --> 01:14:48,690
+asking for
+clarification questions
+
+1581
+01:14:48,690 --> 01:14:51,270
+so you have some model
+in the loop becomes
+
+1582
+01:14:51,270 --> 01:14:55,732
+very important research and very
+important, which is missing--
+
+1583
+01:14:55,732 --> 01:14:56,940
+I think that's missing today.
+
+1584
+01:14:56,940 --> 01:15:00,280
+On AI safety, that's
+another area of research.
+
+1585
+01:15:00,280 --> 01:15:03,100
+Because a lot of times, these
+agents are very brittle.
+
+1586
+01:15:03,100 --> 01:15:08,350
+So you can actually
+adversely modify them.
+
+1587
+01:15:08,350 --> 01:15:10,530
+And so this is some work.
+
+1588
+01:15:10,530 --> 01:15:13,620
+There's a lot more work that's
+happening in this space.
+
+1589
+01:15:13,620 --> 01:15:16,000
+But we found this one
+interesting settings,
+
+1590
+01:15:16,000 --> 01:15:21,090
+this was done on VisualWebArena,
+where we basically change
+
+1591
+01:15:21,090 --> 01:15:23,140
+the representation of images.
+
+1592
+01:15:23,140 --> 01:15:25,930
+So you have a web page, on the
+web page, you have your images,
+
+1593
+01:15:25,930 --> 01:15:27,810
+and you change
+your representation
+
+1594
+01:15:27,810 --> 01:15:31,080
+of the images in such a way
+that the captioning system, when
+
+1595
+01:15:31,080 --> 01:15:35,160
+it captions it, actually
+provides an instruction
+
+1596
+01:15:35,160 --> 01:15:37,972
+to the language model of
+what it should do next.
+
+1597
+01:15:37,972 --> 01:15:43,110
+So we can hijack these
+agents and basically say--
+
+1598
+01:15:43,110 --> 01:15:45,350
+add the comment, looks
+great, before providing
+
+1599
+01:15:45,350 --> 01:15:46,170
+the next action.
+
+1600
+01:15:46,170 --> 01:15:49,130
+So if the model ends
+up on your web page,
+
+1601
+01:15:49,130 --> 01:15:51,390
+instead of navigating
+to the next one,
+
+1602
+01:15:51,390 --> 01:15:55,057
+it will leave the
+comment saying,
+
+1603
+01:15:55,057 --> 01:15:57,390
+this is a terrific product,
+and then go to the next one.
+
+1604
+01:15:57,390 --> 01:16:04,490
+So you can force it to
+generate, for example,
+
+1605
+01:16:04,490 --> 01:16:07,910
+positive feedback for your
+product so you can boost your--
+
+1606
+01:16:07,910 --> 01:16:11,630
+
+1607
+01:16:11,630 --> 01:16:14,370
+a lot of agents or
+people like your product.
+
+1608
+01:16:14,370 --> 01:16:17,330
+So it's just it's a little
+bit toy-ish at this point,
+
+1609
+01:16:17,330 --> 01:16:19,847
+but it becomes fairly
+important because you
+
+1610
+01:16:19,847 --> 01:16:22,430
+don't want to have a system--
+you want to have a system that's
+
+1611
+01:16:22,430 --> 01:16:24,680
+robust to these
+adversarial settings
+
+1612
+01:16:24,680 --> 01:16:27,770
+where I can modify my
+state in an adversarial way
+
+1613
+01:16:27,770 --> 01:16:32,900
+so as to ask the model to take
+a different action than it's
+
+1614
+01:16:32,900 --> 01:16:35,060
+supposed to take.
+
+1615
+01:16:35,060 --> 01:16:37,110
+And finally, this
+is a funny example,
+
+1616
+01:16:37,110 --> 01:16:39,830
+but I wanted to
+mention, like, there's
+
+1617
+01:16:39,830 --> 01:16:42,630
+a lot of work in the industry on
+building these types of models.
+
+1618
+01:16:42,630 --> 01:16:45,780
+Obviously, we want to have
+systems that can look at the web
+
+1619
+01:16:45,780 --> 01:16:48,720
+and do a lot of tasks on you.
+
+1620
+01:16:48,720 --> 01:16:54,780
+But this was done by Claude
+Anthropic's computer use.
+
+1621
+01:16:54,780 --> 01:16:58,170
+And so it kind of-- they have
+this funny thing where you say,
+
+1622
+01:16:58,170 --> 01:17:00,960
+in one episode,
+Claude accidentally
+
+1623
+01:17:00,960 --> 01:17:04,150
+clicked to stop a long
+running screen recording,
+
+1624
+01:17:04,150 --> 01:17:06,870
+causing all footage to be lost,
+and another clock suddenly
+
+1625
+01:17:06,870 --> 01:17:08,460
+took a break from
+our coding demo
+
+1626
+01:17:08,460 --> 01:17:12,070
+and began to use photos of
+Yellowstone National Park.
+
+1627
+01:17:12,070 --> 01:17:14,230
+And the reason why
+these models do that?
+
+1628
+01:17:14,230 --> 01:17:16,810
+Because you have a sequence,
+you have a set of actions.
+
+1629
+01:17:16,810 --> 01:17:19,080
+And so if it's trying
+to accomplish the task,
+
+1630
+01:17:19,080 --> 01:17:22,020
+takes the wrong
+action, then it--
+
+1631
+01:17:22,020 --> 01:17:23,700
+once it takes the
+wrong action and it
+
+1632
+01:17:23,700 --> 01:17:26,550
+doesn't have the search
+ability to understand,
+
+1633
+01:17:26,550 --> 01:17:27,420
+I'm not actually--
+
+1634
+01:17:27,420 --> 01:17:31,300
+I've taken the action that is
+not consistent with my task,
+
+1635
+01:17:31,300 --> 01:17:33,730
+then it's very hard for it
+to backtrack potentially.
+
+1636
+01:17:33,730 --> 01:17:35,820
+Once you're taking the action,
+it's trying to take another
+
+1637
+01:17:35,820 --> 01:17:37,362
+action, maybe it's
+trying to recover,
+
+1638
+01:17:37,362 --> 01:17:41,520
+and then basically cannot
+recover back to the original
+
+1639
+01:17:41,520 --> 01:17:43,070
+set.
+

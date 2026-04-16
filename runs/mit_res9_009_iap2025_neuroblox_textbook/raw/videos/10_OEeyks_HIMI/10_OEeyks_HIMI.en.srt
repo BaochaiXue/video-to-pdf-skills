@@ -1,0 +1,1533 @@
+1
+00:00:06,650 --> 00:00:10,710
+So welcome, everybody, to the
+final day of this workshop.
+
+2
+00:00:10,710 --> 00:00:16,400
+So essentially up to now we
+have been dealing with what's
+
+3
+00:00:16,400 --> 00:00:17,840
+known as the forward problem.
+
+4
+00:00:17,840 --> 00:00:21,380
+We have been building models
+and then simulating them forward
+
+5
+00:00:21,380 --> 00:00:25,230
+in time and plotting
+simulation results.
+
+6
+00:00:25,230 --> 00:00:27,620
+But for this last
+session, we will
+
+7
+00:00:27,620 --> 00:00:29,100
+work on the inverse problem.
+
+8
+00:00:29,100 --> 00:00:29,850
+And that's it.
+
+9
+00:00:29,850 --> 00:00:36,080
+Given a model and
+given some data,
+
+10
+00:00:36,080 --> 00:00:39,990
+how can we retrieve or
+fit the model to the data
+
+11
+00:00:39,990 --> 00:00:43,340
+so we can retrieve model
+parameters that actually when
+
+12
+00:00:43,340 --> 00:00:46,700
+the model simulates, then
+the result of the simulation
+
+13
+00:00:46,700 --> 00:00:47,790
+matches that data?
+
+14
+00:00:47,790 --> 00:00:52,850
+And dynamic causal modeling
+is a way of doing this.
+
+15
+00:00:52,850 --> 00:00:55,850
+And it can essentially
+accommodate
+
+16
+00:00:55,850 --> 00:01:00,480
+any type of time series that we
+typically use in neuroscience.
+
+17
+00:01:00,480 --> 00:01:04,040
+So most common cases will
+be electrophysiological data
+
+18
+00:01:04,040 --> 00:01:05,850
+or imaging data.
+
+19
+00:01:05,850 --> 00:01:12,500
+So fMRI needs experiments
+heavily make use of DCM.
+
+20
+00:01:12,500 --> 00:01:15,590
+And as I said, the challenge
+is to find the best model
+
+21
+00:01:15,590 --> 00:01:19,580
+parameters for your
+model to make your model
+
+22
+00:01:19,580 --> 00:01:21,030
+look like the data.
+
+23
+00:01:21,030 --> 00:01:27,230
+And DCM does that in
+a Bayesian manner.
+
+24
+00:01:27,230 --> 00:01:29,760
+It follows at least
+this Bayesian formalism.
+
+25
+00:01:29,760 --> 00:01:32,700
+And I'll talk more
+about this in a second.
+
+26
+00:01:32,700 --> 00:01:35,510
+And it's using
+state space models.
+
+27
+00:01:35,510 --> 00:01:37,500
+I'll show you an example
+of state space model.
+
+28
+00:01:37,500 --> 00:01:40,910
+But you can think of them
+as a discretized version
+
+29
+00:01:40,910 --> 00:01:42,360
+of the differential equations.
+
+30
+00:01:42,360 --> 00:01:46,550
+In state space models, we have
+the state at one time point
+
+31
+00:01:46,550 --> 00:01:49,650
+and how that depends on states
+at the previous time points.
+
+32
+00:01:49,650 --> 00:01:53,480
+So we have this almost
+discrete evolution in steps.
+
+33
+00:01:53,480 --> 00:01:56,960
+And it's also a
+method that gives us
+
+34
+00:01:56,960 --> 00:02:00,660
+back effective Connectivity
+and especially if you're
+
+35
+00:02:00,660 --> 00:02:04,290
+coming from the
+neuroimaging field,
+
+36
+00:02:04,290 --> 00:02:06,310
+you will probably be
+more familiar with this.
+
+37
+00:02:06,310 --> 00:02:09,449
+But what do we mean by
+effective connectivity
+
+38
+00:02:09,449 --> 00:02:12,180
+is essentially a
+metric of connectivity
+
+39
+00:02:12,180 --> 00:02:16,000
+between regions of the brain
+that is driven by a model.
+
+40
+00:02:16,000 --> 00:02:21,330
+So it is more than
+just correlations
+
+41
+00:02:21,330 --> 00:02:22,870
+between those regions.
+
+42
+00:02:22,870 --> 00:02:24,910
+So for instance
+here on the right,
+
+43
+00:02:24,910 --> 00:02:28,320
+we see some voxel-based
+activity out
+
+44
+00:02:28,320 --> 00:02:29,740
+of three regions in the brain.
+
+45
+00:02:29,740 --> 00:02:34,290
+And typically, an
+easy thing to do
+
+46
+00:02:34,290 --> 00:02:37,080
+is to calculate the functional
+connectivity between them, which
+
+47
+00:02:37,080 --> 00:02:39,960
+is just taking correlations
+between pairs of these,
+
+48
+00:02:39,960 --> 00:02:44,970
+and then seeing how well
+correlated or anti-correlated
+
+49
+00:02:44,970 --> 00:02:46,240
+these regions are.
+
+50
+00:02:46,240 --> 00:02:47,950
+But that's a purely
+statistical measure.
+
+51
+00:02:47,950 --> 00:02:52,720
+With DCM, we add a
+model into the mix.
+
+52
+00:02:52,720 --> 00:02:55,470
+And this model comes
+from our hypothesis
+
+53
+00:02:55,470 --> 00:02:57,910
+about the dynamics of
+each one of these regions.
+
+54
+00:02:57,910 --> 00:03:02,230
+So when we actually build
+the final graph of the model,
+
+55
+00:03:02,230 --> 00:03:04,900
+as you can see here
+with these four regions,
+
+56
+00:03:04,900 --> 00:03:08,150
+and we add any input, like
+the U1's and the U2's here,
+
+57
+00:03:08,150 --> 00:03:11,070
+the inputs can be either
+external inputs completely
+
+58
+00:03:11,070 --> 00:03:12,310
+external to the brain.
+
+59
+00:03:12,310 --> 00:03:16,350
+Or they just can be inputs
+from inside the brain
+
+60
+00:03:16,350 --> 00:03:18,510
+that we're not modeling,
+like we did yesterday
+
+61
+00:03:18,510 --> 00:03:20,010
+with the Poisson spike trains.
+
+62
+00:03:20,010 --> 00:03:22,592
+Those spike trains are
+coming from inside the brain.
+
+63
+00:03:22,592 --> 00:03:24,300
+It's just they're
+coming from populations
+
+64
+00:03:24,300 --> 00:03:27,120
+that we don't model explicitly.
+
+65
+00:03:27,120 --> 00:03:33,360
+So when you build a model, like
+this a more biophysical model,
+
+66
+00:03:33,360 --> 00:03:36,270
+and you feed this model to
+the data, what you get back
+
+67
+00:03:36,270 --> 00:03:39,390
+is the effective
+connectivity, and that's
+
+68
+00:03:39,390 --> 00:03:42,390
+a more reliable measure, I would
+say, of the actual connectivity
+
+69
+00:03:42,390 --> 00:03:45,210
+between these regions
+because it doesn't just
+
+70
+00:03:45,210 --> 00:03:46,930
+rely on summary statistics.
+
+71
+00:03:46,930 --> 00:03:50,940
+It looks into the dynamics of
+the neuron over time and figures
+
+72
+00:03:50,940 --> 00:03:54,720
+out how they are connected.
+
+73
+00:03:54,720 --> 00:04:00,660
+So as I was saying, DCM, and
+particularly the spectral DCM
+
+74
+00:04:00,660 --> 00:04:05,290
+that we will look into now, is
+built of state space models.
+
+75
+00:04:05,290 --> 00:04:08,160
+And here you can see an
+example of a state space
+
+76
+00:04:08,160 --> 00:04:10,050
+model expressed as a
+differential equation
+
+77
+00:04:10,050 --> 00:04:12,540
+at this time.
+
+78
+00:04:12,540 --> 00:04:15,210
+And this is a bilinear
+model because it
+
+79
+00:04:15,210 --> 00:04:18,870
+has this the linear term,
+which is the a times x.
+
+80
+00:04:18,870 --> 00:04:23,890
+But it also has this bilinear
+term of the u times v times x.
+
+81
+00:04:23,890 --> 00:04:28,740
+So as I said, u's our inputs,
+or inputs from populations
+
+82
+00:04:28,740 --> 00:04:30,930
+that we don't explicitly model.
+
+83
+00:04:30,930 --> 00:04:33,450
+c is the input weights.
+
+84
+00:04:33,450 --> 00:04:36,330
+b, this bilinear
+term is essentially
+
+85
+00:04:36,330 --> 00:04:39,700
+the effective connectivity as
+it is modulated by the inputs.
+
+86
+00:04:39,700 --> 00:04:41,920
+That's why we have
+the input multiplier.
+
+87
+00:04:41,920 --> 00:04:44,610
+And a is the
+effective connectivity
+
+88
+00:04:44,610 --> 00:04:47,590
+between regions given no input.
+
+89
+00:04:47,590 --> 00:04:49,830
+This is independent of inputs.
+
+90
+00:04:49,830 --> 00:04:54,960
+And the main goal of
+DCM is to give you
+
+91
+00:04:54,960 --> 00:04:57,220
+back these a and b matrices.
+
+92
+00:04:57,220 --> 00:05:00,990
+So this is how you can tell
+how your network is actually
+
+93
+00:05:00,990 --> 00:05:03,480
+structured by looking
+into the a if you care
+
+94
+00:05:03,480 --> 00:05:07,290
+about the case of connectivity
+without any inputs
+
+95
+00:05:07,290 --> 00:05:10,660
+or looking into the
+combination of a and b,
+
+96
+00:05:10,660 --> 00:05:13,350
+if you also care about
+some specific inputs.
+
+97
+00:05:13,350 --> 00:05:15,270
+Now, the assumptions
+that it makes
+
+98
+00:05:15,270 --> 00:05:18,000
+is that it assumes that
+there is a weak stationarity
+
+99
+00:05:18,000 --> 00:05:18,850
+in your signal.
+
+100
+00:05:18,850 --> 00:05:22,950
+And that means that the cross
+spectral density, essentially,
+
+101
+00:05:22,950 --> 00:05:27,760
+for any finite amount of
+measured time that you have,
+
+102
+00:05:27,760 --> 00:05:32,580
+say, in a bold experiment
+that remains constant,
+
+103
+00:05:32,580 --> 00:05:34,870
+it assumes bilinearity.
+
+104
+00:05:34,870 --> 00:05:37,530
+And this is essentially the
+introduction of this b matrix
+
+105
+00:05:37,530 --> 00:05:41,470
+here, where it allows for this
+input modulated connectivity.
+
+106
+00:05:41,470 --> 00:05:46,260
+And also it assumes
+Gaussianity, and that basically
+
+107
+00:05:46,260 --> 00:05:49,650
+means that all of the
+parameters that we're
+
+108
+00:05:49,650 --> 00:05:52,800
+fitting during the
+DCM process, we
+
+109
+00:05:52,800 --> 00:05:55,960
+assume that they come from
+a normal distribution.
+
+110
+00:05:55,960 --> 00:05:58,880
+And that's, in other words,
+the Laplace approximation.
+
+111
+00:06:01,810 --> 00:06:04,630
+Now, here I'd like to show
+you essentially on the left
+
+112
+00:06:04,630 --> 00:06:13,060
+how a typical pipeline of
+DCM works on both data.
+
+113
+00:06:13,060 --> 00:06:17,770
+And on the right, we have the
+equivalent snippets of code
+
+114
+00:06:17,770 --> 00:06:19,070
+from Neuroblox itself.
+
+115
+00:06:19,070 --> 00:06:22,750
+So we start from the
+actual neural dynamics.
+
+116
+00:06:22,750 --> 00:06:25,480
+And our default is to
+use this neural mass
+
+117
+00:06:25,480 --> 00:06:28,990
+model, which is exactly this
+equation here or written
+
+118
+00:06:28,990 --> 00:06:29,630
+in Neuroblox.
+
+119
+00:06:29,630 --> 00:06:34,000
+Here you see this
+dx equals to jcn
+
+120
+00:06:34,000 --> 00:06:37,580
+because, as you see in previous
+days, jcn can be any input.
+
+121
+00:06:37,580 --> 00:06:40,360
+So as we build the
+circuit stitch together
+
+122
+00:06:40,360 --> 00:06:42,460
+multiple of these
+linear mass models,
+
+123
+00:06:42,460 --> 00:06:46,420
+essentially we will build
+the a matrix and the b matrix
+
+124
+00:06:46,420 --> 00:06:50,180
+and any c matrix if
+that's also included.
+
+125
+00:06:50,180 --> 00:06:53,530
+And now below that,
+so the result of this
+
+126
+00:06:53,530 --> 00:06:57,530
+is some population
+average neural activity.
+
+127
+00:06:57,530 --> 00:06:59,030
+This is just a
+neural mass model.
+
+128
+00:06:59,030 --> 00:07:03,280
+But then we move into the
+hemodynamic state equations.
+
+129
+00:07:03,280 --> 00:07:06,740
+So this is what is
+called the balloon model.
+
+130
+00:07:06,740 --> 00:07:11,020
+So this model will
+essentially model the dilation
+
+131
+00:07:11,020 --> 00:07:14,350
+of blood vessels, and
+it will model blood flow
+
+132
+00:07:14,350 --> 00:07:18,800
+in the brain, given
+parameters of the neural mass,
+
+133
+00:07:18,800 --> 00:07:21,310
+specifically for this
+region that we're
+
+134
+00:07:21,310 --> 00:07:22,670
+modeling with the neural mass.
+
+135
+00:07:22,670 --> 00:07:27,557
+And on top of the balloon model,
+we have this the BOLD signal.
+
+136
+00:07:27,557 --> 00:07:29,890
+So essentially, we take the
+results of the balloon model
+
+137
+00:07:29,890 --> 00:07:32,590
+and we transform them to
+BOLD, which is actually
+
+138
+00:07:32,590 --> 00:07:34,670
+a quantity measured in fMRI.
+
+139
+00:07:34,670 --> 00:07:36,670
+So this is essentially
+the pipeline
+
+140
+00:07:36,670 --> 00:07:43,850
+that helps us move from a neural
+mass scale all the way up,
+
+141
+00:07:43,850 --> 00:07:46,790
+essentially, the
+hierarchy to BOLD.
+
+142
+00:07:46,790 --> 00:07:50,530
+And we can relate our model,
+our biophysical model,
+
+143
+00:07:50,530 --> 00:07:58,090
+it can be any blocks here
+to actual imaging data.
+
+144
+00:07:58,090 --> 00:08:01,240
+And here I'm also showing
+you the symbolic way
+
+145
+00:08:01,240 --> 00:08:02,980
+that we write the
+balloon equations
+
+146
+00:08:02,980 --> 00:08:05,987
+to see that it actually
+matches the math quite easily.
+
+147
+00:08:05,987 --> 00:08:07,570
+So of course, the
+balloon model is not
+
+148
+00:08:07,570 --> 00:08:11,830
+the only model that can actually
+transform neural activity
+
+149
+00:08:11,830 --> 00:08:12,980
+to BOLD.
+
+150
+00:08:12,980 --> 00:08:15,680
+Eventually you can replace
+this with other models.
+
+151
+00:08:15,680 --> 00:08:21,820
+So this is what we call
+an observer blocks.
+
+152
+00:08:21,820 --> 00:08:24,010
+Now, in order to solve
+the inverse problem
+
+153
+00:08:24,010 --> 00:08:31,790
+and get back the true parameters
+for your network in DCM,
+
+154
+00:08:31,790 --> 00:08:35,690
+we perform variational
+Bayesian approach.
+
+155
+00:08:35,690 --> 00:08:37,720
+So in other words,
+that means that we
+
+156
+00:08:37,720 --> 00:08:41,200
+assume a specific
+family of specific shape
+
+157
+00:08:41,200 --> 00:08:44,000
+of the distribution
+for the posterior.
+
+158
+00:08:44,000 --> 00:08:46,090
+And the posterior
+distribution in Bayesian terms
+
+159
+00:08:46,090 --> 00:08:49,010
+is always the distribution of
+the parameters given the data.
+
+160
+00:08:49,010 --> 00:08:51,400
+And this is Bayes' rule.
+
+161
+00:08:51,400 --> 00:08:53,750
+That's equal to a
+likelihood function, that
+
+162
+00:08:53,750 --> 00:08:57,425
+is, the probability of the data
+given parameters and any prior
+
+163
+00:08:57,425 --> 00:08:58,800
+that we have over
+the parameters.
+
+164
+00:08:58,800 --> 00:09:00,390
+So that's the p of probability.
+
+165
+00:09:00,390 --> 00:09:03,720
+And yeah, this product
+is the important thing.
+
+166
+00:09:03,720 --> 00:09:06,440
+And this product is divided by
+this normalizing factor, which
+
+167
+00:09:06,440 --> 00:09:07,980
+is the probability of data i.
+
+168
+00:09:07,980 --> 00:09:11,270
+But in practical applications,
+because the probability of data
+
+169
+00:09:11,270 --> 00:09:15,140
+is something very hard to
+calculate because that assumes
+
+170
+00:09:15,140 --> 00:09:18,290
+no specific parameters, that's
+the probability of all data
+
+171
+00:09:18,290 --> 00:09:22,910
+in your experiment, we apply
+this variational Bayes' trick,
+
+172
+00:09:22,910 --> 00:09:27,770
+which helps us circumvent
+essentially the computation
+
+173
+00:09:27,770 --> 00:09:31,940
+of this because we assume a
+specific shape of the posterior.
+
+174
+00:09:31,940 --> 00:09:35,270
+Now, after making
+this assumption,
+
+175
+00:09:35,270 --> 00:09:38,990
+we will perform essentially
+an optimization.
+
+176
+00:09:38,990 --> 00:09:41,630
+And this optimization
+is to maximize
+
+177
+00:09:41,630 --> 00:09:44,330
+the negative free energy,
+which, in other words,
+
+178
+00:09:44,330 --> 00:09:46,580
+in machine learning literature,
+you can also find this
+
+179
+00:09:46,580 --> 00:09:48,470
+as the evidence lower bound.
+
+180
+00:09:48,470 --> 00:09:50,900
+It's this quantity
+right here, which,
+
+181
+00:09:50,900 --> 00:09:54,080
+if you expand on the log a
+bit, you can see that it also--
+
+182
+00:09:54,080 --> 00:09:57,540
+it's the same as the
+Kullback-Leibler divergence,
+
+183
+00:09:57,540 --> 00:10:00,200
+which is a function that
+measures the distance
+
+184
+00:10:00,200 --> 00:10:01,470
+between two distributions.
+
+185
+00:10:01,470 --> 00:10:03,860
+And in this case,
+it's the distance
+
+186
+00:10:03,860 --> 00:10:07,580
+between q, which is
+our assumption of what
+
+187
+00:10:07,580 --> 00:10:13,090
+the posterior looks like, and
+essentially, the marginal--
+
+188
+00:10:13,090 --> 00:10:13,590
+sorry.
+
+189
+00:10:13,590 --> 00:10:14,507
+It's not the marginal.
+
+190
+00:10:14,507 --> 00:10:17,690
+This is the combination
+essentially of the likelihood
+
+191
+00:10:17,690 --> 00:10:18,810
+and the priors together.
+
+192
+00:10:18,810 --> 00:10:20,900
+So essentially
+we're trying to make
+
+193
+00:10:20,900 --> 00:10:23,090
+this what we have
+assumed for this quantity
+
+194
+00:10:23,090 --> 00:10:26,365
+as close to possible as the
+product of these two here.
+
+195
+00:10:29,210 --> 00:10:31,400
+And in order to
+do this, we apply
+
+196
+00:10:31,400 --> 00:10:33,570
+this Levenberg-Marquardt
+optimization.
+
+197
+00:10:33,570 --> 00:10:38,300
+So this is what was recommended
+by the original DCM work.
+
+198
+00:10:38,300 --> 00:10:40,580
+And it does perform better
+than other approaches
+
+199
+00:10:40,580 --> 00:10:42,950
+like a Gauss-Newton
+method, which
+
+200
+00:10:42,950 --> 00:10:45,420
+is very common
+optimization method.
+
+201
+00:10:45,420 --> 00:10:46,830
+But as you can
+see, for instance,
+
+202
+00:10:46,830 --> 00:10:48,900
+in the case of this
+posterior distribution,
+
+203
+00:10:48,900 --> 00:10:50,630
+if you apply
+Gauss-Newton and you
+
+204
+00:10:50,630 --> 00:10:55,890
+start from a point of no
+high probability density,
+
+205
+00:10:55,890 --> 00:10:59,220
+then this method can drift away,
+and it can lead you astray,
+
+206
+00:10:59,220 --> 00:10:59,730
+basically.
+
+207
+00:10:59,730 --> 00:11:01,480
+But if you follow the
+Levenberg-Marquardt,
+
+208
+00:11:01,480 --> 00:11:03,600
+even from the same
+initial point,
+
+209
+00:11:03,600 --> 00:11:08,600
+it actually manages to find the
+place of the highest probability
+
+210
+00:11:08,600 --> 00:11:14,090
+mass, which is what you would
+want ideally from this method.
+
+211
+00:11:14,090 --> 00:11:19,740
+Now, there are different
+types of the DCM analysis.
+
+212
+00:11:19,740 --> 00:11:25,100
+The earliest one we had the
+deterministic DCM, which
+
+213
+00:11:25,100 --> 00:11:27,770
+included simple state
+space models like the one
+
+214
+00:11:27,770 --> 00:11:30,810
+that I showed you,
+then stochastic DCM,
+
+215
+00:11:30,810 --> 00:11:33,440
+which can include
+nonlinearities and also
+
+216
+00:11:33,440 --> 00:11:36,030
+include, well,
+stochastic terms in it.
+
+217
+00:11:36,030 --> 00:11:38,600
+But exactly because
+of the introduction
+
+218
+00:11:38,600 --> 00:11:41,210
+of the stochasticity, that
+became computationally much
+
+219
+00:11:41,210 --> 00:11:43,040
+heavier.
+
+220
+00:11:43,040 --> 00:11:46,430
+So in other words, it's
+impossible to run a model
+
+221
+00:11:46,430 --> 00:11:48,650
+with many different
+regions in this model
+
+222
+00:11:48,650 --> 00:11:50,880
+in any reasonable
+amount of time.
+
+223
+00:11:50,880 --> 00:11:54,060
+A regression-based
+DCM, on the other hand,
+
+224
+00:11:54,060 --> 00:11:57,010
+is very fast because,
+in regression DCM,
+
+225
+00:11:57,010 --> 00:12:02,260
+we replace the state space
+model with some simple GLM.
+
+226
+00:12:02,260 --> 00:12:04,440
+That's the generalized
+linear model.
+
+227
+00:12:04,440 --> 00:12:07,870
+So we do away with a lot of
+the differential equations
+
+228
+00:12:07,870 --> 00:12:10,450
+so that that's much
+faster to compute.
+
+229
+00:12:10,450 --> 00:12:13,900
+And the spectral DCM is
+somewhere in between the others.
+
+230
+00:12:13,900 --> 00:12:18,180
+It allows for stochasticity.
+
+231
+00:12:18,180 --> 00:12:20,080
+In terms of the
+speed of running,
+
+232
+00:12:20,080 --> 00:12:22,260
+it's in between
+the deterministic
+
+233
+00:12:22,260 --> 00:12:23,170
+and the regression.
+
+234
+00:12:23,170 --> 00:12:27,060
+But it maintains
+biophysical relevance
+
+235
+00:12:27,060 --> 00:12:29,950
+because we still keep
+the state space models.
+
+236
+00:12:29,950 --> 00:12:32,070
+And as I was saying,
+you can add any blocks
+
+237
+00:12:32,070 --> 00:12:38,610
+that you want to for any one
+of your regions in your model.
+
+238
+00:12:38,610 --> 00:12:43,180
+Now in Neuroblox, we have our
+own implementation of DCM.
+
+239
+00:12:43,180 --> 00:12:47,820
+DCM, it's also originally
+comes from SPM,
+
+240
+00:12:47,820 --> 00:12:52,840
+which is a statistical package,
+I believe originally in Matlab,
+
+241
+00:12:52,840 --> 00:12:54,670
+but there's also a
+dual implementation.
+
+242
+00:12:54,670 --> 00:12:58,140
+And here I'm just showing
+you some performance graphs,
+
+243
+00:12:58,140 --> 00:13:02,430
+where you can see that our
+implementation in Julia,
+
+244
+00:13:02,430 --> 00:13:03,930
+using modeling toolkit--
+
+245
+00:13:03,930 --> 00:13:07,450
+that's in green-- or
+using not modeling toolkit
+
+246
+00:13:07,450 --> 00:13:10,350
+but the nonsymbolic way of
+writing differential equations
+
+247
+00:13:10,350 --> 00:13:12,870
+but still using automatic
+differentiation, which
+
+248
+00:13:12,870 --> 00:13:16,630
+is actually the novelty here.
+
+249
+00:13:16,630 --> 00:13:19,440
+The original implementation
+of DCM in SPM
+
+250
+00:13:19,440 --> 00:13:22,470
+does not have any
+automatic differentiation.
+
+251
+00:13:22,470 --> 00:13:25,530
+So both of these
+implementations, the towers,
+
+252
+00:13:25,530 --> 00:13:28,470
+the orange and green are much
+faster than the original one
+
+253
+00:13:28,470 --> 00:13:29,470
+in Matlab.
+
+254
+00:13:29,470 --> 00:13:33,210
+But they're also faster
+than the original algorithm
+
+255
+00:13:33,210 --> 00:13:35,530
+implemented in Julia.
+
+256
+00:13:35,530 --> 00:13:39,610
+And the importance is that
+the orange and green overlap.
+
+257
+00:13:39,610 --> 00:13:41,640
+So that tells us
+that, even though we
+
+258
+00:13:41,640 --> 00:13:44,020
+use modeling toolkit,
+which is the symbolic way,
+
+259
+00:13:44,020 --> 00:13:47,820
+we don't lose performance over
+the nonsymbolic way of writing
+
+260
+00:13:47,820 --> 00:13:51,010
+differential equations.
+
+261
+00:13:51,010 --> 00:13:55,233
+And essentially, this is in
+spirit with modeling toolkit
+
+262
+00:13:55,233 --> 00:13:56,650
+and in spirit with
+everything else
+
+263
+00:13:56,650 --> 00:13:57,980
+that we've seen in Neuroblox.
+
+264
+00:13:57,980 --> 00:14:02,780
+We wrote SP-DCM to
+be very modular.
+
+265
+00:14:02,780 --> 00:14:06,700
+So you can essentially follow
+this entire pipeline, which you
+
+266
+00:14:06,700 --> 00:14:09,590
+will in the exercises as well.
+
+267
+00:14:09,590 --> 00:14:14,030
+And you can replace parts
+of it with different parts.
+
+268
+00:14:14,030 --> 00:14:16,670
+For instance, when you define
+your neural mask block,
+
+269
+00:14:16,670 --> 00:14:20,290
+you can just replace, say,
+this set of two equations
+
+270
+00:14:20,290 --> 00:14:23,410
+with your own block.
+
+271
+00:14:23,410 --> 00:14:25,250
+When you build the
+circuit, of course,
+
+272
+00:14:25,250 --> 00:14:27,040
+you have the freedom
+to build any circuit
+
+273
+00:14:27,040 --> 00:14:30,115
+that you want that comes from
+your hypothesis about which
+
+274
+00:14:30,115 --> 00:14:31,990
+regions of the brain
+you think are implicated
+
+275
+00:14:31,990 --> 00:14:33,670
+in your experiment.
+
+276
+00:14:33,670 --> 00:14:37,180
+You can provide any
+measurements that you
+
+277
+00:14:37,180 --> 00:14:42,280
+like, be it electrophysiological
+ones or imaging ones.
+
+278
+00:14:42,280 --> 00:14:47,740
+And then we give you the option
+of doing variational inference
+
+279
+00:14:47,740 --> 00:14:51,900
+with automatic differentiation
+and with the Laplace
+
+280
+00:14:51,900 --> 00:14:55,710
+approximation and also
+give you out some metrics
+
+281
+00:14:55,710 --> 00:14:58,680
+so you can tell whether
+the optimization worked
+
+282
+00:14:58,680 --> 00:15:03,360
+or how much you should trust
+your results essentially.
+
+283
+00:15:03,360 --> 00:15:05,470
+And this is also
+published from our group,
+
+284
+00:15:05,470 --> 00:15:08,850
+so you can check this
+preprint as well.
+
+285
+00:15:08,850 --> 00:15:11,370
+So finally, I would like to
+talk about model selection
+
+286
+00:15:11,370 --> 00:15:16,740
+because say that we make an
+assumption about the network
+
+287
+00:15:16,740 --> 00:15:21,810
+that our experiments should
+stimulate or so the network
+
+288
+00:15:21,810 --> 00:15:22,960
+that should be involved.
+
+289
+00:15:22,960 --> 00:15:24,780
+But we don't exactly
+have the connectivity
+
+290
+00:15:24,780 --> 00:15:27,820
+within that network, so we can
+try different configurations.
+
+291
+00:15:27,820 --> 00:15:31,140
+So here you can see
+the results of trying
+
+292
+00:15:31,140 --> 00:15:33,670
+three different configurations
+and comparing them.
+
+293
+00:15:33,670 --> 00:15:35,730
+And to do the comparison
+we essentially print out
+
+294
+00:15:35,730 --> 00:15:37,570
+the free energy functional.
+
+295
+00:15:37,570 --> 00:15:42,790
+So larger values for the
+negative free energy are better.
+
+296
+00:15:42,790 --> 00:15:48,040
+So the blue line is the ground
+truth here, the ground truth
+
+297
+00:15:48,040 --> 00:15:50,780
+model, because this comes
+from simulated data.
+
+298
+00:15:50,780 --> 00:15:53,440
+So we used the blue one
+to generate some data
+
+299
+00:15:53,440 --> 00:15:54,770
+and then fit all three.
+
+300
+00:15:54,770 --> 00:15:58,390
+And then the orange is a
+version of the ground truth
+
+301
+00:15:58,390 --> 00:16:00,740
+model with just one
+connection removed.
+
+302
+00:16:00,740 --> 00:16:02,690
+This was a model
+with three regions,
+
+303
+00:16:02,690 --> 00:16:06,220
+but the orange one has the
+connection from region 2
+
+304
+00:16:06,220 --> 00:16:07,520
+to region 1 removed.
+
+305
+00:16:07,520 --> 00:16:11,560
+And model 3 has this connection
+and also another connection
+
+306
+00:16:11,560 --> 00:16:13,130
+from 2 to 3 removed.
+
+307
+00:16:13,130 --> 00:16:15,430
+So as you can see,
+the comparison
+
+308
+00:16:15,430 --> 00:16:18,670
+works because as you move
+further and further away
+
+309
+00:16:18,670 --> 00:16:21,610
+from the ground truth model,
+the free energy functional
+
+310
+00:16:21,610 --> 00:16:23,740
+becomes worse and worse.
+
+311
+00:16:23,740 --> 00:16:25,990
+And this is the
+metric that we apply
+
+312
+00:16:25,990 --> 00:16:30,460
+to do model selection at
+the end of the DCM process.
+
+313
+00:16:30,460 --> 00:16:32,240
+So this was my final slide.
+
+314
+00:16:32,240 --> 00:16:35,950
+So you can navigate
+to the final session,
+
+315
+00:16:35,950 --> 00:16:38,050
+spectral dynamic
+causal modeling,
+
+316
+00:16:38,050 --> 00:16:42,280
+and open the relevant
+notebook DCM.
+
+317
+00:16:42,280 --> 00:16:45,070
+And yeah, feel free
+to ask any questions.
+
+318
+00:16:45,070 --> 00:16:46,620
+Thanks.
+

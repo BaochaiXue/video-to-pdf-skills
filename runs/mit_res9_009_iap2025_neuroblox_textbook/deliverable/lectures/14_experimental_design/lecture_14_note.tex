@@ -1,0 +1,228 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\graphicspath{{figures/}}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{MIT RES.9-009 第14讲：Experimental Design（实验设计）}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{MIT Video Productions（讲者：Lilianne Mujica-Parodi）}
+\newcommand{\videopublishdate}{课程日期 2025-01-15；YouTube 上传 2025-04-15}
+\newcommand{\videoduration}{07:05}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=NU9K8l-gg-Q}
+\newcommand{\videocoverpath}{figures/cover.png}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{importantbox}{证据说明}
+本讲的官方课程页几乎只提供了标题、视频嵌入和一条参考文献；真正的教学内容主要来自字幕与课程页结构化证据。官方 slide PDF 仍未找到，因此正文没有把“缺失幻灯片”当作教学内容展开，而是将其记录在 \texttt{omission\_log.jsonl} 中。
+\end{importantbox}
+
+\section{为什么实验设计不能脱离建模}
+这讲一开始就把一个常见误区摆在台面上：我们往往习惯于把“数据分析”和“实验设计”分开考虑，但在计算建模里，这两件事必须同时想。原因很简单。模型不是静态表格里的几个值，而是一个需要随时间演化的动力系统；如果实验本身不能支持这种动力学表述，那么模型再漂亮，也只是停留在纸面上的解释。
+
+课程把这个区别说得很直接。传统统计分析更关心的是一个值是不是“更高”或“更低”，是否存在统计学意义上的差别；而建模关心的是，系统在时间上如何变化，这种变化能否被一个 ODE 系统表达出来。换句话说，统计分析经常在比较“值”，建模则是在构造“过程”。
+
+\begin{knowledgebox}{核心区别}
+统计分析常常回答“有没有差异”；建模必须进一步回答“差异如何随时间展开、如何被机制解释、能否被实验检验”。
+\end{knowledgebox}
+
+课程还提醒了一点：很多为统计目的而优化过的实验，不一定能无缝迁移到建模。也就是说，原本对一个统计检验很友好的实验设计，未必能提供足够的时间分辨率、变量覆盖和因果约束来支撑一个动态模型。这个提醒对课程后面的所有例子都成立。
+
+最早的例子来自 glucose-insulin model。若只看单个时间点，很多不同的 disorder 可能在表面上看起来差不多，甚至近乎等价；但一旦把动态过程纳入视野，它们就会显出差异。课程借这个例子强调了一件事：\textbf{单点值可以遮蔽机制，时间结构才更接近模型要解释的对象。}
+
+\subsection{本章小结}
+本章建立了整门课的逻辑前提：实验设计不是建模完成后的附属步骤，而是建模本身的一部分。模型要能被测试，实验就必须为动态、机制和因果区分提供条件。
+
+\section{多通道与长时间窗：不要把动态平均掉}
+从“值”转向“过程”之后，下一个问题就变成：到底该测什么、在什么位置测、测多久。课程给出的第一个建议是，理想情况下应该尽量采集连续测量，而且要覆盖回路中的多个组成部分。因为如果你面对的是一个负反馈环路，只看一个节点，通常不足以判断环路是如何工作的；至少要同时看到兴奋性和抑制性两个方向，才有机会把动态与因果链条拼起来。
+
+这也解释了为什么课程特别强调“strategically picking those areas”。对做 electrophysiology 的人来说，插入电极本身就是代价高昂的动作；正因如此，更要把有限的测量位置用在最能提供结构信息的地方。若条件允许，测点越多越好，因为覆盖越完整，越容易重建系统动态，也越容易追踪因果关系。
+
+\begin{importantbox}{实验设计的方向感}
+对于动态系统，测量的目标不是“尽量拿到一个平均数”，而是“尽量保留系统中的差异、方向和时序结构”。
+\end{importantbox}
+
+课程接着指出，时间序列平均化本身可能是问题。原因不是平均本身错误，而是平均会把动态信号洗平。既然你关心的是系统如何变化，那么过度压缩时间结构就会损失最关键的信息。所以在可能的情况下，应该优先提高 SNR，并尽量保持较长的数据窗口；课程甚至明确说，这一点有时会与神经影像里的某些大规模数据策略相冲突。
+
+这里最值得注意的对比，是课程拿 UK Biobank 一类神经影像设计来作参照。那类研究常见的做法是单个被试的 resting-state 数据很短，但被试人数极大；它的逻辑是“人多补质量”。而本讲的建模语境不同：如果目标是刻画动态机制，就往往更需要长窗口、高质量、可追踪的信号，而不是只靠大量短片段来平均掉个体内部的变化。
+
+\begin{table}[H]
+\centering
+\caption{课程对“统计分析型实验”和“建模型实验”的侧重点区分}
+\begin{tabular}{p{0.22\textwidth}p{0.26\textwidth}p{0.42\textwidth}}
+\toprule
+视角 & 常见偏好 & 对实验设计的含义 \\
+\midrule
+统计分析 & 关注值的高低、显著性、群体差异 & 单点观测有时足够，但不一定支持机制解释 \\
+建模 & 关注时序、动力学与 ODE 结构 & 需要连续测量、多个节点、尽量少把动态平均掉 \\
+大规模影像 & 以人数补偿扫描短、单体质量低 & 适合群体统计，不一定适合精细回路建模 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{本章小结}
+如果实验的目标是给模型提供辨识能力，那么测量位置、测量数量、测量时长和信噪比，都是和理论同等重要的设计变量。课程在这一段的态度很明确：要保留动力学，不要把动力学平均没了。
+
+\section{关键实验：让竞争假设在数据上分道扬镳}
+课程后半段给出的是更具建模味道的思路：利用模型去设计关键实验（critical experiment）。这不是先把所有参数都钉死，再被动等待数据来“验证”；相反，是先把可能的竞争假设都放进一个 provisional circuit，再看这些假设的输出在什么地方最大程度分歧，然后把实验专门设计在这些分歧点上。
+
+这个方法有两个直接收益。第一，你不再只是问“哪个模型更像数据”，而是问“哪个观测最能区分模型”。第二，模型不再只是一个解释器，而成为实验生成器：它先告诉你应该在哪些点上测，才能最大化辨识力。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/critical_experiment.pdf}
+\caption{关键实验的设计循环：从竞争假设出发，经由模型推演找到最大分歧点，再把实验和扰动放到最有区分度的位置。}
+\end{figure}
+\footnotetext{依据字幕 00:04:28--00:06:18 以及 00:06:23--00:07:04 的内容综合绘制。}
+
+课程还把这个思路进一步推进到 \emph{in silico} perturbation。也就是说，既然已经有了模型，就可以先在模型里问：如果我刺激这个位置，而不是那个位置，动态会怎样变化？这种虚拟刺激不会替代真实实验，但它能帮助你提前筛选出最有信息量的操作条件，从而把真实实验的资源花在最值得做的地方。
+
+\begin{knowledgebox}{为什么叫“关键实验”}
+关键实验不是最昂贵的实验，而是最能把竞争假设区分开的实验。它的判据是区分力，不是规模感。
+\end{knowledgebox}
+
+课程强调的一个细节也很重要：有时即使你没有足够信息去完全确定系统结构，仍然可以先搭一个 provisional circuit，并穷举其组合方式，再让数据告诉你哪些配置与观测相容、哪些不相容。也就是说，模型可以先粗后细，关键是每一步都在朝“可区分、可检验”推进。
+
+\subsection{本章小结}
+建模在这里的角色不只是解释数据，而是主动生成实验方案。先比较模型输出的分歧，再去设计观测和扰动位置，这是课程对“模型如何服务实验”的最核心回答。
+
+\section{多尺度验证：从底层到上层都要可测}
+课程最后把视角从单一回路扩展到多尺度系统。若要真正利用 Neuroblox 的 multiscale capabilities，就不能只盯着某一层的观测；更稳妥的做法，是在多个尺度上同时采集数据，然后据此建立从底层到上一层、再到更高层的 transfer functions。
+
+这一步的意义在于，模型不再只是某一尺度上的拟合，而是可以追问“怎样从底层走到上层”。课程用的表达很朴素：你要知道如何从 bottom layer 到 next layer，再到 next layer。这样的表达背后，其实是在要求一个跨尺度的可追踪映射，而不是只在单尺度上看起来好看。
+
+\begin{importantbox}{最后的建模标准}
+如果你的最终目标是 rigorous model，那么多尺度验证不是可选项，而是模型可信度的一部分。单尺度看起来正确，并不等于跨尺度也成立。
+\end{importantbox}
+
+课程也没有回避难度：这样的实验并不容易做，尤其当同时采集多个尺度意味着额外的设备、同步、噪声控制和分析复杂度时。不过，课程的态度并不是“因为难就不做”，而是“如果目标真的是 rigorous model，就必须把这个难题算进去”。
+
+\subsection{本章小结}
+多尺度验证把实验设计从“测到一点信息”提升为“建立尺度之间的可追踪关系”。这也是课程最后把实验设计和模型严谨性重新绑回一起的地方。
+
+\section{从课程 reading 回看这一讲：输入设计为什么是模型的一部分}
+这一讲虽然只有一条官方 reading，但这条 reading 的题目本身已经把课程想说的话压缩得很清楚：\emph{Input Signal Design for System Identification}。课程视频一直在强调，不要把实验刺激或输入条件当作数据采集前的背景设定；相反，输入如何被设计，往往直接决定了系统是否可辨识、竞争假设是否能被分开，以及多尺度 transfer function 是否能被稳定估计出来。
+
+需要注意的是，这里我们不能把那篇 IFAC 论文的详细技术内容强行写进正文，因为课程页只显式给出了书目信息，没有附上论文全文。但即便只根据标题和课程本身的论述，也已经足够得出一个安全且重要的结论：\textbf{输入设计不是实验开始前的行政安排，而是系统辨识的一部分。}
+
+\begin{table}[H]
+\centering
+\caption{本讲视频内容与官方 reading 标题之间的对应关系}
+\begin{tabular}{p{0.28\textwidth}p{0.50\textwidth}}
+\toprule
+课程中的表述 & reading 标题所强化的方向 \\
+\midrule
+不要只看单点值，要看动态过程 & 输入设计必须服务于动态辨识，而不是只服务于静态比较 \\
+要找 critical experiment & 输入或扰动应该被放在最能区分竞争假设的位置 \\
+要做多尺度验证 & 输入方案必须让不同尺度上的响应都留下可追踪结构 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+换句话说，这一讲真正教的不是某一种“最好实验范式”，而是一种更严格的提问方式：如果我改变输入、刺激、采样位置和采样时长，哪些设计会让模型更容易被区分，哪些设计则只会制造一堆统计上可比较但机制上不可判别的数据。
+
+\begin{knowledgebox}{把 reading 用在什么地方最合适}
+这条 reading 最适合被当作方法论提醒来读，而不是当作本讲的唯一知识来源。视频负责给出建模语境与设计原则，reading 的标题则把这些原则和 system identification 的语言重新接起来。
+\end{knowledgebox}
+
+\subsection{本章小结}
+这一节把课程页上看似孤零零的一条参考文献重新放回了整讲的语境里。它提醒我们，实验输入本身就是建模对象的一部分，因此“怎样刺激”“刺激多久”“在哪些点上刺激”都不能和模型辨识分开谈。
+
+\section{总结与延伸}
+这讲的主线其实很统一：对计算神经科学来说，实验设计不是建模之外的外部条件，而是模型是否站得住脚的前提。先要有动态观测，而不是只看单点值；再要有多通道覆盖，而不是只盯一个节点；然后要用模型构造关键实验，找出竞争假设的最大分歧；最后还要做多尺度验证，让模型不只在一个层面上成立。
+
+如果把整讲压缩成一句话，那就是：\textbf{好的实验设计，是为了让模型“有机会被证明错”，从而更可靠地被证明对。}
+
+\begin{knowledgebox}{官方课程页参考}
+官方课程页在这一讲只列出了一条参考文献：A. Królikowski 与 P. Eykhoff, \emph{Input Signal Design for System Identification: A Comparative Analysis}, IFAC Proceedings Volumes, 18(5), 1985, 915--920，\href{https://doi.org/10.1016/S1474-6670(17)60678-5}{doi 链接}。这与本讲的主题很一致：实验输入怎么设计，往往决定了系统能否被辨识出来。
+\end{knowledgebox}
+
+\subsection{本章小结}
+实验设计的价值，不是把数据变得更像预期，而是把数据变得更能回答模型问题。对于 Neuroblox 这类分层、动态、可扰动的建模框架，这一点尤其重要。
+
+\end{document}

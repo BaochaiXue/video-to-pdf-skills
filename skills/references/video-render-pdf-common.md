@@ -352,6 +352,7 @@ Before delivery, verify:
 
 Deliver all of the following:
 
+- final user-facing exports under the run-local `deliverable/` folder
 - the final `.tex` file
 - the downloaded cover image
 - any extracted or generated figure assets
@@ -368,6 +369,19 @@ Deliver all of the following:
 - `figure_manifest.json`
 - the subtitle or ASR artifact used for coverage accounting when available
 - the compiled PDF
+
+When the note is a final lecture-level deliverable, export the final `.tex` and `.pdf` to a stable path such as:
+
+- `deliverable/lectures/<lecture_slug>/lecture_XX_note.tex`
+- `deliverable/lectures/<lecture_slug>/lecture_XX_note.pdf`
+
+When the run produces a merged course textbook, export the final merged `.tex` and `.pdf` to a stable path such as:
+
+- `deliverable/book/<course>_complete_notes.tex`
+- `deliverable/book/<course>_complete_notes.pdf`
+
+Do not count the task as finished if the final handoff files exist only in `lectures/`, `book/`, or `build/` but have not been copied into `deliverable/`.
+Persist through the export step. A run that produced a good workspace note but never copied the final handoff into `deliverable/` is still incomplete.
 
 ## Asset
 

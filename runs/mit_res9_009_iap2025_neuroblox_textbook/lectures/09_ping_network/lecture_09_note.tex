@@ -1,0 +1,279 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstdefinelanguage{Julia}{
+    morekeywords={using,for,in,end,if,else,elseif,begin,let,return,function,mutable,struct,macro,quote,try,catch,do,global,local,const,true,false,nothing},
+    sensitive=true,
+    morecomment=[l]\#,
+    morestring=[b]"
+}
+\lstset{
+    language=Julia,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{MIT RES.9-009 第09讲：Pyramidal-Interneuron Gamma 网络}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{MIT OCW Neuroblox course page}
+\newcommand{\videopublishdate}{January IAP 2025}
+\newcommand{\videoduration}{课程页 / notebook}
+\newcommand{\videourl}{https://ocw.mit.edu/courses/res-9-009-introduction-to-computational-neuroscience-with-neuroblox-january-iap-2025/}
+\newcommand{\videocoverpath}{figures/cover.png}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{MIT OCW course page}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{课程定位与网络直觉}
+这一讲只有官方课程页与 notebook 作为证据，没有嵌入式视频，因此最稳妥的读法是把它当成一个“从纸面说明到可运行实现”的 PING 网络教程。页面标题和封面图已经把问题说得很清楚：我们要搭一个 pyramidal-interneuron gamma（PING）网络，目标不是抽象地讨论振荡，而是复现 Börgers, Epstein, and Kopell 的经典回路，看看 Neuroblox 如何把这个回路写成可求解的图结构系统。
+
+PING 的核心直觉很直接：兴奋性神经元向抑制性神经元送出驱动，抑制性神经元再把抑制回送给兴奋性神经元，形成一个闭环。只要外部驱动和抑制强度处在合适的平衡区间，就会出现稳定的 gamma 频段振荡；如果平衡偏移，群体同步性就会变差。官方页面把这个回路画成结构图，强调驱动输入只作用于部分兴奋性神经元，而另一部分兴奋性神经元则主要靠背景噪声和回路动力学被动参与。
+
+\begin{importantbox}{先抓住 E/I 平衡}
+这页的关键不是“有多少个神经元”，而是“驱动、抑制和噪声如何共同决定相位锁定”。后面所有代码都在围绕这个平衡做工程化实现。
+\end{importantbox}
+
+\subsection{本章小结}
+这一讲的目标是把经典 PING 回路写成 Neuroblox 可求解的图系统。理解网络结构和 E/I 平衡，比记住任何单条代码都更重要。
+
+\section{动力学方程、细胞类型与参数}
+官方页在概念部分给出了 Hodgkin-Huxley 形式的膜电位方程。它虽然没有把所有细胞动力学细节都展开，但已经足够说明这不是简化到只剩阈值的玩具模型，而是保留了通道电流、门控变量和外部驱动的生物物理模型：
+
+\[
+C \frac{dV}{dt}
+=
+g_{\mathrm{Na}} m^3 h \left(V_{\mathrm{Na}} - V\right)
++ g_{\mathrm{K}} n^4 \left(V_{\mathrm{K}} - V\right)
++ g_{\mathrm{L}} \left(V_{\mathrm{L}} - V\right)
++ I_{\mathrm{ext}}.
+\]
+
+这里的含义很标准：\(C\) 是膜电容，\(V\) 是膜电位，\(m,h,n\) 是门控变量，\(g_{\mathrm{Na}}, g_{\mathrm{K}}, g_{\mathrm{L}}\) 是离子通道最大电导，\(V_{\mathrm{Na}}, V_{\mathrm{K}}, V_{\mathrm{L}}\) 是反转电位，\(I_{\mathrm{ext}}\) 是外部输入电流。页面明确说明，兴奋性细胞近似为 reduced Traub-Miles cell，抑制性细胞近似为 Wang-Buzsáki cell；如果要追公式细节，需要回到 Börgers et al. 的 SI Appendix 中的 Eq. 12--14。
+
+网络规模也被固定得很明确：总共 200 个神经元，其中 40 个是 driven excitatory neurons，120 个是 other excitatory neurons，40 个是 inhibitory neurons。连接结构是有向图：兴奋性神经元驱动抑制性神经元，抑制性神经元再反馈抑制兴奋性神经元，同时允许自抑制，但不允许自兴奋。这个设定正是 gamma 振荡最常见的最小闭环之一。
+
+\begin{knowledgebox}{参数为什么这样设}
+页面里的参数不是随便填的。\( \mu_E \)、\( \mu_I \)、\( \sigma_E \)、\( \sigma_I \)、\( g_{EI} \)、\( g_{IE} \)、\( g_{II} \) 大体上沿用或微调自原始论文的附录，而 \texttt{I\_undriven} 和 \texttt{I\_bath} 则是为了在 Neuroblox 的实现里重新平衡 E/I 关系。换言之，这一页既在“复现”，也在“重标定”。
+\end{knowledgebox}
+
+\subsection{本章小结}
+PING 网络依赖的是一个带门控变量的 Hodgkin-Huxley 动力学，而不是简单的阈值放电。参数的作用是维持合适的驱动、噪声和抑制比例，从而让 gamma 振荡出现。
+
+\section{Neuroblox 实现}
+\subsection{导入与初始化}
+官方 notebook 的实现从五个包开始：\texttt{Neuroblox} 负责对象与图，\texttt{OrdinaryDiffEq} 负责求解，\texttt{Distributions} 负责随机电流，\texttt{Random} 负责随机种子，\texttt{CairoMakie} 负责图形输出。随后先固定随机种子，再设置参数与电流分布。
+
+\begin{lstlisting}[caption={导入依赖、固定随机种子并设置参数},label={lst:ping_init}]
+using Neuroblox
+using OrdinaryDiffEq
+using Distributions
+using Random
+using CairoMakie
+
+Random.seed!(42)
+
+mu_E = 0.8
+sigma_E = 0.15
+mu_I = 0.8
+sigma_I = 0.08
+
+NE_driven = 40
+NE_other = 120
+NI_driven = 40
+N_total = NE_driven + NE_other + NI_driven
+
+N = N_total
+g_II = 0.2
+g_IE = 0.6
+g_EI = 0.8
+
+I_base = Normal(0, 0.1)
+I_driveE = Normal(mu_E, sigma_E)
+I_driveI = Normal(mu_I, sigma_I)
+I_undriven = Normal(0, 0.4)
+I_bath = -0.7
+\end{lstlisting}
+
+这段初始化里最值得注意的地方有两个。第一，页面没有把所有驱动都设成完全确定的常数，而是通过 \texttt{Distributions.jl} 把部分电流写成随机变量，这样每个神经元的初始状态都带有轻微差异。第二，\texttt{I\_bath} 明确引入了一个外部抑制性浴流，它对整体 E/I balance 的影响在后面的结果里会变得很明显。
+
+\subsection{定义神经元与连接图}
+接下来是 Neuroblox 的关键步骤：先定义神经元对象，再定义图，再让图生成 ODE 系统。官方代码里把兴奋性神经元分成 driven 和 undriven 两组，前者命名为 \texttt{ED1}, \texttt{ED2}, \dots，后者命名为 \texttt{EO1}, \texttt{EO2}, \dots；抑制性神经元则命名为 \texttt{ID1}, \texttt{ID2}, \dots。这样做的好处是，后面在 raster plot 里很容易区分不同群体。
+
+\begin{lstlisting}[caption={定义神经元并写出图连接的基本形式},label={lst:ping_graph}]
+exci_driven = [PINGNeuronExci(name=Symbol("ED$i"), I_ext=rand(I_driveE) + rand(I_base)) for i in 1:NE_driven]
+exci_other  = [PINGNeuronExci(name=Symbol("EO$i"), I_ext=rand(I_base) + rand(I_undriven)) for i in 1:NE_other]
+exci = [exci_driven; exci_other]
+inhib = [PINGNeuronInhib(name=Symbol("ID$i"), I_ext=rand(I_driveI) + rand(I_base) + I_bath) for i in 1:NI_driven]
+
+g = MetaDiGraph()
+for ne in exci
+    for ni in inhib
+        add_edge!(g, ne => ni; weight=g_EI/N)
+        add_edge!(g, ni => ne; weight=g_IE/N)
+    end
+end
+
+for ni1 in inhib
+    for ni2 in inhib
+        add_edge!(g, ni1 => ni2; weight=g_II/N)
+    end
+end
+\end{lstlisting}
+
+这里的图不是单纯的“连边示意”，而是真正决定后续方程系统结构的对象。\texttt{MetaDiGraph()} 先把网络拓扑装进去，再由 \texttt{system\_from\_graph} 把拓扑翻译成可解的动态方程。这个设计很 Neuroblox：先写对象关系，再让框架自动生成求解对象。
+
+\subsection{邻接矩阵构图与求解}
+官方页还给了一个替代方案：如果网络很大，可以先把节点一次性加进去，再用邻接矩阵生成边。这个版本和上面的双重循环在功能上等价，只是更适合规模更大的情形。
+
+\begin{lstlisting}[caption={用邻接矩阵一次性生成同样的图并求解},label={lst:ping_sim}]
+g = MetaDiGraph()
+add_blox!.(Ref(g), [exci; inhib])
+adj = zeros(N_total, N_total)
+
+for i in 1:NE_driven + NE_other
+    for j in 1:NI_driven
+        adj[i, NE_driven + NE_other + j] = g_EI/N
+        adj[NE_driven + NE_other + j, i] = g_IE/N
+    end
+end
+
+for i in 1:NI_driven
+    for j in 1:NI_driven
+        adj[NE_driven + NE_other + i, NE_driven + NE_other + j] = g_II/N
+    end
+end
+
+create_adjacency_edges!(g, adj)
+
+tspan = (0.0, 300.0)
+@named sys = system_from_graph(g, graphdynamics=true)
+prob = ODEProblem(sys, [], tspan)
+sol = solve(prob, Tsit5(), saveat=0.1)
+\end{lstlisting}
+
+\begin{importantbox}{\texttt{graphdynamics=true} 的用途}
+这个选项会启用 GraphDynamics.jl 的编译路径。页面已经点明：它并不适用于每个模型，但一旦可用，通常会让大规模网络或重复调参时的编译速度更快。
+\end{importantbox}
+
+这里的求解器选择也值得点出来。\texttt{Tsit5()} 是一个对非刚性系统很常用的高效显式求解器，官方页把它类比为 Matlab 里的 \texttt{ode45}；如果要更高精度，可以尝试 \texttt{Vern7()}。这说明作者不是只想“跑出一张图”，而是在提醒你如何在精度、速度和可复现性之间取舍。
+
+\subsection{本章小结}
+Neuroblox 的实现思路是“先对象，后图，最后方程”。随机电流、图结构和求解器选择共同决定了 PING 网络是否能稳定地进入 gamma 振荡区间。
+
+\section{结果解读与练习}
+最后一步是把解画出来。官方页用 raster plot 同时显示兴奋性和抑制性神经元，以便直接观察群体同步性和放电节律。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/ping_raster.png}
+\caption{PING 网络的 raster plot。上图是兴奋性神经元，下图是抑制性神经元；它们共同展示了接近 Börgers et al. Figure 1 的群体放电节律。}
+\end{figure}
+
+从结果上看，上方面板里驱动兴奋性神经元会形成比较集中的放电簇，而未驱动的兴奋性神经元则更稀疏、更受噪声影响。下方面板的抑制性神经元则表现出更规则的同步爆发。这正是 PING 网络的典型图景：兴奋性群体先被驱动拉起，随后抑制性回路把节律重新“切”出来，形成近似 gamma 频段的群体振荡。
+
+\begin{warningbox}{为什么末尾会略微去同步}
+官方页明确提示，模拟末端的兴奋性和抑制性群体会比原论文略微更不整齐。原因不是代码坏了，而是实现里对兴奋驱动和 inhibitory bath 的处理与原始论文略有差异，导致整体 E/I balance 发生了轻微偏移。
+\end{warningbox}
+
+页面给出的练习非常有价值：可以提高抑制性浴流，或者降低被输入驱动的兴奋性神经元比例，观察同步性如何变化。这个练习的真正目的，是让你意识到 PING 不是一个“固定波形”，而是一个对输入统计和网络结构都很敏感的动力系统。
+
+\subsection{本章小结}
+结果图把前面的结构、参数和求解设置统一到一起：驱动兴奋性群体先被拉起，抑制性回路再塑造节律。稍微调整 E/I balance，就会显著改变同步程度。
+
+\section{总结与延伸}
+这一讲最重要的收获有三个。第一，PING 网络并不神秘，它本质上是一个以 E/I 回路为核心的 gamma 振荡最小模型。第二，Neuroblox 的价值在于把这个模型拆成神经元对象、连接图和求解器三个层次，分别管理生物物理、结构和数值求解。第三，所谓“复现论文图像”并不等于机械抄代码，而是要把原论文里的参数和外部驱动逻辑翻译成框架可执行的对象关系。
+
+如果继续往下做，最直接的两个方向就是：一是系统性扫描 \texttt{I\_bath}、\texttt{g\_\{EI\}}、\texttt{g\_\{IE\}} 和驱动比例，看看 gamma 同步区间如何移动；二是把这个最小 PING 网络放到更复杂的层级模型里，观察它如何和其他局部回路耦合。这样你就不只是“跑过一个例子”，而是真正掌握了为什么这个例子会成立。
+
+\subsection{参考文献}
+\begin{thebibliography}{9}
+\bibitem{borgers2008}
+Börgers C, Epstein S, Kopell NJ. \emph{Gamma oscillations mediate stimulus competition and attentional selection in a cortical network model}. Proc Natl Acad Sci U S A. 2008;105(46):18023--18028. DOI: 10.1073/pnas.0809511105.
+
+\bibitem{traub1991}
+Traub RD, Miles R. \emph{Neuronal Networks of the Hippocampus}. Cambridge University Press, 1991. DOI: 10.1017/CBO9780511895401.
+
+\bibitem{wang1996}
+Wang X-J, Buzsáki G. \emph{Gamma oscillation by synaptic inhibition in a hippocampal interneuronal network model}. J Neurosci. 1996;16(20):6402--6413. DOI: 10.1523/JNEUROSCI.16-20-06402.1996.
+
+\bibitem{protter2024}
+Protter M. \emph{GraphDynamics.jl -- Efficient dynamics of interacting collections of modular subsystems} (v0.2.2). Zenodo, 2024. DOI: 10.5281/zenodo.14183153.
+\end{thebibliography}
+
+\subsection{本章小结}
+PING 讲的是一个最小但足够真实的 gamma 节律回路。把它写成 Neuroblox 代码之后，结构、参数和数值方法就可以一起被检查、复现和继续扩展。
+
+\end{document}

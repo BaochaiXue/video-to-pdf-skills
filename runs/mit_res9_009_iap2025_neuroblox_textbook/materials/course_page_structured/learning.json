@@ -1,0 +1,158 @@
+{
+  "source_file": "runs/mit_res9_009_iap2025_neuroblox_textbook/materials/course_pages/learning.html",
+  "title": "Synaptic Plasticity and Reinforcement Learning",
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Synaptic Plasticity and Reinforcement Learning"
+    },
+    {
+      "level": "h2",
+      "text": "Introduction"
+    },
+    {
+      "level": "h2",
+      "text": "Cortico-Cortical Plasticity"
+    },
+    {
+      "level": "h2",
+      "text": "Cortico-Striatal Circuit Performing Category Learning"
+    },
+    {
+      "level": "h2",
+      "text": "Challenge Problems"
+    },
+    {
+      "level": "h2",
+      "text": "References"
+    }
+  ],
+  "paragraphs": [
+    "Introduction Cortico-Cortical Plasticity Cortico-Striatal Circuit Performing Category Learning Challenge Problems References",
+    "Cortico-Cortical Plasticity Cortico-Striatal Circuit Performing Category Learning Challenge Problems References",
+    "Cortico-Striatal Circuit Performing Category Learning Challenge Problems References",
+    "Challenge Problems References",
+    "References",
+    "Jupyter Notebook : Please work on learning.ipynb .",
+    "In Neuroblox, we can add plasticity rules to our circuit models. The symbolic weights that are defined for every connection are the ones that are updated according to these plasticity rules after every simulation run. Weight updates are automatically handled after each simulation when doing reinforcement learning in Neuroblox. This is the topic that we will cover here.",
+    "We will consider two examples. First, a cortical circuit with Hebbian plasticity and then an extended circuit which implements reinforcement learning to categorize image stimuli between two categories without any a priori knowledge of the categorization rule.",
+    "In reinforcement learning (RL) we typically talk about an agent acting on an environment and then the environment returning new stimuli and rewards to the agent. We have used the same semantics in Neuroblox as we will see shortly. The Agent is constructed from the model graph and the ClassificationEnvironment is constructed by a Blox of multiple stimuli, which also contains information about the true category of each stimulus.",
+    "Learning goals",
+    "Simulate circuits with Hebbian synaptic plasticity. Simulate circuits performing reinforcement learning in a behavioral task.",
+    "Simulate circuits with Hebbian synaptic plasticity.",
+    "Simulate circuits performing reinforcement learning in a behavioral task.",
+    "Simulate circuits performing reinforcement learning in a behavioral task.",
+    "Notice how the weight values in the upper left corner (connections with HebbianPlasticity ) have changed after simulation.",
+    "This is one simplified biological instantiation of an RL system. It is carrying out a simple RL behavior but not faithfully simulating physiology. The experiment we are simulating here is the category learning experiment [Antzoulatos2014] which was successfully modeled through a detailed corticostriatal model [2].",
+    "The last two connections add the ability to output actions. The AS Blox is a GreedyPolicy meaning that it will compare the activity of both Striatum Bloxs STR1 and STR2 and select the highest value. If STR1 wins then the left choice is made and if STR2 wins then the model chooses the right direction as the true dot movement direction.",
+    "trace is a NamedTuple containing useful outcomes for each trial of the experiment:",
+    "Notice the changes in weight values after the RL experiment.",
+    "Visualize the model's performance in the category learning task as a function of time (trials). Hint: For correct trials trace.correct = 1 and for incorrect trials trace.correct = 0 . Since this is an oversimplified instantiation of a cortico-striatal model, it is highly sensitive to the parameters, such that if we change the values of TAN parameters (maximum activity κ ), or learning rates in HebbianModulationPlasticity (learning rate constant K ), the system won’t be able to learn. Try playing with these parameters and figure out at what range of these parameters the model works.",
+    "Visualize the model's performance in the category learning task as a function of time (trials). Hint: For correct trials trace.correct = 1 and for incorrect trials trace.correct = 0 .",
+    "Since this is an oversimplified instantiation of a cortico-striatal model, it is highly sensitive to the parameters, such that if we change the values of TAN parameters (maximum activity κ ), or learning rates in HebbianModulationPlasticity (learning rate constant K ), the system won’t be able to learn. Try playing with these parameters and figure out at what range of these parameters the model works.",
+    "Since this is an oversimplified instantiation of a cortico-striatal model, it is highly sensitive to the parameters, such that if we change the values of TAN parameters (maximum activity κ ), or learning rates in HebbianModulationPlasticity (learning rate constant K ), the system won’t be able to learn. Try playing with these parameters and figure out at what range of these parameters the model works.",
+    "[1] Pathak A., Brincat S., Organtzidis H., Strey H., Senneff S., Antzoulatos E., Mujica-Parodi L., Miller E., Granger R. Biomimetic model of corticostriatal micro-assemblies discovers new neural code., bioRxiv 2023.11.06.565902, 2024 [2] Antzoulatos EG, Miller EK. Increases in functional connectivity between prefrontal cortex and striatum during category learning. Neuron. 2014 Jul 2;83(1):216-25. doi: 10.1016/j.neuron.2014.05.005. Epub 2014 Jun 12. PMID: 24930701; PMCID: PMC4098789.",
+    "[1] Pathak A., Brincat S., Organtzidis H., Strey H., Senneff S., Antzoulatos E., Mujica-Parodi L., Miller E., Granger R. Biomimetic model of corticostriatal micro-assemblies discovers new neural code., bioRxiv 2023.11.06.565902, 2024",
+    "[2] Antzoulatos EG, Miller EK. Increases in functional connectivity between prefrontal cortex and striatum during category learning. Neuron. 2014 Jul 2;83(1):216-25. doi: 10.1016/j.neuron.2014.05.005. Epub 2014 Jun 12. PMID: 24930701; PMCID: PMC4098789.",
+    "[2] Antzoulatos EG, Miller EK. Increases in functional connectivity between prefrontal cortex and striatum during category learning. Neuron. 2014 Jul 2;83(1):216-25. doi: 10.1016/j.neuron.2014.05.005. Epub 2014 Jun 12. PMID: 24930701; PMCID: PMC4098789."
+  ],
+  "code_blocks": [
+    {
+      "id": "code_01",
+      "text": "using\n Neuroblox\n\nusing\n OrdinaryDiffEq \n## to build the ODE problem and solve it, gain access to multiple solvers from this\n\n\nusing\n Random \n## for generating random variables\n\n\nusing\n CairoMakie \n## for customized plotting recipies for blox\n\n\nusing\n CSV \n## to read data from CSV files\n\n\nusing\n DataFrames \n## to format the data into DataFrames\n\n\nusing\n Downloads \n## to download image stimuli files\n\n\nN_trials = \n10\n \n## number of trials\n\ntrial_dur = \n1000\n \n## in ms\n\n\n\n# download the stimulus images\n\nimage_set = CSV.read(Downloads.download(\n\"raw.githubusercontent.com/Neuroblox/NeurobloxDocsHost/refs/heads/main/data/stimuli_set.csv\"\n), DataFrame) \n## reading data into DataFrame format\n\n\nmodel_name = :g\n\n# define stimulus Blox\n\n\n# t_stimulus: how long the stimulus is on (in ms)\n\n\n# t_pause : how long the stimulus is off (in ms)\n\n\n@named\n stim = ImageStimulus(image_set; namespace=model_name, t_stimulus=trial_dur, t_pause=\n0\n);\n\n\n# Cortical Bloxs\n\n\n@named\n VAC = CorticalBlox(; namespace=model_name, N_wta=\n4\n, N_exci=\n5\n,  density=\n0.05\n, weight=\n1\n)\n\n@named\n AC = CorticalBlox(; namespace=model_name, N_wta=\n2\n, N_exci=\n5\n, density=\n0.05\n, weight=\n1\n)\n\n# ascending system Blox, modulating frequency set to 16 Hz\n\n\n@named\n ASC1 = NextGenerationEIBlox(; namespace=model_name, Cₑ=\n2\n*\n26\n,Cᵢ=\n1\n*\n26\n, alpha_invₑₑ=\n10.0\n/\n26\n, alpha_invₑᵢ=\n0.8\n/\n26\n, alpha_invᵢₑ=\n10.0\n/\n26\n, alpha_invᵢᵢ=\n0.8\n/\n26\n, kₑᵢ=\n0.6\n*\n26\n, kᵢₑ=\n0.6\n*\n26\n)\n\n\n# learning rule\n\nhebbian_cort = HebbianPlasticity(K=\n5e-4\n, W_lim=\n15\n, t_pre=trial_dur, t_post=trial_dur)\n\ng = MetaDiGraph()\n\nadd_edge!(g, stim => VAC, weight=\n14\n)\nadd_edge!(g, ASC1 => VAC, weight=\n44\n)\nadd_edge!(g, ASC1 => AC, weight=\n44\n)\nadd_edge!(g, VAC => AC, weight=\n3\n, density=\n0.1\n, learning_rule = hebbian_cort) \n## pass learning rule as a keyword argument\n\n\nagent = Agent(g; name=model_name);\nenv = ClassificationEnvironment(stim, N_trials; name=:env, namespace=model_name);\n\nfig = Figure(size = (\n1600\n, \n800\n))\n\nadjacency(fig[\n1\n,\n1\n], agent; title=\n\"Initial weights\"\n, colorrange=(\n0\n,\n7\n))\n\nrun_experiment!(agent, env; t_warmup=\n200.0\n, alg=Vern7())\n\nadjacency(fig[\n1\n,\n2\n], agent; title=\n\"Final weights\"\n, colorrange=(\n0\n,\n7\n))\nfig"
+    },
+    {
+      "id": "code_02",
+      "text": "Important Note: Neuroblox is a commercial product of Neuroblox, Inc.\nIt is free to use for non-commercial academic teaching\nand research purposes. For commercial users, license fees apply.\nPlease refer to the End User License Agreement\n(https://github.com/Neuroblox/NeurobloxEULA) for details.\nPlease contact sales@neuroblox.org for purchasing information.\n\nTo report any bugs, issues, or feature requests for Neuroblox software,\nplease use the public Github repository NeurobloxIssues, located at\nhttps://github.com/Neuroblox/NeurobloxIssues.\n"
+    },
+    {
+      "id": "code_03",
+      "text": "time_block_dur = \n90.0\n \n## ms (size of discrete time blocks)\n\nN_trials = \n100\n \n## number of trials\n\ntrial_dur = \n1000\n \n## ms\n\n\nimage_set = CSV.read(Downloads.download(\n\"raw.githubusercontent.com/Neuroblox/NeurobloxDocsHost/refs/heads/main/data/stimuli_set.csv\"\n), DataFrame) \n## reading data into DataFrame format\n\n\n\n# additional Striatum Bloxs\n\n\n@named\n STR1 = Striatum(; namespace=model_name, N_inhib=\n5\n)\n\n@named\n STR2 = Striatum(; namespace=model_name, N_inhib=\n5\n)\n\n\n@named\n tan_pop1 = TAN(κ=\n10\n; namespace=model_name)\n\n@named\n tan_pop2 = TAN(κ=\n10\n; namespace=model_name)\n\n\n@named\n SNcb = SNc(κ_DA=\n1\n; namespace=model_name)\n\n\n# action selection Blox, necessary for making a choice\n\n\n@named\n AS = GreedyPolicy(; namespace=model_name, t_decision=\n2\n*time_block_dur)\n\n\n# learning rules\n\nhebbian_mod = HebbianModulationPlasticity(K=\n0.06\n, decay=\n0.01\n, α=\n2.5\n, θₘ=\n1\n, modulator=SNcb, t_pre=trial_dur, t_post=trial_dur, t_mod=time_block_dur)\nhebbian_cort = HebbianPlasticity(K=\n5e-4\n, W_lim=\n7\n, t_pre=trial_dur, t_post=trial_dur)\n\ng = MetaDiGraph()\n\nadd_edge!(g, stim => VAC, weight=\n14\n)\nadd_edge!(g, ASC1 => VAC, weight=\n44\n)\nadd_edge!(g, ASC1 => AC, weight=\n44\n)\nadd_edge!(g, VAC => AC, weight=\n3\n, density=\n0.1\n, learning_rule = hebbian_cort)\nadd_edge!(g, AC => STR1, weight = \n0.075\n, density =  \n0.04\n, learning_rule =  hebbian_mod)\nadd_edge!(g, AC => STR2, weight =  \n0.075\n, density =  \n0.04\n, learning_rule =  hebbian_mod)\nadd_edge!(g, tan_pop1 => STR1, weight = \n1\n, t_event = time_block_dur)\nadd_edge!(g, tan_pop2 => STR2, weight = \n1\n, t_event = time_block_dur)\nadd_edge!(g, STR1 => tan_pop1, weight = \n1\n)\nadd_edge!(g, STR2 => tan_pop1, weight = \n1\n)\nadd_edge!(g, STR1 => tan_pop2, weight = \n1\n)\nadd_edge!(g, STR2 => tan_pop2, weight = \n1\n)\nadd_edge!(g, STR1 => STR2, weight = \n1\n, t_event = \n2\n*time_block_dur)\nadd_edge!(g, STR2 => STR1, weight = \n1\n, t_event = \n2\n*time_block_dur)\nadd_edge!(g, STR1 => SNcb, weight = \n1\n)\nadd_edge!(g, STR2 => SNcb, weight = \n1\n)\n\n# action selection connections\n\nadd_edge!(g, STR1 => AS);\nadd_edge!(g, STR2 => AS);"
+    },
+    {
+      "id": "code_04",
+      "text": "agent = Agent(g; name=model_name, t_block = time_block_dur); \n## define agent\n\nenv = ClassificationEnvironment(stim, N_trials; name=:env, namespace=model_name)\n\nfig = Figure(title=\n\"Adjacency matrix\"\n, size = (\n1600\n, \n800\n))\n\nadjacency(fig[\n1\n,\n1\n], agent; title = \n\"Before Learning\"\n, colorrange=(\n0\n,\n0.2\n))\n\ntrace = run_experiment!(agent, env; t_warmup=\n200.0\n, alg=Vern7(), verbose=\ntrue\n)"
+    },
+    {
+      "id": "code_05",
+      "text": "Trial = 1, Category choice = 2, Response = Correct\nTrial = 2, Category choice = 2, Response = False\nTrial = 3, Category choice = 2, Response = False\nTrial = 4, Category choice = 1, Response = False\nTrial = 5, Category choice = 1, Response = Correct\nTrial = 6, Category choice = 2, Response = Correct\nTrial = 7, Category choice = 2, Response = Correct\nTrial = 8, Category choice = 2, Response = Correct\nTrial = 9, Category choice = 2, Response = Correct\nTrial = 10, Category choice = 2, Response = Correct\nTrial = 11, Category choice = 2, Response = Correct\nTrial = 12, Category choice = 2, Response = Correct\nTrial = 13, Category choice = 2, Response = False\nTrial = 14, Category choice = 2, Response = Correct\nTrial = 15, Category choice = 2, Response = False\nTrial = 16, Category choice = 2, Response = False\nTrial = 17, Category choice = 1, Response = Correct\nTrial = 18, Category choice = 1, Response = Correct\nTrial = 19, Category choice = 1, Response = Correct\nTrial = 20, Category choice = 1, Response = False\nTrial = 21, Category choice = 1, Response = Correct\nTrial = 22, Category choice = 1, Response = Correct\nTrial = 23, Category choice = 2, Response = False\nTrial = 24, Category choice = 2, Response = Correct\nTrial = 25, Category choice = 1, Response = Correct\nTrial = 26, Category choice = 2, Response = False\nTrial = 27, Category choice = 2, Response = False\nTrial = 28, Category choice = 1, Response = Correct\nTrial = 29, Category choice = 1, Response = False\nTrial = 30, Category choice = 2, Response = False\nTrial = 31, Category choice = 2, Response = Correct\nTrial = 32, Category choice = 1, Response = Correct\nTrial = 33, Category choice = 1, Response = False\nTrial = 34, Category choice = 2, Response = Correct\nTrial = 35, Category choice = 2, Response = Correct\nTrial = 36, Category choice = 2, Response = False\nTrial = 37, Category choice = 1, Response = Correct\nTrial = 38, Category choice = 1, Response = Correct\nTrial = 39, Category choice = 2, Response = Correct\nTrial = 40, Category choice = 1, Response = Correct\nTrial = 41, Category choice = 2, Response = Correct\nTrial = 42, Category choice = 1, Response = Correct\nTrial = 43, Category choice = 2, Response = False\nTrial = 44, Category choice = 2, Response = Correct\nTrial = 45, Category choice = 2, Response = False\nTrial = 46, Category choice = 1, Response = Correct\nTrial = 47, Category choice = 2, Response = False\nTrial = 48, Category choice = 1, Response = False\nTrial = 49, Category choice = 2, Response = Correct\nTrial = 50, Category choice = 1, Response = False\nTrial = 51, Category choice = 1, Response = Correct\nTrial = 52, Category choice = 2, Response = False\nTrial = 53, Category choice = 2, Response = Correct\nTrial = 54, Category choice = 1, Response = False\nTrial = 55, Category choice = 2, Response = Correct\nTrial = 56, Category choice = 1, Response = False\nTrial = 57, Category choice = 2, Response = False\nTrial = 58, Category choice = 1, Response = Correct\nTrial = 59, Category choice = 2, Response = False\nTrial = 60, Category choice = 2, Response = False\nTrial = 61, Category choice = 1, Response = False\nTrial = 62, Category choice = 1, Response = False\nTrial = 63, Category choice = 2, Response = Correct\nTrial = 64, Category choice = 2, Response = False\nTrial = 65, Category choice = 2, Response = False\nTrial = 66, Category choice = 2, Response = Correct\nTrial = 67, Category choice = 2, Response = False\nTrial = 68, Category choice = 2, Response = Correct\nTrial = 69, Category choice = 1, Response = False\nTrial = 70, Category choice = 1, Response = Correct\nTrial = 71, Category choice = 2, Response = False\nTrial = 72, Category choice = 1, Response = False\nTrial = 73, Category choice = 2, Response = Correct\nTrial = 74, Category choice = 2, Response = False\nTrial = 75, Category choice = 2, Response = False\nTrial = 76, Category choice = 2, Response = Correct\nTrial = 77, Category choice = 1, Response = Correct\nTrial = 78, Category choice = 1, Response = Correct\nTrial = 79, Category choice = 2, Response = False\nTrial = 80, Category choice = 2, Response = False\nTrial = 81, Category choice = 1, Response = False\nTrial = 82, Category choice = 2, Response = False\nTrial = 83, Category choice = 1, Response = Correct\nTrial = 84, Category choice = 2, Response = Correct\nTrial = 85, Category choice = 2, Response = Correct\nTrial = 86, Category choice = 1, Response = Correct\nTrial = 87, Category choice = 2, Response = False\nTrial = 88, Category choice = 1, Response = Correct\nTrial = 89, Category choice = 2, Response = Correct\nTrial = 90, Category choice = 2, Response = False\nTrial = 91, Category choice = 2, Response = Correct\nTrial = 92, Category choice = 1, Response = Correct\nTrial = 93, Category choice = 1, Response = False\nTrial = 94, Category choice = 1, Response = False\nTrial = 95, Category choice = 1, Response = Correct\nTrial = 96, Category choice = 2, Response = Correct\nTrial = 97, Category choice = 1, Response = False\nTrial = 98, Category choice = 2, Response = Correct\nTrial = 99, Category choice = 1, Response = Correct\nTrial = 100, Category choice = 1, Response = Correct\n(trial = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100], correct = Bool[1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1], action = [2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 2, 1, 1, 2, 1, 2, 1, 2, 2, 2, 1, 2, 1, 2, 1, 1, 2, 2, 1, 2, 1, 2, 1, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 2, 1, 2, 1, 2, 2, 1, 2, 1, 2, 2, 2, 1, 1, 1, 1, 2, 1, 2, 1, 1])"
+    },
+    {
+      "id": "code_06",
+      "text": "trace.trial \n## trial indices\n\ntrace.correct \n## whether the response was correct or not on each trial\n\ntrace.action; \n## what responce was made on each trial, 1 is left and 2 is right\n\n\nadjacency(fig[\n1\n,\n2\n], agent; title = \n\"After Learning\"\n, colorrange=(\n0\n,\n0.2\n))\nfig"
+    }
+  ],
+  "images": [
+    {
+      "id": "image_01",
+      "src": "/course/assets/pages/learning/code/output/adj_open.svg",
+      "alt": ""
+    },
+    {
+      "id": "image_02",
+      "src": "/course/assets/pages/learning/code/output/adj_RL.svg",
+      "alt": ""
+    }
+  ],
+  "links": [
+    {
+      "text": "Introduction",
+      "href": "#introduction"
+    },
+    {
+      "text": "Cortico-Cortical Plasticity",
+      "href": "#cortico-cortical_plasticity"
+    },
+    {
+      "text": "Cortico-Striatal Circuit Performing Category Learning",
+      "href": "#cortico-striatal_circuit_performing_category_learning"
+    },
+    {
+      "text": "Challenge Problems",
+      "href": "#challenge_problems"
+    },
+    {
+      "text": "References",
+      "href": "#references"
+    },
+    {
+      "text": "Synaptic Plasticity and Reinforcement Learning",
+      "href": "#synaptic_plasticity_and_reinforcement_learning"
+    },
+    {
+      "text": "Introduction",
+      "href": "#introduction"
+    },
+    {
+      "text": "Cortico-Cortical Plasticity",
+      "href": "#cortico-cortical_plasticity"
+    },
+    {
+      "text": "Cortico-Striatal Circuit Performing Category Learning",
+      "href": "#cortico-striatal_circuit_performing_category_learning"
+    },
+    {
+      "text": "Challenge Problems",
+      "href": "#challenge_problems"
+    },
+    {
+      "text": "References",
+      "href": "#references"
+    },
+    {
+      "text": "CC BY-SA 4.0",
+      "href": "http://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    {
+      "text": "Franklin.jl",
+      "href": "https://github.com/tlienart/Franklin.jl"
+    },
+    {
+      "text": "Julia programming language",
+      "href": "https://julialang.org"
+    }
+  ],
+  "youtube_embeds": [
+    "pBvgcIHK6GY"
+  ]
+}

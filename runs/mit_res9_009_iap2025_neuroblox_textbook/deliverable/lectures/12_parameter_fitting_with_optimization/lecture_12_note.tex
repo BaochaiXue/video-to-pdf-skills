@@ -1,0 +1,295 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\graphicspath{{figures/}}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{MIT RES.9-009 第12讲：Parameter Fitting using Optimization}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{MIT Neuroblox 官方课程页}
+\newcommand{\videopublishdate}{官方课程页最后修改 2025-07-22}
+\newcommand{\videoduration}{无嵌入视频}
+\newcommand{\videourl}{https://ocw.mit.edu/courses/res-9-009-introduction-to-computational-neuroscience-with-neuroblox-january-iap-2025/}
+\newcommand{\videocoverpath}{figures/cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{MIT course page}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{importantbox}{证据说明}
+本讲没有官方嵌入视频，教学内容主要来自 MIT Neuroblox 官方课程页 \texttt{optimization} 及其结构化页面提取。官方 slide PDF 目前仍未找到，因此没有把缺失的 PDF 当作正文内容展开；这类缺口已经记录在 \texttt{omission\_log.jsonl} 中。正文中的两张图都来自官方页面资产，而不是额外生成的示意图。
+\end{importantbox}
+
+\section{逆问题：参数拟合到底在解决什么}
+课程先从一个很明确的对比开始：我们前面的工作主要是在解 \textbf{forward problem}，也就是给定参数以后去构造并模拟一个微分方程系统；这一讲则转向 \textbf{inverse problem}，也就是从数据反推模型参数。换句话说，前者回答“这个系统会怎样演化”，后者回答“什么参数能让模型尽量复现观测数据”。
+
+用数学语言说，参数拟合要找的是
+\begin{equation}
+\mathbf p^\star = \arg\min_{\mathbf p}\,\mathcal L(\mathbf p; \mathcal D),
+\end{equation}
+其中 $\mathcal D$ 是观测数据，$\mathbf p$ 是待估计的参数向量，$\mathcal L$ 是衡量模拟轨迹和数据差异的损失函数。
+
+这里最重要的教学点是：课程并没有直接上真实数据，而是先建议用 \emph{fictive data}。做法是先用一个已知参数的模型生成假数据，再尝试把这些参数“找回来”。这一步的意义不是为了省事，而是为了检验模型和数据是否足以支持参数回收。如果连假数据都拟合不回来，那真实数据上的拟合就更没有把握。
+
+\begin{knowledgebox}{为什么要先用假数据}
+假数据拟合本质上是在做可辨识性检查。它能告诉我们当前模型、观测变量和时间采样方式是否足以把参数区分出来，而不只是“让优化器跑完”。
+\end{knowledgebox}
+
+课程还补了一句：如果换成真实数据，工作流几乎不变，只是把“先生成数据”改成“从文件读取数据”，例如用 \texttt{CSV.jl} 和 \texttt{DataFrames.jl}。
+
+\subsection{本章小结}
+这一段建立了全讲的主线：参数拟合不是单纯求一个最优数值，而是在检验模型是否有能力从数据中恢复机制参数。假数据只是方法论上的第一道门槛。
+
+\section{模型定义：四个耦合参数和带噪观测}
+这一讲使用的是一个 \textbf{next generation neural mass model}，也就是前面已经见过的兴奋-抑制平衡模型。课程把四个耦合系数当作未知参数来拟合：
+\[
+k_{ee},\quad k_{ii},\quad k_{ei},\quad k_{ie}.
+\]
+它们分别对应兴奋-兴奋、抑制-抑制、兴奋-抑制和抑制-兴奋四种耦合方向。课程用的 ground truth 是
+\[
+\mathbf p_{\mathrm{gt}} = [2,\; 1.5,\; 5.5,\; 7].
+\]
+
+为了让例子更接近真实问题，课程在假数据上加入了观测噪声。代码里用的是均值为 0、标准差为 0.1 的高斯噪声，也就是
+\begin{equation}
+\varepsilon_{t,s} \sim \mathcal N(0, 0.1^2), \qquad
+x^{\mathrm{data}}_{t,s} = x^{\mathrm{sim}}_{t,s} + \varepsilon_{t,s}.
+\end{equation}
+这里：
+\begin{itemize}
+    \item $t$ 表示时间点。
+    \item $s$ 表示状态变量。
+    \item $x^{\mathrm{sim}}_{t,s}$ 是无噪声模拟轨迹。
+    \item $x^{\mathrm{data}}_{t,s}$ 是加噪后的观测数据。
+\end{itemize}
+
+代码结构也很清楚。课程先用 \texttt{Random.seed!(1)} 固定随机种子，确保例子可复现；然后定义时间区间 \texttt{tspan = (0, 100)}，并把保存点设成整数时间步 \texttt{0:100}。接着构造 \texttt{ODEProblem}，用 \texttt{Tsit5()} 先把 ground truth 参数对应的轨迹解出来，再把噪声加到结果上，形成后续拟合的目标。
+
+\begin{importantbox}{这一段真正做了什么}
+模型定义的目标不是“把模型写出来”这么简单，而是先制造一个可控的逆问题环境：参数已知、轨迹可生成、噪声可注入，这样后面才有资格谈拟合是否成功。
+\end{importantbox}
+
+\subsection{本章小结}
+这一段把拟合问题具体化成一个可执行的实验：四个耦合参数、一个确定的时间窗、一个带噪观测数据集。后续所有优化步骤都只是在这个环境里更新参数而已。
+
+\section{初始猜测：让误差先暴露出来}
+课程接下来强调了一件很实在的事：大多数优化方法都需要一个 \textbf{initial guess}。这里给出的初值是
+\[
+\mathbf p_0 = [0.2,\; 3.3,\; 2,\; 3.5].
+\]
+这个起点和 ground truth 相比差得并不小，这正是教学上想要的效果，因为它能把“未优化时的偏差”直接展示出来。
+
+课程用了一个 \texttt{setp} setter，把系统里的四个待拟合参数绑定起来，这样优化过程中每换一个参数向量，就能立刻更新 \texttt{ODEProblem}。随后重新求解模型，并把数据轨迹和初始猜测下的模拟轨迹画在同一张图里。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.93\textwidth]{opt_init.png}
+\caption{初始猜测参数下的状态轨迹与观测数据对比，显示未优化时偏差明显。图源：MIT Neuroblox 官方课程页 \texttt{optimization}。}
+\end{figure}
+
+这张图的作用不是“好看”，而是提醒我们：如果初始猜测离正确区域太远，优化器很可能要花更久时间，甚至落到不理想的局部区域。对这类 inverse problem 来说，起点本身就是实验设计的一部分。
+
+\begin{knowledgebox}{为什么初始猜测重要}
+优化器不是读心术。它只能沿着损失函数的地形往下走，因此起点决定了搜索从哪里开始，也决定了我们看到的是哪一块参数空间。
+\end{knowledgebox}
+
+\subsection{本章小结}
+初始猜测这一步的价值，在于把“模型和数据目前差多远”直接显影出来。它既是优化的起点，也是判断问题难度的第一张诊断图。
+
+\section{用优化求解参数：损失函数、有限差分与 LBFGS}
+课程的核心是把参数拟合写成一个标准优化问题。最小化的目标是 least squares loss，也就是让模拟轨迹尽量贴近噪声观测：
+\begin{equation}
+\mathcal L(\mathbf p)
+= \sum_{t,s}\left(x^{\mathrm{sim}}_{t,s}(\mathbf p)-x^{\mathrm{data}}_{t,s}\right)^2.
+\end{equation}
+这里：
+\begin{itemize}
+    \item $\mathbf p$ 是当前候选参数。
+    \item $x^{\mathrm{sim}}_{t,s}(\mathbf p)$ 表示用参数 $\mathbf p$ 重新求解模型得到的轨迹。
+    \item $x^{\mathrm{data}}_{t,s}$ 是加噪后的目标数据。
+    \item 求和覆盖所有时间点和所有状态。
+\end{itemize}
+
+这也是代码中 \texttt{sum(abs2, sol .- data)} 的含义：把每个时刻、每个状态的残差平方累加起来。损失函数前面那层 \texttt{loss(p, data, prob)} 的作用，则是把候选参数写回 \texttt{ODEProblem}，再调用 \texttt{solve(prob, Tsit5())} 生成当前轨迹。
+
+\begin{importantbox}{优化管线的四个关键动作}
+\begin{itemize}
+    \item \texttt{setter!(prob, p)}：把候选参数写回模型。
+    \item \texttt{solve(prob, Tsit5())}：得到当前参数下的模拟轨迹。
+    \item \texttt{OptimizationFunction(..., AutoFiniteDiff())}：用自动有限差分近似梯度。
+    \item \texttt{solve(prob\_opt, Optimization.LBFGS())}：用 LBFGS 搜索更优参数。
+\end{itemize}
+\end{importantbox}
+
+这里的 \texttt{AutoFiniteDiff()} 很关键。它说明课程没有手工推导梯度，而是用数值有限差分来近似目标函数的梯度。对这个例子来说，这很合理，因为每次目标函数评估都要重新求解一个 ODE 系统，手工推导梯度既繁琐也不必要。
+
+LBFGS 的全称是 limited-memory BFGS。课程把它称为 quasi-Newton method，是因为它不直接计算 Hessian，而是利用梯度历史去近似 Hessian 的逆。直观上讲，它比纯梯度下降更会“看地形”，但又比完整牛顿法更省内存，适合这种中等维度、光滑的参数拟合问题。
+
+代码里还有一个小但重要的检查：
+\[
+\texttt{res.retcode = SciMLBase.ReturnCode.Success}.
+\]
+这只是说明优化过程正常结束，不代表参数一定是全球最优；它的意义是先确认数值求解没有报错。
+
+\subsection{本章小结}
+这一段把参数拟合正式落成一个优化问题。真正的逻辑链条是：候选参数 \textrightarrow{} 重新模拟 \textrightarrow{} 计算残差 \textrightarrow{} 数值梯度 \textrightarrow{} LBFGS 更新参数。
+
+\section{结果：参数回收与轨迹对齐}
+课程给出的优化结果有两层验证。第一层是直接比较参数值，第二层是把优化后的参数再放回模型里，重新看轨迹是否更接近数据。课程强调的重点是第二层，因为参数不必逐项完全相等，只要生成的动力学轨迹足够接近观测，就说明拟合在模型语义上已经有意义。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.93\textwidth]{opt_final.png}
+\caption{优化后参数对应的状态轨迹与观测数据对比，展示拟合显著改善。图源：MIT Neuroblox 官方课程页 \texttt{optimization}。}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{ground truth、初始猜测与优化结果的对比}
+\begin{tabular}{lccc}
+\toprule
+参数 & Ground truth & Initial guess & Optimized \\
+\midrule
+$k_{ee}$ & 2.0 & 0.2 & 0.6622 \\
+$k_{ii}$ & 1.5 & 3.3 & 1.5202 \\
+$k_{ei}$ & 5.5 & 2.0 & 4.5868 \\
+$k_{ie}$ & 7.0 & 3.5 & 6.9863 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+从表里可以直接看出两点。第一，优化结果整体上比初始猜测更接近 ground truth。第二，参数并没有被“精确还原”到每一位小数都一致，尤其是第一个耦合系数仍有明显偏差。这不是意外，而是噪声观测和逆问题本身都会让参数恢复变成近似问题。
+
+但课程更看重的是轨迹质量：用优化后的参数重新模拟后，时序曲线和数据已经明显贴近，说明模型在动力学层面达到了更好的解释能力。换句话说，这一讲的成功标准不是“数字完全相等”，而是“模型用更合理的参数重建了更合理的行为”。
+
+\begin{knowledgebox}{结果该怎么读}
+参数表和轨迹图要一起看。参数接近 ground truth 说明优化方向是对的；轨迹更接近数据说明这个方向在建模语义上真的有用。
+\end{knowledgebox}
+
+\subsection{本章小结}
+结果验证告诉我们，拟合成功至少有两层含义：参数值往正确方向收敛，模拟轨迹也同步贴近观测。对于噪声数据，这两层不必完全一致，但应该相互支持。
+
+\section{从 synthetic recovery 到 real-data workflow：这一讲真正教会了什么}
+如果把这讲只读成“如何调用 LBFGS”，其实会错过它最重要的方法学价值。课程页在 Introduction 里已经明确说，这种 fictive-data fitting 是任何 parameter fitting analysis 的推荐第一步，因为它能告诉你：在当前模型、当前观测变量和当前时间采样下，哪些参数原则上是可恢复的，哪些即使优化器运行成功，也未必能被稳定辨识出来。
+
+这一点和结果表里的现象正好呼应。虽然四个耦合参数总体朝 ground truth 靠近，但并不是每个参数都同样容易被回收到原值附近，尤其是 $k_{ee}$ 的偏差仍然明显。这意味着拟合流程已经成功，但问题本身仍然保留了 inverse problem 的典型特征：多个参数方向对观测的敏感度并不相同。
+
+\begin{table}[H]
+\centering
+\caption{课程页实际上教给读者的参数拟合诊断顺序}
+\begin{tabular}{p{0.24\textwidth}p{0.56\textwidth}}
+\toprule
+步骤 & 诊断目的 \\
+\midrule
+先生成 fictive data & 检查模型与观测设置是否具备参数回收可能性 \\
+加入 observation noise & 让问题更接近真实数据场景，而非无噪声理想环境 \\
+给出 initial guess 并可视化偏差 & 判断搜索起点是否过远，误差形态是否合理 \\
+再做 least-squares + LBFGS & 在标准优化流程中验证参数与轨迹能否共同改善 \\
+回头比较参数表与轨迹图 & 区分“数值收敛”与“建模上真正有解释力” \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+这张顺序表的关键在于，它把“拟合成功”拆成了几个不同的问题：优化器有没有报错、参数是否移动到合理区域、轨迹是否贴近数据、以及这个数据本身是否真的足以约束参数。课程并没有把这些问题混成一句“loss 下降了”，而是把它们放在一个更审慎的 workflow 里。
+
+\begin{importantbox}{真实数据阶段最该继承的不是哪一个优化器，而是这一套顺序}
+当你换成真实数据时，最应该保留的不是某个固定数值技巧，而是“先做可辨识性检查，再谈拟合结果解释”的研究习惯。否则，优化流程可能只是把不充分的信息压进一个看似精确的参数向量里。
+\end{importantbox}
+
+\subsection{本章小结}
+这一节把课程页中隐含的方法学主张显式化了：synthetic recovery 不是热身，而是逆问题分析的第一道质量控制。真正成熟的参数拟合工作，应该把这一步当成标准流程，而不是可有可无的附加实验。
+
+\section{参考文献}
+课程页在这一讲只给出了一条核心参考：
+
+\begin{itemize}
+    \item Byrd, R. H., Lu, P., Nocedal, J., \& Zhu, C. (1995). \emph{A Limited Memory Algorithm for Bound Constrained Optimization}. SIAM J. Sci. Comput., 16, 1190--1208.
+\end{itemize}
+
+这条文献对应的就是课程中使用的 LBFGS 方法。它把这一讲的实现细节和经典数值优化文献连了起来。
+
+\subsection{本章小结}
+参考文献部分虽然短，但它把课程的实现和算法来源对应起来了。对这讲来说，LBFGS 不是一个黑盒名字，而是一条能追溯到经典优化论文的具体方法线索。
+
+\subsection{拓展阅读}
+如果要把这一讲继续推进到更严肃的研究工作，最自然的拓展方向有两个。第一，是回到 LBFGS 所代表的 quasi-Newton 思路，思考在更高维、更多参数和更复杂损失函数下，哪些问题仍适合这样的二阶近似方法。第二，是把课程页反复强调的 synthetic-data check 延伸成更系统的 identifiability study：不是只问“能不能拟合”，而是问“哪些参数组合在现有观测下根本不可区分”。
+
+\section{总结与延伸}
+这一讲的核心信息很集中：参数拟合不是“调参”，而是把模型、数据和优化方法绑成一个可检验的逆问题。课程用假数据先做一遍，是为了回答“这套模型在原则上能不能把参数找回来”；用最小二乘和 LBFGS 去做，是为了把这个问题放进一个标准、可复现的数值流程里。
+
+如果把这一讲迁移到真实数据，结构几乎不变。唯一的变化是：不再用模型生成数据，而是从文件读取观测；不再验证“能不能回收 ground truth”，而是验证“模型能不能解释真实信号”。在这个意义上，假数据拟合是方法学训练，真实数据拟合才是应用阶段。
+
+\begin{importantbox}{这一讲留下的两个判断标准}
+第一，看参数是否往合理方向移动；第二，看重新模拟的轨迹是否更接近数据。前者检验优化，后者检验模型。
+\end{importantbox}
+
+课程还给了一个更宽的提示：最小二乘不是唯一选择，优化目标可以替换成别的 objective。也就是说，这一讲给出的不是单一配方，而是一套可以迁移到不同数据和不同模型上的参数拟合模板。
+
+\end{document}

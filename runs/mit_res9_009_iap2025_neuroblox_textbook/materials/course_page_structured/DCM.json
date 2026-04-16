@@ -1,0 +1,468 @@
+{
+  "source_file": "runs/mit_res9_009_iap2025_neuroblox_textbook/materials/course_pages/DCM.html",
+  "title": "Parameter Fitting using Spectral Dynamic Causal Modeling",
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Parameter Fitting using Spectral Dynamic Causal Modeling"
+    },
+    {
+      "level": "h2",
+      "text": "Introduction"
+    },
+    {
+      "level": "h2",
+      "text": "Define the Model"
+    },
+    {
+      "level": "h2",
+      "text": "Run the Simulation and Plot the Results"
+    },
+    {
+      "level": "h2",
+      "text": "Add Measurement Noise and Rescale Data"
+    },
+    {
+      "level": "h2",
+      "text": "Estimate and Plot the Cross-spectral Densities"
+    },
+    {
+      "level": "h2",
+      "text": "Model Inference"
+    },
+    {
+      "level": "h2",
+      "text": "Setup Spectral DCM"
+    },
+    {
+      "level": "h2",
+      "text": "Results"
+    },
+    {
+      "level": "h2",
+      "text": "Challenge Problems"
+    },
+    {
+      "level": "h2",
+      "text": "References"
+    }
+  ],
+  "paragraphs": [
+    "Introduction Define the Model Run the Simulation and Plot the Results Add Measurement Noise and Rescale Data Estimate and Plot the Cross-spectral Densities Model Inference Setup Spectral DCM Results Challenge Problems References",
+    "Define the Model Run the Simulation and Plot the Results Add Measurement Noise and Rescale Data Estimate and Plot the Cross-spectral Densities Model Inference Setup Spectral DCM Results Challenge Problems References",
+    "Run the Simulation and Plot the Results Add Measurement Noise and Rescale Data Estimate and Plot the Cross-spectral Densities Model Inference Setup Spectral DCM Results Challenge Problems References",
+    "Add Measurement Noise and Rescale Data Estimate and Plot the Cross-spectral Densities Model Inference Setup Spectral DCM Results Challenge Problems References",
+    "Estimate and Plot the Cross-spectral Densities Model Inference Setup Spectral DCM Results Challenge Problems References",
+    "Model Inference Setup Spectral DCM Results Challenge Problems References",
+    "Setup Spectral DCM Results Challenge Problems References",
+    "Results Challenge Problems References",
+    "Challenge Problems References",
+    "References",
+    "Jupyter Notebook : Please work on DCM.ipynb .",
+    "Neuroblox provides you with a comprehensive environment for simulations as we have explored previously, but its functionality doesn't stop there. We will now pivot and turn our attention to a different kind of problem: inferring model parameters, that is solving inverse problems, from time series. The method of choice is one of the most widely spread in imaging neuroscience, spectral Dynamic Causal Modeling (spDCM)[1,2]. In this tutorial we will introduce how to perform a spDCM analysis on simulated data. To do so we roughly reproduce the procedure in the SPM script DEM_demo_induced_fMRI.m in Neuroblox . This work was also presented in Hofmann et al.[2]",
+    "In this session we will define a circuit of three linear neuronal mass models, all driven by an Ornstein-Uhlenbeck process. We will model fMRI data by a balloon model and BOLD signal on top. After simulation of this simple model we will use spDCM to infer some of the model parameters from the simulation time series.",
+    "Figure 1: Workflow for Spectral DCM analysis.",
+    "Figure 1 describes the procedure we will pursue:",
+    "define the graph and add blocks (sections A, B and C in the Figure) simulate the model, instead we could also use actual data (section D in Figure) compute the cross spectral density setup the DCM estimate parameters plot the results",
+    "define the graph and add blocks (sections A, B and C in the Figure)",
+    "simulate the model, instead we could also use actual data (section D in Figure) compute the cross spectral density setup the DCM estimate parameters plot the results",
+    "simulate the model, instead we could also use actual data (section D in Figure)",
+    "compute the cross spectral density setup the DCM estimate parameters plot the results",
+    "compute the cross spectral density",
+    "setup the DCM estimate parameters plot the results",
+    "setup the DCM",
+    "estimate parameters plot the results",
+    "estimate parameters",
+    "plot the results",
+    "plot the results",
+    "Learning goals",
+    "perform the entire workflow of an spDCM analysis. use observer Blox to simulate experimental measurements.",
+    "perform the entire workflow of an spDCM analysis.",
+    "use observer Blox to simulate experimental measurements.",
+    "use observer Blox to simulate experimental measurements.",
+    "We will define a model of 3 regions. This means first of all to define a graph. To this graph we will add three linear neuronal mass models which constitute the (hidden) neuronal dynamics. These constitute three nodes of the graph. Next we will also need some input that stimulates the activity, we use simple Ornstein-Uhlenbeck blocks to create stochastic inputs. One per region. We want to simulate fMRI signals thus we will need to also add a BalloonModel per region. Note that the Ornstein-Uhlenbeck block will feed into the linear neural mass which in turn will feed into the BalloonModel blox. This needs to be represented by the way we define the edges.",
+    "Now add the different blocks to each region and connect the blocks within each region. For convenience we use a for loop since the type of blocks belonging to a each region repeat over regions but you could also approach building the system the same way as was shown in previous tutorials:",
+    "Note that weight=1/16 in the connection between the OU process and the Neural Mass Blox is taken from SPM12. This stabilizes the balloon model simulation. Alternatively the noise of the Ornstein-Uhlenbeck block or the weight of the edge connecting neuronal activity and balloon model could be reduced to guarantee numerical stability. Next we define the between-region connectivity matrix and connect regions; we use the same matrix as is defined in [3]",
+    "Note that in SPM DCM connection matrices column variables denote output from and rows denote inputs to a particular region. This is different from the usual Neuroblox definition of connection matrices. Thus we flip the indices in what follows:",
+    "finally we compose the simulation model",
+    "setup simulation of the model, time in seconds",
+    "we now want to extract all the variables in our model which carry the tag \"measurement\". For this purpose we can use the Neuroblox function get_idx_tagged_vars the observable quantity in our model is the BOLD signal, the variable of the Blox BalloonModel that represents the BOLD signal is tagged with \"measurement\" tag. other tags that are defined are \"input\" which denotes variables representing a stimulus, like for instance an OUBlox .",
+    "plot bold signal time series",
+    "// Image matching '/assets/pages/DCM/code/fmriseries' not found. //",
+    "We note that the initial spike is not meaningful and a result of the equilibration of the stochastic process thus we remove it.",
+    "add measurement noise",
+    "center and rescale data (as done in SPM):",
+    "Add correct names to columns of the data frame",
+    "We compute the cross-spectral density by fitting a linear model of order p and then compute the csd analytically from the parameters of the multivariate autoregressive model",
+    "Now plot the real part of the cross-spectra. Most part of the signal is in the lower frequencies:",
+    "// Image matching '/assets/pages/DCM/code/csd' not found. // These cross-spectral densities are the data we use in spectral DCM to fit our model to and perform the inference of connection strengths.",
+    "// Image matching '/assets/pages/DCM/code/csd' not found. //",
+    "We will now assemble a new model that is used for fitting the previous simulations. This procedure is similar to before with the difference that we will define global parameters and use tags such as [tunable=false/true] to define which parameters we will want to estimate. Note that parameters are tunable by default.",
+    "Note that parameters are typically defined within a Blox and thus not immediately visible to the user. Since we want some parameters to be shared across several regions we define them outside of the regions. For this purpose use the ModelingToolkit macro @parameters which is used to define symbolic parameters for models. Note that we can set the tunable flag right away thereby defining whether we will include this parameter in the optimization procedure or rather keep it fixed to its predefined value.",
+    "We now define a similar model as above for the simulation but instead of using an actual stimulus Blox we here add ExternalInput which represents a simple linear external input that is not specified any further. We simply say that our model gets some input with a proportional factor C C C . This is mostly only to make sure that our results are consistent with those produced by SPM",
+    "Here we define the prior expectation values of the effective connectivity matrix we wish to infer:",
+    "Since we want to optimize these weights we turn them into symbolic parameters: Add the symbolic weights to the edges and connect regions.",
+    "With the function changetune we can provide a dictionary of parameters whose tunable flag should be changed, for instance set to false to exclude them from the optimization procedure. For instance the effective connections that are set to zero in the simulation and the self-connections:",
+    "the following step is needed if the model's Jacobian would give degenerate eigenvalues when expanded around the fixed point 0 (which is the default expansion). We simply add small random values to avoid this degeneracy:",
+    "For convenience we can use the default prior function to use standardized prior values as given in SPM:",
+    "Setup hyper parameter prior as well:",
+    "To compute the cross spectral densities we need to provide the sampling interval of the time series, the frequency axis and the order of the multivariate autoregressive model:",
+    "Prepare the DCM. This function will setup the computation of the Dynamic Causal Model. The last parameter specifies that we are using fMRI time series (as opposed to LFPs, which is the other modality that is currently available in Neuroblox).",
+    "We are now ready to run the optimization procedure! That is we loop over run sDCM iteration! which will alter state after each optimization iteration. It essentially computes the Variational Laplace estimation of expectation and variance of the tunable parameters.",
+    "Note that the output F is the free energy at each iteration step and dF is the predicted change of free energy at each step which approximates the actual free energy change and is used as stopping criterion by requiring that it does not excede the tolerance level for 4 consecutive times.",
+    "Free energy is the objective function of the optimization scheme of spectral DCM. Note that in the machine learning literature this it is called Evidence Lower Bound (ELBO). Plot the free energy evolution over optimization iterations to see how the algorithm converges towards a (potentially local) optimum:",
+    "// Image matching '/assets/pages/DCM/code/freeenergy' not found. //",
+    "Plot the estimated posterior of the effective connectivity and compare that to the true parameter values. Bar height are the posterior mean and error bars are the standard deviation of the posterior.",
+    "// Image matching '/assets/pages/DCM/code/ecbar' not found. //",
+    "Explore susceptibility with respect to noise. Run the script again with a different random seed and observe how the results change. Given that we didn’t change any parameters of the ground truth, what is your take on parameter inference with this setup? How reliable is model selection based on free energy (compare the different free energies of the models and their respective parameter values with ground truth)? Averaging over patients. Now repeat the simulation and inference again with 10 different seeds (you can just remove the number in Random.seed() to use current time stamps as seeds) and store the results of each run, such that you get several models based on the same ground truth but with different instances of the noise. Can you extract the average value of the effective connectivity from the ensemble? Changing neuronal dynamics model. Now change the model and test the whole procedure with a different underlying neuronal mass model, for instance the Jansen-Rit model. Note that there are no default priors for the Jansen-Rit model, you will have to provide priors for the extra parameters or remove them from the optimization procedure by setting their tunable to false.",
+    "Explore susceptibility with respect to noise. Run the script again with a different random seed and observe how the results change. Given that we didn’t change any parameters of the ground truth, what is your take on parameter inference with this setup? How reliable is model selection based on free energy (compare the different free energies of the models and their respective parameter values with ground truth)?",
+    "Averaging over patients. Now repeat the simulation and inference again with 10 different seeds (you can just remove the number in Random.seed() to use current time stamps as seeds) and store the results of each run, such that you get several models based on the same ground truth but with different instances of the noise. Can you extract the average value of the effective connectivity from the ensemble? Changing neuronal dynamics model. Now change the model and test the whole procedure with a different underlying neuronal mass model, for instance the Jansen-Rit model. Note that there are no default priors for the Jansen-Rit model, you will have to provide priors for the extra parameters or remove them from the optimization procedure by setting their tunable to false.",
+    "Averaging over patients. Now repeat the simulation and inference again with 10 different seeds (you can just remove the number in Random.seed() to use current time stamps as seeds) and store the results of each run, such that you get several models based on the same ground truth but with different instances of the noise. Can you extract the average value of the effective connectivity from the ensemble?",
+    "Changing neuronal dynamics model. Now change the model and test the whole procedure with a different underlying neuronal mass model, for instance the Jansen-Rit model. Note that there are no default priors for the Jansen-Rit model, you will have to provide priors for the extra parameters or remove them from the optimization procedure by setting their tunable to false.",
+    "Changing neuronal dynamics model. Now change the model and test the whole procedure with a different underlying neuronal mass model, for instance the Jansen-Rit model. Note that there are no default priors for the Jansen-Rit model, you will have to provide priors for the extra parameters or remove them from the optimization procedure by setting their tunable to false.",
+    "[1] Novelli, Leonardo, Karl Friston, and Adeel Razi. “Spectral Dynamic Causal Modeling: A Didactic Introduction and Its Relationship with Functional Connectivity.” Network Neuroscience 8, no. 1 (April 1, 2024): 178–202. [2] Hofmann, David, Anthony G. Chesebro, Chris Rackauckas, Lilianne R. Mujica-Parodi, Karl J. Friston, Alan Edelman, and Helmut H. Strey. “Leveraging Julia’s Automated Differentiation and Symbolic Computation to Increase Spectral DCM Flexibility and Speed.” bioRxiv: The Preprint Server for Biology, 2023. [3] Friston, Karl J., Joshua Kahan, Bharat Biswal, and Adeel Razi. “A DCM for Resting State fMRI.” NeuroImage 94 (July 2014): 396–407.",
+    "[1] Novelli, Leonardo, Karl Friston, and Adeel Razi. “Spectral Dynamic Causal Modeling: A Didactic Introduction and Its Relationship with Functional Connectivity.” Network Neuroscience 8, no. 1 (April 1, 2024): 178–202.",
+    "[2] Hofmann, David, Anthony G. Chesebro, Chris Rackauckas, Lilianne R. Mujica-Parodi, Karl J. Friston, Alan Edelman, and Helmut H. Strey. “Leveraging Julia’s Automated Differentiation and Symbolic Computation to Increase Spectral DCM Flexibility and Speed.” bioRxiv: The Preprint Server for Biology, 2023. [3] Friston, Karl J., Joshua Kahan, Bharat Biswal, and Adeel Razi. “A DCM for Resting State fMRI.” NeuroImage 94 (July 2014): 396–407.",
+    "[2] Hofmann, David, Anthony G. Chesebro, Chris Rackauckas, Lilianne R. Mujica-Parodi, Karl J. Friston, Alan Edelman, and Helmut H. Strey. “Leveraging Julia’s Automated Differentiation and Symbolic Computation to Increase Spectral DCM Flexibility and Speed.” bioRxiv: The Preprint Server for Biology, 2023.",
+    "[3] Friston, Karl J., Joshua Kahan, Bharat Biswal, and Adeel Razi. “A DCM for Resting State fMRI.” NeuroImage 94 (July 2014): 396–407.",
+    "[3] Friston, Karl J., Joshua Kahan, Bharat Biswal, and Adeel Razi. “A DCM for Resting State fMRI.” NeuroImage 94 (July 2014): 396–407."
+  ],
+  "code_blocks": [
+    {
+      "id": "code_01",
+      "text": "using\n Neuroblox\n\nusing\n LinearAlgebra\n\nusing\n StochasticDiffEq\n\nusing\n DataFrames\n\nusing\n OrderedCollections\n\nusing\n CairoMakie\n\nusing\n ModelingToolkit\n\nusing\n Random\n\nusing\n StatsBase"
+    },
+    {
+      "id": "code_02",
+      "text": "Random.seed!(\n17\n)   \n# set seed for reproducibility\n\n\nnr = \n3\n             \n# number of regions\n\ng = MetaDiGraph()\nregions = [];      \n# list of neural mass blocks to then connect them to each other with an adjacency matrix `A_true`"
+    },
+    {
+      "id": "code_03",
+      "text": "for\n i = \n1\n:nr\n    region = LinearNeuralMass(;name=\nSymbol\n(\n\"r\n$(i)\n₊lm\"\n))\n    push!(regions, region)          \n# store neural mass model in list. We need this list below. If you haven't seen the Julia command `push!` before [see here](http://jlhub.com/julia/manual/en/function/push-exclamation).\n\n\n    input = OUBlox(;name=\nSymbol\n(\n\"r\n$(i)\n₊ou\"\n), σ=\n0.2\n, τ=\n2\n)\n    add_edge!(g, input => region, weight=\n1\n/\n16\n)\n\n    measurement = BalloonModel(;name=\nSymbol\n(\n\"r\n$(i)\n₊bm\"\n)) \n## simulate fMRI signal with BalloonModel which includes the BOLD signal on top of the balloon model dynamics\n\n    add_edge!(g, region => measurement, weight=\n1.0\n)\n\nend"
+    },
+    {
+      "id": "code_04",
+      "text": "A_true = [[-\n0.5\n -\n0.2\n \n0\n]; [\n0.4\n -\n0.5\n -\n0.3\n]; [\n0\n \n0.2\n -\n0.5\n]]"
+    },
+    {
+      "id": "code_05",
+      "text": "3×3 Matrix{Float64}:\n -0.5  -0.2   0.0\n  0.4  -0.5  -0.3\n  0.0   0.2  -0.5"
+    },
+    {
+      "id": "code_06",
+      "text": "for\n idx \nin\n \nCartesianIndices\n(A_true)\n    add_edge!(g, regions[idx[\n1\n]] => regions[idx[\n2\n]], weight=A_true[idx[\n2\n], idx[\n1\n]])   \n# Note the definition of columns as outputs and rows as inputs. For consistency with SPM we keep this notation.\n\n\nend"
+    },
+    {
+      "id": "code_07",
+      "text": "@named\n simmodel = system_from_graph(g);"
+    },
+    {
+      "id": "code_08",
+      "text": "tspan = (\n0\n, \n1022\n)\ndt = \n2\n   \n# 2 seconds as measurement interval for fMRI\n\nprob = SDEProblem(simmodel, [], tspan)\nsol = solve(prob, ImplicitRKMil(), saveat=dt);"
+    },
+    {
+      "id": "code_09",
+      "text": "idx_m = get_idx_tagged_vars(simmodel, \n\"measurement\"\n)    \n# get index of bold signal"
+    },
+    {
+      "id": "code_10",
+      "text": "UndefVarError: `get_idx_tagged_vars` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_11",
+      "text": "f = Figure()\nax = Axis(f[\n1\n, \n1\n],\n    title = \n\"fMRI time series\"\n,\n    xlabel = \n\"Time [ms]\"\n,\n    ylabel = \n\"BOLD\"\n,\n)\nlines!(ax, sol, idxs=idx_m)\nf"
+    },
+    {
+      "id": "code_12",
+      "text": "UndefVarError: `idx_m` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_13",
+      "text": "dfsol = DataFrame(sol);"
+    },
+    {
+      "id": "code_14",
+      "text": "data = \nMatrix\n(dfsol[:, idx_m .+ \n1\n]);    \n# +1 due to the additional time-dimension in the data frame."
+    },
+    {
+      "id": "code_15",
+      "text": "UndefVarError: `idx_m` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_16",
+      "text": "data += randn(size(data))/\n4\n;"
+    },
+    {
+      "id": "code_17",
+      "text": "UndefVarError: `data` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\nHint: a global variable of this name may be made accessible by importing BaseDirs in the current active module Main\n"
+    },
+    {
+      "id": "code_18",
+      "text": "data .-= mean(data, dims=\n1\n);\ndata *= \n1\n/std(data[:])/\n4\n;\ndfsol = DataFrame(data, :auto);"
+    },
+    {
+      "id": "code_19",
+      "text": "UndefVarError: `data` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\nHint: a global variable of this name may be made accessible by importing BaseDirs in the current active module Main\n"
+    },
+    {
+      "id": "code_20",
+      "text": "_, obsvars = get_eqidx_tagged_vars(simmodel, \n\"measurement\"\n);  \n# get index of equation of bold state\n\nrename!(dfsol, \nSymbol\n.(obsvars));"
+    },
+    {
+      "id": "code_21",
+      "text": "UndefVarError: `get_eqidx_tagged_vars` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_22",
+      "text": "p = \n8\n\nmar = mar_ml(data, p)   \n# maximum likelihood estimation of the MAR coefficients and noise covariance matrix\n\nns = size(data, \n1\n)\nfreq = range(min(\n128\n, ns*dt)^-\n1\n, max(\n8\n, \n2\n*dt)^-\n1\n, \n32\n)\ncsd = mar2csd(mar, freq, dt^-\n1\n);"
+    },
+    {
+      "id": "code_23",
+      "text": "UndefVarError: `mar_ml` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_24",
+      "text": "fig = Figure(size=(\n1200\n, \n800\n))\ngrid = fig[\n1\n, \n1\n] = GridLayout()\n\nfor\n i = \n1\n:nr\n    \nfor\n j = \n1\n:nr\n        \nif\n i == \n1\n && j == \n1\n\n            ax = Axis(grid[i, j], xlabel=\n\"Frequency [Hz]\"\n, ylabel=\n\"real value of CSD\"\n)\n        \nelse\n\n            ax = Axis(grid[i, j])\n        \nend\n\n        lines!(ax, freq, real.(csd[:, i, j]))\n    \nend\n\n\nend\n\nLabel(grid[\n1\n, \n1\n:\n3\n, Top()], \n\"Cross-spectral densities\"\n, valign = :bottom,\n    font = :bold,\n    fontsize = \n32\n,\n    padding = (\n0\n, \n0\n, \n5\n, \n0\n))\nfig"
+    },
+    {
+      "id": "code_25",
+      "text": "UndefVarError: `freq` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_26",
+      "text": "g = MetaDiGraph()\nregions = [];   \n# list of neural mass blocks to then connect them to each other with an adjacency matrix `A`"
+    },
+    {
+      "id": "code_27",
+      "text": "@parameters\n lnκ=\n0.0\n [tunable=\nfalse\n] lnϵ=\n0.0\n [tunable=\nfalse\n] lnτ=\n0.0\n [tunable=\nfalse\n];   \n# lnκ: decay parameter for hemodynamics; lnϵ: ratio of intra- to extra-vascular components, lnτ: transit time scale\n\n\n@parameters\n C=\n1\n/\n16\n [tunable=\nfalse\n];   \n# note that C=1/16 is taken from SPM12 and stabilizes the balloon model simulation. See also comment above."
+    },
+    {
+      "id": "code_28",
+      "text": "for\n i = \n1\n:nr\n    region = LinearNeuralMass(;name=\nSymbol\n(\n\"r\n$(i)\n₊lm\"\n))\n    push!(regions, region)\n    input = ExternalInput(;name=\nSymbol\n(\n\"r\n$(i)\n₊ei\"\n))\n    add_edge!(g, input => region, weight=C)\n\n    measurement = BalloonModel(;name=\nSymbol\n(\n\"r\n$(i)\n₊bm\"\n), lnτ=lnτ, lnκ=lnκ, lnϵ=lnϵ) \n## assume fMRI signal and model them with a BalloonModel\n\n    add_edge!(g, region => measurement, weight=\n1.0\n)\n\nend"
+    },
+    {
+      "id": "code_29",
+      "text": "UndefVarError: `ExternalInput` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_30",
+      "text": "A_prior = \n0.01\n*randn(nr, nr)\nA_prior -= diagm(diag(A_prior))    \n# remove the diagonal"
+    },
+    {
+      "id": "code_31",
+      "text": "3×3 Matrix{Float64}:\n  0.0         0.00345049  -0.0122152\n  0.0148102   0.0          0.00437472\n -0.00716553  0.00429191   0.0"
+    },
+    {
+      "id": "code_32",
+      "text": "A = []\n\nfor\n (i, a) \nin\n enumerate(vec(A_prior))\n    symb = \nSymbol\n(\n\"A\n$(i)\n\"\n)\n    push!(A, only(\n@parameters\n $symb = a))\n\nend\n\n\n\nfor\n (i, idx) \nin\n enumerate(\nCartesianIndices\n(A_prior))\n    \nif\n idx[\n1\n] == idx[\n2\n]\n        add_edge!(g, regions[idx[\n1\n]] => regions[idx[\n2\n]], weight=-exp(A[i])/\n2\n)  \n## -exp(A[i])/2: treatement of diagonal elements in SPM12 to make diagonal dominance (see Gershgorin Theorem) more likely but it is not guaranteed\n\n    \nelse\n\n        add_edge!(g, regions[idx[\n2\n]] => regions[idx[\n1\n]], weight=A[i])\n    \nend\n\n\nend\n\n\n# Avoid simplification of the model in order to be able to exclude some parameters from fitting\n\n\n@named\n fitmodel = system_from_graph(g, simplify=\nfalse\n);"
+    },
+    {
+      "id": "code_33",
+      "text": "BoundsError: attempt to access 1-element Vector{Any} at index [2]\n"
+    },
+    {
+      "id": "code_34",
+      "text": "untune = \nDict\n(A[\n3\n] => \nfalse\n, A[\n7\n] => \nfalse\n, A[\n1\n] => \nfalse\n, A[\n5\n] => \nfalse\n, A[\n9\n] => \nfalse\n)\nfitmodel = changetune(fitmodel, untune)           \n# 3 and 7 are not present in the simulation model\n\nfitmodel = structural_simplify(fitmodel)          \n# and now simplify the euqations"
+    },
+    {
+      "id": "code_35",
+      "text": "UndefVarError: `fitmodel` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_36",
+      "text": "max_iter = \n128\n; \n# maximum number of iterations\n\n\n# attribute initial conditions or default values to dynamic states of our model\n\nsts, _ = get_dynamic_states(fitmodel);"
+    },
+    {
+      "id": "code_37",
+      "text": "UndefVarError: `get_dynamic_states` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_38",
+      "text": "perturbedfp = \nDict\n(sts .=> abs.(\n10\n^-\n10\n*rand(length(sts))))     \n# slight noise to avoid issues with Automatic Differentiation."
+    },
+    {
+      "id": "code_39",
+      "text": "UndefVarError: `sts` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_40",
+      "text": "pmean, pcovariance, indices = defaultprior(fitmodel, nr)\n\npriors = (μθ_pr = pmean,\n          Σθ_pr = pcovariance\n         );"
+    },
+    {
+      "id": "code_41",
+      "text": "UndefVarError: `defaultprior` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_42",
+      "text": "hyperpriors = (Πλ_pr = \n128.0\n*ones(\n1\n, \n1\n),   \n# prior metaparameter precision, needs to be a matrix\n\n               μλ_pr = [\n8.0\n]               \n# prior metaparameter mean, needs to be a vector\n\n              );"
+    },
+    {
+      "id": "code_43",
+      "text": "csdsetup = (mar_order = p, freq = freq, dt = dt);"
+    },
+    {
+      "id": "code_44",
+      "text": "UndefVarError: `freq` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_45",
+      "text": "(state, setup) = setup_sDCM(dfsol, fitmodel, perturbedfp, csdsetup, priors, hyperpriors, indices, pmean, \n\"fMRI\"\n);"
+    },
+    {
+      "id": "code_46",
+      "text": "UndefVarError: `setup_sDCM` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_47",
+      "text": "for\n iter \nin\n \n1\n:max_iter\n    state.iter = iter\n    run_sDCM_iteration!(state, setup)\n    print(\n\"iteration: \"\n, iter, \n\" - F:\"\n, state.F[\nend\n], \n\" - dF predicted:\"\n, state.dF[\nend\n], \n\"\\n\"\n)\n    \nif\n iter >= \n4\n\n        criterion = state.dF[\nend\n-\n3\n:\nend\n] .< setup.tolerance\n        \nif\n all(criterion)\n            print(\n\"convergence\\n\"\n)\n            \nbreak\n\n        \nend\n\n    \nend\n\n\nend"
+    },
+    {
+      "id": "code_48",
+      "text": "UndefVarError: `state` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\nHint: a global variable of this name may be made accessible by importing BaseDirs in the current active module Main\n"
+    },
+    {
+      "id": "code_49",
+      "text": "f1 = freeenergy(state)"
+    },
+    {
+      "id": "code_50",
+      "text": "UndefVarError: `freeenergy` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    },
+    {
+      "id": "code_51",
+      "text": "f2 = ecbarplot(state, setup, A_true)\naxislegend(position=:lt)"
+    },
+    {
+      "id": "code_52",
+      "text": "UndefVarError: `ecbarplot` not defined in `Main.FD_SANDBOX_2630177278844153205`\nSuggestion: check for spelling errors or missing imports.\n"
+    }
+  ],
+  "images": [
+    {
+      "id": "image_01",
+      "src": "/course/assets/spectral_DCM_illustration.png",
+      "alt": "spDCM Workflow"
+    }
+  ],
+  "links": [
+    {
+      "text": "Introduction",
+      "href": "#introduction"
+    },
+    {
+      "text": "Define the Model",
+      "href": "#define_the_model"
+    },
+    {
+      "text": "Run the Simulation and Plot the Results",
+      "href": "#run_the_simulation_and_plot_the_results"
+    },
+    {
+      "text": "Add Measurement Noise and Rescale Data",
+      "href": "#add_measurement_noise_and_rescale_data"
+    },
+    {
+      "text": "Estimate and Plot the Cross-spectral Densities",
+      "href": "#estimate_and_plot_the_cross-spectral_densities"
+    },
+    {
+      "text": "Model Inference",
+      "href": "#model_inference"
+    },
+    {
+      "text": "Setup Spectral DCM",
+      "href": "#setup_spectral_dcm"
+    },
+    {
+      "text": "Results",
+      "href": "#results"
+    },
+    {
+      "text": "Challenge Problems",
+      "href": "#challenge_problems"
+    },
+    {
+      "text": "References",
+      "href": "#references"
+    },
+    {
+      "text": "Parameter Fitting using Spectral Dynamic Causal Modeling",
+      "href": "#parameter_fitting_using_spectral_dynamic_causal_modeling"
+    },
+    {
+      "text": "Introduction",
+      "href": "#introduction"
+    },
+    {
+      "text": "SPM",
+      "href": "https://www.fil.ion.ucl.ac.uk/spm/software/spm12/"
+    },
+    {
+      "text": "Neuroblox",
+      "href": "https://www.neuroblox.org/"
+    },
+    {
+      "text": "Define the Model",
+      "href": "#define_the_model"
+    },
+    {
+      "text": "Run the Simulation and Plot the Results",
+      "href": "#run_the_simulation_and_plot_the_results"
+    },
+    {
+      "text": "Add Measurement Noise and Rescale Data",
+      "href": "#add_measurement_noise_and_rescale_data"
+    },
+    {
+      "text": "Estimate and Plot the Cross-spectral Densities",
+      "href": "#estimate_and_plot_the_cross-spectral_densities"
+    },
+    {
+      "text": "Model Inference",
+      "href": "#model_inference"
+    },
+    {
+      "text": "Setup Spectral DCM",
+      "href": "#setup_spectral_dcm"
+    },
+    {
+      "text": "Results",
+      "href": "#results"
+    },
+    {
+      "text": "Challenge Problems",
+      "href": "#challenge_problems"
+    },
+    {
+      "text": "References",
+      "href": "#references"
+    },
+    {
+      "text": "Novelli, Leonardo, Karl Friston, and Adeel Razi. “Spectral Dynamic Causal Modeling: A Didactic Introduction and Its Relationship with Functional Connectivity.” Network Neuroscience 8, no. 1 (April 1, 2024): 178–202.",
+      "href": "https://doi.org/10.1162/netn_a_00348"
+    },
+    {
+      "text": "Hofmann, David, Anthony G. Chesebro, Chris Rackauckas, Lilianne R. Mujica-Parodi, Karl J. Friston, Alan Edelman, and Helmut H. Strey. “Leveraging Julia’s Automated Differentiation and Symbolic Computation to Increase Spectral DCM Flexibility and Speed.” bioRxiv: The Preprint Server for Biology, 2023.",
+      "href": "https://doi.org/10.1101/2023.10.27.564407"
+    },
+    {
+      "text": "Friston, Karl J., Joshua Kahan, Bharat Biswal, and Adeel Razi. “A DCM for Resting State fMRI.” NeuroImage 94 (July 2014): 396–407.",
+      "href": "https://linkinghub.elsevier.com/retrieve/pii/S1053811913012135"
+    },
+    {
+      "text": "CC BY-SA 4.0",
+      "href": "http://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    {
+      "text": "Franklin.jl",
+      "href": "https://github.com/tlienart/Franklin.jl"
+    },
+    {
+      "text": "Julia programming language",
+      "href": "https://julialang.org"
+    }
+  ],
+  "youtube_embeds": [
+    "OEeyks_HIMI"
+  ]
+}

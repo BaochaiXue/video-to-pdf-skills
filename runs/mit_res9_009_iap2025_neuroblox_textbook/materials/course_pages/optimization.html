@@ -1,0 +1,94 @@
+<!doctype html> <html lang=en > <meta charset=UTF-8 > <meta name=viewport  content="width=device-width, initial-scale=1"> <link rel=stylesheet  href="/course/libs/highlight/styles/github.min.css"> <link href="/course/css/franklin.css" rel=stylesheet > <link href="/course/css/vela.css" rel=stylesheet > <script src="/course/libs/vela/jquery.min.js"></script> <link rel=icon  href="/course/assets/new_favicon.png"> <title>Neuroblox course</title> <div class="main-nav slideout-menu slideout-menu-left" id=menu > <div class=flex-container > <span class=sidebar-brand > <h3 style='font-size: 25px'>Neuroblox course</h3> </span> </div> <nav class=sidebar-nav > <ul class=metismenu  id=metismenu  > <li><a href="/course/index.html">Home</a> <li><a href="/course/pages/getting_started">Getting Started</a> <li><a href="/course/pages/intro_julia">Introduction to Julia</a> <li><a href="/course/pages/intro_diffeq">Differential Equations with ModelingToolkit</a> <li><a href="/course/pages/intro_plot">Plotting with Makie</a> <li><a href="/course/pages/blox_connections">Blox and Connections in Neuroblox</a> <li><a href="/course/pages/neuron_mass">Neurons, Neural Masses and Sources</a> <li><a href="" class=has-arrow >Circuit Models</a> <ul> <li><a href="/course/pages/circuits">Introduction</a> <li><a href="/course/pages/CS_circuit">Biomimetic Corticostriatal assemblies</a> <li><a href="/course/pages/PING_circuit">Pyramidal-Interneuron Gamma network</a> </ul> <li><a href="/course/pages/decision_making">Decision Making</a> <li><a href="/course/pages/learning">Synaptic Plasticity and Reinforcement Learning</a> <li><a href="/course/pages/optimization">Parameter Fitting using Optimization</a> <li><a href="/course/pages/DCM">Parameter fitting using Spectral Dynamic Causal Modeling</a> <li><a href="/course/pages/experimental_design">Experimental Design</a> </ul> </nav> </div> <main id=panel  class="slidout-panel slideout-panel-left"> <div class="toggle-button hamburger hamburger--spin"> <div class=hamburger-box > <div class=hamburger-inner ></div> </div> </div> <h1 class="page title">Parameter Fitting using Optimization</h1> <hr> <div class=franklin-content ><div class=franklin-toc ><ol><li><a href="#introduction">Introduction</a><li><a href="#model_definition">Model Definition</a><li><a href="#initial_guess_for_parameters">Initial Guess for Parameters</a><li><a href="#parameter_fit_using_optimization">Parameter Fit using Optimization</a><li><a href="#results">Results</a><li><a href="#references">References</a></ol></div> <h1 id=parameter_fitting_using_optimization ><a href="#parameter_fitting_using_optimization" class=header-anchor >Parameter Fitting using Optimization</a></h1> <h2 id=introduction ><a href="#introduction" class=header-anchor >Introduction</a></h2> <p>Until now we have worked on solving what is known as the forward problem, that is constructing and simulating systems of differential equations. We will now work on the inverse problem, which is also known as parameter fitting. Our current workflow starts with a given dataset and a model and in the end we want to retrieve the model parameters that best match the dataset. In other words, if we are to simulate the model using these optimized parameters, then we will get back data that is as close as possible to our original dataset.</p> <p>We will work with fictive data, that is we will use a model to generate our fictive dataset given some ground truth parameters and then we will use this data to fit the model. Ideally we want the optimized parameters after the fitting process to be the same as the ground truth parameters we used to generate our data. Even though this example is using fictive data, this workflow is a recommended first step in a parameter fitting analysis, as it tells us if and which parameters are even possible to retrieve using our current model and data.</p> <p>The workflow to fit a model to real data is almost identical to this example with the exception that we do not need to run an initial simulation to generate data. Instead we would just read it from a file, as we have previously done, e.g. using <code>CSV.jl</code> and <code>DataFrames.jl</code>.</p> <p>In this parameter fitting process we will use an optimization approach to minimize the least squares error between the fictive data and the model simulations. One can easily swap the least squares loss function with any other optimization objective. Namely we will use the <code>LBFGS</code> optimizer, a quasi-Newton method that computes the Jacobian matrix of the objective function and approximates the inverse of its Hessian &#91;1&#93;.</p> <p>Learning goals</p> <ul> <li><p>implement parameter fitting using optimization methods.</p> <li><p>introduce this workflow as a first step in any parameter fitting analysis to check the limits of our approach.</p> </ul> <h2 id=model_definition ><a href="#model_definition" class=header-anchor >Model Definition</a></h2> <p>We will be using a next generation neural mass model of E-I balance here, which we have seen before. We will treat the four coupling coefficients between the excitatory and inhibitory componenets of the model &#40;excitatory-excitatory, excitatory-inhibitory, inhibitory-excitatory and inhibitory-inhibitory&#41; as the unknown parameters to be fitted.</p> <pre><code class="julia hljs"><span class=hljs-keyword >using</span> Neuroblox
+<span class=hljs-keyword >using</span> OrdinaryDiffEq
+<span class=hljs-keyword >using</span> Optimization <span class=hljs-comment >## the general interface for solving optimization problems</span>
+<span class=hljs-keyword >using</span> CairoMakie
+<span class=hljs-keyword >using</span> SymbolicIndexingInterface <span class=hljs-comment >## a package to handle parameter changes in our ODEProblem on every optimization iteration</span>
+<span class=hljs-keyword >using</span> Distributions
+<span class=hljs-keyword >using</span> Random
+
+Random.seed!(<span class=hljs-number >1</span>)
+
+<span class=hljs-meta >@named</span> nm = NextGenerationEIBlox(; kₑₑ=<span class=hljs-number >2</span>, kᵢᵢ=<span class=hljs-number >1.5</span>, kₑᵢ=<span class=hljs-number >5.5</span>, kᵢₑ=<span class=hljs-number >7</span>);
+
+sys = system(nm)
+
+tspan = (<span class=hljs-number >0</span>, <span class=hljs-number >100</span>)
+t_save = first(tspan):last(tspan) <span class=hljs-comment >## define the exact timepoints when data/simulation will be saved</span>
+
+<span class=hljs-comment ># ground truth parameter values, ideally the ones to be retrieved after optimization</span>
+p_ground_truth = [<span class=hljs-number >2</span>, <span class=hljs-number >1.5</span>, <span class=hljs-number >5.5</span>, <span class=hljs-number >7</span>]
+prob = ODEProblem(
+    sys,
+    [],
+    tspan,
+    [nm.kₑₑ =&gt; p_ground_truth[<span class=hljs-number >1</span>], nm.kᵢᵢ =&gt; p_ground_truth[<span class=hljs-number >2</span>], nm.kₑᵢ =&gt; p_ground_truth[<span class=hljs-number >3</span>], nm.kᵢₑ =&gt; p_ground_truth[<span class=hljs-number >4</span>]];
+    saveat=t_save
+)
+
+<span class=hljs-comment ># generate fictive data, aka the ground truth</span>
+data = solve(prob, Tsit5());</code></pre> <p>We add some observation noise to our fictive data to make it look more realistic. At each timepoint each state receives noise that is sampled from a Normal distribution around 0 with a standard deviation of 0.1 .</p> <pre><code class="julia hljs">noise_distribution = Normal(<span class=hljs-number >0</span>, <span class=hljs-number >0.1</span>)
+data .+= rand(noise_distribution, size(data));</code></pre> <h2 id=initial_guess_for_parameters ><a href="#initial_guess_for_parameters" class=header-anchor >Initial Guess for Parameters</a></h2> <p>For most optimization methods we need to provide an initial guess for the parameters to be fitted. Let&#39;s add a guess and visualize the result of using these parameters in our model compared to the ground truth data.</p> <pre><code class="julia hljs"><span class=hljs-comment ># define a setter function to easily change parameter values during each optimization iteration</span>
+setter! = setp(sys, [nm.kₑₑ, nm.kᵢᵢ, nm.kₑᵢ, nm.kᵢₑ])
+
+<span class=hljs-comment ># initial guess for the parameters to be optimized</span>
+p0 = [<span class=hljs-number >0.2</span>, <span class=hljs-number >3.3</span>, <span class=hljs-number >2</span>, <span class=hljs-number >3.5</span>]
+setter!(prob, p0)
+sol = solve(prob, Tsit5())
+
+states = unknowns(sys)
+fig = Figure(size = (<span class=hljs-number >1600</span>, <span class=hljs-number >800</span>), fontsize=<span class=hljs-number >22</span>)
+axs = [
+    Axis(fig[<span class=hljs-number >1</span>,<span class=hljs-number >1</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >1</span>]))),
+    Axis(fig[<span class=hljs-number >1</span>,<span class=hljs-number >2</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >2</span>]))),
+    Axis(fig[<span class=hljs-number >2</span>,<span class=hljs-number >1</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >3</span>]))),
+    Axis(fig[<span class=hljs-number >2</span>,<span class=hljs-number >2</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >4</span>]))),
+    Axis(fig[<span class=hljs-number >3</span>,<span class=hljs-number >1</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >5</span>]))),
+    Axis(fig[<span class=hljs-number >3</span>,<span class=hljs-number >2</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >6</span>]))),
+    Axis(fig[<span class=hljs-number >4</span>,<span class=hljs-number >1</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >7</span>]))),
+    Axis(fig[<span class=hljs-number >4</span>,<span class=hljs-number >2</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >8</span>])))
+]
+<span class=hljs-keyword >for</span> (i,s) <span class=hljs-keyword >in</span> enumerate(states)
+    lines!(axs[i], data[s], label=<span class=hljs-string >&quot;Data&quot;</span>)
+    lines!(axs[i], sol[s], label=<span class=hljs-string >&quot;Initial Guess&quot;</span>)
+<span class=hljs-keyword >end</span>
+colsize!(fig.layout, <span class=hljs-number >1</span>, Relative(<span class=hljs-number >1</span>/<span class=hljs-number >2</span>))
+Legend(fig[<span class=hljs-number >5</span>,<span class=hljs-number >1</span>], last(axs))
+fig</code></pre> <img src="/course/assets/pages/optimization/code/output/opt_init.svg" alt=""> <h2 id=parameter_fit_using_optimization ><a href="#parameter_fit_using_optimization" class=header-anchor >Parameter Fit using Optimization</a></h2> <p>We are now ready to define the loss function and the optimization problem and then solve it to get the optimized values for the four coupling parameters.</p> <pre><code class="julia hljs"><span class=hljs-comment ># define the least squares loss function</span>
+<span class=hljs-keyword >function</span> loss(p, data, prob)
+    setter!(prob, p)
+    sol = solve(prob, Tsit5())
+
+    <span class=hljs-keyword >return</span> sum(abs2, sol .- data)
+<span class=hljs-keyword >end</span>
+
+<span class=hljs-comment ># Use finite differences to calculate gradients of the loss function</span>
+objective = OptimizationFunction((p, data) -&gt; loss(p, data, prob), AutoFiniteDiff())
+prob_opt = OptimizationProblem(objective, p0, data)
+<span class=hljs-comment ># run the optimization using the LBFGS optimizer</span>
+res = solve(prob_opt, Optimization.LBFGS())
+<span class=hljs-comment ># print the return code to check that the optimization was successful</span>
+<span class=hljs-meta >@show</span> res.retcode</code></pre><pre><code class="plaintext hljs">res.retcode = SciMLBase.ReturnCode.Success
+</code></pre> <h2 id=results ><a href="#results" class=header-anchor >Results</a></h2> <p>Since the least squares optimization was run successfully, we can use the returned parameters as the ones that best fit the data. First of all let&#39;s compare them to the ground truth.</p> <pre><code class="julia hljs">println(<span class=hljs-string >&quot;Ground truth parameters are <span class=hljs-subst >$(p_ground_truth)</span>&quot;</span>)
+println(<span class=hljs-string >&quot;Fitted parameters are <span class=hljs-subst >$(res.u)</span>&quot;</span>)</code></pre><pre><code class="plaintext hljs">Ground truth parameters are [2.0, 1.5, 5.5, 7.0]
+Fitted parameters are [0.6622357784988369, 1.5202233128437863, 4.586785049600296, 6.986278917765284]
+</code></pre> <p>We observe that the fitted parameters are close to the groudn truth ones, certainly much closer than our initial guess. Let&#39;s now simulate the model using these optimized parameters and compare the timeseries with the original data.</p> <pre><code class="julia hljs">setter!(prob, res.u)
+sol = solve(prob, Tsit5())
+
+fig = Figure(size = (<span class=hljs-number >1600</span>, <span class=hljs-number >800</span>), fontsize=<span class=hljs-number >22</span>)
+axs = [
+    Axis(fig[<span class=hljs-number >1</span>,<span class=hljs-number >1</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >1</span>]))),
+    Axis(fig[<span class=hljs-number >1</span>,<span class=hljs-number >2</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >2</span>]))),
+    Axis(fig[<span class=hljs-number >2</span>,<span class=hljs-number >1</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >3</span>]))),
+    Axis(fig[<span class=hljs-number >2</span>,<span class=hljs-number >2</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >4</span>]))),
+    Axis(fig[<span class=hljs-number >3</span>,<span class=hljs-number >1</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >5</span>]))),
+    Axis(fig[<span class=hljs-number >3</span>,<span class=hljs-number >2</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >6</span>]))),
+    Axis(fig[<span class=hljs-number >4</span>,<span class=hljs-number >1</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >7</span>]))),
+    Axis(fig[<span class=hljs-number >4</span>,<span class=hljs-number >2</span>], title=<span class=hljs-built_in >String</span>(<span class=hljs-built_in >Symbol</span>(states[<span class=hljs-number >8</span>])))
+]
+<span class=hljs-keyword >for</span> (i,s) <span class=hljs-keyword >in</span> enumerate(states)
+    lines!(axs[i], data[s], label=<span class=hljs-string >&quot;Data&quot;</span>)
+    lines!(axs[i], sol[s], label=<span class=hljs-string >&quot;Optimized Solution&quot;</span>)
+<span class=hljs-keyword >end</span>
+colsize!(fig.layout, <span class=hljs-number >1</span>, Relative(<span class=hljs-number >1</span>/<span class=hljs-number >2</span>))
+Legend(fig[<span class=hljs-number >5</span>,<span class=hljs-number >1</span>], last(axs))
+fig</code></pre> <p><img src="/course/assets/pages/optimization/code/output/opt_final.svg" alt=""> Notice how the simulation using the fitted parameters is much closer to the ground truth data compared to the previous figure where we compared the data to a simulation using our initial guess. The parameter fitting worked on two levels; the parameter values are close to the ground truth, and the simulation results when using them come close to the data. So even though the parameters do not exactly match their ground truth values, we notice that the simulation results closely match the underlying data, excluding the added observation noise.</p> <h2 id=references ><a href="#references" class=header-anchor >References</a></h2> <ul> <li><p>&#91;1&#93; <a href="https://doi.org/10.1137/0916069">Byrd, R.H., Lu, P., Nocedal, J., &amp; Zhu, C. &#40;1995&#41;. A Limited Memory Algorithm for Bound Constrained Optimization. SIAM J. Sci. Comput., 16, 1190-1208.</a></p> </ul> <div class=page-foot > <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> Neuroblox Inc. Last modified: July 22, 2025. Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>. </div> </div> </main> <script src="/course/libs/vela/metisMenu.min.js"></script> <script src="/course/libs/vela/slideout.min.js"></script> <script src="/course/libs/highlight/highlight.min.js"></script> <script>hljs.highlightAll();hljs.configure({tabReplace: ' '});</script>

@@ -1,0 +1,367 @@
+\chapter{练习与思考题附录}
+
+本附录按章节组织全书练习，目标不是提供机械性题库，而是把每章最重要的概念边界、方法权衡、环境反馈、失败模式与延伸阅读系统化下来。每章都包含三类任务：
+\begin{itemize}
+\item 概念复习题：检查读者是否真正掌握术语、定义和结构关系。
+\item 深入思考题：要求读者比较方法假设、分析边界条件或提出替代设计。
+\item 实践与阅读题：要求读者实现最小系统、设计 evaluator、或结合论文进一步抽象。
+\end{itemize}
+其中 theorem proving 相关章节额外加入形式化与证明题，coding/security 相关章节额外加入 failure analysis 或 safety analysis 题。
+
+\section{第 1 章：推理时计算（Inference-Time Techniques for LLM Reasoning）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item 为什么 CoT 的价值不只是“让答案更长”，而是重新分配 inference-time compute？
+\item Analogical Prompting 与 few-shot CoT 的 inductive bias 有何不同？
+\item OPRO 为什么可以被视为 prompt engineering 的 optimization loop？
+\item Self-Consistency 为什么依赖多样化采样，而不是重复同一条推理链？
+\item Outcome Reward Model 与 Process Reward Model 分别适合什么类型的搜索控制？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 如果 verifier 只对最终答案可靠、对中间状态不可靠，Tree of Thoughts 会怎样偏离正确搜索？
+\item 为什么没有外部反馈时，self-correction 可能只是“更自信地重复错误”？
+\item 对开放式长文本写作、策略规划或法律分析任务，你会如何构造足够可靠的反馈器？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 在数学问答任务上实现 Self-Consistency，对比 sample budget 从 $1, 4, 8, 16$ 时的性能与成本。
+\item 在代码生成任务上实现最小版 self-debugging loop，比较“纯文本反思”与“执行反馈反思”的修复率差异。
+\item 阅读本章核心论文后，写一段短文比较 reranking、tree search、verifier-guided repair 三者对 agent workflow 的不同影响。
+\end{enumerate}
+
+\subsection*{形式化与证明题}
+\begin{enumerate}
+\item 把 verifier ranking 写成有限候选集上的最优化问题，并说明步骤级评分为何会改变搜索策略。
+\item 讨论 theorem proving 场景中，为什么 partial-state evaluation 往往比 final-answer reranking 更重要。
+\end{enumerate}
+
+\subsection*{Failure Analysis}
+\begin{enumerate}
+\item 如果 self-correction 的反馈来自同分布 LLM 而不是真实环境，这个系统会出现哪些共偏差风险？
+\item 对代码 agent 而言，execution consistency 与真实安全性之间存在哪些结构性错位？
+\end{enumerate}
+
+\section{第 2 章：学习推理（Learning to Reason with LLMs）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item 为什么可以把 DPO 视为本章中的 optimizer primitive，而不是完整 recipe？
+\item Self-Rewarding 与标准 RLHF 的根本差异是什么？
+\item CoVe 如何用 verification-oriented prompting 降低 hallucination？
+\item IRPO 为什么依赖 verifiable final answers？
+\item Meta-Rewarding / EvalPlanner 为什么把 judgment 本身当作训练对象？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 如果 actor 与 judge 共享同一个基座模型，它们之间会形成哪些共偏差与 shortcut？
+\item 在开放式 agent 任务里，哪类环境反馈能替代人工 preference，哪类却不能？
+\item EvalPlanner 的思想怎样迁移到代码审查、实验设计或安全审计任务？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 用一个小型 QA 数据集实现 CoVe 四步流程，并报告 hallucination rate 的变化。
+\item 构造一个具有可验证 final answer 的推理任务，手工模拟 IRPO 的 preference-pair 生成过程。
+\item 选读 Self-Rewarding 或 Meta-Rewarding 论文，分析“训练更强的 judge”与“训练更强的 actor”哪一个更像本章主线。
+\end{enumerate}
+
+\section{第 3 章：推理、记忆与规划（Reasoning, Memory, and Planning of Language Agents）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item 什么是 language agent，它与普通 LLM application 的本质区别是什么？
+\item HippoRAG 试图修复现有 RAG 的哪个结构缺陷？
+\item 为什么 implicit reasoning 不等于“没有推理”？
+\item reactive policy、tree search、model-based planning 分别适合什么任务结构？
+\item WebDreamer 中的 world model 承担什么角色？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 对长期在线运行的 agent，memory update 如何同时避免 catastrophic forgetting 与 privacy leakage？
+\item grokking 的 insight 能否转化为更强的 agent foundation model 训练原则？
+\item world-model planning 是否可能放大模型幻觉？你会如何设计 guardrail？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 为一个简单网页任务分别实现 reactive policy 与 model-based policy，对比交互次数、成功率和错误恢复能力。
+\item 设计一个多跳记忆问答案例，比较 dense retrieval 与图扩散检索的差异。
+\item 结合 HippoRAG、Grokked Transformers 与 WebDreamer，写一段短评说明为什么“memory / reasoning / planning”应被视为统一能力图谱。
+\end{enumerate}
+
+\section{第 4 章：推理模型的开放训练配方（Open Training Recipes for Reasoning in Language Models）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item 为什么“开放”本身是 training recipe 的一部分，而不只是社区治理议题？
+\item SFT、preference tuning、RLVR 各自优化什么对象？
+\item 为什么 reasoning data 往往需要 chain-of-thought，而不能只保留 final answer？
+\item DPO 相比 PPO 省掉了哪些组件？这会带来什么代价？
+\item RLVR 为什么只在特定任务结构上特别有效？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 当 post-training 预算极低时，你会优先投资更好的 preference data 还是更复杂的优化算法？说明理由。
+\item 为什么 budget forcing 在某些任务上有效，在另一些任务上只是延长错误推理？
+\item OpenScholar 为什么能够体现 open recipe 的 downstream 价值？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 为一个数学 reasoning 模型设计 data-mixing plan，明确写出数据来源、过滤策略与 evaluator。
+\item 为一个有 gold answer 的任务写出 verifier 接口，并分析它可能被 reward hacking 的方式。
+\item 选读本章任一 reading，写一页备忘录比较 open recipe 与 closed recipe 在 reproducibility 和 failure diagnosis 上的差异。
+\end{enumerate}
+
+\section{第 5 章：Coding Agents 与漏洞检测（Coding Agents and AI for Vulnerability Detection）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item coding agent 与普通 code completion 的本质区别是什么？
+\item 为什么本章先讲 evaluator 再讲 architecture？
+\item ReAct、Agentless、AutoCodeRover 在 control flow 上分别体现了什么设计取向？
+\item 为什么 CTF / security task 对工具接口和环境反馈的要求更高？
+\item Big Sleep 为什么强调 variant analysis，而不是开放式漏洞猎取？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 在什么条件下，procedural agent 会优于 dynamic agent？
+\item 如果 benchmark 泄漏或覆盖不足，pass@k 与 SWE-Bench 风格指标会如何误导系统设计？
+\item 为什么“能生成 exploit 思路”不等于“能稳定做安全研究”？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 为一个仓库级 bug-fixing agent 设计最小 tool palette，并说明每个工具的反馈形式。
+\item 为 security agent 设计 sandbox 与 logging policy，标出哪些操作必须被限制、审批或留痕。
+\item 给 Big Sleep 风格的 variant-analysis workflow 设计 verifier，并说明如何降低误报。
+\end{enumerate}
+
+\subsection*{Failure Analysis / Safety Analysis}
+\begin{enumerate}
+\item 对一个具备 shell、network、browser、git 权限的 coding agent，做一份 capability-risk matrix，分析高风险组合。
+\item 设计一个 failure review 模板，用来区分 benchmark overfitting、tool misuse、environment mismatch 与真实安全缺陷。
+\end{enumerate}
+
+\section{第 6 章：多模态自主体（Multimodal Autonomous AI Agents）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item 为什么 Mind2Web、WebArena 与 VisualWebArena 不能互相替代？
+\item HTML-only representation 为什么会在真实网页任务中失真？
+\item VisualWebArena 的 visually grounded evaluation 解决了什么关键问题？
+\item 长程 agent 任务为什么会出现 exponential error compounding？
+\item Tree search 相比 repeated sampling 的主要优势是什么？
+\item 为什么 value function 的质量会直接限制 search gain？
+\item InSTA 为什么强调 task generation 与 task verification 两阶段？
+\item 为什么 synthetic tasks 能缓解 data bottleneck，却不能自动解决 realism 与 safety？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 如果一个 agent 在 WebArena 上表现好、在 VisualWebArena 上表现差，你会首先怀疑它缺什么能力？
+\item 在固定预算下，你会优先提升 baseline policy、value function，还是增加 search budget？为什么？
+\item Plan-Seq-Learn 的分层架构在什么条件下不如端到端策略？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 对比阅读 Mind2Web 与 WebArena，解释“数据集”与“环境”为什么不是同一个对象。
+\item 推导 tree-search budget、branching factor 与 depth 的 tradeoff，并说明它们如何影响 evaluation cost。
+\item 为一个你熟悉的网站设计三个 visually grounded tasks，并给出 execution-based checks。
+\item 画出简化版 Plan-Seq-Learn pipeline，标出 perception、planning、control 三层的误差传递路径。
+\end{enumerate}
+
+\section{第 7 章：从感知到行动的多模态 Agents（Multimodal Agents: From Perception to Action）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item 为什么 OSWorld 比 demonstration-only benchmark 更适合评估 computer-use agents？
+\item OSWorld 的 task config、observation、action 与 execution-based evaluation 各自扮演什么角色？
+\item 为什么更高分辨率截图和更长 history 会改善表现，但不能根治问题？
+\item AgentTrek 为什么从教程网页而不是人工全程标注出发？
+\item CoTA 与普通 CoT 有什么本质不同？
+\item AGUVIS 为什么坚持 pure-vision observation？
+\item inner monologue 为什么同时影响高层 reasoning 与低层 grounding？
+\item xGen-MM-Vid 与 GenS 分别试图解决长视频中的什么瓶颈？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 如果要设计一个连接 OSWorld 与 physical agents 的新 benchmark，你会保留哪些 execution constraints？
+\item 对 GUI agents 而言，统一 action space 与统一 observation space 哪一个更难？为什么？
+\item 长视频理解中的 frame selection 是否可以视为另一种 inference-time search？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 阅读 OSWorld 论文摘要与 slides，设计新的 execution-based evaluator，并说明如何避免误判 alternative correct solutions。
+\item 画出 AgentTrek 的 guided replay 数据管线，并指出最容易引入 distribution shift 的步骤。
+\item 为一个 GUI task 写一个 CoTA example，显式给出 thought 和 action 序列。
+\item 比较 AGUVIS 与一个 text-based GUI agent，在相同任务下列出各自更易失败的环节。
+\end{enumerate}
+
+\section{第 8 章：AlphaProof 与形式化数学（AlphaProof: When Reinforcement Learning Meets Formal Mathematics）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item 为什么 mathematics 会被视为 general intelligence 的 root node？
+\item informal mathematics 与 formal mathematics 的最大差别是什么？
+\item 为什么 Lean 既像 proof assistant，也像 RL environment？
+\item AlphaProof 与 AlphaZero 共用哪些关键 ingredient？
+\item 为什么 IMO 2024 更像一个 Apollo program，而不是形式化数学的终局？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 如果 theorem prover 拥有完美 verifier，但 formalizer 很差，整个系统会卡在哪里？
+\item test-time RL specialization 为什么可能有效？为什么又可能过拟合 problem bubble？
+\item 为什么几何题会同时暴露 formalization 与 theorem proving 的双重难点？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 用 Lean 写出一个最小 proof state，并解释 state、action 与 verification 的关系。
+\item 设计一个 toy proof-search environment，比较纯 sampling、beam search 与 value-guided search。
+\item 选读 AlphaProof 相关材料，分析“grounded feedback”为什么让 formal mathematics 成为 agent research 的好试验台。
+\end{enumerate}
+
+\subsection*{形式化与证明题}
+\begin{enumerate}
+\item 将一个简短自然语言命题翻译为 Lean 风格的 formal statement，并显式写出所有前提。
+\item 为一个两步证明任务设计 value-guided proof search 的评分函数，说明它如何区分局部进展与最终完成。
+\end{enumerate}
+
+\section{第 9 章：Autoformalization 与定理证明（Language Models for Autoformalization and Theorem Proving）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item 为什么当前 math LLM 的成功主要集中在可验证的 pre-college math？
+\item formal specification、verification、theorem proving 与 autoformalization 分别解决什么问题？
+\item LeanDojo 解决了 theorem proving 研究中的哪个 reproducibility bottleneck？
+\item ReProver 为什么需要 premise retrieval？
+\item autoformalizing theorem statements 与 autoformalizing proofs 的难点有何不同？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item theorem equivalence checking 为什么在一般情形下难以完全自动化？
+\item LIPS 的成功是否说明 theorem proving 必须依赖领域特化？比较其收益与代价。
+\item 如果 diagrammatic reasoning 无法被显式 formalize，会怎样限制 geometry autoformalization？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 设计一个最小检索增强 theorem prover，说明 state、premise retrieval 与 tactic generation 如何交互。
+\item 给一个简短自然语言定理，尝试手工写出 formal statement，并列出所有隐含前提。
+\item 选读 LeanDojo 或 ReProver 论文，分析 benchmark 可复现性为何会直接影响 theorem-proving agent 的研究节奏。
+\end{enumerate}
+
+\subsection*{形式化与证明题}
+\begin{enumerate}
+\item 给定一个 informal proof outline，把它拆成 formal specification、lemma discovery、proof search、verification 四个阶段。
+\item 设计一个 theorem-proving harness，明确说明哪些步骤适合检索，哪些步骤适合搜索，哪些步骤必须由 verifier gate。
+\end{enumerate}
+
+\section{第 10 章：高级定理证明（Advanced Topics in Theorem Proving）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item informal mathematics、formal mathematics、autoformalization、theorem proving 与 verification 之间的边界是什么？
+\item Lean-STaR 中 thought 与 tactic 的角色如何分工？
+\item DSP 中 sketch 的作用是什么？
+\item 为什么 premise selection 与 ATP reconstruction 都不可缺？
+\item miniCTX 为什么会暴露长上下文依赖问题？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 分析一个 verifier 很强但 retrieval 很弱的 theorem-proving agent 会如何失败。
+\item thought generation 与 tree search 的关系是什么？更强搜索能否完全替代 thought？
+\item proof optimization 与 proof synthesis 的评价标准为何不同？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 选择 Lean-STaR、DSP、LeanHammer 或 miniCTX 中的一种系统，画出其 harness-managed workflow。
+\item 比较 sketch-guided proving 与 retrieval-guided proving，在什么任务上二者最可能互补？
+\item 阅读本章一篇核心 reading，说明 research-level formalization 为什么需要从单题证明转向项目级上下文管理。
+\end{enumerate}
+
+\subsection*{形式化与证明题}
+\begin{enumerate}
+\item 为一个简单 Lean theorem 设计 thought+tactic 的伪轨迹，并解释每步 thought 的作用。
+\item 将一段自然语言 proof sketch 重写为可供 formal prover 使用的子目标列表。
+\item 设计一个 proof optimization 任务，说明如何用 verifier 区分“等价但更短的证明”和“语义变化的证明”。
+\end{enumerate}
+
+\section{第 11 章：抽象、发现与 LLM Agents（Abstraction and Discovery with Large Language Model Agents）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item discovery agent 的四个关键能力是什么？
+\item 为什么 formal representation 能缓解 natural-language reasoning 的不可验证性？
+\item COPRA 的 prompt synthesis、action parsing 与 backtracking 分别做什么？
+\item 为什么 compiler verification 是 theorem-proving agent 的典型应用？
+\item LaSR 中 concept library 与普通 evolutionary search 的差别是什么？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item theorem proving 中的 verifier 与 scientific discovery 中的 empirical feedback 有哪些结构性差异？
+\item abstraction 何时能帮助 search，何时会造成 search bias？
+\item 如果把本讲方法扩展到 experiment design，需要新增哪些反馈环路？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 为一个简单 theorem-proving task 设计 COPRA 风格 search loop，并标出环境反馈节点。
+\item 对一组观测数据写出 symbolic regression objective，并说明 concept library 可以从哪些成功 hypotheses 中抽象出来。
+\item 选读 COPRA 或 LaSR，写一段分析：为什么“抽象”应被视为重构搜索空间的系统能力，而不只是新特征工程？
+\end{enumerate}
+
+\subsection*{形式化与证明题}
+\begin{enumerate}
+\item 给一个具体验证任务，区分 formal specification、verification harness 与 abstraction discovery 各自负责什么。
+\item 设计一个 discovery workflow，使其同时保留 verifier-backed correctness 与 hypothesis-level novelty。
+\end{enumerate}
+
+\section{第 12 章：安全与安全的 Agentic AI（Towards Building Safe and Secure Agentic AI）}
+
+\subsection*{概念复习题}
+\begin{enumerate}
+\item direct prompt injection 与 indirect prompt injection 的区别是什么？
+\item 为什么 AgentPoison 说明 memory layer 也是 security boundary？
+\item stand-alone LLM evaluation 与 end-to-end agent evaluation 的差别是什么？
+\item 什么是 least privilege on tool calls？
+\item 为什么 formal verification 在 agentic system 中比在普通聊天模型里更有意义？
+\end{enumerate}
+
+\subsection*{深入思考题}
+\begin{enumerate}
+\item 设计一个支持 email、calendar、payments 的 personal assistant agent，并给出 privilege decomposition。
+\item 如果 detection model 的误报率较高，应如何与 deterministic policy enforcement 组合，以避免 utility 崩溃？
+\item multi-agent system 中 shared memory 的 poisoning 风险有哪些独特之处？如何缓解？
+\end{enumerate}
+
+\subsection*{实践与阅读题}
+\begin{enumerate}
+\item 为一个 browser agent 设计 tool-level policy schema，区分 read-only、navigation、form-submit、payment 四类能力。
+\item 阅读 Progent 与 AgentPoison，比较 runtime privilege gate 与 memory integrity 两类防御的覆盖面与盲点。
+\item 设计一个最小 end-to-end agent security evaluation，要求同时覆盖 prompt、memory、tool、identity 与 information flow。
+\end{enumerate}
+
+\subsection*{Safety Analysis / Failure Analysis}
+\begin{enumerate}
+\item 为一个具有浏览器、文件系统与支付能力的 agent 画出 attack surface map，并标出最高风险的跨边界信息流。
+\item 设计一个 repair playbook，用于处理 indirect prompt injection、memory poisoning、over-privileged tool calls 与 identity confusion 四类事故。
+\item 说明为什么“加一道安全提示词”不足以成为 agentic system 的安全边界。
+\end{enumerate}

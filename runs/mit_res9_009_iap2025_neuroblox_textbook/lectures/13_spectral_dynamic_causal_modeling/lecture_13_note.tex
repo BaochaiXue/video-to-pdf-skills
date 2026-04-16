@@ -1,0 +1,314 @@
+
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{课程笔记：MIT RES.9-009 第 13 讲 谱动态因果建模的参数拟合}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{MIT Video Productions}
+\newcommand{\videopublishdate}{2025-04-10（讲课日期：2025-01-17）}
+\newcommand{\videoduration}{16:48}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=OEeyks_HIMI}
+\newcommand{\videocoverpath}{/Users/xinjiezhang/video-to-pdf-skills/runs/mit_res9_009_iap2025_neuroblox_textbook/lectures/13_spectral_dynamic_causal_modeling/lecture_13_cover.png}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{课程定位与逆问题主线}
+这一讲把课程的主轴从“向前模拟”切换到“反向拟合”。前几讲主要回答的是 forward problem：给定模型，把状态往前积分，再看轨迹会长什么样；而这一讲要解决的是 inverse problem：给定时间序列和一个候选模型，怎样回推出更合理的参数，让模型生成的数据尽量接近真实观测。
+
+讲者强调，spDCM 不是单纯做相关性分析，而是把生物物理模型放回推断环节里。它适合神经科学里常见的时间序列数据，尤其是电生理和影像数据；在 fMRI 语境下，它还天然带着“有效连接”的解释目标，也就是试图恢复区域之间的模型驱动连接，而不是只算 pairwise correlation。
+
+\begin{knowledgebox}{核心判断}
+功能连接回答“两个区域是否一起变化”，有效连接回答“在一个动力学模型中，哪个区域以什么方式影响另一个区域”。spDCM 的价值就在于把后者变成可估计问题。
+\end{knowledgebox}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.94\textwidth]{/Users/xinjiezhang/video-to-pdf-skills/runs/mit_res9_009_iap2025_neuroblox_textbook/lectures/13_spectral_dynamic_causal_modeling/figures/spdcm_workflow.pdf}
+\caption{spDCM 的主流程：先压缩时间序列，再做变分推断，最后比较自由能与后验参数。}
+\end{figure}
+
+讲者还把它和状态空间模型直接连了起来。可以把状态空间理解成对微分方程的一种离散化表达：当前状态不仅依赖自身，还依赖前一时刻或输入项，因此模型自然带有“逐步演化”的味道。这个角度很重要，因为它让 DCM 不再像一个静态统计回归，而更像一个带生理结构的动态系统。
+
+\begin{equation*}
+\dot x(t) = A x(t) + \sum_{j=1}^m u_j(t) B^{(j)} x(t) + C u(t)
+\end{equation*}
+
+上式对应讲者口中的三块内容：
+
+- $x(t)$：隐藏状态，也就是被模型显式描述的神经动力学状态。
+- $A$：基线有效连接，表示没有输入调制时区域之间的固有耦合。
+- $u_j(t)$：输入或未建模外源驱动，既可以来自外部刺激，也可以来自不显式建模的脑内群体。
+- $B^{(j)}$：输入调制连接，表示输入如何改变连接强度。
+- $C$：直接输入权重，把输入送到状态方程的某些通道上。
+
+\subsection{本章小结}
+这一讲的总目标很明确：不是把一个神经模型继续“正向跑一遍”，而是把观测数据当作约束，反过来识别连接参数、输入参数和模型结构。spDCM 之所以重要，是因为它把动态模型、贝叶斯推断和可解释连接整合进同一个框架。
+
+\section{从功能连接到有效连接}
+讲者先用一个对比把问题讲清楚。功能连接通常来自相关系数或相干性，优势是简单、稳健、计算快；但它只是在统计上描述区域之间是否一起波动，并不回答“为什么一起波动”。有效连接则不同，它直接依赖一个显式模型，关心的是区域之间在动力学上如何传递影响。
+
+因此，DCM 的第一步不是算相关矩阵，而是提出一个关于网络结构的假设：哪些区域存在固有耦合，哪些输入会调制这些耦合，哪些外源驱动需要保留。讲者在视频中也提醒，输入项不一定是外部刺激，它也可以代表脑内未显式建模的活动；昨天用 Poisson spike trains 的思路，就是这种“外源但仍在脑内”的例子。
+
+\begin{warningbox}{不要把相关性当成连接}
+如果只看统计相关性，容易把共同驱动误判成直接耦合；而 spDCM 通过引入结构化动力学模型，试图把“共同输入”和“真实连接”拆开。
+\end{warningbox}
+
+官方页面的示意图把这一点写得更具体：先定义图，再往图里放神经质量块和输入块，最后才把图编译成可求解系统。于是所谓“连接”，不再只是边的有无，而是 A、B、C 三类矩阵在系统中的角色分工。
+
+\subsection{本章小结}
+从功能连接走向有效连接，本质上是从纯统计问题走向模型问题。spDCM 的输出不是简单的相关图，而是一个可解释的连接结构，外加对后验不确定性的估计。
+
+\section{双线性状态空间与连接矩阵}
+spDCM 的状态方程具有很强的解释性：$A$ 负责基础连接，$B$ 负责输入调制，$C$ 负责直接输入。讲者特别强调了 bilinear 这个词，因为它说明输入与状态是相乘的关系，而不是把输入当成一个完全独立的回归项。
+
+这件事还有一个推论：如果没有输入，模型只剩下 $A$；如果输入存在，输入就可能改变连接的有效强度，于是 $B$ 矩阵就成了动态调制的核心。对于 fMRI 这类任务或静息态数据，这种结构化建模比简单回归更接近生理机制。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{/Users/xinjiezhang/video-to-pdf-skills/runs/mit_res9_009_iap2025_neuroblox_textbook/lectures/13_spectral_dynamic_causal_modeling/figures/spdcm_model_stack.pdf}
+\caption{一个区域的层级结构示意：外部输入驱动神经质量，再经血流动力学模型映射到 BOLD。}
+\end{figure}
+
+讲者在这里还给出了两条关键假设。第一，信号要近似 weakly stationary，也就是在有限时间窗内的统计特征不能剧烈漂移，这样 cross spectral density 才有意义。第二，参数分布采用 Gaussian / Laplace 近似，这样变分推断才能把后验压缩成均值与协方差。
+
+\begin{equation*}
+ p(\theta \mid y, m) = \frac{p(y \mid \theta, m) \, p(\theta \mid m)}{p(y \mid m)}
+\end{equation*}
+
+上式是 Bayes 规则在 DCM 里的基本形式：
+
+- $\theta$：待估计参数，包括连接、输入和超参数。
+- $y$：观测数据，这里通常是时间序列或其频域表示。
+- $m$：候选模型。
+- $p(y \mid \theta, m)$：likelihood，表示参数给定后数据出现的概率。
+- $p(\theta \mid m)$：prior，表示先验假设。
+- $p(\theta \mid y, m)$：posterior，表示看到数据后的参数分布。
+- $p(y \mid m)$：model evidence，用来做模型比较。
+
+\subsection{本章小结}
+双线性模型是这一讲的理论骨架。$A$、$B$、$C$ 的分工让“连接”和“输入”在数学上分离开，也让后续的参数拟合可以沿着明确的贝叶斯目标推进。
+
+\section{神经质量与 BOLD 流水线}
+官方页面把实现流程分成非常清楚的三层：神经质量、血流动力学和 BOLD 观测。讲者用三区域模型演示时，先放入线性神经质量块，再为每个区域加 OU 噪声输入，最后叠加 BalloonModel，把神经活动映射为 fMRI 可见的 BOLD 信号。
+
+这个层级的意义在于：BOLD 不是直接观测到的神经活动，而是神经活动经过血流动力学折射之后的结果。于是，观测量标签 \texttt{measurement} 的作用就很重要，它把“要拿来拟合的数据”从模型的其他变量里区分出来。讲者还强调，神经质量块下面得到的是 population average neural activity，上面则是 hemodynamic state equations，再往上才是 BOLD。
+
+\begin{lstlisting}[caption={Neuroblox 中的实现骨架}]
+# 1. 组装图：神经质量、输入和观测器
+# 2. 编译成系统：system_from_graph(...)
+# 3. 运行仿真并提取 measurement 变量
+# 4. 加噪声、中心化、重标定
+# 5. 计算 MAR / CSD，再进入 DCM 拟合
+\end{lstlisting}
+
+这一段流程里，几个函数名值得记住：\texttt{get\_idx\_tagged\_vars} 和 \texttt{get\_eqidx\_tagged\_vars} 负责从标签中找到观测量；\texttt{DataFrame} 用来把求解结果组织成可处理的数据表；\texttt{randn} 叠加测量噪声；\texttt{mean}、\texttt{std} 和重新命名列则对应 SPM 风格的数据预处理。
+
+讲者还解释了一个实现细节：OU 到神经质量、再到 BalloonModel 的连接权重在官方示例里取 \texttt{1/16}，这是为了让模拟更稳定。如果数值不稳，既可以降低 OU 噪声，也可以调小这条边的权重。这个细节看起来琐碎，但它直接决定了后面的频域估计是否会被数值爆炸干扰。
+
+\subsection{本章小结}
+这一部分展示的是 spDCM 的“生物物理管线”。你不是直接拿任意时间序列去拟合，而是先通过神经质量和 BalloonModel 把数据生成机制说清楚，再让拟合过程沿着这个机制回推参数。
+
+\section{观测量提取与噪声处理}
+在得到仿真结果后，讲者先把 BOLD 轨迹从系统中提取出来，再加上测量噪声并做中心化、重标定。这样做并不是为了“美化数据”，而是为了把数据变成符合后续频域建模假设的格式。
+
+这里的关键点有两个。第一，官方页面明确提到初始 spike 不具代表性，因为它来自随机过程的平衡阶段，所以要删除；第二，数据要改成与 SPM 一致的尺度和列名，这样后面的 DCM 过程才有可比性。
+
+\begin{importantbox}{为什么要重标定}
+频域拟合对幅值尺度很敏感。中心化和标准化一方面减少数值不稳定，另一方面让不同区域的信号更容易放在同一套先验尺度下比较。
+\end{importantbox}
+
+讲者同时指出，这一步不是“把所有信息都抹平”。相反，保留区域间的相对变化、同时消除不必要的偏置，才是为了让 cross spectral density 更能反映真正的相互作用。
+
+\subsection{本章小结}
+噪声处理和重标定的目的，是让时间序列进入一个适合频域推断的规范格式。它看似简单，却是把原始仿真或观测数据变成 DCM 输入的必要门槛。
+
+\section{交叉谱密度与数据压缩}
+spDCM 的一个关键技巧，是不用直接在时域里硬拟合所有状态，而是先把数据压缩成 cross spectral density。讲者在页面里写得很清楚：先用一个 order 为 $p$ 的多元自回归模型去拟合信号，再从该模型参数中解析得到 CSD。
+
+这就是为什么讲者会强调 lower frequencies：在很多脑信号里，主要能量都集中在低频段，而 CSD 正好把这种结构性差异凸显出来。换言之，频域表示既保留了动力学信息，又减少了直接逐时点拟合的复杂度。
+
+\begin{equation*}
+ S_{yy}(\omega) = \text{CSD}( y(t) )
+\end{equation*}
+
+这里的意思不是要把公式记死，而是要理解它在流程中的位置：$S_{yy}(\omega)$ 是后续 sDCM 真正拿来拟合的对象，而不是原始时序本身。
+
+- $\omega$：频率。
+- $S_{yy}(\omega)$：观测信号的交叉谱密度矩阵。
+- $p$：MAR 模型阶数。
+- $dt$：采样间隔。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{/Users/xinjiezhang/video-to-pdf-skills/runs/mit_res9_009_iap2025_neuroblox_textbook/lectures/13_spectral_dynamic_causal_modeling/figures/spdcm_workflow.pdf}
+\caption{同一条流程图再次提醒：CSD 是从时间域进入 DCM 的入口数据。}
+\end{figure}
+
+\subsection{本章小结}
+CSD 的作用是把长时间序列压缩成更适合贝叶斯拟合的统计对象。它没有丢掉动态信息，而是把动态信息换了一种更容易推断的表达。
+
+\section{贝叶斯估计与模型构造}
+进入模型拟合阶段后，官方页面把“模拟模型”换成“拟合模型”。这个模型保留相似的结构，但参数不再全部固定，而是通过 \texttt{@parameters}、\texttt{tunable=false}、\texttt{changetune} 等机制决定哪些参数参与优化，哪些参数保持冻结。
+
+讲者在这里特别强调了先验的重要性。比如有效连接矩阵会先给出一个小扰动的 prior expectation，然后把对角线连接单独处理，以便更容易获得对角占优的稳定结构。也就是说，DCM 不是盲目搜索参数空间，而是在生理合理的先验附近做局部推断。
+
+\begin{lstlisting}[caption={DCM 拟合阶段的关键接口}]
+# 设定先验、超先验与可调参数
+# setup_sDCM(...)
+# for iter in 1:max_iter
+#     run_sDCM_iteration!(state, setup)
+# end
+# freeenergy(state)
+# ecbarplot(state, setup, A_true)
+\end{lstlisting}
+
+讲者还说明了一个非常重要的数值策略：Levenberg-Marquardt 通常比 Gauss-Newton 更稳。原因很直白，后者在离高概率区域较远时更容易漂离；前者会通过阻尼项把更新“拉住”，更容易找到高概率质量集中的地方。这个性质正是 Bayes 优化里想要的：不是“随便找个极值”，而是尽量沿着 posterior 的主要质量推进。
+
+在自由能层面，讲者把它和机器学习里的 ELBO 对应起来。这里可以把它理解为对后验和证据的一种可优化下界：自由能越高，说明当前近似分布越接近真实后验，或者说当前模型越能解释数据。
+
+\begin{equation*}
+F(q) = \mathbb{E}_q[\log p(y,\theta\mid m)] - \mathbb{E}_q[\log q(\theta)]
+\end{equation*}
+
+- $q(\theta)$：变分近似分布。
+- $F(q)$：自由能或 ELBO。
+- 第一项：数据与先验共同决定的拟合质量。
+- 第二项：近似分布自身的熵项，控制复杂度。
+
+\subsection{本章小结}
+这一部分把模型构造、先验设定和优化目标合在了一起。spDCM 的参数拟合不是黑箱回归，而是“在先验约束下最大化自由能”的贝叶斯优化过程。
+
+\section{自由能优化与变分推断}
+自由能优化的实质，是用变分近似把原本难算的后验积分替换成可迭代求解的问题。讲者在视频中提到，posterior 是参数在给定数据后的分布，而 likelihood 和 prior 的乘积是 Bayes 规则的核心；真正困难的是 evidence，但变分 Bayes 让这一步变得可操作。
+
+官方页面的实现里，\texttt{setup\_sDCM} 会把频率轴、采样间隔、MAR 阶数和先验等对象组织好，然后 \texttt{run\_sDCM\_iteration!} 在每一步更新状态、自由能和预测自由能变化量。停止准则也说得很清楚：如果连续若干次预测变化低于阈值，就可以认为收敛。
+
+\begin{importantbox}{为什么要看 $F$ 和 $dF$}
+$F$ 告诉你当前拟合得有多好，$dF$ 告诉你下一步还会不会明显改善。两者一起看，才能判断优化是已经稳定收敛，还是只是暂时停住。
+\end{importantbox}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.94\textwidth]{/Users/xinjiezhang/video-to-pdf-skills/runs/mit_res9_009_iap2025_neuroblox_textbook/lectures/13_spectral_dynamic_causal_modeling/figures/spdcm_workflow.pdf}
+\caption{自由能、后验和模型比较都在同一条推断链路里。}
+\end{figure}
+
+\subsection{本章小结}
+变分推断的目标不是精确积分，而是在可计算的近似类里找到最好的后验近似。对 spDCM 来说，这个近似的质量直接决定了连接估计和模型比较是否可信。
+
+\section{结果与参数回收}
+拟合完成后，讲者先看自由能曲线，再看参数后验条形图。前者回答“优化有没有收敛”，后者回答“恢复出来的连接是不是接近 ground truth”。当讲者说 larger free energy better 时，本质上就是在说模型越能压低复杂度、越能解释数据，证据就越强。
+
+这里的教学重点是：模型拟合不是一次性给出“真值”，而是给出一个后验均值和方差。方差很重要，因为它告诉你这个连接到底稳不稳、是否被噪声主导。即使均值接近真值，如果不确定性很大，也不能把结果当成高置信结论。
+
+\subsection{本章小结}
+结果页的价值不只在“画出了一张好看的图”，而在于它把点估计和不确定性一起展示出来。spDCM 的输出因此更像一个统计推断结论，而不是普通曲线拟合结果。
+
+\section{模型选择、鲁棒性与课堂延伸}
+最后一部分，讲者把视角从“估计一个模型”扩展到“比较多个模型”。课堂里的做法很清楚：从同一个 ground truth 生成数据，再尝试三种结构不同的模型，最后比较自由能。离真值越远，自由能越差，这说明模型选择确实能把不合适的结构筛掉。
+
+不过讲者也没有把这件事说得过满。挑战题里明确要求你改变随机种子、重复多次、统计不同噪声实例下的结果，并思考自由能和参数回收究竟有多稳健。这里的潜台词是：DCM 很强，但它并不神奇；噪声、模型错设和先验偏差都会影响结论。
+
+\begin{importantbox}{课程给出的三个延伸方向}
+第一，改变随机种子，检查结果对噪声的敏感性；第二，重复多次并做平均，观察 ensemble 统计；第三，换成别的神经动力学模型，比如 Jansen-Rit，再看先验和可调参数如何重新设定。
+\end{importantbox}
+
+讲者最后还补了一句工程上的信息：Neuroblox 的 spDCM 是模块化的，神经质量块、连接结构、观测器和推断器都可以替换；而且它借助 ModelingToolkit 和自动微分，在速度上已经能和原始 SPM 路线相竞争，同时保留了符号化模型的灵活性。这一点很重要，因为它说明课程不是只讲原理，而是已经把原理落进了可复用的软件接口。
+
+\section{总结与延伸}
+这一讲把课程前半部分的“建模与仿真”收束到了“参数反演与模型选择”。如果要把主线再压缩一层，那就是：先用神经质量和血流动力学给出一个生理合理的生成模型，再把观测数据压缩成 CSD，最后在贝叶斯框架里用自由能去拟合和比较模型。
+
+从方法论上看，spDCM 的意义有三点。第一，它把有效连接从纯解释性术语变成可计算对象；第二，它把先验、数据和模型复杂度放到同一个目标函数里；第三，它让不同生理层级的模型可以在同一条推断链路里替换和对比。对做计算神经科学的人来说，这种“可解释 + 可拟合 + 可比较”的组合非常有价值。
+
+\begin{thebibliography}{9}
+\bibitem{novelli2024} Novelli, L., Friston, K., and Razi, A. Spectral Dynamic Causal Modeling: A Didactic Introduction and Its Relationship with Functional Connectivity. Network Neuroscience, 2024.
+\bibitem{hofmann2023} Hofmann, D., Chesebro, A. G., Rackauckas, C., Mujica-Parodi, L. R., Friston, K. J., Edelman, A., and Strey, H. H. Leveraging Julia's Automated Differentiation and Symbolic Computation to Increase Spectral DCM Flexibility and Speed. bioRxiv, 2023.
+\bibitem{friston2014} Friston, K. J., Kahan, J., Biswal, B., and Razi, A. A DCM for Resting State fMRI. NeuroImage, 2014.
+\end{thebibliography}
+
+\end{document}
