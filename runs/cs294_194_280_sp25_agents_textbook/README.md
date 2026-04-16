@@ -36,6 +36,33 @@ Supplemental course sources folded into the final textbook:
   - official schedule: `https://cs329a.stanford.edu/#schedule`
   - no official public video page or official slide index was found; the supplement remains schedule-and-readings grounded
 
+## Source Grounding Status
+
+This run is not uniformly “video-only”. Its grounding policy is:
+
+- Spring 2025 Berkeley main textbook:
+  - yes, this part is built from the official course videos plus official slides and official readings
+  - all `12` official Spring 2025 lectures are video-grounded
+  - the official playlist used is `https://www.youtube.com/playlist?list=PLS01nW3RtgorL3AW8REU9nGkzhvtn6Egn`
+- Berkeley Fall 2024 supplement:
+  - mostly yes, this supplement is grounded in the official/public edited videos, official slides, and official readings
+  - it is not grounded in the official `bCourses` original recordings, because those are official but not public
+  - the official playlist also contains `2` private entries that are logged as omissions rather than treated as covered
+- Berkeley Fall 2025 supplement:
+  - mostly yes, this supplement is grounded in the official/public recordings, official slides when public, and official readings
+  - `Sep 8` is slides-only
+  - `Oct 6` is official and public but unlisted, so it is ingested directly rather than via playlist expansion
+- Stanford CS329A supplement:
+  - no, this supplement is not a video-grounded reconstruction
+  - it is grounded in the official Stanford course page, official schedule, and official reading links
+  - an instructor-affiliated public playlist exists, but it is not treated as canonical source-of-truth because the official course site does not publish it as the official video entry
+
+Short answer to “is our textbook based on the course videos?”:
+
+- `yes` for the Spring 2025 Berkeley main book
+- `yes, with explicit public-source gaps` for the Berkeley 2024 and Berkeley 2025 supplements
+- `no, schedule/readings grounded only` for the Stanford CS329A supplement
+
 ## Directory Map
 
 - `AGENTS.md`: short map for all agents entering this run

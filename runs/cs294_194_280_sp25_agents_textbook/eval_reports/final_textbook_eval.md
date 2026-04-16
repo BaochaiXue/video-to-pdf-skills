@@ -118,6 +118,28 @@ The merged artifact is textbook-like rather than a video-summary bundle:
     - `https://cs329a.stanford.edu/#schedule`
     - no official public video page or official slide index was found
 
+## Video-Grounding Answer
+
+If the question is “is this textbook actually based on the course videos?”, the precise answer is:
+
+- Spring 2025 Berkeley main textbook:
+  - `yes`
+  - all `12` official lectures are grounded in the official Berkeley RDI course videos, together with official slides and official readings
+- Berkeley Fall 2024 supplement:
+  - `mostly yes`
+  - it is grounded in the official/public edited videos, official slides, and official readings
+  - it is not grounded in the official `bCourses` original recordings, because those are not public
+  - the official playlist also contains `2` private items, which are logged as omissions rather than treated as covered
+- Berkeley Fall 2025 supplement:
+  - `mostly yes`
+  - it is grounded in the official/public recordings, official slides when public, and official readings
+  - `Sep 8` is slides-only
+  - `Oct 6` is official and public but unlisted, so it is ingested directly rather than through playlist expansion
+- Stanford CS329A supplement:
+  - `no`
+  - this chapter is grounded only in the official course site, official schedule, and official reading links
+  - no official public video page or official slide index was found on the Stanford course site, so the supplement does not pretend to be a video reconstruction
+
 ## Final Verdict
 
 `pass`
