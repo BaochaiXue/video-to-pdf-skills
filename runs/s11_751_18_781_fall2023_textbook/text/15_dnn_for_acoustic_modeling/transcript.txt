@@ -1,0 +1,995 @@
+[00:00:00,640 --> 00:00:06,000] okay sounds good and then let's move to
+[00:00:03,120 --> 00:00:09,040] the technical part a deep neural network
+[00:00:06,000 --> 00:00:10,360] for acoustic modeling uh is the today's
+[00:00:09,040 --> 00:00:13,360] uh the
+[00:00:10,360 --> 00:00:16,720] topic and actually today's topic covers
+[00:00:13,360 --> 00:00:20,760] many things uh first uh the the the
+[00:00:16,720 --> 00:00:23,760] basic approach of the how to apply deep
+[00:00:20,760 --> 00:00:26,720] neural network for acostic modeling and
+[00:00:23,760 --> 00:00:30,080] then uh I will also explain about the
+[00:00:26,720 --> 00:00:34,120] several Advanced neural network uh the
+[00:00:30,080 --> 00:00:36,680] the uh the acoustic model and the uh the
+[00:00:34,120 --> 00:00:39,160] thecurrent neural network is usually the
+[00:00:36,680 --> 00:00:42,160] covered in this Advanced neural network
+[00:00:39,160 --> 00:00:45,079] acostic model but maybe this can be in
+[00:00:42,160 --> 00:00:47,559] the uh next lecture uh my today's kind
+[00:00:45,079 --> 00:00:51,719] of a goal is anyway to try to finish the
+[00:00:47,559 --> 00:00:55,480] explanation about the CNN uh and so
+[00:00:51,719 --> 00:00:56,600] on okay so uh today's agenda is for
+[00:00:55,480 --> 00:00:59,600] acoustic
+[00:00:56,600 --> 00:01:02,039] modeling so basically this is uh the
+[00:00:59,600 --> 00:01:04,600] most acoustic modeling and partly cover
+[00:01:02,039 --> 00:01:07,840] the feature extraction but it's not
+[00:01:04,600 --> 00:01:10,040] about end to end but basic neur Network
+[00:01:07,840 --> 00:01:12,479] part is of course applied to the N2
+[00:01:10,040 --> 00:01:16,000] neural network so this part is actually
+[00:01:12,479 --> 00:01:18,759] quite related to the entire
+[00:01:16,000 --> 00:01:20,119] lecture first uh let's review the the
+[00:01:18,759 --> 00:01:24,720] our acoustic
+[00:01:20,119 --> 00:01:28,040] models so we have our the speech feature
+[00:01:24,720 --> 00:01:30,439] observation uh sequence and the output
+[00:01:28,040 --> 00:01:33,280] can be the token uh sequence it can be
+[00:01:30,439 --> 00:01:36,439] word or character or subword depending
+[00:01:33,280 --> 00:01:38,960] on our application and for the classical
+[00:01:36,439 --> 00:01:41,720] the acoustic modeling speech we also
+[00:01:38,960 --> 00:01:46,159] always kind of using the the pon
+[00:01:41,720 --> 00:01:49,399] sequences and so on and then this uh
+[00:01:46,159 --> 00:01:52,880] three variable can be decomposed to have
+[00:01:49,399 --> 00:01:56,399] a three kind of factors uh and so
+[00:01:52,880 --> 00:02:00,360] on and then today's uh the focus is this
+[00:01:56,399 --> 00:02:00,360] acoustic mod part
+[00:02:01,200 --> 00:02:06,640] and uh the the our costic model is
+[00:02:04,079 --> 00:02:09,720] having a issue in the
+[00:02:06,640 --> 00:02:12,959] lenss uh and then we try to kind of
+[00:02:09,720 --> 00:02:15,959] mitigate this issue by introdu the HM
+[00:02:12,959 --> 00:02:19,160] State sequence uh that is we spend a lot
+[00:02:15,959 --> 00:02:21,519] of time to the study about this kind of
+[00:02:19,160 --> 00:02:25,680] issue and so
+[00:02:21,519 --> 00:02:29,360] on and then actually uh that in this uh
+[00:02:25,680 --> 00:02:30,360] the lecture please uh understand that
+[00:02:29,360 --> 00:02:33,319] the
+[00:02:30,360 --> 00:02:36,840] output part how to kind of deal with the
+[00:02:33,319 --> 00:02:38,519] output part is not so much changed we
+[00:02:36,840 --> 00:02:43,120] just using
+[00:02:38,519 --> 00:02:46,319] HML but input part or how to kind of
+[00:02:43,120 --> 00:02:48,599] model the the speech features is
+[00:02:46,319 --> 00:02:52,080] actually deed with the Deep neural
+[00:02:48,599 --> 00:02:55,920] network so this is just partly using
+[00:02:52,080 --> 00:02:59,400] deep neural network a power but the the
+[00:02:55,920 --> 00:03:02,680] output ring part output sequential uh
+[00:02:59,400 --> 00:03:04,799] the uh the problem is still based on the
+[00:03:02,680 --> 00:03:07,680] hidden Mark
+[00:03:04,799 --> 00:03:11,560] model so that's the kind of the high
+[00:03:07,680 --> 00:03:16,599] level uh the the discussion in today's
+[00:03:11,560 --> 00:03:18,120] the lecture and let's uh revisit our the
+[00:03:16,599 --> 00:03:22,519] hmm
+[00:03:18,120 --> 00:03:26,920] the uh the the discussion actually the
+[00:03:22,519 --> 00:03:31,040] in the hmm discussion we are the by
+[00:03:26,920 --> 00:03:35,799] using the hmm State sequence we mostly
+[00:03:31,040 --> 00:03:40,000] the focus on the uh the P given is the
+[00:03:35,799 --> 00:03:42,959] uh some hmm state in time frame T and
+[00:03:40,000 --> 00:03:45,760] then corresponding the observation and
+[00:03:42,959 --> 00:03:49,439] then we actually make the likely
+[00:03:45,760 --> 00:03:53,920] function right and then which function
+[00:03:49,439 --> 00:03:57,439] did we use here we use gaan Gaia mixure
+[00:03:53,920 --> 00:04:01,120] model and so on and this is actually a
+[00:03:57,439 --> 00:04:03,680] very strong constraint due to the EM
+[00:04:01,120 --> 00:04:06,519] algorithm and so on we actually cannot
+[00:04:03,680 --> 00:04:09,079] use the other other functions the so
+[00:04:06,519 --> 00:04:12,280] much there's a few function we can use
+[00:04:09,079 --> 00:04:14,920] it but basically we cannot use the other
+[00:04:12,280 --> 00:04:17,280] function this is a big uh
+[00:04:14,920 --> 00:04:20,680] restriction but as we discussed in the
+[00:04:17,280 --> 00:04:23,080] last time in the CDC derivation uh we
+[00:04:20,680 --> 00:04:25,639] just REM remove the constant of the EM
+[00:04:23,080 --> 00:04:28,240] algorithm we just focus on the gradient
+[00:04:25,639 --> 00:04:31,800] to optimize our parameters we can
+[00:04:28,240 --> 00:04:35,880] actually remove this constraint and this
+[00:04:31,800 --> 00:04:38,840] are the P given this part this part can
+[00:04:35,880 --> 00:04:41,440] be actually replaced with the Deep neur
+[00:04:38,840 --> 00:04:44,840] network but again the all the other part
+[00:04:41,440 --> 00:04:47,800] is same and then this approach is called
+[00:04:44,840 --> 00:04:51,600] the DNN hm hybrid
+[00:04:47,800 --> 00:04:55,199] system so this the word o appeared so
+[00:04:51,600 --> 00:04:57,520] please remember uh that I am using a DNM
+[00:04:55,199 --> 00:05:00,400] hybrid hybrid people just call it the
+[00:04:57,520 --> 00:05:03,560] hybrid system and so on but this means
+[00:05:00,400 --> 00:05:05,479] that we still using the hmm uh we still
+[00:05:03,560 --> 00:05:08,280] using the most of our formulation that
+[00:05:05,479 --> 00:05:11,240] we used before like the beta algorithm
+[00:05:08,280 --> 00:05:14,120] forward backward and so on however C
+[00:05:11,240 --> 00:05:17,880] mixture part is repaced with the neural
+[00:05:14,120 --> 00:05:21,160] network and so on and then there are lot
+[00:05:17,880 --> 00:05:25,240] of ways to do that but this is the one
+[00:05:21,160 --> 00:05:28,319] very typical way to use the kind of DNN
+[00:05:25,240 --> 00:05:31,960] for the the instead of the gaan mixture
+[00:05:28,319 --> 00:05:33,479] model actually deep new network is very
+[00:05:31,960 --> 00:05:35,880] good at
+[00:05:33,479 --> 00:05:38,400] classification classification means that
+[00:05:35,880 --> 00:05:41,240] given the observation we will actually
+[00:05:38,400 --> 00:05:43,680] predict which one is the kind of hmm
+[00:05:41,240 --> 00:05:47,759] state or for and so on for character and
+[00:05:43,680 --> 00:05:51,240] so on so we actually have a uh they can
+[00:05:47,759 --> 00:05:55,720] make a very good neural network uh
+[00:05:51,240 --> 00:05:58,759] classifier here and then and what we
+[00:05:55,720 --> 00:06:02,039] usually are using in GMM is actually
+[00:05:58,759 --> 00:06:06,120] opposite right observation is left this
+[00:06:02,039 --> 00:06:08,840] one is observation is right so then we
+[00:06:06,120 --> 00:06:12,919] actually can simply using the product
+[00:06:08,840 --> 00:06:16,199] rule the the the or Bas the theem and
+[00:06:12,919 --> 00:06:18,400] actually also by the way removing the
+[00:06:16,199 --> 00:06:21,400] the another kind of the prior
+[00:06:18,400 --> 00:06:23,280] information about observation and then
+[00:06:21,400 --> 00:06:26,160] we can actually
+[00:06:23,280 --> 00:06:28,560] converting this uh the the the the
+[00:06:26,160 --> 00:06:31,680] probability uh with the the uh
+[00:06:28,560 --> 00:06:34,759] likelihood but by dividing the prior so
+[00:06:31,680 --> 00:06:37,639] this is a kind of only equation we need
+[00:06:34,759 --> 00:06:39,599] and the PST is actually at the computer
+[00:06:37,639 --> 00:06:42,280] by just kind of counting the the
+[00:06:39,599 --> 00:06:46,759] observation of the state and so
+[00:06:42,280 --> 00:06:49,080] on and the anyway the idea is that we
+[00:06:46,759 --> 00:06:51,880] just focusing on this one in the Deep
+[00:06:49,080 --> 00:06:54,319] neural network and then if we try to
+[00:06:51,880 --> 00:06:57,400] convert it to the to with kind of our
+[00:06:54,319 --> 00:07:00,599] GMM framework we just kind of dividing
+[00:06:57,400 --> 00:07:04,960] by this the P SD uh the prior
+[00:07:00,599 --> 00:07:10,039] distribution uh that's it and all our
+[00:07:04,960 --> 00:07:13,240] the the the another the the the the uh
+[00:07:10,039 --> 00:07:15,720] the the all our kind of uh the the
+[00:07:13,240 --> 00:07:19,319] formulations are actually almost same
+[00:07:15,720 --> 00:07:23,599] and luckily the forward backward to get
+[00:07:19,319 --> 00:07:25,759] the kind of uh the the the occupation
+[00:07:23,599 --> 00:07:28,840] probability and so on we can actually
+[00:07:25,759 --> 00:07:33,160] still using this one neural network
+[00:07:28,840 --> 00:07:37,319] output divided by the prior distribution
+[00:07:33,160 --> 00:07:40,960] by the way M step is not used anymore so
+[00:07:37,319 --> 00:07:43,560] this part is replaced with the the grad
+[00:07:40,960 --> 00:07:47,080] Des Center but e step part we can still
+[00:07:43,560 --> 00:07:49,520] use the the hmm algorithm and another
+[00:07:47,080 --> 00:07:52,960] probably most important part is V
+[00:07:49,520 --> 00:07:55,960] algorithm given the model we try to get
+[00:07:52,960 --> 00:07:58,000] the kind of most likely sequence right
+[00:07:55,960 --> 00:08:00,199] this one is again we can actually use a
+[00:07:58,000 --> 00:08:05,440] hmm just by
+[00:08:00,199 --> 00:08:06,400] dividing the the the again the the DNN
+[00:08:05,440 --> 00:08:11,800] the
+[00:08:06,400 --> 00:08:15,479] the the posterior uh the divided by the
+[00:08:11,800 --> 00:08:19,440] uh this the prior distribution uh and so
+[00:08:15,479 --> 00:08:24,199] on so by using this uh that we can
+[00:08:19,440 --> 00:08:29,199] actually also using the hmm okay but how
+[00:08:24,199 --> 00:08:33,440] how to get this kind of uh the uh DNN uh
+[00:08:29,199 --> 00:08:37,640] the AIA we will be discussing okay so
+[00:08:33,440 --> 00:08:43,159] now we actually using all kind of
+[00:08:37,640 --> 00:08:47,000] problem P given St other PST given OT
+[00:08:43,159 --> 00:08:51,320] and then let's think about they did try
+[00:08:47,000 --> 00:08:54,800] to focusing on estimating this part and
+[00:08:51,320 --> 00:08:58,440] it's actually uh becomes uh the the
+[00:08:54,800 --> 00:09:03,079] problem of the given speech
+[00:08:58,440 --> 00:09:05,079] feature to uh prct the hmm State
+[00:09:03,079 --> 00:09:06,640] SD
+[00:09:05,079 --> 00:09:10,320] okay
+[00:09:06,640 --> 00:09:12,720] however as you know we don't have a
+[00:09:10,320 --> 00:09:16,200] correct label for hmm
+[00:09:12,720 --> 00:09:18,680] state it is the alignment can be are
+[00:09:16,200 --> 00:09:22,839] there the uh the any
+[00:09:18,680 --> 00:09:25,600] variations so we actually using the big
+[00:09:22,839 --> 00:09:27,200] uh very big assumption which is just
+[00:09:25,600 --> 00:09:30,640] using the B
+[00:09:27,200 --> 00:09:34,880] alignment and then get some kind of a
+[00:09:30,640 --> 00:09:38,880] the state uh the index for the each
+[00:09:34,880 --> 00:09:42,000] frame and then using it as a
+[00:09:38,880 --> 00:09:45,279] Target so uh this is a very big
+[00:09:42,000 --> 00:09:48,519] approximation again because you know as
+[00:09:45,279 --> 00:09:50,959] we discussed we really not sure we are
+[00:09:48,519 --> 00:09:52,200] really not sure uh this alignment is
+[00:09:50,959 --> 00:09:56,360] correct or
+[00:09:52,200 --> 00:09:58,680] not and then uh bab alignment will
+[00:09:56,360 --> 00:10:00,720] provide us the kind of most likely
+[00:09:58,680 --> 00:10:03,600] alignment
+[00:10:00,720 --> 00:10:06,680] uh but this is not the true and this is
+[00:10:03,600 --> 00:10:09,279] alsoo obtained from the model so this is
+[00:10:06,680 --> 00:10:12,040] actually one of the big approximation
+[00:10:09,279 --> 00:10:15,959] but effectively this one is quite
+[00:10:12,040 --> 00:10:19,320] working so uh DN and hmm is actually
+[00:10:15,959 --> 00:10:24,839] based on this assumption and then the
+[00:10:19,320 --> 00:10:24,839] all the kind of The Following part is
+[00:10:25,360 --> 00:10:31,760] derived so this part is the the probably
+[00:10:28,839 --> 00:10:32,720] the the most the difficult part for
+[00:10:31,760 --> 00:10:35,600] everyone
+[00:10:32,720 --> 00:10:38,480] to
+[00:10:35,600 --> 00:10:41,480] understand I actually first time didn't
+[00:10:38,480 --> 00:10:45,360] fly understand it so this means that we
+[00:10:41,480 --> 00:10:48,519] need beta varment so we need some models
+[00:10:45,360 --> 00:10:50,200] right and how to make a model we
+[00:10:48,519 --> 00:10:55,079] actually using
+[00:10:50,200 --> 00:10:59,560] Gan yeah so the this uh the
+[00:10:55,079 --> 00:11:02,920] hmm uh DNN hybrid system is actually
+[00:10:59,560 --> 00:11:05,040] depending on the previous GMM systems
+[00:11:02,920 --> 00:11:08,360] and then get the B alignment and then
+[00:11:05,040 --> 00:11:11,680] make the kind of the the uh the input
+[00:11:08,360 --> 00:11:14,600] and output and then make a kind of
+[00:11:11,680 --> 00:11:16,519] classifier uh and then people may also
+[00:11:14,600 --> 00:11:18,760] do the the alignment based on B
+[00:11:16,519 --> 00:11:21,519] alignment based on this kind of obtain
+[00:11:18,760 --> 00:11:23,480] the DNA and so but it can be kind of a
+[00:11:21,519 --> 00:11:26,800] the local Optimum right in terms of
+[00:11:23,480 --> 00:11:29,519] alignment so that's why that some people
+[00:11:26,800 --> 00:11:31,880] mention that the CTC or uh the the
+[00:11:29,519 --> 00:11:34,680] attention can be better because this
+[00:11:31,880 --> 00:11:38,600] assumption is too
+[00:11:34,680 --> 00:11:42,760] strong okay so anyway uh that now we
+[00:11:38,600 --> 00:11:46,079] know that the the input and
+[00:11:42,760 --> 00:11:48,639] output input speech features it can be
+[00:11:46,079 --> 00:11:52,480] log filter B that which you guys
+[00:11:48,639 --> 00:11:55,839] implemented right and output is the the
+[00:11:52,480 --> 00:11:58,360] hmm State again you guys also using it
+[00:11:55,839 --> 00:12:01,720] for your kind assignment the coding
+[00:11:58,360 --> 00:12:05,240] assignment it's the your case is simple
+[00:12:01,720 --> 00:12:07,680] yes no uh but the uh it can be you know
+[00:12:05,240 --> 00:12:11,760] many of the characters or many of the
+[00:12:07,680 --> 00:12:14,920] subw depending on our system and so on
+[00:12:11,760 --> 00:12:19,680] uh but anyway the input is this kind of
+[00:12:14,920 --> 00:12:23,880] the speech features and output is the
+[00:12:19,680 --> 00:12:26,959] ladio and then every time frame we use a
+[00:12:23,880 --> 00:12:30,240] kind of deep neur Network crash fire to
+[00:12:26,959 --> 00:12:33,279] predict the hmm state
+[00:12:30,240 --> 00:12:36,920] okay very simple right very simple
+[00:12:33,279 --> 00:12:40,320] problem after we get the bet arment the
+[00:12:36,920 --> 00:12:42,399] very simple problem uh so that the since
+[00:12:40,320 --> 00:12:44,320] it is simple and then just making a deep
+[00:12:42,399 --> 00:12:46,839] new network to be kind of more
+[00:12:44,320 --> 00:12:48,639] complicated uh that's that kind of
+[00:12:46,839 --> 00:12:52,120] methodology is quite working in the
+[00:12:48,639 --> 00:12:55,160] beginning of the the spech cognition
+[00:12:52,120 --> 00:12:58,000] development now I will discuss more
+[00:12:55,160 --> 00:13:00,120] about you know what is the input fature
+[00:12:58,000 --> 00:13:02,519] uh and what is the kind other
+[00:13:00,120 --> 00:13:05,120] intermediate representation in deep neur
+[00:13:02,519 --> 00:13:10,279] Network in more
+[00:13:05,120 --> 00:13:15,240] details so first uh the input
+[00:13:10,279 --> 00:13:18,600] feature uh yes uh we use mlcc or L fi
+[00:13:15,240 --> 00:13:22,800] bank but there is a big actually the
+[00:13:18,600 --> 00:13:25,000] changes so we usually concatenate
+[00:13:22,800 --> 00:13:28,199] several
+[00:13:25,000 --> 00:13:30,040] frames uh so that the input becomes more
+[00:13:28,199 --> 00:13:32,880] kind of Rich information
+[00:13:30,040 --> 00:13:32,880] more context
+[00:13:33,639 --> 00:13:39,720] information this is actually not so much
+[00:13:38,279 --> 00:13:44,160] use for the
+[00:13:39,720 --> 00:13:46,440] GMM because GMM we use diagonal Coan
+[00:13:44,160 --> 00:13:48,760] right you remember that diagonal coant
+[00:13:46,440 --> 00:13:53,000] right which is of diagonal element is
+[00:13:48,760 --> 00:13:56,399] completely zero so this means that the
+[00:13:53,000 --> 00:13:59,639] features should not be so
+[00:13:56,399 --> 00:14:02,279] corated uh so the l f
+[00:13:59,639 --> 00:14:04,240] and it's actually the the features some
+[00:14:02,279 --> 00:14:08,079] correlation but it's quite
+[00:14:04,240 --> 00:14:11,639] independent but the if we
+[00:14:08,079 --> 00:14:14,519] concatenate are the neighboring
+[00:14:11,639 --> 00:14:17,399] features the feature is actually very
+[00:14:14,519 --> 00:14:19,800] highly cated with 10 millisecond the
+[00:14:17,399 --> 00:14:22,680] feature is not so much changed so this
+[00:14:19,800 --> 00:14:25,279] is actually not well the model in GAA
+[00:14:22,680 --> 00:14:27,839] mixture however deep NE network doesn't
+[00:14:25,279 --> 00:14:30,519] care we actually using the first linear
+[00:14:27,839 --> 00:14:33,120] layer to consider the this kind of
+[00:14:30,519 --> 00:14:36,160] correlation and so on so we can actually
+[00:14:33,120 --> 00:14:39,040] input the the concatenated features so
+[00:14:36,160 --> 00:14:42,360] that is actually one a big change from
+[00:14:39,040 --> 00:14:43,920] the initial the gaussia mixture model to
+[00:14:42,360 --> 00:14:47,240] the the Deep NE
+[00:14:43,920 --> 00:14:51,639] Network and the people can concatenate
+[00:14:47,240 --> 00:14:53,839] totally seven frames or 11 frames it's
+[00:14:51,639 --> 00:14:53,839] very
+[00:14:55,000 --> 00:15:02,560] long next part is the output which I
+[00:14:59,240 --> 00:15:06,120] explained before anyway we use the bet
+[00:15:02,560 --> 00:15:09,279] uh the algorithm and then get Okay cool
+[00:15:06,120 --> 00:15:13,440] so uh the now that given this kind of
+[00:15:09,279 --> 00:15:15,279] hmm State as an output let's try to make
+[00:15:13,440 --> 00:15:18,360] a deep new network
+[00:15:15,279 --> 00:15:20,839] classier and then uh Deep by uh new
+[00:15:18,360 --> 00:15:22,639] network uh the through the discussion
+[00:15:20,839 --> 00:15:24,560] with some of the student people are not
+[00:15:22,639 --> 00:15:26,519] so much familiar with the Deep neur some
+[00:15:24,560 --> 00:15:29,000] people are not very familiar with the
+[00:15:26,519 --> 00:15:32,160] Deep neur Network so I am kind of a
+[00:15:29,000 --> 00:15:35,399] showing some kind of a explanation uh
+[00:15:32,160 --> 00:15:38,160] about the Deep neural network which is
+[00:15:35,399 --> 00:15:41,360] basically the combination of the lot of
+[00:15:38,160 --> 00:15:42,959] binary classifiers if using the sigmoid
+[00:15:41,360 --> 00:15:45,800] activation
+[00:15:42,959 --> 00:15:47,720] function deep neur network is again the
+[00:15:45,800 --> 00:15:51,399] combination of the binary
+[00:15:47,720 --> 00:15:55,920] classifier so binary classifier which is
+[00:15:51,399 --> 00:16:00,600] a simple uh the problem to see whether
+[00:15:55,920 --> 00:16:05,160] uh the our kind of data is the yes or no
+[00:16:00,600 --> 00:16:09,040] uh the the circle or uh the the cross uh
+[00:16:05,160 --> 00:16:12,160] in this uh Direction by the way this the
+[00:16:09,040 --> 00:16:15,160] the mark uh would depend I heard that
+[00:16:12,160 --> 00:16:18,480] this changes depend on the culture in
+[00:16:15,160 --> 00:16:23,040] Japanese Circle means correct and the X
+[00:16:18,480 --> 00:16:26,600] means the the wrong but probably other
+[00:16:23,040 --> 00:16:26,600] people may have a
+[00:16:26,759 --> 00:16:33,480] different way right yeah but please
+[00:16:29,959 --> 00:16:35,519] understand circle is correct and the the
+[00:16:33,480 --> 00:16:40,920] cross is
+[00:16:35,519 --> 00:16:43,440] wrong and the um so I in this Cas the
+[00:16:40,920 --> 00:16:46,560] cases I use a very kind of a simple
+[00:16:43,440 --> 00:16:51,160] simple linear crash which is just kind
+[00:16:46,560 --> 00:16:54,160] of uh the using the the sample to be
+[00:16:51,160 --> 00:16:56,240] classified by using the linear function
+[00:16:54,160 --> 00:16:59,040] and then to make this kind of to be more
+[00:16:56,240 --> 00:17:02,199] kind of probabilistic distribution we
+[00:16:59,040 --> 00:17:05,000] actually using the sigmoid function is a
+[00:17:02,199 --> 00:17:09,679] kind of linear the function to make the
+[00:17:05,000 --> 00:17:11,520] kind of the the the correct and wrong
+[00:17:09,679 --> 00:17:14,480] the decision to be a
+[00:17:11,520 --> 00:17:17,000] probability so this is a very simple
+[00:17:14,480 --> 00:17:17,000] binary
+[00:17:17,319 --> 00:17:24,959] classifier the people can understand it
+[00:17:20,559 --> 00:17:29,000] I think so right okay
+[00:17:24,959 --> 00:17:33,480] um this uh binary classifier we can also
+[00:17:29,000 --> 00:17:37,000] make it by using the the gaan mixture
+[00:17:33,480 --> 00:17:40,000] model and the by using the gaan mixture
+[00:17:37,000 --> 00:17:42,880] model to actually get the lik of the
+[00:17:40,000 --> 00:17:43,720] correct and wrong and then we use that
+[00:17:42,880 --> 00:17:46,160] kind of
+[00:17:43,720 --> 00:17:48,280] normalization and then making it the
+[00:17:46,160 --> 00:17:51,440] probability and then we can make
+[00:17:48,280 --> 00:17:54,760] actually uh the uh this one to be the
+[00:17:51,440 --> 00:17:58,200] the probability of the yes and
+[00:17:54,760 --> 00:17:59,360] no however it is getting more difficult
+[00:17:58,200 --> 00:18:02,799] if the the
+[00:17:59,360 --> 00:18:06,039] GMM for example it is not easy to
+[00:18:02,799 --> 00:18:09,240] actually represent this kind of shape
+[00:18:06,039 --> 00:18:11,640] other other the the gaan mixture model
+[00:18:09,240 --> 00:18:14,440] maybe we could use this kind of way to
+[00:18:11,640 --> 00:18:18,159] make it but it is not very easy for gaan
+[00:18:14,440 --> 00:18:19,720] mixture model to make a very complicated
+[00:18:18,159 --> 00:18:22,280] pattern
+[00:18:19,720 --> 00:18:24,559] instead uh how neural network is
+[00:18:22,280 --> 00:18:26,880] presenting this kind of pattern it's
+[00:18:24,559 --> 00:18:30,559] actually combined the several crash fire
+[00:18:26,880 --> 00:18:33,120] several binary crash fire if we combine
+[00:18:30,559 --> 00:18:34,559] this kind of a shape the the binary
+[00:18:33,120 --> 00:18:36,400] classification this binary
+[00:18:34,559 --> 00:18:40,120] classification and this binary
+[00:18:36,400 --> 00:18:42,480] classification we can actually present
+[00:18:40,120 --> 00:18:45,679] this kind of very complicated crash
+[00:18:42,480 --> 00:18:48,120] firers and this just kind of combine the
+[00:18:45,679 --> 00:18:50,159] many of the binary crash fire and if we
+[00:18:48,120 --> 00:18:53,320] have a more areas we can actually
+[00:18:50,159 --> 00:18:56,120] represent many many complicated uh the
+[00:18:53,320 --> 00:18:59,039] crass fires and so on and this is the
+[00:18:56,120 --> 00:19:01,440] kind of the power of the neuron Network
+[00:18:59,039 --> 00:19:03,280] instead of just using the one person
+[00:19:01,440 --> 00:19:07,400] decision we using the you know many
+[00:19:03,280 --> 00:19:11,000] people's decision not the people but
+[00:19:07,400 --> 00:19:13,799] anyway my using the the several
+[00:19:11,000 --> 00:19:16,679] decisions and then combine them to
+[00:19:13,799 --> 00:19:19,360] actually other the uh present a
+[00:19:16,679 --> 00:19:19,360] complicated
+[00:19:19,600 --> 00:19:25,200] patterns and then uh this is just to
+[00:19:22,280 --> 00:19:28,919] kind of make a kind of many kind of
+[00:19:25,200 --> 00:19:32,760] combining various patterns but the Deep
+[00:19:28,919 --> 00:19:34,919] network is actually also making the this
+[00:19:32,760 --> 00:19:37,640] the pattern to be more complicated by
+[00:19:34,919 --> 00:19:40,600] using the more layers so this kind of
+[00:19:37,640 --> 00:19:42,960] actually combination is just having the
+[00:19:40,600 --> 00:19:48,440] many kind of neurons here so just kind
+[00:19:42,960 --> 00:19:50,919] of having a more the peoples here but
+[00:19:48,440 --> 00:19:52,840] having a multiple layers means that we
+[00:19:50,919 --> 00:19:55,280] have a more kind of meetings more
+[00:19:52,840 --> 00:19:58,280] meetings more meetings to Define our
+[00:19:55,280 --> 00:20:01,000] ideas and so on so this is actually uh
+[00:19:58,280 --> 00:20:03,080] the the deep new network so basically it
+[00:20:01,000 --> 00:20:06,440] comes from the the combination of the
+[00:20:03,080 --> 00:20:09,840] binary crash fire but it's by combining
+[00:20:06,440 --> 00:20:11,919] the the more people or more meetings uh
+[00:20:09,840 --> 00:20:14,240] which corresponding to the more layers
+[00:20:11,919 --> 00:20:17,360] and more neurons uh this becomes
+[00:20:14,240 --> 00:20:20,720] actually quite the strong and then we
+[00:20:17,360 --> 00:20:23,679] can actually finally make the very
+[00:20:20,720 --> 00:20:25,200] complicated decision in our cases are
+[00:20:23,679 --> 00:20:27,799] the speech condition condition like
+[00:20:25,200 --> 00:20:31,559] every frame whether this one is that H
+[00:20:27,799 --> 00:20:34,120] or a or or the HM State one and so on
+[00:20:31,559 --> 00:20:36,880] that is a kind of deep neural network
+[00:20:34,120 --> 00:20:40,480] and then let's go use a little bit Mass
+[00:20:36,880 --> 00:20:42,480] about it for example by using the
+[00:20:40,480 --> 00:20:45,480] complicated uh the the
+[00:20:42,480 --> 00:20:48,720] nonlinear by using complicated
+[00:20:45,480 --> 00:20:53,039] combination of the complicated the
+[00:20:48,720 --> 00:20:56,000] activation is represented as Vector
+[00:20:53,039 --> 00:20:59,919] representation uh Vector form so we have
+[00:20:56,000 --> 00:21:02,880] a input of the the the neural net uh the
+[00:20:59,919 --> 00:21:03,919] the speech features and then having a
+[00:21:02,880 --> 00:21:06,640] linear
+[00:21:03,919 --> 00:21:09,559] layer but this is actually the the
+[00:21:06,640 --> 00:21:12,279] linear Matrix and the vector so this
+[00:21:09,559 --> 00:21:15,360] means that instead of having a one crash
+[00:21:12,279 --> 00:21:18,919] fire we actually having a a lot of Crash
+[00:21:15,360 --> 00:21:21,320] firers combined so this actually this
+[00:21:18,919 --> 00:21:23,400] equation corresponding to other correct
+[00:21:21,320 --> 00:21:26,559] many people's
+[00:21:23,400 --> 00:21:30,120] opinion and then uh given this one other
+[00:21:26,559 --> 00:21:34,919] other in other input we will recursively
+[00:21:30,120 --> 00:21:37,520] perform this uh decision several times
+[00:21:34,919 --> 00:21:41,880] and then uh this kind of a the index l
+[00:21:37,520 --> 00:21:43,600] means layer so this part is becomes deep
+[00:21:41,880 --> 00:21:44,880] and then people started to call it the
+[00:21:43,600 --> 00:21:49,000] Deep neuron
+[00:21:44,880 --> 00:21:52,320] Network and then finally this uh the
+[00:21:49,000 --> 00:21:55,960] activation is actually slow to the soft
+[00:21:52,320 --> 00:21:59,600] marks the activation function which
+[00:21:55,960 --> 00:22:01,880] actually converting the probability uh P
+[00:21:59,600 --> 00:22:06,559] converting this kind of features to the
+[00:22:01,880 --> 00:22:10,600] actually probability uh of the uh the in
+[00:22:06,559 --> 00:22:14,039] the uh the space uh of uh this state uh
+[00:22:10,600 --> 00:22:16,840] the or lels and so on before that we
+[00:22:14,039 --> 00:22:18,360] only using the Sig mode so it's actually
+[00:22:16,840 --> 00:22:21,600] corlection of the
+[00:22:18,360 --> 00:22:24,760] binary but after the soft marks it
+[00:22:21,600 --> 00:22:27,360] becomes for example the the one of the
+[00:22:24,760 --> 00:22:30,279] probability uh in our vocabulary s and
+[00:22:27,360 --> 00:22:32,799] so on so this is a kind of basic feed
+[00:22:30,279 --> 00:22:35,840] for the neuron
+[00:22:32,799 --> 00:22:37,400] Network and let's move to the uh each
+[00:22:35,840 --> 00:22:39,760] the part of the
+[00:22:37,400 --> 00:22:43,240] equations uh we actually have a three
+[00:22:39,760 --> 00:22:45,600] part of the equation one is a a linear
+[00:22:43,240 --> 00:22:47,840] the transformation the other is the
+[00:22:45,600 --> 00:22:49,760] sigmoid function and the other is the
+[00:22:47,840 --> 00:22:53,799] soft marks
+[00:22:49,760 --> 00:22:56,720] functions and the first part is a linear
+[00:22:53,799 --> 00:22:59,559] operation which is uh probably everyone
+[00:22:56,720 --> 00:23:02,720] is familiar with that just using the the
+[00:22:59,559 --> 00:23:06,120] matx to convert the speech features and
+[00:23:02,720 --> 00:23:09,080] we often also using the bias vector and
+[00:23:06,120 --> 00:23:12,240] so on and then this actually converting
+[00:23:09,080 --> 00:23:15,640] it and and also the the linear operation
+[00:23:12,240 --> 00:23:20,240] is used to kind of change the dimension
+[00:23:15,640 --> 00:23:22,760] size from input to the part we want so
+[00:23:20,240 --> 00:23:25,919] this is a kind of linear operation and
+[00:23:22,760 --> 00:23:28,200] the linear operation as you may know
+[00:23:25,919 --> 00:23:31,400] this since this is linear the derivative
+[00:23:28,200 --> 00:23:35,039] is very simple uh we just you know take
+[00:23:31,400 --> 00:23:37,640] the this one for the W in terms of w and
+[00:23:35,039 --> 00:23:39,640] then we just having a derivative here
+[00:23:37,640 --> 00:23:42,799] and if we take the derivative for the
+[00:23:39,640 --> 00:23:46,000] bias we can also have this kind of
+[00:23:42,799 --> 00:23:49,440] form okay so uh this is a kind of the
+[00:23:46,000 --> 00:23:51,200] linear operation and note that this part
+[00:23:49,440 --> 00:23:54,919] is since
+[00:23:51,200 --> 00:23:57,360] Matrix so this is actually the the the
+[00:23:54,919 --> 00:23:59,760] the quadratic in terms of the number of
+[00:23:57,360 --> 00:24:03,480] parameters if if we try to have more
+[00:23:59,760 --> 00:24:05,799] kind of neurons this Matrix size uh
+[00:24:03,480 --> 00:24:09,440] becomes increased proportional to the
+[00:24:05,799 --> 00:24:13,640] square of the original Dimension and so
+[00:24:09,440 --> 00:24:16,320] on and then the actually uh the uh the
+[00:24:13,640 --> 00:24:20,679] it's I saw that I make it at a short
+[00:24:16,320 --> 00:24:25,120] quick but it's actually not um the the
+[00:24:20,679 --> 00:24:30,360] go wider versus go deeper which are the
+[00:24:25,120 --> 00:24:30,360] increase the parameters uh the more
+[00:24:35,320 --> 00:24:40,960] so the uh the number of the
+[00:24:38,480 --> 00:24:44,720] dimension go wider means the number of
+[00:24:40,960 --> 00:24:46,880] Dimension becomes increase right and go
+[00:24:44,720 --> 00:24:51,679] deeper means the number of layer becomes
+[00:24:46,880 --> 00:24:52,559] deeper right and the uh actually uh the
+[00:24:51,679 --> 00:24:56,640] go
+[00:24:52,559 --> 00:24:58,880] wider and then due to this kind of the
+[00:24:56,640 --> 00:25:01,919] property uh the mat
+[00:24:58,880 --> 00:25:06,360] property generally the number of
+[00:25:01,919 --> 00:25:08,559] parameters uh becomes the very large so
+[00:25:06,360 --> 00:25:11,120] please be careful about control your
+[00:25:08,559 --> 00:25:14,039] kind of models just making this part to
+[00:25:11,120 --> 00:25:14,919] be very large and then it's the the
+[00:25:14,039 --> 00:25:18,279] quite
+[00:25:14,919 --> 00:25:20,799] large I think it's cannot will fit the
+[00:25:18,279 --> 00:25:24,399] the your memory and so on instead making
+[00:25:20,799 --> 00:25:26,760] it deeper either easy to control so
+[00:25:24,399 --> 00:25:29,200] people usually actually are control the
+[00:25:26,760 --> 00:25:31,840] number of layers for the architecture
+[00:25:29,200 --> 00:25:33,840] rather than why the number of neutrons
+[00:25:31,840 --> 00:25:37,480] and so
+[00:25:33,840 --> 00:25:39,880] on okay and then the next function is a
+[00:25:37,480 --> 00:25:44,440] sigmoid
+[00:25:39,880 --> 00:25:48,360] function uh this uh the sigmoid function
+[00:25:44,440 --> 00:25:52,760] is uh the very interesting probability
+[00:25:48,360 --> 00:25:55,559] which is actually the making the any
+[00:25:52,760 --> 00:25:57,240] numbers uh the mapping the any number to
+[00:25:55,559 --> 00:26:00,120] 0 to
+[00:25:57,240 --> 00:26:03,080] one so this is actually very good to
+[00:26:00,120 --> 00:26:06,399] kind of the model the probability of the
+[00:26:03,080 --> 00:26:10,640] binary so if you know this is go to the
+[00:26:06,399 --> 00:26:14,520] the some point the point like 0.7 which
+[00:26:10,640 --> 00:26:18,120] mean 70% it would happen right and it
+[00:26:14,520 --> 00:26:22,799] would not happen would be 30% l so the
+[00:26:18,120 --> 00:26:26,799] one minus the sigma is actually the the
+[00:26:22,799 --> 00:26:29,000] the the probability of the the negative
+[00:26:26,799 --> 00:26:33,679] the the the event in the sigmoid
+[00:26:29,000 --> 00:26:37,960] function uh and so on and the sigon by
+[00:26:33,679 --> 00:26:39,520] the way uh the uh we should be careful
+[00:26:37,960 --> 00:26:42,799] about the
+[00:26:39,520 --> 00:26:45,960] notation uh from now on we often
+[00:26:42,799 --> 00:26:49,360] actually have this kind of notation 1 +
+[00:26:45,960 --> 00:26:53,399] e minus X
+[00:26:49,360 --> 00:26:56,399] Vector usually exponential cannot accept
+[00:26:53,399 --> 00:26:58,600] the vector right in the very
+[00:26:56,399 --> 00:27:01,840] mathematical uh the beginning of the
+[00:26:58,600 --> 00:27:04,559] mathematics that we learn it right log
+[00:27:01,840 --> 00:27:08,159] also cannot accept the the vector in
+[00:27:04,559 --> 00:27:11,799] general right but from now on uh let's
+[00:27:08,159 --> 00:27:14,000] kind of accept that you know exponential
+[00:27:11,799 --> 00:27:17,520] and the vector means that the
+[00:27:14,000 --> 00:27:20,640] exponential performed for each element
+[00:27:17,520 --> 00:27:26,559] of the vector so this one is also 1 + e
+[00:27:20,640 --> 00:27:30,399] minus X rather the uh is oneid 1 plus e
+[00:27:26,559 --> 00:27:34,520] minus X this means that actually Vector
+[00:27:30,399 --> 00:27:36,440] of this operation for each component so
+[00:27:34,520 --> 00:27:39,200] many people actually confuse this and
+[00:27:36,440 --> 00:27:42,760] the same for the log and so on so please
+[00:27:39,200 --> 00:27:45,960] uh do not confuse about it uh about this
+[00:27:42,760 --> 00:27:48,640] oh the exponential with the the vector
+[00:27:45,960 --> 00:27:51,399] is it is wrong it's actually yes in some
+[00:27:48,640 --> 00:27:54,320] sense wrong but this actually expansion
+[00:27:51,399 --> 00:27:57,640] of the uh the explanation about
+[00:27:54,320 --> 00:27:58,679] it and then uh the derivative becomes
+[00:27:57,640 --> 00:28:01,159] the this
+[00:27:58,679 --> 00:28:07,120] interesting form Sigma
+[00:28:01,159 --> 00:28:08,159] X parenthesis 1 minus Sigma X and so on
+[00:28:07,120 --> 00:28:11,880] and
+[00:28:08,159 --> 00:28:15,799] the if I have time I usually actually
+[00:28:11,880 --> 00:28:18,919] demonstrate how the the the sigmo looks
+[00:28:15,799 --> 00:28:21,640] like don't have so much time but anyway
+[00:28:18,919 --> 00:28:28,480] that usually you know Sigma
+[00:28:21,640 --> 00:28:33,039] x0 x = z and then what is the sigma zero
+[00:28:28,480 --> 00:28:33,039] correct 0.5 right
+[00:28:35,200 --> 00:28:42,600] 0.5 so what is the sigma X when the x is
+[00:28:39,880 --> 00:28:42,600] the the minus
+[00:28:43,080 --> 00:28:49,000] infinity zero yes it's going to be like
+[00:28:49,039 --> 00:28:56,080] this and what is the uh the X uh equals
+[00:28:54,279 --> 00:29:00,039] the plus
+[00:28:56,080 --> 00:29:00,039] infinity correct
+[00:29:02,159 --> 00:29:08,159] one so sigar usually have this kind of
+[00:29:05,440 --> 00:29:09,960] shapes and if we also have a gradient
+[00:29:08,159 --> 00:29:12,720] and so on we can also have a more
+[00:29:09,960 --> 00:29:16,440] discussion about this the shape and so
+[00:29:12,720 --> 00:29:19,840] on but I just uh skip the the more
+[00:29:16,440 --> 00:29:19,840] detailed discussion and so
+[00:29:20,840 --> 00:29:27,679] on okay uh now that we will move to the
+[00:29:24,320 --> 00:29:32,320] soft Mark function and this actually not
+[00:29:27,679 --> 00:29:35,200] easy right but since it had more
+[00:29:32,320 --> 00:29:39,159] Dimension and so on but actually uh this
+[00:29:35,200 --> 00:29:42,640] one is uh the a kind of a extension of
+[00:29:39,159 --> 00:29:44,159] the sigmoid function uh from the binary
+[00:29:42,640 --> 00:29:48,440] to
+[00:29:44,159 --> 00:29:53,600] multiple the labels and so on so for
+[00:29:48,440 --> 00:29:58,360] example let's say the J is the entire
+[00:29:53,600 --> 00:30:01,840] the vocabulary size and then the sigo uh
+[00:29:58,360 --> 00:30:04,120] s sorry soft Marx function first mapping
+[00:30:01,840 --> 00:30:08,600] any of this kind of value any of the
+[00:30:04,120 --> 00:30:11,559] kind of value in h to the the between
+[00:30:08,600 --> 00:30:12,880] zero and one so this is very similar to
+[00:30:11,559 --> 00:30:16,320] the Sig
+[00:30:12,880 --> 00:30:19,159] function and in addition sing mod
+[00:30:16,320 --> 00:30:22,440] function a soft Mark function actually
+[00:30:19,159 --> 00:30:25,720] satisfies the sum to one
+[00:30:22,440 --> 00:30:28,679] condition is very similar to Sigma but
+[00:30:25,720 --> 00:30:32,200] it's actually can also that apply to The
+[00:30:28,679 --> 00:30:35,159] The J equal more than two so this this
+[00:30:32,200 --> 00:30:37,799] the property is very similar to the
+[00:30:35,159 --> 00:30:41,919] probability so that people using soft
+[00:30:37,799 --> 00:30:44,960] Marx function as the way to converting
+[00:30:41,919 --> 00:30:47,519] our the the values to the
+[00:30:44,960 --> 00:30:49,679] probability by by the way it can be
+[00:30:47,519 --> 00:30:53,080] anything it can be you know any other
+[00:30:49,679 --> 00:30:55,960] function than Sigma and soft marks but
+[00:30:53,080 --> 00:30:59,159] the which satisfy this condition we can
+[00:30:55,960 --> 00:31:01,120] actually use it but Sigma is and softmax
+[00:30:59,159 --> 00:31:03,399] is very good property when we get the
+[00:31:01,120 --> 00:31:06,880] derivative and so on so that people
+[00:31:03,399 --> 00:31:10,279] usually using the softmax function as a
+[00:31:06,880 --> 00:31:13,320] kind of final part of getting the
+[00:31:10,279 --> 00:31:17,039] probability uh and so
+[00:31:13,320 --> 00:31:19,720] on so that's the the major are the the
+[00:31:17,039 --> 00:31:21,159] functions that we use for the field for
+[00:31:19,720 --> 00:31:25,159] neural
+[00:31:21,159 --> 00:31:26,399] network but actually uh the uh this is
+[00:31:25,159 --> 00:31:29,600] not
+[00:31:26,399 --> 00:31:32,200] everything as some of you may know
+[00:31:29,600 --> 00:31:35,720] actually we can use many of the
+[00:31:32,200 --> 00:31:39,960] functions operation in the Deep neural
+[00:31:35,720 --> 00:31:42,480] network we can actually using the L
+[00:31:39,960 --> 00:31:45,679] exponential uh the
+[00:31:42,480 --> 00:31:49,080] multiplication uh the sign
+[00:31:45,679 --> 00:31:53,279] cosine the hyperbolic sign the almost
+[00:31:49,080 --> 00:31:56,279] all the function we can actually use to
+[00:31:53,279 --> 00:32:00,480] approximate our problems so this is
+[00:31:56,279 --> 00:32:03,480] actually uh one reason that the um NE
+[00:32:00,480 --> 00:32:06,039] network is very very powerful but the
+[00:32:03,480 --> 00:32:09,480] one constent is whether we can take a
+[00:32:06,039 --> 00:32:11,919] derivative uh and so on and this is
+[00:32:09,480 --> 00:32:14,720] actually uh the the most of the function
+[00:32:11,919 --> 00:32:18,200] we can take a derivative but the
+[00:32:14,720 --> 00:32:20,960] actually the most basic operation AG
+[00:32:18,200 --> 00:32:23,120] Marx which we can get the speech equ
+[00:32:20,960 --> 00:32:25,960] result finally right this actually
+[00:32:23,120 --> 00:32:28,960] doesn't get the derivative so this part
+[00:32:25,960 --> 00:32:31,480] is actually they cannot are the used
+[00:32:28,960 --> 00:32:34,880] inside the neural network and so on but
+[00:32:31,480 --> 00:32:38,080] almost all the the operation we actually
+[00:32:34,880 --> 00:32:40,679] get the derivative and then we can use
+[00:32:38,080 --> 00:32:43,120] okay so final part is the objective
+[00:32:40,679 --> 00:32:43,120] function
+[00:32:44,200 --> 00:32:51,360] design and then object objective
+[00:32:47,360 --> 00:32:54,919] function we usually using a cross
+[00:32:51,360 --> 00:32:58,120] entropy uh this is actually uh the uh
+[00:32:54,919 --> 00:32:59,679] definition is like this
+[00:32:58,120 --> 00:33:02,919] uh one for the
+[00:32:59,679 --> 00:33:06,120] reference and one for the
+[00:33:02,919 --> 00:33:09,200] prediction and then using the cross
+[00:33:06,120 --> 00:33:12,120] entropy this uh the means that it's
+[00:33:09,200 --> 00:33:14,159] actually the just the substituting the
+[00:33:12,120 --> 00:33:16,960] cross enthropy
+[00:33:14,159 --> 00:33:19,639] definition and then it becomes this kind
+[00:33:16,960 --> 00:33:19,639] of equation
+[00:33:21,679 --> 00:33:29,200] form
+[00:33:24,399 --> 00:33:32,399] however this reference part is actually
+[00:33:29,200 --> 00:33:35,320] little bit unique form right this
+[00:33:32,399 --> 00:33:38,720] difference part now is actually just
+[00:33:35,320 --> 00:33:41,440] using the bet the betab
+[00:33:38,720 --> 00:33:45,360] alignment and then making it the kind of
+[00:33:41,440 --> 00:33:48,639] probability right this means that that
+[00:33:45,360 --> 00:33:52,320] this part is actually just a chonic Dela
+[00:33:48,639 --> 00:33:55,960] function where a label
+[00:33:52,320 --> 00:33:58,840] is obtained by the the BET alignment or
+[00:33:55,960 --> 00:34:02,360] not right so this actually summation
+[00:33:58,840 --> 00:34:07,120] part is the then the
+[00:34:02,360 --> 00:34:10,440] simplified by using this Chron Delta and
+[00:34:07,120 --> 00:34:13,320] then this is the final form of the Cross
+[00:34:10,440 --> 00:34:14,480] entropy function which is actually the
+[00:34:13,320 --> 00:34:19,480] the
+[00:34:14,480 --> 00:34:20,440] probability of the the BET align the
+[00:34:19,480 --> 00:34:23,240] state
+[00:34:20,440 --> 00:34:27,760] sequence the and the summation over the
+[00:34:23,240 --> 00:34:30,240] T so it becomes actually the the uh the
+[00:34:27,760 --> 00:34:34,359] the objective function of the Cross
+[00:34:30,240 --> 00:34:36,960] entropy in the the hard alignment
+[00:34:34,359 --> 00:34:40,119] cases of course that if we using the
+[00:34:36,960 --> 00:34:43,280] soft alignment this part summation is
+[00:34:40,119 --> 00:34:44,760] not cancelled out and we may actually
+[00:34:43,280 --> 00:34:48,240] using the
+[00:34:44,760 --> 00:34:49,919] summation keeping the summation to also
+[00:34:48,240 --> 00:34:53,839] get the kind of cross eny objective
+[00:34:49,919 --> 00:34:56,679] function and so on but in most cases
+[00:34:53,839 --> 00:35:01,640] again we just using the hard label and
+[00:34:56,679 --> 00:35:01,640] then this becomes just add like L
+[00:35:01,680 --> 00:35:08,079] like but this is just one
+[00:35:05,000 --> 00:35:10,800] possibility uh we could use many other
+[00:35:08,079 --> 00:35:14,760] objective functions uh like the the
+[00:35:10,800 --> 00:35:18,480] square error or the the other uh the the
+[00:35:14,760 --> 00:35:21,560] the the form of the uh the output
+[00:35:18,480 --> 00:35:24,920] representations and so on but the we
+[00:35:21,560 --> 00:35:28,240] usually using the cross enthalpy for the
+[00:35:24,920 --> 00:35:31,480] spech cases
+[00:35:28,240 --> 00:35:35,280] so that's the uh the entire uh neural
+[00:35:31,480 --> 00:35:39,359] network uh the design so we set the kind
+[00:35:35,280 --> 00:35:41,200] of discuss the input and what is output
+[00:35:39,359 --> 00:35:44,560] and then uh the the some of the neural
+[00:35:41,200 --> 00:35:47,040] network functions inside and then the
+[00:35:44,560 --> 00:35:49,000] loss function and then we can actually
+[00:35:47,040 --> 00:35:53,440] get the derivative to update the
+[00:35:49,000 --> 00:35:55,960] parameters and so on and that's the the
+[00:35:53,440 --> 00:35:58,599] middle part is actually quite has a lot
+[00:35:55,960 --> 00:36:02,000] of flexibility compared with the gaan
+[00:35:58,599 --> 00:36:04,920] mixture models gausia mixture model the
+[00:36:02,000 --> 00:36:06,720] flexibility would be like a number
+[00:36:04,920 --> 00:36:09,480] of
+[00:36:06,720 --> 00:36:12,520] mixtures are there any other
+[00:36:09,480 --> 00:36:15,240] flexibility can we use a diagonal Coan
+[00:36:12,520 --> 00:36:15,240] or good
+[00:36:15,280 --> 00:36:21,599] Coan maybe something like that there a
+[00:36:18,599 --> 00:36:25,119] few extensions we can make by the way
+[00:36:21,599 --> 00:36:29,760] but that's kind of only uh the uh the
+[00:36:25,119 --> 00:36:33,480] the the variations but uh new network is
+[00:36:29,760 --> 00:36:36,319] basically can uh the using the any of
+[00:36:33,480 --> 00:36:37,560] the the functions and then get the kind
+[00:36:36,319 --> 00:36:41,280] of
+[00:36:37,560 --> 00:36:44,440] derivative and then make a kind of a the
+[00:36:41,280 --> 00:36:46,079] entire architecture so this flexibility
+[00:36:44,440 --> 00:36:51,440] is actually quite
+[00:36:46,079 --> 00:36:55,920] strong so in my lecture by the way I try
+[00:36:51,440 --> 00:36:58,079] to uh use the rectangular block when we
+[00:36:55,920 --> 00:37:02,920] have a trainable uh
+[00:36:58,079 --> 00:37:07,839] parameters and the um landed rectangular
+[00:37:02,920 --> 00:37:11,240] block when uh the uh it is uh without
+[00:37:07,839 --> 00:37:15,520] trainable parameters like a sigmo soft
+[00:37:11,240 --> 00:37:18,760] marks sign cosine log and so on this is
+[00:37:15,520 --> 00:37:21,280] actually a rounded rectangular block I
+[00:37:18,760 --> 00:37:23,760] try to kind of make it consistent but if
+[00:37:21,280 --> 00:37:26,800] not I apologize for it please point out
+[00:37:23,760 --> 00:37:28,800] it and then observation or some kind of
+[00:37:26,800 --> 00:37:32,280] intermediate activation is kind of a
+[00:37:28,800 --> 00:37:35,000] written as a circle but anyway the newer
+[00:37:32,280 --> 00:37:40,440] network is again can be at any of the
+[00:37:35,000 --> 00:37:40,440] kind of combination so wait a
+[00:37:46,520 --> 00:37:52,720] moment this
+[00:37:49,040 --> 00:37:56,440] one so we could actually you know uh the
+[00:37:52,720 --> 00:37:59,920] even change the
+[00:37:56,440 --> 00:38:01,760] uh change the order this is not very Mak
+[00:37:59,920 --> 00:38:03,400] sense but actually this is one
+[00:38:01,760 --> 00:38:08,520] possible
+[00:38:03,400 --> 00:38:11,359] architecture and the um this is very
+[00:38:08,520 --> 00:38:13,359] unable the the architecture because a
+[00:38:11,359 --> 00:38:15,560] linear twice is actually can be written
+[00:38:13,359 --> 00:38:17,760] as a one linear function this is very
+[00:38:15,560 --> 00:38:20,839] redundant and makes the kind of
+[00:38:17,760 --> 00:38:23,000] optimization difficult and also twice
+[00:38:20,839 --> 00:38:26,280] activation function nonlinear activation
+[00:38:23,000 --> 00:38:28,280] function twice also making the kind of
+[00:38:26,280 --> 00:38:30,800] optimization very difficult so I don't
+[00:38:28,280 --> 00:38:33,440] recommend to do that but yeah we can
+[00:38:30,800 --> 00:38:38,400] have many ways to actually uh the the
+[00:38:33,440 --> 00:38:41,280] design the uh the uh the architecture by
+[00:38:38,400 --> 00:38:43,160] for example using the after the sigma we
+[00:38:41,280 --> 00:38:45,680] use a one linear transformation and the
+[00:38:43,160 --> 00:38:48,920] different linear transformation and then
+[00:38:45,680 --> 00:38:50,839] concatenate this kind of other features
+[00:38:48,920 --> 00:38:53,400] and then throw it the sigmoid function
+[00:38:50,839 --> 00:38:55,720] the soft Mark Activation so on we can
+[00:38:53,400 --> 00:38:58,880] actually design uh many of the kind of
+[00:38:55,720 --> 00:39:01,720] neural network architecture so that's I
+[00:38:58,880 --> 00:39:04,200] call it neural network engineering so
+[00:39:01,720 --> 00:39:07,520] the from now on actually a lot of neural
+[00:39:04,200 --> 00:39:11,079] network engineering happens uh that is a
+[00:39:07,520 --> 00:39:14,800] kind of very different from the lectures
+[00:39:11,079 --> 00:39:14,800] in the first part and the second
+[00:39:24,359 --> 00:39:32,079] part okay the last part is given the uh
+[00:39:28,880 --> 00:39:34,319] the the this architecture and we set the
+[00:39:32,079 --> 00:39:36,720] loss function we actually all the
+[00:39:34,319 --> 00:39:39,240] information are given and the the
+[00:39:36,720 --> 00:39:42,400] problem is how to actually estimate the
+[00:39:39,240 --> 00:39:46,520] parameters and so on and then we using
+[00:39:42,400 --> 00:39:49,520] the gradient Center to the optimize the
+[00:39:46,520 --> 00:39:51,160] the hyper parameter and then just a kind
+[00:39:49,520 --> 00:39:54,520] of the
+[00:39:51,160 --> 00:39:57,800] DAP uh this is the kind of a final loss
+[00:39:54,520 --> 00:40:00,560] function cross entropy and then taking
+[00:39:57,800 --> 00:40:04,560] the derivative to get some kind of a
+[00:40:00,560 --> 00:40:08,240] derivative in terms of the all kind of
+[00:40:04,560 --> 00:40:10,920] parameters and then the updating the the
+[00:40:08,240 --> 00:40:14,839] the uh the new parameters from the old
+[00:40:10,920 --> 00:40:18,520] one so this is uh the the the basic uh
+[00:40:14,839 --> 00:40:21,200] the the the gradient desent and actually
+[00:40:18,520 --> 00:40:24,359] we also already introduced it in the CTC
+[00:40:21,200 --> 00:40:26,839] part where this cross entropy loss
+[00:40:24,359 --> 00:40:27,880] function is replaced with the uh the the
+[00:40:26,839 --> 00:40:31,880] CTC
+[00:40:27,880 --> 00:40:34,200] L function and so on and this uh
+[00:40:31,880 --> 00:40:38,240] derivative is
+[00:40:34,200 --> 00:40:42,119] basically uh almost all functions we can
+[00:40:38,240 --> 00:40:46,079] get by using the chain rule so please uh
+[00:40:42,119 --> 00:40:49,920] the be familiar uh with the chain
+[00:40:46,079 --> 00:40:52,520] rle uh the the one of the example of the
+[00:40:49,920 --> 00:40:55,720] chain rle would be for example the the
+[00:40:52,520 --> 00:40:59,160] sigmoid function this actually very
+[00:40:55,720 --> 00:41:00,040] complicated uh the function but we can
+[00:40:59,160 --> 00:41:03,200] get the
+[00:41:00,040 --> 00:41:08,560] derivative uh by using this kind of
+[00:41:03,200 --> 00:41:11,560] forms and the yeah again I was probably
+[00:41:08,560 --> 00:41:11,560] the
+[00:41:12,200 --> 00:41:19,119] okay okay it's fine yeah and if we take
+[00:41:16,160 --> 00:41:22,720] the derivative of the sigmoid function
+[00:41:19,119 --> 00:41:25,560] this one in terms of the B we first
+[00:41:22,720 --> 00:41:27,960] using the chain rule to factorize the
+[00:41:25,560 --> 00:41:30,680] derivative in terms of the sigmoid
+[00:41:27,960 --> 00:41:34,680] function itself and the the argument of
+[00:41:30,680 --> 00:41:37,839] the sigmoid function with the the this
+[00:41:34,680 --> 00:41:40,359] derivative and as we see already in the
+[00:41:37,839 --> 00:41:43,280] previous lecture or previous other pages
+[00:41:40,359 --> 00:41:47,720] that the sigmoid function derivative is
+[00:41:43,280 --> 00:41:50,720] Sigma Y and one minus Sigma Y and this
+[00:41:47,720 --> 00:41:52,240] part of the derivative is actually one
+[00:41:50,720 --> 00:41:56,640] so that this is the
+[00:41:52,240 --> 00:41:59,319] answer and if we are the focus on the A
+[00:41:56,640 --> 00:42:02,599] and then we we actually have the X
+[00:41:59,319 --> 00:42:05,240] outside and then the rest is the same
+[00:42:02,599 --> 00:42:08,240] and then by using the chain though uh we
+[00:42:05,240 --> 00:42:13,720] can actually get the the derivative and
+[00:42:08,240 --> 00:42:16,240] so on um so the actually the again chain
+[00:42:13,720 --> 00:42:20,760] rule is very important so please
+[00:42:16,240 --> 00:42:23,800] remember it uh my friends he was in a
+[00:42:20,760 --> 00:42:25,960] company and he often ask the questions
+[00:42:23,800 --> 00:42:27,640] to the other intern application
+[00:42:25,960 --> 00:42:31,839] applicant that you know
+[00:42:27,640 --> 00:42:34,640] for the intern he will ask the uh the
+[00:42:31,839 --> 00:42:37,480] derivative of the sigmoid function and
+[00:42:34,640 --> 00:42:39,880] see whether you know you guys can really
+[00:42:37,480 --> 00:42:41,880] understand the chain Rule and so on so
+[00:42:39,880 --> 00:42:45,160] if you master this part at least you
+[00:42:41,880 --> 00:42:45,160] know his interview you can
+[00:42:45,680 --> 00:42:53,920] pass please remember that yeah even I am
+[00:42:49,240 --> 00:42:53,920] also asking you guys of for the chain
+[00:42:54,119 --> 00:43:00,240] yeah and the uh the chainer can now be
+[00:42:57,480 --> 00:43:04,160] that the performed recursively uh that
+[00:43:00,240 --> 00:43:06,960] is actually the quite the strong part of
+[00:43:04,160 --> 00:43:09,880] the getting the neural network just you
+[00:43:06,960 --> 00:43:12,200] know the composing the function and then
+[00:43:09,880 --> 00:43:14,920] the taking the derivative for each of
+[00:43:12,200 --> 00:43:17,240] the the component by the chain rule we
+[00:43:14,920 --> 00:43:20,839] can get actually the derivative and so
+[00:43:17,240 --> 00:43:24,800] on and then we can update the
+[00:43:20,839 --> 00:43:28,000] parameters and the uh the last part of
+[00:43:24,800 --> 00:43:29,880] the optimization oh no not the last part
+[00:43:28,000 --> 00:43:31,800] but the another remarks of the
+[00:43:29,880 --> 00:43:36,240] optimization
+[00:43:31,800 --> 00:43:39,119] is uh when we taking this
+[00:43:36,240 --> 00:43:42,520] derivative can we take this derivative
+[00:43:39,119 --> 00:43:45,160] for each sample or can we take the the
+[00:43:42,520 --> 00:43:49,079] this deriva for
+[00:43:45,160 --> 00:43:50,319] entire uh the data or we can use
+[00:43:49,079 --> 00:43:54,200] something
+[00:43:50,319 --> 00:43:57,240] between actually the EM algorithm is as
+[00:43:54,200 --> 00:44:00,400] you remember we take the kind of a uh
+[00:43:57,240 --> 00:44:02,400] the uh the the up dat parameter by using
+[00:44:00,400 --> 00:44:06,800] the old data
+[00:44:02,400 --> 00:44:09,800] right uh which is actually very slow in
+[00:44:06,800 --> 00:44:12,800] terms of the convergence but the since
+[00:44:09,800 --> 00:44:15,000] the the uh the EM algorithm is very kind
+[00:44:12,800 --> 00:44:18,359] of a good nature of the convergence and
+[00:44:15,000 --> 00:44:21,160] also GMM is the Computing is faster so
+[00:44:18,359 --> 00:44:24,000] people usually using the PCH
+[00:44:21,160 --> 00:44:27,960] processing uh but the uh another
+[00:44:24,000 --> 00:44:30,400] approach is uh taking the every exle and
+[00:44:27,960 --> 00:44:33,280] then getting the derivative and so
+[00:44:30,400 --> 00:44:35,920] on this is actually very
+[00:44:33,280 --> 00:44:38,040] inefficient uh since this the this part
+[00:44:35,920 --> 00:44:41,200] is are the incremental so we actually
+[00:44:38,040 --> 00:44:43,480] cannot paralyze them and then however
+[00:44:41,200 --> 00:44:44,359] this is basically very fast in terms of
+[00:44:43,480 --> 00:44:47,160] the
+[00:44:44,359 --> 00:44:48,920] convergence and then miniat processing
+[00:44:47,160 --> 00:44:52,000] is doing something
+[00:44:48,920 --> 00:44:55,440] between so let's say for example we have
+[00:44:52,000 --> 00:44:57,559] you know 10,000 sample data we just
+[00:44:55,440 --> 00:44:59,720] divided data to S each
+[00:44:57,559 --> 00:45:03,640] the sample to be thousand and then
+[00:44:59,720 --> 00:45:06,480] making a mini so that each the miniat we
+[00:45:03,640 --> 00:45:10,400] actually have a good the polarization
+[00:45:06,480 --> 00:45:13,160] property efficient and across the miniat
+[00:45:10,400 --> 00:45:15,200] we updating the parameters and then we
+[00:45:13,160 --> 00:45:17,280] can get a kind of faster convergence
+[00:45:15,200 --> 00:45:20,640] than the batch processing so that the
+[00:45:17,280 --> 00:45:23,920] mini batch processing is very important
+[00:45:20,640 --> 00:45:27,400] uh to make the kind of neural network to
+[00:45:23,920 --> 00:45:30,359] get our kind of reasonable performance
+[00:45:27,400 --> 00:45:37,000] however the size of size of the miniat
+[00:45:30,359 --> 00:45:37,000] is very very important and then I think
+[00:45:42,640 --> 00:45:50,680] the oh okay okay I skip I I forgot but I
+[00:45:47,559 --> 00:45:52,800] skip it this so the original Short quiz
+[00:45:50,680 --> 00:45:54,920] was actually this mini B size that
+[00:45:52,800 --> 00:45:57,440] affect the performance and so on and the
+[00:45:54,920 --> 00:46:00,200] answer is yes so this
+[00:45:57,440 --> 00:46:02,760] sorry but I I actually suddenly changed
+[00:46:00,200 --> 00:46:05,480] the another question we have still seven
+[00:46:02,760 --> 00:46:11,880] minutes right yeah but we still don't go
+[00:46:05,480 --> 00:46:15,119] to the CNN okay um so um minat
+[00:46:11,880 --> 00:46:19,000] processing is again the uh quite
+[00:46:15,119 --> 00:46:22,240] important hyper parameters
+[00:46:19,000 --> 00:46:23,839] it's the in addition to kind of a
+[00:46:22,240 --> 00:46:27,880] control
+[00:46:23,839 --> 00:46:30,079] convergence and the the effective n of
+[00:46:27,880 --> 00:46:33,520] the a polarization of the
+[00:46:30,079 --> 00:46:36,640] computation miniat size is also
+[00:46:33,520 --> 00:46:40,520] affecting the memory GP memory and so on
+[00:46:36,640 --> 00:46:43,599] right so mini is and the mini size is
+[00:46:40,520 --> 00:46:47,839] also depending on the sum of the
+[00:46:43,599 --> 00:46:51,079] operation like the the uh the B norm and
+[00:46:47,839 --> 00:46:54,520] so on this is Advanced topic but anyway
+[00:46:51,079 --> 00:46:58,359] the the B the norm or the convergence
+[00:46:54,520 --> 00:47:01,800] speed and the the effect iess of the
+[00:46:58,359 --> 00:47:05,200] paration and the memory side so this
+[00:47:01,800 --> 00:47:08,160] miniat side is very difficult to
+[00:47:05,200 --> 00:47:13,119] tune and actually uh this is the most
+[00:47:08,160 --> 00:47:14,800] important part uh of the uh the uh the
+[00:47:13,119 --> 00:47:17,520] getting the kind of reasonable
+[00:47:14,800 --> 00:47:20,240] performance so please remember that this
+[00:47:17,520 --> 00:47:22,559] one is a one of the most important hyper
+[00:47:20,240 --> 00:47:26,359] parameter in deep NE
+[00:47:22,559 --> 00:47:27,440] Network and then again I have one story
+[00:47:26,359 --> 00:47:29,200] now
+[00:47:27,440 --> 00:47:33,000] are the many people moving to the Deep
+[00:47:29,200 --> 00:47:34,520] new network right and then some people
+[00:47:33,000 --> 00:47:36,520] may you know just you know knowing the
+[00:47:34,520 --> 00:47:39,640] Deep new network but don't know so much
+[00:47:36,520 --> 00:47:41,920] about actually doing some optimization
+[00:47:39,640 --> 00:47:44,599] there such people exist right you know
+[00:47:41,920 --> 00:47:47,839] just knowing but has never you know
+[00:47:44,599 --> 00:47:51,839] tried the the things actually and so on
+[00:47:47,839 --> 00:47:54,200] we can easily detect such people so we
+[00:47:51,839 --> 00:47:58,079] can just ask
+[00:47:54,200 --> 00:47:59,760] mze mze is again very important if
+[00:47:58,079 --> 00:48:02,760] people are actually working on the
+[00:47:59,760 --> 00:48:04,720] program we have to tune we have to
+[00:48:02,760 --> 00:48:08,440] understand our problem we have to
+[00:48:04,720 --> 00:48:11,040] understand all kind of the the the the
+[00:48:08,440 --> 00:48:13,680] the computer configurations and so on
+[00:48:11,040 --> 00:48:16,200] then again you know the the people don't
+[00:48:13,680 --> 00:48:18,440] have they never touch deep running but
+[00:48:16,200 --> 00:48:20,520] just know they knowing Deep Run your
+[00:48:18,440 --> 00:48:22,559] network and you know they explain
+[00:48:20,520 --> 00:48:25,280] something about it and then you know
+[00:48:22,559 --> 00:48:27,240] again if you guys want to see whether he
+[00:48:25,280 --> 00:48:30,480] or she is really knowing the de new
+[00:48:27,240 --> 00:48:32,640] network just asking asking the parze if
+[00:48:30,480 --> 00:48:35,480] they cannot answer that person actually
+[00:48:32,640 --> 00:48:37,000] doesn't touch the Deep NE
+[00:48:35,480 --> 00:48:42,480] Network
+[00:48:37,000 --> 00:48:45,800] okay so next uh the hyper parameter is
+[00:48:42,480 --> 00:48:50,960] the learning
+[00:48:45,800 --> 00:48:54,559] GR in addition to this uh data uh back
+[00:48:50,960 --> 00:48:57,599] propagation gradient part there is a one
+[00:48:54,559 --> 00:49:01,640] hyper parameter here which is the
+[00:48:57,599 --> 00:49:04,200] controlling the uh the the learning the
+[00:49:01,640 --> 00:49:06,960] behavior by the way this one is also the
+[00:49:04,200 --> 00:49:10,200] similar to the mini because mini also
+[00:49:06,960 --> 00:49:13,079] kind of a control the scaling and so on
+[00:49:10,200 --> 00:49:17,200] but anyway this kind of a the setting
+[00:49:13,079 --> 00:49:19,520] the learning rate is the very difficult
+[00:49:17,200 --> 00:49:23,240] and the there are lot of ways to some
+[00:49:19,520 --> 00:49:24,720] level optimizing the learning rate but
+[00:49:23,240 --> 00:49:28,960] the uh
+[00:49:24,720 --> 00:49:32,000] this the optim imization usually doesn't
+[00:49:28,960 --> 00:49:35,319] have any answer for the scating and so
+[00:49:32,000 --> 00:49:36,880] on at least the scating level we have to
+[00:49:35,319 --> 00:49:41,599] tune
+[00:49:36,880 --> 00:49:45,040] this the learning date and so and this
+[00:49:41,599 --> 00:49:48,359] is the most easiest way to the tune the
+[00:49:45,040 --> 00:49:51,839] learning behaviors so uh that I want to
+[00:49:48,359 --> 00:49:54,640] mention emphasize it because from now on
+[00:49:51,839 --> 00:49:56,880] you will you know doing some kind of new
+[00:49:54,640 --> 00:50:00,559] architecture implementing it and it's
+[00:49:56,880 --> 00:50:04,720] working well usually we have to chune
+[00:50:00,559 --> 00:50:08,440] the other this other parameter otherwise
+[00:50:04,720 --> 00:50:11,319] uh your architecture might be correct
+[00:50:08,440 --> 00:50:13,960] but due to the kind of the the the the
+[00:50:11,319 --> 00:50:16,599] missing of the Learning grade you guys
+[00:50:13,960 --> 00:50:18,920] may not have a full kind of a power of
+[00:50:16,599 --> 00:50:21,880] your new architecture and so on so this
+[00:50:18,920 --> 00:50:24,319] is unfortunate but anyway try to tune
+[00:50:21,880 --> 00:50:27,240] the learning rate if it doesn't work
+[00:50:24,319 --> 00:50:33,160] well and then uh this is actually
+[00:50:27,240 --> 00:50:37,920] the second quit so this is uh the the uh
+[00:50:33,160 --> 00:50:40,760] this side TOS the training accuracy
+[00:50:37,920 --> 00:50:43,720] higher is better this one is validation
+[00:50:40,760 --> 00:50:46,640] accuracy high as better and this one
+[00:50:43,720 --> 00:50:49,359] again the training accuracy and the
+[00:50:46,640 --> 00:50:54,000] variation accuracy higher is better and
+[00:50:49,359 --> 00:50:56,839] then the uh question is which one is
+[00:50:54,000 --> 00:50:58,400] better in terms of the training Behavior
+[00:50:56,839 --> 00:51:02,480] that's
+[00:50:58,400 --> 00:51:04,280] short the answer is yes now they the
+[00:51:02,480 --> 00:51:07,599] same scale and then of course right
+[00:51:04,280 --> 00:51:11,160] right side better right but
+[00:51:07,599 --> 00:51:15,079] I I want you to I want you not to answer
+[00:51:11,160 --> 00:51:17,559] this because the my intention is the gap
+[00:51:15,079 --> 00:51:20,359] of the training
+[00:51:17,559 --> 00:51:24,040] validation uh the the right side the
+[00:51:20,359 --> 00:51:27,799] training the validation is very similar
+[00:51:24,040 --> 00:51:30,119] right similar behavior and left side
+[00:51:27,799 --> 00:51:33,000] training and valuation behavior is very
+[00:51:30,119 --> 00:51:35,680] different right uh this is actually
+[00:51:33,000 --> 00:51:38,839] happens in the typical
+[00:51:35,680 --> 00:51:43,440] overtraining and then this actually
+[00:51:38,839 --> 00:51:46,160] quite often happens uh the how to
+[00:51:43,440 --> 00:51:49,040] mitigate this issue we can just reduce
+[00:51:46,160 --> 00:51:52,160] the running rate this is very important
+[00:51:49,040 --> 00:51:53,400] so that the police remember this trick
+[00:51:52,160 --> 00:51:56,599] and so
+[00:51:53,400 --> 00:51:59,119] on okay so I couldn't move to the other
+[00:51:56,599 --> 00:52:01,559] CNN but anyway I can finish the the
+[00:51:59,119 --> 00:52:04,760] basic neural network part yeah thank you
+[00:52:01,559 --> 00:52:04,760] so much

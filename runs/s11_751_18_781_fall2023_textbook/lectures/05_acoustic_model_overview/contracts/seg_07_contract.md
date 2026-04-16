@@ -1,0 +1,166 @@
+# seg_07 Contract
+
+Source range:
+- transcript: 00:46:58,920 -- 00:54:29,460
+- segment hint: Segment 7
+
+Must cover unit ids:
+- sub_0859
+- sub_0860
+- sub_0861
+- sub_0862
+- sub_0863
+- sub_0864
+- sub_0865
+- sub_0866
+- sub_0867
+- sub_0868
+- sub_0869
+- sub_0870
+- sub_0871
+- sub_0872
+- sub_0873
+- sub_0874
+- sub_0875
+- sub_0876
+- sub_0877
+- sub_0878
+- sub_0879
+- sub_0880
+- sub_0881
+- sub_0882
+- sub_0883
+- sub_0884
+- sub_0885
+- sub_0886
+- sub_0887
+- sub_0888
+- sub_0889
+- sub_0890
+- sub_0891
+- sub_0892
+- sub_0893
+- sub_0894
+- sub_0895
+- sub_0896
+- sub_0897
+- sub_0898
+- sub_0899
+- sub_0900
+- sub_0901
+- sub_0902
+- sub_0903
+- sub_0904
+- sub_0905
+- sub_0906
+- sub_0907
+- sub_0908
+- sub_0909
+- sub_0910
+- sub_0911
+- sub_0912
+- sub_0913
+- sub_0914
+- sub_0915
+- sub_0916
+- sub_0917
+- sub_0918
+- sub_0919
+- sub_0920
+- sub_0921
+- sub_0922
+- sub_0923
+- sub_0924
+- sub_0925
+- sub_0926
+- sub_0927
+- sub_0928
+- sub_0929
+- sub_0930
+- sub_0931
+- sub_0932
+- sub_0933
+- sub_0934
+- sub_0935
+- sub_0936
+- sub_0937
+- sub_0938
+- sub_0939
+- sub_0940
+- sub_0941
+- sub_0942
+- sub_0943
+- sub_0944
+- sub_0945
+- sub_0946
+- sub_0947
+- sub_0948
+- sub_0949
+- sub_0950
+- sub_0951
+- sub_0952
+- sub_0953
+- sub_0954
+- sub_0955
+- sub_0956
+- sub_0957
+- sub_0958
+- sub_0959
+- sub_0960
+- sub_0961
+- sub_0962
+- sub_0963
+- sub_0964
+- sub_0965
+- sub_0966
+- sub_0967
+- sub_0968
+- sub_0969
+- sub_0970
+- sub_0971
+- sub_0972
+- sub_0973
+- sub_0974
+- sub_0975
+- sub_0976
+- sub_0977
+- sub_0978
+- sub_0979
+- sub_0980
+- sub_0981
+- sub_0982
+- sub_0983
+- sub_0984
+- sub_0985
+- sub_0986
+- sub_0987
+- sub_0988
+- sub_0989
+- sub_0990
+- sub_0991
+- sub_0992
+- sub_0993
+- sub_0994
+- sub_0995
+- sub_0996
+- sub_0997
+- sub_0998
+- sub_0999
+- sub_1000
+- sub_1001
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

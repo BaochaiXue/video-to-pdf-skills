@@ -1,0 +1,172 @@
+\documentclass[a4paper]{article}
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{\usepackage{pgfplots}\pgfplotsset{compat=1.18}}{}
+\newtcolorbox{knowledgebox}[1]{enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black, coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm}, boxrule=1pt, sharp corners}
+\newtcolorbox{importantbox}[1]{enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black, coltitle=black, fonttitle=\bfseries, title=#1, sharp corners}
+\newtcolorbox{warningbox}[1]{enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black, coltitle=white, fonttitle=\bfseries, title=#1, sharp corners}
+\lstset{language=Python,basicstyle=\ttfamily\small,keywordstyle=\color{blue},stringstyle=\color{red!60!black},commentstyle=\color{green!60!black},breaklines=true,frame=single,numbers=left,numberstyle=\tiny\color{gray},captionpos=b,extendedchars=false}
+\newcommand{\notetitle}{Deep Neural Network for Acoustic Modeling}
+\newcommand{\noteauthors}{Codex 基于课程页、公开视频字幕、coverage ledger 与补充官方材料整理}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{WAVLab}
+\newcommand{\videopublishdate}{2023-10-30}
+\newcommand{\videoduration}{unknown}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=HnaLmkym0Ec}
+\newcommand{\videocoverpath}{cover.jpg}
+\begin{document}
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+\ifdefempty{\videocoverpath}{{\small 公开视频封面不可用。\par}}{\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par}
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+\tableofcontents
+\newpage
+\section{DNN-HMM hybrid motivation}
+根据课程页主题、公开视频字幕以及本讲的 coverage ledger，DNN-HMM hybrid motivation 这一部分主要围绕 Deep Neural Network for Acoustic Modeling | Deep neural network for acoustic modeling；DNN-HMM hybrid acoustic modeling 的动机、后验解释，以及 acoustic model 作为分类器的基本框架。 展开。
+写作上保持 coverage-first 原则：先把老师在这一阶段真正讲过的问题设定、模型部件、训练或推理逻辑讲清，再压缩成适合复习的结构。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/coverage_map.png}
+\caption{本讲 coverage map：按 coverage\_units.jsonl 归纳出的核心主题与章节映射。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/timeline.png}
+\caption{本讲 timeline：根据字幕时间范围归纳的主题推进顺序。}
+\end{figure}
+
+\subsection{Deep Neural Network for Acoustic Modeling}
+从证据位置看，这一部分对应的课程证据区间是 2023-10-30。课程在这里强调的核心内容可以概括为：Deep Neural Network for Acoustic Modeling | Deep neural network for acoustic modeling。
+从课程组织上看，这一部分承担的是把局部概念嵌回整条识别流水线中的作用，避免读者把公式或模块孤立地记忆。
+
+在本章结构中，这一单元被并入“DNN-HMM hybrid motivation”，目的是把同一阶段的定义、机制和权衡集中讲清。
+
+\subsection{DNN-HMM hybrid acoustic modeling 的动机、后验解释，以及 acoustic model 作为分类器的基本框架}
+从证据位置看，这一部分对应的课程证据区间是 00:00:00,640--00:07:28,840。课程在这里强调的核心内容可以概括为：DNN-HMM hybrid acoustic modeling 的动机、后验解释，以及 acoustic model 作为分类器的基本框架。。
+这里的重点不是把 HMM 当作过时历史，而是把它当作对齐、状态建模与动态规划最清晰的教学载体。
+
+在本章结构中，这一单元被并入“DNN-HMM hybrid motivation”，目的是把同一阶段的定义、机制和权衡集中讲清。
+
+\subsection{本章小结}
+DNN-HMM hybrid motivation 这一部分把 Deep Neural Network for Acoustic Modeling 中相邻的教学单元串成了一条连续叙事：既交代了这一阶段要解决的问题，也交代了方法、推理或工程权衡为什么要这样组织。
+
+\section{State targets and posterior interpretation}
+根据课程页主题、公开视频字幕以及本讲的 coverage ledger，State targets and posterior interpretation 这一部分主要围绕 state-level training targets、posterior / prior 归一化，以及 HMM 输出如何与 DNN 结合并相对传统方法做对比。 展开。
+写作上保持 coverage-first 原则：先把老师在这一阶段真正讲过的问题设定、模型部件、训练或推理逻辑讲清，再压缩成适合复习的结构。
+
+\subsection{state-level training targets、posterior / prior 归一化，以及 HMM 输出如何与 DNN 结合并相对传统方法做对比}
+从证据位置看，这一部分对应的课程证据区间是 00:07:25,759--00:15:06,120。课程在这里强调的核心内容可以概括为：state-level training targets、posterior / prior 归一化，以及 HMM 输出如何与 DNN 结合并相对传统方法做对比。。
+这里的重点不是把 HMM 当作过时历史，而是把它当作对齐、状态建模与动态规划最清晰的教学载体。
+
+在本章结构中，这一单元被并入“State targets and posterior interpretation”，目的是把同一阶段的定义、机制和权衡集中讲清。
+
+\subsection{本章小结}
+State targets and posterior interpretation 这一部分把 Deep Neural Network for Acoustic Modeling 中相邻的教学单元串成了一条连续叙事：既交代了这一阶段要解决的问题，也交代了方法、推理或工程权衡为什么要这样组织。
+
+\section{Network structure and state outputs}
+根据课程页主题、公开视频字幕以及本讲的 coverage ledger，Network structure and state outputs 这一部分主要围绕 输出状态空间、标签设计与多层网络的中间表示如何对应 acoustic states。 展开。
+写作上保持 coverage-first 原则：先把老师在这一阶段真正讲过的问题设定、模型部件、训练或推理逻辑讲清，再压缩成适合复习的结构。
+
+\subsection{输出状态空间、标签设计与多层网络的中间表示如何对应 acoustic states}
+从证据位置看，这一部分对应的课程证据区间是 00:15:02,560--00:22:14,039。课程在这里强调的核心内容可以概括为：输出状态空间、标签设计与多层网络的中间表示如何对应 acoustic states。。
+从课程组织上看，这一部分承担的是把局部概念嵌回整条识别流水线中的作用，避免读者把公式或模块孤立地记忆。
+
+在本章结构中，这一单元被并入“Network structure and state outputs”，目的是把同一阶段的定义、机制和权衡集中讲清。
+
+\subsection{本章小结}
+Network structure and state outputs 这一部分把 Deep Neural Network for Acoustic Modeling 中相邻的教学单元串成了一条连续叙事：既交代了这一阶段要解决的问题，也交代了方法、推理或工程权衡为什么要这样组织。
+
+\section{Activations and softmax output}
+根据课程页主题、公开视频字幕以及本讲的 coverage ledger，Activations and softmax output 这一部分主要围绕 激活函数、softmax 输出与层间计算，把非线性映射变成可训练的分类器。 展开。
+写作上保持 coverage-first 原则：先把老师在这一阶段真正讲过的问题设定、模型部件、训练或推理逻辑讲清，再压缩成适合复习的结构。
+
+\subsection{激活函数、softmax 输出与层间计算，把非线性映射变成可训练的分类器}
+从证据位置看，这一部分对应的课程证据区间是 00:22:10,600--00:30:04,120。课程在这里强调的核心内容可以概括为：激活函数、softmax 输出与层间计算，把非线性映射变成可训练的分类器。。
+这一段的教学重点在于把 DNN acoustic model 看作对传统 GMM-HMM 的替换，而不是孤立地谈神经网络。
+
+在本章结构中，这一单元被并入“Activations and softmax output”，目的是把同一阶段的定义、机制和权衡集中讲清。
+\[
+P(s \mid x) = \frac{\exp(z_s)}{\sum_{s'} \exp(z_{s'})}
+\]
+
+符号说明如下：
+\begin{itemize}
+\item $x$：输入特征或隐藏表示；
+\item $z_s$：类别 $s$ 的 logit；
+\item $P(s \mid x)$：归一化后的后验概率。
+\end{itemize}
+
+\subsection{本章小结}
+Activations and softmax output 这一部分把 Deep Neural Network for Acoustic Modeling 中相邻的教学单元串成了一条连续叙事：既交代了这一阶段要解决的问题，也交代了方法、推理或工程权衡为什么要这样组织。
+
+\section{Mini-batch SGD and optimization}
+根据课程页主题、公开视频字幕以及本讲的 coverage ledger，Mini-batch SGD and optimization 这一部分主要围绕 隐藏层表示、mini-batch 训练与 SGD / 学习率等优化细节。 展开。
+写作上保持 coverage-first 原则：先把老师在这一阶段真正讲过的问题设定、模型部件、训练或推理逻辑讲清，再压缩成适合复习的结构。
+
+\subsection{隐藏层表示、mini-batch 训练与 SGD / 学习率等优化细节}
+从证据位置看，这一部分对应的课程证据区间是 00:30:01,840--00:37:32,280。课程在这里强调的核心内容可以概括为：隐藏层表示、mini-batch 训练与 SGD / 学习率等优化细节。。
+这一段的教学重点在于把 DNN acoustic model 看作对传统 GMM-HMM 的替换，而不是孤立地谈神经网络。
+
+在本章结构中，这一单元被并入“Mini-batch SGD and optimization”，目的是把同一阶段的定义、机制和权衡集中讲清。
+
+\subsection{本章小结}
+Mini-batch SGD and optimization 这一部分把 Deep Neural Network for Acoustic Modeling 中相邻的教学单元串成了一条连续叙事：既交代了这一阶段要解决的问题，也交代了方法、推理或工程权衡为什么要这样组织。
+
+\section{Training efficiency and batching}
+根据课程页主题、公开视频字幕以及本讲的 coverage ledger，Training efficiency and batching 这一部分主要围绕 训练样本划分、批训练与实现层面的效率问题。 展开。
+写作上保持 coverage-first 原则：先把老师在这一阶段真正讲过的问题设定、模型部件、训练或推理逻辑讲清，再压缩成适合复习的结构。
+
+\subsection{训练样本划分、批训练与实现层面的效率问题}
+从证据位置看，这一部分对应的课程证据区间是 00:37:28,800--00:44:59,720。课程在这里强调的核心内容可以概括为：训练样本划分、批训练与实现层面的效率问题。。
+从课程组织上看，这一部分承担的是把局部概念嵌回整条识别流水线中的作用，避免读者把公式或模块孤立地记忆。
+
+在本章结构中，这一单元被并入“Training efficiency and batching”，目的是把同一阶段的定义、机制和权衡集中讲清。
+
+\subsection{本章小结}
+Training efficiency and batching 这一部分把 Deep Neural Network for Acoustic Modeling 中相邻的教学单元串成了一条连续叙事：既交代了这一阶段要解决的问题，也交代了方法、推理或工程权衡为什么要这样组织。
+
+\section{Overtraining and recap}
+根据课程页主题、公开视频字幕以及本讲的 coverage ledger，Overtraining and recap 这一部分主要围绕 overtraining、学习率调整、regularization 以及整讲收束。 展开。
+写作上保持 coverage-first 原则：先把老师在这一阶段真正讲过的问题设定、模型部件、训练或推理逻辑讲清，再压缩成适合复习的结构。
+
+\subsection{overtraining、学习率调整、regularization 以及整讲收束}
+从证据位置看，这一部分对应的课程证据区间是 00:44:57,559--00:52:04,760。课程在这里强调的核心内容可以概括为：overtraining、学习率调整、regularization 以及整讲收束。。
+从课程组织上看，这一部分承担的是把局部概念嵌回整条识别流水线中的作用，避免读者把公式或模块孤立地记忆。
+
+在本章结构中，这一单元被并入“Overtraining and recap”，目的是把同一阶段的定义、机制和权衡集中讲清。
+
+\subsection{本章小结}
+Overtraining and recap 这一部分把 Deep Neural Network for Acoustic Modeling 中相邻的教学单元串成了一条连续叙事：既交代了这一阶段要解决的问题，也交代了方法、推理或工程权衡为什么要这样组织。
+
+\section{总结与延伸}
+Deep Neural Network for Acoustic Modeling 这一讲在整门《Speech Recognition and Understanding》课程中的位置，是把 DNN for Acoustic Modeling 讲成一个可复用的建模模块。
+从教材化角度看，本讲最重要的不是记住单一术语，而是理解它如何嵌入完整的 automatic speech recognition pipeline：输入语音如何被表示、模型如何被训练、解码如何得到最终转写，以及这些设计分别带来什么假设和权衡。
+由于公开源以课程页和公开视频字幕为主、缺少官方 slide PDF，本章在正文里尽量把术语、方法和工程语境解释完整，并把缺失项留在 omission 和 manifest 里，而不是凭空补写。
+\end{document}

@@ -1,0 +1,892 @@
+[00:00:00,120 --> 00:00:06,720] the today I will talk about more for the
+[00:00:03,120 --> 00:00:08,440] alignment the the the the problems in
+[00:00:06,720 --> 00:00:13,240] speech
+[00:00:08,440 --> 00:00:15,280] recogition um so last time last lecture
+[00:00:13,240 --> 00:00:18,320] I we discussed about feature extraction
+[00:00:15,280 --> 00:00:22,880] mainly even whether it is end to endend
+[00:00:18,320 --> 00:00:25,680] or it is hmm based approaches uh we are
+[00:00:22,880 --> 00:00:27,359] still using the L filter Bank a feature
+[00:00:25,680 --> 00:00:31,640] as a kind of a very
+[00:00:27,359 --> 00:00:34,920] efficient input and so on but that's
+[00:00:31,640 --> 00:00:39,040] mostly for the input right and actually
+[00:00:34,920 --> 00:00:41,079] during the the uh the uh lecture we also
+[00:00:39,040 --> 00:00:44,719] had a questions about you know is that
+[00:00:41,079 --> 00:00:47,640] the for the the the the text the output
+[00:00:44,719 --> 00:00:51,199] or is that for the pH output the kind
+[00:00:47,640 --> 00:00:53,160] of the final Target and so on and
+[00:00:51,199 --> 00:00:56,280] actually we didn't talk so much about
+[00:00:53,160 --> 00:01:00,320] the definition of the output over
+[00:00:56,280 --> 00:01:03,399] problems so first I want to introduce
+[00:01:00,320 --> 00:01:08,000] what could be the possible output that
+[00:01:03,399 --> 00:01:11,720] we will handle uh in this spe con uh uh
+[00:01:08,000 --> 00:01:13,640] the we basically uh shallowly kind of
+[00:01:11,720 --> 00:01:17,400] mention this part but just want to
+[00:01:13,640 --> 00:01:21,360] clarify this the first couple of minutes
+[00:01:17,400 --> 00:01:22,880] so uh of course our goal is almost
+[00:01:21,360 --> 00:01:25,520] always the
+[00:01:22,880 --> 00:01:28,479] text for the case that if we want to
+[00:01:25,520 --> 00:01:31,079] kind of analyze the our kind of the form
+[00:01:28,479 --> 00:01:34,079] patterns and so on for some uh medical
+[00:01:31,079 --> 00:01:36,240] analysis and so on uh the the uh
+[00:01:34,079 --> 00:01:38,560] intermediate representation like a phone
+[00:01:36,240 --> 00:01:41,360] and so on can be a kind of output of the
+[00:01:38,560 --> 00:01:44,560] target but the majority of the speech
+[00:01:41,360 --> 00:01:48,200] the recognition uh the target is to uh
+[00:01:44,560 --> 00:01:51,960] get the text so that we are basically
+[00:01:48,200 --> 00:01:54,560] that focusing on the text and however uh
+[00:01:51,960 --> 00:01:56,640] the even text we actually have a couple
+[00:01:54,560 --> 00:02:00,280] of
+[00:01:56,640 --> 00:02:04,000] representations uh like for example the
+[00:02:00,280 --> 00:02:08,119] we hover basically using the three types
+[00:02:04,000 --> 00:02:11,080] of the uh the representation for the C
+[00:02:08,119 --> 00:02:14,319] for the output TT one is
+[00:02:11,080 --> 00:02:16,519] world uh this uh would be probably most
+[00:02:14,319 --> 00:02:20,160] kind of familiar uh for people working
+[00:02:16,519 --> 00:02:23,080] on the English the speech condition uh
+[00:02:20,160 --> 00:02:25,360] that is quite kind of a the good unit it
+[00:02:23,080 --> 00:02:28,239] has a kind of a also has a semantic
+[00:02:25,360 --> 00:02:32,680] information synthetic information uh and
+[00:02:28,239 --> 00:02:35,680] so on uh but the issue is that it tend
+[00:02:32,680 --> 00:02:39,120] to be very large the the vocabulary size
+[00:02:35,680 --> 00:02:41,440] could be the our natural kind of a
+[00:02:39,120 --> 00:02:44,879] conversation uh vocabulary SI to be
+[00:02:41,440 --> 00:02:48,200] 30,000 or 40,000 but depending on the
+[00:02:44,879 --> 00:02:49,680] our kind of a uh the the the scope of
+[00:02:48,200 --> 00:02:52,840] you know try to kind
+[00:02:49,680 --> 00:02:56,000] of understand everything the of course
+[00:02:52,840 --> 00:03:01,080] the vocabulary side becomes the super
+[00:02:56,000 --> 00:03:04,360] huge also uh B means that there are lot
+[00:03:01,080 --> 00:03:08,519] of issues when we have out of vocabulary
+[00:03:04,360 --> 00:03:12,799] so the this kind of out vocabulary issue
+[00:03:08,519 --> 00:03:16,080] is also uh the cannot ignore as we have
+[00:03:12,799 --> 00:03:18,400] in the the weekly assignment we often
+[00:03:16,080 --> 00:03:21,200] have a lot of kind of new words or kind
+[00:03:18,400 --> 00:03:24,760] of named entity and so on which is are
+[00:03:21,200 --> 00:03:28,519] often not included in our predefined the
+[00:03:24,760 --> 00:03:32,599] vocabulary so uh this uh the vocabulary
+[00:03:28,519 --> 00:03:36,840] issues are are one more the is the the
+[00:03:32,599 --> 00:03:41,280] the the drawback of the world based
+[00:03:36,840 --> 00:03:44,360] approaches and the second approach is
+[00:03:41,280 --> 00:03:47,560] character so this actually is the
+[00:03:44,360 --> 00:03:51,680] exactly kind of opposite uh the
+[00:03:47,560 --> 00:03:53,920] characteristics so first character uh is
+[00:03:51,680 --> 00:03:57,120] quite small in terms of the number of
+[00:03:53,920 --> 00:03:59,000] the the vocabulary size right uh like
+[00:03:57,120 --> 00:04:00,720] for example in the English cases it
+[00:03:59,000 --> 00:04:02,360] depend on which kind of character we
+[00:04:00,720 --> 00:04:05,640] should include like a special character
+[00:04:02,360 --> 00:04:08,760] and so on but generally around 30
+[00:04:05,640 --> 00:04:13,560] including the Roman alphabet and so on
+[00:04:08,760 --> 00:04:16,000] so this the size is not large in general
+[00:04:13,560 --> 00:04:20,359] but it's depend on the languages again
+[00:04:16,000 --> 00:04:23,440] uh like for example uh the
+[00:04:20,359 --> 00:04:26,440] Chinese I think the order of the
+[00:04:23,440 --> 00:04:30,759] character in The General use would be
+[00:04:26,440 --> 00:04:33,880] the 30,000 so sorry th000 3,000 or
+[00:04:30,759 --> 00:04:36,960] something like that right but the other
+[00:04:33,880 --> 00:04:41,120] entire character set that it would have
+[00:04:36,960 --> 00:04:43,320] 10,000 or something yeah uh same for the
+[00:04:41,120 --> 00:04:45,039] Japanese and depending on the language
+[00:04:43,320 --> 00:04:48,000] some language actually has a large
+[00:04:45,039 --> 00:04:50,400] character but still compared with the
+[00:04:48,000 --> 00:04:53,240] the vocabulary of the vocabulary size of
+[00:04:50,400 --> 00:04:56,320] the world it is hand the that we can
+[00:04:53,240 --> 00:05:00,000] handle it and also that we not basically
+[00:04:56,320 --> 00:05:02,000] have uh the out of vocabulary issues
+[00:05:00,000 --> 00:05:04,600] almost all the kind of characters are
+[00:05:02,000 --> 00:05:07,600] included in the our
+[00:05:04,600 --> 00:05:10,720] pre-existing the the the dictionary
+[00:05:07,600 --> 00:05:13,400] right we would not have so much cases
+[00:05:10,720 --> 00:05:17,080] that we can create a new
+[00:05:13,400 --> 00:05:20,240] characters except for probably Emoji now
+[00:05:17,080 --> 00:05:23,720] Emoji will become quite popular and it's
+[00:05:20,240 --> 00:05:26,000] May kind of a we may need to augment the
+[00:05:23,720 --> 00:05:28,160] the character vocabulary with Emoji but
+[00:05:26,000 --> 00:05:32,400] Emoji usually do not have a
+[00:05:28,160 --> 00:05:35,440] corresponding sound so for speech cases
+[00:05:32,400 --> 00:05:39,319] probably we don't have to include them
+[00:05:35,440 --> 00:05:42,319] um however uh the it's actually has
+[00:05:39,319 --> 00:05:47,120] similar the uh pros and cons that are
+[00:05:42,319 --> 00:05:50,960] compared with world so for example go to
+[00:05:47,120 --> 00:05:55,120] is represented by only two words right
+[00:05:50,960 --> 00:05:59,160] the Lang two but if we uh the the use
+[00:05:55,120 --> 00:06:02,280] the character uh to represent this one
+[00:05:59,160 --> 00:06:04,600] uh the G d o and the the space and the T
+[00:06:02,280 --> 00:06:07,440] it becomes the five character five
+[00:06:04,600 --> 00:06:10,240] lengths right and generally the
+[00:06:07,440 --> 00:06:12,880] character uh representation makes the
+[00:06:10,240 --> 00:06:15,599] kind of a the length
+[00:06:12,880 --> 00:06:17,000] longer length longer means that we need
+[00:06:15,599 --> 00:06:19,840] to
+[00:06:17,000 --> 00:06:23,039] actually H more
+[00:06:19,840 --> 00:06:26,080] computations so it character is good in
+[00:06:23,039 --> 00:06:27,720] terms of the vocabulary size issue but
+[00:06:26,080 --> 00:06:29,720] computationally it could be very
+[00:06:27,720 --> 00:06:32,440] expensive
+[00:06:29,720 --> 00:06:35,319] and then the people actually using the
+[00:06:32,440 --> 00:06:37,360] uh something between so this is the
+[00:06:35,319 --> 00:06:41,960] called bite player encoding or sentence
+[00:06:37,360 --> 00:06:44,120] piece uh generally we just kind of Marge
+[00:06:41,960 --> 00:06:45,639] uh some of the character set and then
+[00:06:44,120 --> 00:06:49,400] making it as a
+[00:06:45,639 --> 00:06:53,080] subw but we still by the way keeping the
+[00:06:49,400 --> 00:06:56,000] original uh the the character as well so
+[00:06:53,080 --> 00:06:58,440] that the all kind of any of the text can
+[00:06:56,000 --> 00:07:02,080] also be represented by this kind of a
+[00:06:58,440 --> 00:07:05,599] set so it's including the character so
+[00:07:02,080 --> 00:07:09,000] the similar to the character cases we
+[00:07:05,599 --> 00:07:11,360] don't have a out of vocabulary issues
+[00:07:09,000 --> 00:07:13,360] and since some of the word is some of
+[00:07:11,360 --> 00:07:15,759] the word or some of the subw is still
+[00:07:13,360 --> 00:07:18,560] kind of concatenated so actually the
+[00:07:15,759 --> 00:07:21,840] sentence length is again something
+[00:07:18,560 --> 00:07:24,479] between so that the we can have avoid
+[00:07:21,840 --> 00:07:27,240] the issue of the very long computation
+[00:07:24,479 --> 00:07:31,080] and a very large computation due to Long
+[00:07:27,240 --> 00:07:33,280] other character so the basically that we
+[00:07:31,080 --> 00:07:36,680] in this lecture we use these three types
+[00:07:33,280 --> 00:07:40,000] of the character by the way the how to
+[00:07:36,680 --> 00:07:44,039] which charact which kind of a uh the
+[00:07:40,000 --> 00:07:46,039] the uh the unit we should use uh highly
+[00:07:44,039 --> 00:07:48,080] depending on the language or highly
+[00:07:46,039 --> 00:07:51,840] depending on the other data and so on
+[00:07:48,080 --> 00:07:54,360] also computational cost and so on so
+[00:07:51,840 --> 00:07:57,919] mostly people actually using that this
+[00:07:54,360 --> 00:08:00,720] are the subw which is true but actually
+[00:07:57,919 --> 00:08:03,000] for the CH Chinese ja jaanese cases many
+[00:08:00,720 --> 00:08:07,240] people actually just using the
+[00:08:03,000 --> 00:08:09,919] character and the word is very useful
+[00:08:07,240 --> 00:08:11,800] for the case of the hmm because word
+[00:08:09,919 --> 00:08:13,639] usually have a corresponding the
+[00:08:11,800 --> 00:08:16,360] pronunciation and then that we can
+[00:08:13,639 --> 00:08:19,319] connect it with the the the form based
+[00:08:16,360 --> 00:08:21,560] system and so on so again uh this is
+[00:08:19,319 --> 00:08:24,879] quite kind of a different depending on
+[00:08:21,560 --> 00:08:27,800] other kind of a cases so I usually don't
+[00:08:24,879 --> 00:08:30,520] specify this other which one I am
+[00:08:27,800 --> 00:08:33,399] using except for the case for the HM
+[00:08:30,520 --> 00:08:36,000] based approaches ver end but anyway
+[00:08:33,399 --> 00:08:38,760] basically I didn't specify this one but
+[00:08:36,000 --> 00:08:40,719] which means it can be any of them and if
+[00:08:38,760 --> 00:08:42,440] you guys ask the question about in this
+[00:08:40,719 --> 00:08:44,480] case which one we should use I'm happy
+[00:08:42,440 --> 00:08:46,320] to answer but it's again depending on
+[00:08:44,480 --> 00:08:48,120] the language or depending on training
+[00:08:46,320 --> 00:08:50,480] data depending on the the demand of the
+[00:08:48,120 --> 00:08:52,959] computational cost it is changing so
+[00:08:50,480 --> 00:08:55,560] it's actually one of the the parameter
+[00:08:52,959 --> 00:08:57,760] uh the hyper parameter in uh if we kind
+[00:08:55,560 --> 00:09:00,480] of build a speech
+[00:08:57,760 --> 00:09:03,519] system and this is uh the more for the
+[00:09:00,480 --> 00:09:05,760] the final output but we also have a
+[00:09:03,519 --> 00:09:08,680] several other intermediate
+[00:09:05,760 --> 00:09:11,839] output so this is
+[00:09:08,680 --> 00:09:14,800] phon and the phon is that already
+[00:09:11,839 --> 00:09:18,360] explained a lot in
+[00:09:14,800 --> 00:09:23,240] the week before so I didn't go through
+[00:09:18,360 --> 00:09:25,640] so much but f is the first the the the
+[00:09:23,240 --> 00:09:28,240] more acostic information and it's
+[00:09:25,640 --> 00:09:32,279] required the dictionary to convert from
+[00:09:28,240 --> 00:09:36,440] the world but after uh we have a kind of
+[00:09:32,279 --> 00:09:38,640] a the uh the dictionary to convert the
+[00:09:36,440 --> 00:09:42,399] hor this problem becomes kind of
+[00:09:38,640 --> 00:09:45,320] shortcut right from webform to the text
+[00:09:42,399 --> 00:09:48,320] sequence is very kind of a long in terms
+[00:09:45,320 --> 00:09:51,360] of the how to kind of change it but the
+[00:09:48,320 --> 00:09:54,720] this other pum is a kind of quite a nice
+[00:09:51,360 --> 00:09:57,240] shortcut quite nice way to modularize
+[00:09:54,720 --> 00:10:01,440] the problem uh the with the kind of
+[00:09:57,240 --> 00:10:04,560] acoustic side and lugage side so the pH
+[00:10:01,440 --> 00:10:08,200] still are widely used in hm based system
+[00:10:04,560 --> 00:10:10,920] and so on and then that we also have
+[00:10:08,200 --> 00:10:13,920] additional the information which is we
+[00:10:10,920 --> 00:10:17,800] call it the state that is the more for
+[00:10:13,920 --> 00:10:21,480] the the internal representation more the
+[00:10:17,800 --> 00:10:24,320] more resolutionary information than for
+[00:10:21,480 --> 00:10:27,399] but of course it doesn't mathematically
+[00:10:24,320 --> 00:10:31,399] it's mathematically exist but it
+[00:10:27,399 --> 00:10:34,120] doesn't observable so it is just a model
+[00:10:31,399 --> 00:10:36,720] but we often also using the the state
+[00:10:34,120 --> 00:10:39,200] well I will later introduce this other
+[00:10:36,720 --> 00:10:43,560] the H Mar of model state but this is
+[00:10:39,200 --> 00:10:47,639] more kind of a the fine the resolution
+[00:10:43,560 --> 00:10:51,240] than the the the F the acoustic part and
+[00:10:47,639 --> 00:10:55,800] this the representation is the O use in
+[00:10:51,240 --> 00:10:59,920] the hmm base system so I just want to
+[00:10:55,800 --> 00:11:01,800] recap that we have a world character
+[00:10:59,920 --> 00:11:05,720] the B Band
+[00:11:01,800 --> 00:11:07,480] coding or P or state this kind of
+[00:11:05,720 --> 00:11:10,600] various kind of the output
+[00:11:07,480 --> 00:11:13,440] representation uh we are handling so
+[00:11:10,600 --> 00:11:17,160] that's a kind of remark of the
+[00:11:13,440 --> 00:11:20,160] output uh any questions about the
+[00:11:17,160 --> 00:11:20,160] output
+[00:11:20,440 --> 00:11:27,680] unit okay so cool and then today uh I
+[00:11:24,880 --> 00:11:31,200] will explain about alignment this is
+[00:11:27,680 --> 00:11:34,720] also very important concept
+[00:11:31,200 --> 00:11:38,160] so the first uh I will discuss about the
+[00:11:34,720 --> 00:11:41,079] easy cases end2 Sr is actually easy in
+[00:11:38,160 --> 00:11:43,839] terms of the explaining the what it is
+[00:11:41,079 --> 00:11:46,440] although the realizing it with the neur
+[00:11:43,839 --> 00:11:49,440] network is very complicated but the
+[00:11:46,440 --> 00:11:52,079] basically the N2 and ASR is easy so I
+[00:11:49,440 --> 00:11:55,440] will start to explain from the this one
+[00:11:52,079 --> 00:11:57,720] so N2 and ASR is the direct mapping from
+[00:11:55,440 --> 00:11:59,760] the observation uh the the feature to
+[00:11:57,720 --> 00:12:01,959] the speech feature to the text
+[00:11:59,760 --> 00:12:03,240] and without any kind of other
+[00:12:01,959 --> 00:12:06,440] intermediate
+[00:12:03,240 --> 00:12:09,560] representation like other pH based
+[00:12:06,440 --> 00:12:12,320] approaches and then uh it has a three
+[00:12:09,560 --> 00:12:14,519] kind of main architecture attention
+[00:12:12,320 --> 00:12:18,279] based the connectionist temporal
+[00:12:14,519 --> 00:12:21,800] classification CTC and Rec network uh
+[00:12:18,279 --> 00:12:25,199] transducer uh and so on and today the
+[00:12:21,800 --> 00:12:27,680] including hmm I will try to revisit this
+[00:12:25,199 --> 00:12:30,600] kind of a method uh based on the kind of
+[00:12:27,680 --> 00:12:33,440] alignment purpose alignment
+[00:12:30,600 --> 00:12:37,839] perspective so first the attention based
+[00:12:33,440 --> 00:12:41,399] ASR is actually the starting uh from the
+[00:12:37,839 --> 00:12:44,079] same uh point to the PW
+[00:12:41,399 --> 00:12:45,600] given so remember that that when we kind
+[00:12:44,079 --> 00:12:48,600] of starting speech processing
+[00:12:45,600 --> 00:12:51,560] formulation in the third weeks we always
+[00:12:48,600 --> 00:12:53,560] kind of discuss about you know how to
+[00:12:51,560 --> 00:12:57,480] kind of obtain this other the
+[00:12:53,560 --> 00:13:01,000] probability uh and so on and the uh the
+[00:12:57,480 --> 00:13:04,560] important issue is that the text or the
+[00:13:01,000 --> 00:13:08,480] part it can be word or character or subw
+[00:13:04,560 --> 00:13:10,160] but anyway this the W and observation
+[00:13:08,480 --> 00:13:13,079] the language is
+[00:13:10,160 --> 00:13:15,760] different so we are not sure are the
+[00:13:13,079 --> 00:13:18,440] which one corresponding to which the the
+[00:13:15,760 --> 00:13:21,240] the spech speech feature corresponding
+[00:13:18,440 --> 00:13:23,839] to text and so on in general so the
+[00:13:21,240 --> 00:13:26,279] problem is actually not just kind of
+[00:13:23,839 --> 00:13:28,839] recognizing the speech but actually we
+[00:13:26,279 --> 00:13:29,880] want to also find some kind of good data
+[00:13:28,839 --> 00:13:33,680] assign
+[00:13:29,880 --> 00:13:36,800] alignment problem and then the how
+[00:13:33,680 --> 00:13:41,040] attention based approach is the doing is
+[00:13:36,800 --> 00:13:44,959] as follows first we actually the
+[00:13:41,040 --> 00:13:46,839] factorize PW given o based on the
+[00:13:44,959 --> 00:13:50,399] probabilistic Chain
+[00:13:46,839 --> 00:13:53,160] rule so because this W is still very
+[00:13:50,399 --> 00:13:56,120] kind of a difficult to deal with because
+[00:13:53,160 --> 00:13:59,480] it is sequence so instead of kind of
+[00:13:56,120 --> 00:14:03,959] handling the entire sequence we are the
+[00:13:59,480 --> 00:14:06,199] factorize this the problem as a kind of
+[00:14:03,959 --> 00:14:11,920] the product of the
+[00:14:06,199 --> 00:14:15,839] each word or each token uh they they and
+[00:14:11,920 --> 00:14:20,279] then they the the converting the problem
+[00:14:15,839 --> 00:14:23,279] to this the problem that is kind of the
+[00:14:20,279 --> 00:14:26,519] most the uh important
+[00:14:23,279 --> 00:14:29,720] factorization of the attention based the
+[00:14:26,519 --> 00:14:32,440] As and then the uh the after we have a
+[00:14:29,720 --> 00:14:34,199] probabilistic chain L to factorize this
+[00:14:32,440 --> 00:14:37,600] kind of a
+[00:14:34,199 --> 00:14:39,920] probability uh we actually have to uh
+[00:14:37,600 --> 00:14:42,759] the the providing the actual neural
+[00:14:39,920 --> 00:14:45,680] network uh for this uh
+[00:14:42,759 --> 00:14:48,040] function and then uh we of use the
+[00:14:45,680 --> 00:14:51,360] attention based method to align the
+[00:14:48,040 --> 00:14:54,480] input and output and this one is called
+[00:14:51,360 --> 00:14:57,360] Soft alignment so please are remember it
+[00:14:54,480 --> 00:15:00,079] by the way we will have a more deep
+[00:14:57,360 --> 00:15:03,639] other discussions about about attention
+[00:15:00,079 --> 00:15:05,480] based ASR so in this lecture I just want
+[00:15:03,639 --> 00:15:08,680] to more focus on the alignment
+[00:15:05,480 --> 00:15:11,199] perspective and then other explain about
+[00:15:08,680 --> 00:15:12,959] the each of the kind of method so if you
+[00:15:11,199 --> 00:15:16,560] have more questions about attention
+[00:15:12,959 --> 00:15:20,160] based ASL that you guys can ask that the
+[00:15:16,560 --> 00:15:22,000] when I will explain it in the uh uh the
+[00:15:20,160 --> 00:15:25,680] later
+[00:15:22,000 --> 00:15:29,560] lecture okay so I will try to explain
+[00:15:25,680 --> 00:15:33,959] the alignment problems
+[00:15:29,560 --> 00:15:37,399] so first uh this is a kind of other the
+[00:15:33,959 --> 00:15:40,079] MCC feature actually and then this is
+[00:15:37,399 --> 00:15:42,319] corresponding to the the one two three
+[00:15:40,079 --> 00:15:44,759] four five six seven only eight Dimension
+[00:15:42,319 --> 00:15:47,519] but it's if you know make it 40 and so
+[00:15:44,759 --> 00:15:50,440] it's too much so I only kind of
+[00:15:47,519 --> 00:15:52,600] extrating eight but please consider that
+[00:15:50,440 --> 00:15:55,440] this is the kind of after the mscc
+[00:15:52,600 --> 00:16:00,399] feature extraction we have a this kind
+[00:15:55,440 --> 00:16:03,880] of the sequence of the audio so t 1 2 3
+[00:16:00,399 --> 00:16:06,720] 4 5 two I think this is totally 32 or
+[00:16:03,880 --> 00:16:08,839] something like that the first people
+[00:16:06,720 --> 00:16:11,920] understand it this is just the speech
+[00:16:08,839 --> 00:16:14,000] feature from one to 32 corresponding to
+[00:16:11,920 --> 00:16:20,120] this kind of MSC
+[00:16:14,000 --> 00:16:24,079] figure sorry 35 yeah and then uh the uh
+[00:16:20,120 --> 00:16:28,480] this is actually the the word
+[00:16:24,079 --> 00:16:31,399] c and word c are the let's say this Cas
+[00:16:28,480 --> 00:16:34,800] is which just using a character as a
+[00:16:31,399 --> 00:16:38,000] unit and in this case it's actually the
+[00:16:34,800 --> 00:16:41,880] length is three right s
+[00:16:38,000 --> 00:16:46,440] e so the problem here
+[00:16:41,880 --> 00:16:50,480] is how to find the that this s are
+[00:16:46,440 --> 00:16:54,160] corresponding to uh each of the
+[00:16:50,480 --> 00:16:57,440] feature this e correspond to the the the
+[00:16:54,160 --> 00:16:59,440] F features and the last e corresponding
+[00:16:57,440 --> 00:17:02,680] to F feature
+[00:16:59,440 --> 00:17:06,280] so this is a kind of a alignment
+[00:17:02,680 --> 00:17:10,799] problem uh if people that understand it
+[00:17:06,280 --> 00:17:13,160] it is clear okay good good yeah it's
+[00:17:10,799 --> 00:17:15,280] some of you it's a very trivial but it's
+[00:17:13,160 --> 00:17:16,319] very important concept so I kind of want
+[00:17:15,280 --> 00:17:19,160] to spend
+[00:17:16,319 --> 00:17:22,640] time and then what attention based
+[00:17:19,160 --> 00:17:26,559] approach is doing is
+[00:17:22,640 --> 00:17:31,200] that actually they try to find the
+[00:17:26,559 --> 00:17:32,360] probability of uh this character the
+[00:17:31,200 --> 00:17:36,000] belongs
+[00:17:32,360 --> 00:17:37,600] to which feature so let's say this one
+[00:17:36,000 --> 00:17:40,760] is a kind of a
+[00:17:37,600 --> 00:17:43,880] probability how many percent this s can
+[00:17:40,760 --> 00:17:46,559] be possibly aligned and then in this
+[00:17:43,880 --> 00:17:50,280] cases three or four has a kind of a
+[00:17:46,559 --> 00:17:53,640] higher probability than all the others
+[00:17:50,280 --> 00:17:57,080] this means that it's most likely this s
+[00:17:53,640 --> 00:17:59,120] will be kind of aligned here this three
+[00:17:57,080 --> 00:18:01,280] and four
+[00:17:59,120 --> 00:18:04,120] and then this can be very low
+[00:18:01,280 --> 00:18:06,480] probability but it can be because it is
+[00:18:04,120 --> 00:18:08,440] soft so that's why people call this kind
+[00:18:06,480 --> 00:18:13,440] of approach soft
+[00:18:08,440 --> 00:18:15,799] alignment uh same for the E uh let's say
+[00:18:13,440 --> 00:18:17,960] for example this Cas is there are little
+[00:18:15,799 --> 00:18:23,200] bit more kind of higher probability in
+[00:18:17,960 --> 00:18:28,840] many of the other kind of frames so the
+[00:18:23,200 --> 00:18:31,919] approximately five to let's say 20 is
+[00:18:28,840 --> 00:18:34,880] have a higher probility this means that
+[00:18:31,919 --> 00:18:38,120] the most likely this second e would be
+[00:18:34,880 --> 00:18:41,120] kind of a align aligned with uh this
+[00:18:38,120 --> 00:18:41,120] range of the
+[00:18:41,520 --> 00:18:47,120] feature and
+[00:18:43,480 --> 00:18:49,799] then the last one may also have a
+[00:18:47,120 --> 00:18:54,480] similar pattern but have a more kind of
+[00:18:49,799 --> 00:18:57,559] a the the probability in the last part
+[00:18:54,480 --> 00:19:00,559] uh than the previous features uh and so
+[00:18:57,559 --> 00:19:00,559] on
+[00:19:00,720 --> 00:19:09,600] so uh this uh the is a one way to uh
+[00:19:05,559 --> 00:19:12,679] represent the alignment right so again
+[00:19:09,600 --> 00:19:14,240] each kind of a character or each kind of
+[00:19:12,679 --> 00:19:18,400] a unit of the
+[00:19:14,240 --> 00:19:21,919] output uh we try to get the probability
+[00:19:18,400 --> 00:19:25,600] of uh that which one would have aligned
+[00:19:21,919 --> 00:19:29,559] to the uh the the feature with some kind
+[00:19:25,600 --> 00:19:33,360] of the probability so this uh it's
+[00:19:29,559 --> 00:19:36,120] actually computed in attention based
+[00:19:33,360 --> 00:19:39,720] approaches with that we can actually
+[00:19:36,120 --> 00:19:40,799] compute the uh the correspondence of the
+[00:19:39,720 --> 00:19:46,159] the
+[00:19:40,799 --> 00:19:50,039] S and the E and other e uh and so
+[00:19:46,159 --> 00:19:53,679] on so again the this is not
+[00:19:50,039 --> 00:19:57,840] deterministic right this can be 20 or 21
+[00:19:53,679 --> 00:20:00,480] or 22 even you know one two is not the
+[00:19:57,840 --> 00:20:03,559] zero probability almost zero but it's
+[00:20:00,480 --> 00:20:06,919] not zero completely zero and in the most
+[00:20:03,559 --> 00:20:11,559] of the cases so again this kind of a
+[00:20:06,919 --> 00:20:15,360] soft uh that uh the the softly kind of
+[00:20:11,559 --> 00:20:19,360] aligning each of the character uh uh
+[00:20:15,360 --> 00:20:22,400] that's uh we call it the soft uh
+[00:20:19,360 --> 00:20:25,080] alignment so this is actually the the uh
+[00:20:22,400 --> 00:20:28,480] the alignment method that the attention
+[00:20:25,080 --> 00:20:31,200] based approach this cannot be same that
+[00:20:28,480 --> 00:20:32,440] this distribution uh and it can be kind
+[00:20:31,200 --> 00:20:35,280] of a the
+[00:20:32,440 --> 00:20:37,200] following uh the the that e can be a
+[00:20:35,280 --> 00:20:40,039] littleit bit earlier and the second e
+[00:20:37,200 --> 00:20:44,159] can be little bit later
+[00:20:40,039 --> 00:20:48,600] however uh uh the this is because it is
+[00:20:44,159 --> 00:20:52,919] kind of a the the uh the we have a order
+[00:20:48,600 --> 00:20:55,559] s so it can be actually the later but I
+[00:20:52,919 --> 00:20:59,240] see your point actually this can be you
+[00:20:55,559 --> 00:21:02,440] know just a kind of a e and long Bo
+[00:20:59,240 --> 00:21:05,640] and so on so it can be actually the as
+[00:21:02,440 --> 00:21:08,400] AUM representation it just kind of can
+[00:21:05,640 --> 00:21:10,200] be regarded as a one long boil and may
+[00:21:08,400 --> 00:21:13,080] not have to have this kind of
+[00:21:10,200 --> 00:21:16,400] Distinction and so on but it's just kind
+[00:21:13,080 --> 00:21:19,600] of since it is the this kind of order
+[00:21:16,400 --> 00:21:22,080] and then the attention is trained to see
+[00:21:19,600 --> 00:21:24,360] the kind of alignment and so on so it is
+[00:21:22,080 --> 00:21:26,640] not actually actually we computed but
+[00:21:24,360 --> 00:21:29,320] it's I just kind of virtually do it but
+[00:21:26,640 --> 00:21:31,760] as a computational result probably it
+[00:21:29,320 --> 00:21:35,400] would have this kind of pattern because
+[00:21:31,760 --> 00:21:37,559] we have a order in the kind of the the
+[00:21:35,400 --> 00:21:40,919] character side and then the
+[00:21:37,559 --> 00:21:44,000] corresponding the the out input should
+[00:21:40,919 --> 00:21:46,080] also have a order and so on however this
+[00:21:44,000 --> 00:21:47,600] is a very important part so maybe I can
+[00:21:46,080 --> 00:21:49,760] have a more kind of discussion in the
+[00:21:47,600 --> 00:21:52,320] attention when I kind of explain but
+[00:21:49,760 --> 00:21:55,679] maybe I can also mention it right now
+[00:21:52,320 --> 00:21:58,640] this is that we the kind of tring data
+[00:21:55,679 --> 00:22:00,640] uh we have this kind of P but one of the
+[00:21:58,640 --> 00:22:05,200] issue of the attention based approach is
+[00:22:00,640 --> 00:22:06,320] that this kind of a uh the the uh logic
+[00:22:05,200 --> 00:22:10,760] is
+[00:22:06,320 --> 00:22:13,799] not uh the the represented as a kind of
+[00:22:10,760 --> 00:22:18,360] constant in the mathematical form so
+[00:22:13,799 --> 00:22:21,039] this means that again even s can
+[00:22:18,360 --> 00:22:25,919] actually be other
+[00:22:21,039 --> 00:22:28,919] the the uh the even s can be the the the
+[00:22:25,919 --> 00:22:31,480] H some probability here
+[00:22:28,919 --> 00:22:34,080] but this should not happen right in
+[00:22:31,480 --> 00:22:36,279] speech uh speech recognition is you know
+[00:22:34,080 --> 00:22:38,720] almost kind of this kind of a the
+[00:22:36,279 --> 00:22:41,360] representation is kind of a keeping the
+[00:22:38,720 --> 00:22:43,240] order we call this kind of a property
+[00:22:41,360 --> 00:22:47,159] monotonic alignment
+[00:22:43,240 --> 00:22:49,039] property so so again you know it is very
+[00:22:47,159 --> 00:22:51,960] kind of obvious that the S should not
+[00:22:49,039 --> 00:22:54,640] have a probability here but attention
+[00:22:51,960 --> 00:22:57,960] based approaches itself doesn't have
+[00:22:54,640 --> 00:23:00,120] such kind of a hard the constraint and
+[00:22:57,960 --> 00:23:02,919] generally putting some kind of small
+[00:23:00,120 --> 00:23:05,080] other probability and so on so this
+[00:23:02,919 --> 00:23:08,240] other nature is actually not very good
+[00:23:05,080 --> 00:23:09,919] for speech other recognition but in the
+[00:23:08,240 --> 00:23:12,240] other application like a machine
+[00:23:09,919 --> 00:23:14,799] translation and so on since the order
+[00:23:12,240 --> 00:23:16,679] can be different in the input and output
+[00:23:14,799 --> 00:23:19,080] so for them actually this is a very good
+[00:23:16,679 --> 00:23:21,960] property but for speech other
+[00:23:19,080 --> 00:23:24,760] recognition cases since input and output
+[00:23:21,960 --> 00:23:30,440] should be monotonic so that this kind of
+[00:23:24,760 --> 00:23:30,440] a the property is not very desired
+[00:23:30,520 --> 00:23:36,799] property okay so that's a very good
+[00:23:33,200 --> 00:23:39,600] question and then actually the this are
+[00:23:36,799 --> 00:23:43,480] connect to the next kind of other other
+[00:23:39,600 --> 00:23:46,200] method C CTC and RN transer cases and
+[00:23:43,480 --> 00:23:49,720] it's actually the based on the very
+[00:23:46,200 --> 00:23:52,480] different uh the attention uh sorry the
+[00:23:49,720 --> 00:23:55,520] alignment the pattern than the the
+[00:23:52,480 --> 00:24:00,600] previous are the the uh the attention
+[00:23:55,520 --> 00:24:02,799] based approaches so first the CTC is RN
+[00:24:00,600 --> 00:24:05,799] transer or everything in the speech
+[00:24:02,799 --> 00:24:09,520] condition always starting from PW given
+[00:24:05,799 --> 00:24:12,640] all and again we s mentioned that W and
+[00:24:09,520 --> 00:24:15,440] O is a different range so we need to
+[00:24:12,640 --> 00:24:17,559] find some kind of a are the the
+[00:24:15,440 --> 00:24:20,080] correspondence right and then the
+[00:24:17,559 --> 00:24:23,039] previously attention based approaches is
+[00:24:20,080 --> 00:24:26,919] more like kind of a soft alignment to S
+[00:24:23,039 --> 00:24:29,919] of this other other issue but now CTC
+[00:24:26,919 --> 00:24:33,039] RNN or even later hmm also actually
+[00:24:29,919 --> 00:24:35,600] based on this kind of approaches we uh
+[00:24:33,039 --> 00:24:37,799] actually have another solution for this
+[00:24:35,600 --> 00:24:40,240] the correspondence it's called A Hard
+[00:24:37,799 --> 00:24:43,000] alignment pass and this is actually more
+[00:24:40,240 --> 00:24:46,360] intuitive so I can explain about
+[00:24:43,000 --> 00:24:49,120] it so again that let's start about this
+[00:24:46,360 --> 00:24:52,960] kind of problem input the speech feature
+[00:24:49,120 --> 00:24:55,520] 35 frames and the token this cases
+[00:24:52,960 --> 00:24:57,440] character three and then last that in
+[00:24:55,520 --> 00:25:02,039] the previous cases we just tried to kind
+[00:24:57,440 --> 00:25:03,600] of get kind of the probability of the
+[00:25:02,039 --> 00:25:06,159] each
+[00:25:03,600 --> 00:25:08,600] assignment however in the hard alignment
+[00:25:06,159 --> 00:25:11,080] cases we
+[00:25:08,600 --> 00:25:16,760] actually hardly
+[00:25:11,080 --> 00:25:23,240] assign uh like first one to six cases
+[00:25:16,760 --> 00:25:27,000] each align to S and seven to the I think
+[00:25:23,240 --> 00:25:30,399] around 20 each second e and the third
+[00:25:27,000 --> 00:25:33,799] one uh would be the the list uh and so
+[00:25:30,399 --> 00:25:37,720] on I think this is more intuitive for
+[00:25:33,799 --> 00:25:40,320] you guys right however how to decide
+[00:25:37,720 --> 00:25:43,320] this kind of a boundary is actually not
+[00:25:40,320 --> 00:25:47,039] trivial or even it is not kind of
+[00:25:43,320 --> 00:25:51,440] observable in many cases so instead of
+[00:25:47,039 --> 00:25:54,840] kind of just consider one H case of the
+[00:25:51,440 --> 00:25:57,480] alignment we actually are consider all
+[00:25:54,840 --> 00:26:00,640] possible alignment so in this cases for
+[00:25:57,480 --> 00:26:03,399] example uh this is one realization of
+[00:26:00,640 --> 00:26:06,320] the alignment and the next one is little
+[00:26:03,399 --> 00:26:10,240] bit shifted the E is kind of little bit
+[00:26:06,320 --> 00:26:13,640] shift shifted so that's uh the the uh
+[00:26:10,240 --> 00:26:17,039] the uh the pattern it also be possibly
+[00:26:13,640 --> 00:26:20,600] happens so we actually consider all
+[00:26:17,039 --> 00:26:23,120] possible this kind of the the
+[00:26:20,600 --> 00:26:26,799] alignment uh that is kind of a hard
+[00:26:23,120 --> 00:26:28,760] alignment cases the first hard alignment
+[00:26:26,799 --> 00:26:32,600] is two kind of
+[00:26:28,760 --> 00:26:35,159] uh making explicit hard kind of a the
+[00:26:32,600 --> 00:26:38,200] the alignment property by the way for
+[00:26:35,159 --> 00:26:40,720] this kind of a hard alignment process we
+[00:26:38,200 --> 00:26:43,520] can actually set the monotonic alignment
+[00:26:40,720 --> 00:26:46,600] property so we can that in addition to
+[00:26:43,520 --> 00:26:50,399] this kind of a r the the hard alignment
+[00:26:46,600 --> 00:26:53,760] we can also set the rule that this once
+[00:26:50,399 --> 00:26:56,600] it is happened here uh this the S
+[00:26:53,760 --> 00:26:59,480] doesn't go to kind of Be Active here uh
+[00:26:56,600 --> 00:27:03,000] and so on hard alignment can
+[00:26:59,480 --> 00:27:05,279] actually set this kind of constraint
+[00:27:03,000 --> 00:27:07,480] easily and so on so this is actually
+[00:27:05,279 --> 00:27:10,200] another difference with the soft the
+[00:27:07,480 --> 00:27:13,039] alignment and so on but anyway the the
+[00:27:10,200 --> 00:27:19,840] hard alignment is considering the kind
+[00:27:13,039 --> 00:27:22,960] of a various uh the uh the the alignment
+[00:27:19,840 --> 00:27:25,960] considerations and then find the kind of
+[00:27:22,960 --> 00:27:28,480] the best ways or even kind of consider
+[00:27:25,960 --> 00:27:31,039] everything and the uh the in the kind of
+[00:27:28,480 --> 00:27:33,919] probabilistic manner that is a kind of a
+[00:27:31,039 --> 00:27:37,080] hard alignment and so
+[00:27:33,919 --> 00:27:39,559] on okay so it sounds like it's a kind of
+[00:27:37,080 --> 00:27:42,240] way to for us to kind of represent this
+[00:27:39,559 --> 00:27:45,000] kind of representation right and how to
+[00:27:42,240 --> 00:27:49,320] kind of uh but this one is observation
+[00:27:45,000 --> 00:27:51,799] this one is kind of the the token uh and
+[00:27:49,320 --> 00:27:54,200] how to kind of represent this uh the
+[00:27:51,799 --> 00:27:56,799] alignment hard alignment information
+[00:27:54,200 --> 00:27:59,039] mathematically uh that is a kind of one
+[00:27:56,799 --> 00:28:03,200] question and then
+[00:27:59,039 --> 00:28:06,919] uh we actually can uh the the represent
+[00:28:03,200 --> 00:28:09,559] uh introduce additional variable called
+[00:28:06,919 --> 00:28:11,679] alignment variable it can be by the way
+[00:28:09,559 --> 00:28:15,480] changed depending on the kind of a model
+[00:28:11,679 --> 00:28:18,240] context in the kind of a the CTC or RN
+[00:28:15,480 --> 00:28:20,880] transer cases I may call it alignment
+[00:28:18,240 --> 00:28:24,039] variable but in the hmm based cases I
+[00:28:20,880 --> 00:28:26,880] may also call it hmm variable and state
+[00:28:24,039 --> 00:28:30,159] variable and so on it's depending on the
+[00:28:26,880 --> 00:28:32,840] model the the this kind of variable can
+[00:28:30,159 --> 00:28:36,279] be called differently I try to unify it
+[00:28:32,840 --> 00:28:39,399] but if if not please understand that I
+[00:28:36,279 --> 00:28:41,559] am talking about same thing but anyway
+[00:28:39,399 --> 00:28:43,760] how to represent this kind of alignment
+[00:28:41,559 --> 00:28:48,159] pattern mathematically for example this
+[00:28:43,760 --> 00:28:50,480] cases from one to four is actually s and
+[00:28:48,159 --> 00:28:50,480] five
+[00:28:50,600 --> 00:28:58,480] to 9 is e right and then we have a kind
+[00:28:55,159 --> 00:29:02,200] of this the kind of a the varable we
+[00:28:58,480 --> 00:29:06,440] prepare D1 corresponding to S D2
+[00:29:02,200 --> 00:29:09,840] corresponding to S D3 corresponding to S
+[00:29:06,440 --> 00:29:12,799] Z4 corresponding to S D5 corresponding
+[00:29:09,840 --> 00:29:15,159] to e and then we can actually represent
+[00:29:12,799 --> 00:29:18,320] this kind of alignment but right by
+[00:29:15,159 --> 00:29:20,080] introducing this variable and the same
+[00:29:18,320 --> 00:29:22,080] if you know slightly this alignment is
+[00:29:20,080 --> 00:29:24,919] changed this part is changed right
+[00:29:22,080 --> 00:29:28,559] recognize yeah from here to here and
+[00:29:24,919 --> 00:29:32,000] then we can also sely uh the present it
+[00:29:28,559 --> 00:29:35,720] with the now the different the alignment
+[00:29:32,000 --> 00:29:39,480] information in this case from the seven
+[00:29:35,720 --> 00:29:42,799] it becomes e but from one to six it
+[00:29:39,480 --> 00:29:45,120] becomes s right so by introducing this
+[00:29:42,799 --> 00:29:48,320] kind of alignment variable we can
+[00:29:45,120 --> 00:29:51,760] actually represent this the the pattern
+[00:29:48,320 --> 00:29:54,320] and this pattern uh mathematically so
+[00:29:51,760 --> 00:29:58,080] this is actually the hard
+[00:29:54,320 --> 00:30:00,919] AR called the alignment variable here
+[00:29:58,080 --> 00:30:03,840] here and which we will introduce for the
+[00:30:00,919 --> 00:30:08,039] formulation so this the
+[00:30:03,840 --> 00:30:12,600] alignment uh variable is actually
+[00:30:08,039 --> 00:30:15,720] introduced uh newly uh for our kind of a
+[00:30:12,600 --> 00:30:20,159] formulation and then CTC and RN
+[00:30:15,720 --> 00:30:23,039] transducer is actually uh the uh the the
+[00:30:20,159 --> 00:30:26,279] the formulated by the way the I I don't
+[00:30:23,039 --> 00:30:29,880] do the uh questions anymore but if we
+[00:30:26,279 --> 00:30:32,480] have a new such kind of a variable uh to
+[00:30:29,880 --> 00:30:35,720] incorporate it to the kind of our PW
+[00:30:32,480 --> 00:30:38,399] given law we use a sum rule okay please
+[00:30:35,720 --> 00:30:40,799] also remember that if we have some kind
+[00:30:38,399 --> 00:30:44,200] of try to introduce some kind of new
+[00:30:40,799 --> 00:30:46,760] variables uh how to mathematically do it
+[00:30:44,200 --> 00:30:49,240] we just using the sum Rule and then we
+[00:30:46,760 --> 00:30:52,640] can actually uh incorporate the new
+[00:30:49,240 --> 00:30:55,399] variable right and then the later how to
+[00:30:52,640 --> 00:30:58,519] cook it is a different problem but at
+[00:30:55,399 --> 00:31:01,279] least for the newly introducing some the
+[00:30:58,519 --> 00:31:02,360] parameters Su rule is a kind of way to
+[00:31:01,279 --> 00:31:06,039] do
+[00:31:02,360 --> 00:31:09,840] that and then CTC is actually having
+[00:31:06,039 --> 00:31:13,360] more equations and then finally kind of
+[00:31:09,840 --> 00:31:16,080] uh the uh the breakdown to the the some
+[00:31:13,360 --> 00:31:19,279] kind of probability which I will not
+[00:31:16,080 --> 00:31:22,240] fully kind of explain it right now but
+[00:31:19,279 --> 00:31:25,799] in the kind of a later stage I will
+[00:31:22,240 --> 00:31:29,000] explain about the the CTC uh and this
+[00:31:25,799 --> 00:31:31,880] more kind of the mathematical form of
+[00:31:29,000 --> 00:31:36,440] how to derive this
+[00:31:31,880 --> 00:31:41,360] equations and so on but the important
+[00:31:36,440 --> 00:31:45,399] part is that the if we introduce this
+[00:31:41,360 --> 00:31:47,399] D and then if this kind of D is given
+[00:31:45,399 --> 00:31:49,880] this means that if we have this kind of
+[00:31:47,399 --> 00:31:51,200] information uh the alignment information
+[00:31:49,880 --> 00:31:55,519] is
+[00:31:51,200 --> 00:31:56,440] given at least Z and the observation is
+[00:31:55,519 --> 00:31:59,519] the same
+[00:31:56,440 --> 00:32:01,080] RS so if if we the same RS it is in
+[00:31:59,519 --> 00:32:03,360] correspondence right we have a
+[00:32:01,080 --> 00:32:05,799] correspondence so we could use any of
+[00:32:03,360 --> 00:32:08,639] the the technique any of the neural
+[00:32:05,799 --> 00:32:12,240] network or whatever we don't need to use
+[00:32:08,639 --> 00:32:15,679] attention and so on anymore so this is
+[00:32:12,240 --> 00:32:18,240] actually how CTC is build after this
+[00:32:15,679 --> 00:32:20,360] introduction of the D and then we
+[00:32:18,240 --> 00:32:24,000] actually can make a kind of any of the
+[00:32:20,360 --> 00:32:26,600] neural network to uh that the makers the
+[00:32:24,000 --> 00:32:31,799] the speech recognition and so
+[00:32:26,600 --> 00:32:34,799] on okay so this is for the end2 and ASR
+[00:32:31,799 --> 00:32:37,360] cases what's happened in the hmm based
+[00:32:34,799 --> 00:32:41,000] at the speech condition cases I will
+[00:32:37,360 --> 00:32:43,919] also go through this part but generally
+[00:32:41,000 --> 00:32:47,000] hmm based part is actually having a more
+[00:32:43,919 --> 00:32:49,679] equation more mass because it's actually
+[00:32:47,000 --> 00:32:52,360] try to kind of make the problem to be
+[00:32:49,679 --> 00:32:55,639] tractable by using a lot of kind of the
+[00:32:52,360 --> 00:32:58,320] assumptions and so on so for example
+[00:32:55,639 --> 00:33:00,279] this one is already I kind of explained
+[00:32:58,320 --> 00:33:02,799] but since this kind of equation is very
+[00:33:00,279 --> 00:33:06,840] important so I want to kind of review it
+[00:33:02,799 --> 00:33:09,600] again so first part uh we just the
+[00:33:06,840 --> 00:33:12,679] introduce the uh the The Forum
+[00:33:09,600 --> 00:33:15,880] representation Forum sequence and then
+[00:33:12,679 --> 00:33:18,120] the sum rule to introduce this one right
+[00:33:15,880 --> 00:33:20,919] and then we using the product rule to
+[00:33:18,120 --> 00:33:23,159] factorize each of the kind of function
+[00:33:20,919 --> 00:33:26,000] and then other we have a very good
+[00:33:23,159 --> 00:33:27,519] questions you know the the the
+[00:33:26,000 --> 00:33:28,279] Performing the conditional Independence
+[00:33:27,519 --> 00:33:31,159] ass
+[00:33:28,279 --> 00:33:33,399] here but is it really valid it's not
+[00:33:31,159 --> 00:33:35,519] very valid but it's a kind of okay
+[00:33:33,399 --> 00:33:37,600] assumption so we all can use it
+[00:33:35,519 --> 00:33:41,360] otherwise this problem and this problem
+[00:33:37,600 --> 00:33:45,200] is equivalent and there is no kind of uh
+[00:33:41,360 --> 00:33:47,360] the the no kind of change in terms of
+[00:33:45,200 --> 00:33:50,279] the difficulty but after the conditional
+[00:33:47,360 --> 00:33:53,639] Independence assumption it becomes other
+[00:33:50,279 --> 00:33:56,279] easier so this kind of way is the
+[00:33:53,639 --> 00:33:58,200] factorization uh introduction of the new
+[00:33:56,279 --> 00:34:00,799] variable based on the sum rule
+[00:33:58,200 --> 00:34:02,399] factorization based on the product rule
+[00:34:00,799 --> 00:34:03,919] and then simplifying some of the
+[00:34:02,399 --> 00:34:06,639] dependency based on the conditional
+[00:34:03,919 --> 00:34:10,599] Independence assumption this is what we
+[00:34:06,639 --> 00:34:13,599] usually use for our problems and then
+[00:34:10,599 --> 00:34:16,560] the again it becomes the uh the the
+[00:34:13,599 --> 00:34:19,960] acostic modeling part part and language
+[00:34:16,560 --> 00:34:23,079] modeling part that I can we already had
+[00:34:19,960 --> 00:34:26,760] explained but uh the now that I will
+[00:34:23,079 --> 00:34:28,639] talk about more for the hmm part which
+[00:34:26,760 --> 00:34:32,639] is actually corres responding to the
+[00:34:28,639 --> 00:34:35,399] this the acoustic modeling part and then
+[00:34:32,639 --> 00:34:38,119] I will basically try to provide how this
+[00:34:35,399 --> 00:34:39,639] alignment concept is applied to the hmm
+[00:34:38,119 --> 00:34:45,480] cases and so
+[00:34:39,639 --> 00:34:48,000] on so uh the uh hmm the cases uh the
+[00:34:45,480 --> 00:34:51,480] problem is that
+[00:34:48,000 --> 00:34:53,079] simil is actually again we have the
+[00:34:51,480 --> 00:34:56,720] speech features
+[00:34:53,079 --> 00:34:59,480] all but the pre previously uh in the end
+[00:34:56,720 --> 00:35:02,320] to end cases we actually deal with the
+[00:34:59,480 --> 00:35:06,320] token uh the the text right
+[00:35:02,320 --> 00:35:11,359] W but now it becomes phon so this is one
+[00:35:06,320 --> 00:35:15,280] kind of difference right uh and then uh
+[00:35:11,359 --> 00:35:17,440] the in the hmm cases we also actually
+[00:35:15,280 --> 00:35:20,119] using the hard
+[00:35:17,440 --> 00:35:22,920] alignment and in this cases for example
+[00:35:20,119 --> 00:35:25,760] if this this is the two and in this
+[00:35:22,920 --> 00:35:28,359] cases the hard alignment means that the
+[00:35:25,760 --> 00:35:32,720] first kind of the f
+[00:35:28,359 --> 00:35:35,680] is that aligned to the let's say one 125
+[00:35:32,720 --> 00:35:38,960] and the the other one U would be kind of
+[00:35:35,680 --> 00:35:42,320] align to 60 6 to
+[00:35:38,960 --> 00:35:44,880] 18 so this is actually uh the what we
+[00:35:42,320 --> 00:35:48,160] have learned as an hard alignment which
+[00:35:44,880 --> 00:35:51,720] we actually using in the hmm cases as
+[00:35:48,160 --> 00:35:54,079] well but I just want to remark two
+[00:35:51,720 --> 00:35:57,200] differences uh compared with the case
+[00:35:54,079 --> 00:35:59,400] that we have explained in the N2 and Sr
+[00:35:57,200 --> 00:36:01,720] and this kind of hm based
+[00:35:59,400 --> 00:36:06,240] alignment so
+[00:36:01,720 --> 00:36:09,640] first uh W uh the position of the O is
+[00:36:06,240 --> 00:36:12,000] changed right and in the end to end
+[00:36:09,640 --> 00:36:15,480] cases o is actually condition
+[00:36:12,000 --> 00:36:19,520] observation but hmm cases all becomes
+[00:36:15,480 --> 00:36:22,839] actually the the are the the the uh
+[00:36:19,520 --> 00:36:25,680] argument part of the probability and
+[00:36:22,839 --> 00:36:27,880] this is actually based on one of the uh
+[00:36:25,680 --> 00:36:31,480] the product rule actually changing kind
+[00:36:27,880 --> 00:36:34,319] of a swap the order of the observation
+[00:36:31,480 --> 00:36:36,200] part and then it becomes actually likely
+[00:36:34,319 --> 00:36:40,200] this actually becomes a generation of
+[00:36:36,200 --> 00:36:41,560] the speech but this approach is one of
+[00:36:40,200 --> 00:36:45,079] the kind of
+[00:36:41,560 --> 00:36:46,640] important the difference with the N2 and
+[00:36:45,079 --> 00:36:48,920] base
+[00:36:46,640 --> 00:36:51,880] approaches and of course there are
+[00:36:48,920 --> 00:36:55,720] another difference right which is the W
+[00:36:51,880 --> 00:36:58,520] and L but this is more like just using
+[00:36:55,720 --> 00:37:00,480] the different unit and so on so most
+[00:36:58,520 --> 00:37:03,079] like most kind of big difference would
+[00:37:00,480 --> 00:37:07,119] be kind of whether or is kind of a
+[00:37:03,079 --> 00:37:09,200] condition or argument and so one but I
+[00:37:07,119 --> 00:37:12,280] will explain about you know how this
+[00:37:09,200 --> 00:37:13,079] kind of difference with kind of derive
+[00:37:12,280 --> 00:37:15,760] the kind
+[00:37:13,079 --> 00:37:18,240] of use the kind of different
+[00:37:15,760 --> 00:37:21,200] formulations and so on but other than
+[00:37:18,240 --> 00:37:24,359] that the problem is the still the most
+[00:37:21,200 --> 00:37:28,599] important problem is still the alignment
+[00:37:24,359 --> 00:37:30,280] part and so on and then given that we
+[00:37:28,599 --> 00:37:33,640] have this kind of
+[00:37:30,280 --> 00:37:36,760] alignment by the way then actually the
+[00:37:33,640 --> 00:37:39,920] problem becomes very simple right for
+[00:37:36,760 --> 00:37:43,640] example first the five frame
+[00:37:39,920 --> 00:37:48,000] corresponding to T and the first the six
+[00:37:43,640 --> 00:37:51,280] to 18 frame corresponding to U so the
+[00:37:48,000 --> 00:37:54,119] problem before we have an alignment
+[00:37:51,280 --> 00:37:57,640] would be that you know observation of
+[00:37:54,119 --> 00:38:00,440] the 1 to 18 uh will be kind of
+[00:37:57,640 --> 00:38:05,160] represented other the conditioned by the
+[00:38:00,440 --> 00:38:09,560] two of the the P uh and then actually
+[00:38:05,160 --> 00:38:12,160] this uh is not easy to uh solve because
+[00:38:09,560 --> 00:38:15,640] it's we need to consider the kind of two
+[00:38:12,160 --> 00:38:19,480] variable in the condition and 18
+[00:38:15,640 --> 00:38:23,599] variable in the the speech side and so
+[00:38:19,480 --> 00:38:25,680] on however it is very uh if you have
+[00:38:23,599 --> 00:38:28,760] this kind of assign alignment and so by
+[00:38:25,680 --> 00:38:31,119] the way if this is if and how we kind of
+[00:38:28,760 --> 00:38:33,319] get alignment I will explain it in the
+[00:38:31,119 --> 00:38:36,280] two to three lectures by the way it
+[00:38:33,319 --> 00:38:38,480] takes very long time to how to kind of
+[00:38:36,280 --> 00:38:40,800] get the alignment and so on but if we
+[00:38:38,480 --> 00:38:43,560] have a alignment it is very natural to
+[00:38:40,800 --> 00:38:47,440] consider that this probability can be
+[00:38:43,560 --> 00:38:51,560] factorized right from the T to o1 to5
+[00:38:47,440 --> 00:38:54,200] and the U to six to the 18 so once again
+[00:38:51,560 --> 00:38:57,440] similar to the kind of a problem of the
+[00:38:54,200 --> 00:39:00,760] what I mentioned in the the the the hard
+[00:38:57,440 --> 00:39:04,240] alignment CTC RN transducer cases once
+[00:39:00,760 --> 00:39:08,280] we have this kind of P based the the the
+[00:39:04,240 --> 00:39:11,760] alignment we can also the factorize and
+[00:39:08,280 --> 00:39:14,359] simplify this the the problem
+[00:39:11,760 --> 00:39:18,000] easily however by the way uh this
+[00:39:14,359 --> 00:39:20,960] actually derivation is not trivial so
+[00:39:18,000 --> 00:39:23,079] from here to here we actually having a
+[00:39:20,960 --> 00:39:26,760] lot of conditional Independence
+[00:39:23,079 --> 00:39:29,000] assumption so it's very natural that
+[00:39:26,760 --> 00:39:33,079] this you know observation 1 to 5
+[00:39:29,000 --> 00:39:36,920] corresponding to two t and 6 to 18 to
+[00:39:33,079 --> 00:39:39,079] corresponding to U right however the
+[00:39:36,920 --> 00:39:41,960] still we are not sure really that you
+[00:39:39,079 --> 00:39:45,319] know this one is affecting this one and
+[00:39:41,960 --> 00:39:47,640] this one affecting to this one right so
+[00:39:45,319 --> 00:39:51,359] mathematically from here to here is
+[00:39:47,640 --> 00:39:54,760] actually not the the equivalent and we
+[00:39:51,359 --> 00:39:57,000] actually having using the lot of the
+[00:39:54,760 --> 00:40:00,359] conditional Independence assumption from
+[00:39:57,000 --> 00:40:02,760] here to here I use a kind of a the the
+[00:40:00,359 --> 00:40:05,000] the compos the sequence and from here to
+[00:40:02,760 --> 00:40:07,480] here I use a kind of a product rule
+[00:40:05,000 --> 00:40:10,440] product rule doesn't change the
+[00:40:07,480 --> 00:40:14,760] difficulty but given the the assignment
+[00:40:10,440 --> 00:40:18,480] we actually reasonably the assume that
+[00:40:14,760 --> 00:40:21,200] this part can be kind of ignored and
+[00:40:18,480 --> 00:40:26,960] then we actually can factorize this the
+[00:40:21,200 --> 00:40:30,000] two uh the to uh the the the the uh
+[00:40:26,960 --> 00:40:35,040] probab ab ilities and so on so always
+[00:40:30,000 --> 00:40:38,280] remember that uh the some kind of the
+[00:40:35,040 --> 00:40:40,480] two the factorize the problem we
+[00:40:38,280 --> 00:40:42,240] actually always have to consider the
+[00:40:40,480 --> 00:40:44,319] conditional Independence assumption
+[00:40:42,240 --> 00:40:47,880] otherwise the problem doesn't become the
+[00:40:44,319 --> 00:40:50,920] the uh the uh the easy and this is a
+[00:40:47,880 --> 00:40:56,440] kind of General case again if we have a
+[00:40:50,920 --> 00:41:01,119] uh the the let's say this you know the T
+[00:40:56,440 --> 00:41:03,319] J minus 1 + one to TJ is a kind of the
+[00:41:01,119 --> 00:41:06,920] onset and offset information of this
+[00:41:03,319 --> 00:41:11,119] kind of pH and then uh again if we know
+[00:41:06,920 --> 00:41:15,119] the kind of a given this kind of a uh
+[00:41:11,119 --> 00:41:18,359] the uh the alignment information we can
+[00:41:15,119 --> 00:41:20,160] actually factorize this the problem but
+[00:41:18,359 --> 00:41:24,920] it's actually using a lot of conditional
+[00:41:20,160 --> 00:41:24,920] Independence assumption to derive this
+[00:41:25,000 --> 00:41:33,359] one okay so uh the this is the the last
+[00:41:29,359 --> 00:41:37,440] the explanation part today so
+[00:41:33,359 --> 00:41:43,680] um I mentioned that the I will use the
+[00:41:37,440 --> 00:41:45,880] kind of a ph and then the making it as
+[00:41:43,680 --> 00:41:49,680] a
+[00:41:45,880 --> 00:41:52,440] um uh alignment problem but actually
+[00:41:49,680 --> 00:41:55,520] this is a very simplified
+[00:41:52,440 --> 00:41:58,560] explanation uh we usually introduce the
+[00:41:55,520 --> 00:42:02,040] two silence silence begin and the
+[00:41:58,560 --> 00:42:05,720] silence end uh because the edge of this
+[00:42:02,040 --> 00:42:08,560] part is most likely silence and it is
+[00:42:05,720 --> 00:42:11,560] wrong to assign silence part to the uh
+[00:42:08,560 --> 00:42:13,920] the phon so we actually usually kind of
+[00:42:11,560 --> 00:42:18,839] introduce this kind of Silence B and
+[00:42:13,920 --> 00:42:21,680] silence e and so on by the way this the
+[00:42:18,839 --> 00:42:23,680] sum of the system are the this the make
+[00:42:21,680 --> 00:42:26,000] a distinction of the silence beginning
+[00:42:23,680 --> 00:42:28,559] and the silence end some of the system
+[00:42:26,000 --> 00:42:30,720] regarding both are the same silence and
+[00:42:28,559 --> 00:42:34,400] so but it depend on the system it
+[00:42:30,720 --> 00:42:35,160] doesn't have a big difference but this
+[00:42:34,400 --> 00:42:37,800] uh
+[00:42:35,160 --> 00:42:42,160] representation may not be
+[00:42:37,800 --> 00:42:45,520] enough it's actually uh the T and the U
+[00:42:42,160 --> 00:42:48,880] can actually be may have a more kind of
+[00:42:45,520 --> 00:42:53,960] changes uh for example if we the
+[00:42:48,880 --> 00:42:55,520] pronunce it who and so on uh before uh
+[00:42:53,960 --> 00:42:57,480] in the kind of beginning of the
+[00:42:55,520 --> 00:43:00,839] pronunciation and the end of the
+[00:42:57,480 --> 00:43:03,440] pronunciation can be more the the the
+[00:43:00,839 --> 00:43:06,359] the less stationary but the middle of
+[00:43:03,440 --> 00:43:09,640] the pronunciation can be very stationary
+[00:43:06,359 --> 00:43:12,559] So based on this kind of assumption in
+[00:43:09,640 --> 00:43:14,000] the the hidden Mar of model cases we
+[00:43:12,559 --> 00:43:19,359] actually
+[00:43:14,000 --> 00:43:25,640] even the uh split the unit to the one
+[00:43:19,359 --> 00:43:28,160] the one two three uh and so on so this
+[00:43:25,640 --> 00:43:31,640] the concept uh is actually quite good to
+[00:43:28,160 --> 00:43:35,359] modeling the uh the speech that used to
+[00:43:31,640 --> 00:43:39,280] be so the uh the problem of the hmm
+[00:43:35,359 --> 00:43:41,760] based the system to the make alignment
+[00:43:39,280 --> 00:43:45,400] is actually little bit more complicated
+[00:43:41,760 --> 00:43:47,359] than the uh the CTC or other cases again
+[00:43:45,400 --> 00:43:51,800] we have a silence
+[00:43:47,359 --> 00:43:54,280] symbol and we also have a T and U but it
+[00:43:51,800 --> 00:43:57,960] can be actually uh the the the
+[00:43:54,280 --> 00:44:01,160] represented as the three types of the uh
+[00:43:57,960 --> 00:44:03,880] F and then that we try to kind of find
+[00:44:01,160 --> 00:44:07,040] the alignment problem once we get the
+[00:44:03,880 --> 00:44:10,160] alignment we can actually uh the model
+[00:44:07,040 --> 00:44:13,079] it uh the other the the a lot of
+[00:44:10,160 --> 00:44:16,640] mathematical uh tools and so on but
+[00:44:13,079 --> 00:44:19,480] again the this kind of a the alignment
+[00:44:16,640 --> 00:44:22,240] is not unique we don't know the answer
+[00:44:19,480 --> 00:44:25,240] we cannot actually have an answer so we
+[00:44:22,240 --> 00:44:28,160] always have to consider this other kind
+[00:44:25,240 --> 00:44:31,400] of a this realization of the alignment
+[00:44:28,160 --> 00:44:34,040] is actually probability this one can be
+[00:44:31,400 --> 00:44:36,880] like for example 30% and this can this
+[00:44:34,040 --> 00:44:38,920] one can be 10% and so on always we
+[00:44:36,880 --> 00:44:41,880] consider this kind of alignment as a
+[00:44:38,920 --> 00:44:44,079] probability and then are solving this
+[00:44:41,880 --> 00:44:47,359] approaches actually for this that the
+[00:44:44,079 --> 00:44:49,400] hidden Mark model is the very important
+[00:44:47,359 --> 00:44:52,440] tools that to do
+[00:44:49,400 --> 00:44:55,480] that okay so this is the kind of the the
+[00:44:52,440 --> 00:45:00,319] summary of today's uh the
+[00:44:55,480 --> 00:45:02,640] uh uh the lecture so first uh the I kind
+[00:45:00,319 --> 00:45:06,400] of try to
+[00:45:02,640 --> 00:45:09,119] uh um provide the information important
+[00:45:06,400 --> 00:45:11,880] information input and output are
+[00:45:09,119 --> 00:45:14,839] different and then uh we need some
+[00:45:11,880 --> 00:45:18,160] alignment and for the soft alignment
+[00:45:14,839 --> 00:45:20,559] case I already I introduced part which
+[00:45:18,160 --> 00:45:23,119] is based on the attention based the
+[00:45:20,559 --> 00:45:26,079] approaches but the majority of the
+[00:45:23,119 --> 00:45:29,599] method is actually hard alignment based
+[00:45:26,079 --> 00:45:32,359] approaches which is used for the CTC R
+[00:45:29,599 --> 00:45:34,880] transmissor and the HM based the
+[00:45:32,359 --> 00:45:39,000] approaches and so on so that's the the
+[00:45:34,880 --> 00:45:39,000] today's uh the lecture

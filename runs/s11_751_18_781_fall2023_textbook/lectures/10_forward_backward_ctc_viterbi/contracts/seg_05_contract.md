@@ -1,0 +1,149 @@
+# seg_05 Contract
+
+Source range:
+- transcript: 00:27:48,600 -- 00:34:56,839
+- segment hint: Segment 5
+
+Must cover unit ids:
+- sub_0509
+- sub_0510
+- sub_0511
+- sub_0512
+- sub_0513
+- sub_0514
+- sub_0515
+- sub_0516
+- sub_0517
+- sub_0518
+- sub_0519
+- sub_0520
+- sub_0521
+- sub_0522
+- sub_0523
+- sub_0524
+- sub_0525
+- sub_0526
+- sub_0527
+- sub_0528
+- sub_0529
+- sub_0530
+- sub_0531
+- sub_0532
+- sub_0533
+- sub_0534
+- sub_0535
+- sub_0536
+- sub_0537
+- sub_0538
+- sub_0539
+- sub_0540
+- sub_0541
+- sub_0542
+- sub_0543
+- sub_0544
+- sub_0545
+- sub_0546
+- sub_0547
+- sub_0548
+- sub_0549
+- sub_0550
+- sub_0551
+- sub_0552
+- sub_0553
+- sub_0554
+- sub_0555
+- sub_0556
+- sub_0557
+- sub_0558
+- sub_0559
+- sub_0560
+- sub_0561
+- sub_0562
+- sub_0563
+- sub_0564
+- sub_0565
+- sub_0566
+- sub_0567
+- sub_0568
+- sub_0569
+- sub_0570
+- sub_0571
+- sub_0572
+- sub_0573
+- sub_0574
+- sub_0575
+- sub_0576
+- sub_0577
+- sub_0578
+- sub_0579
+- sub_0580
+- sub_0581
+- sub_0582
+- sub_0583
+- sub_0584
+- sub_0585
+- sub_0586
+- sub_0587
+- sub_0588
+- sub_0589
+- sub_0590
+- sub_0591
+- sub_0592
+- sub_0593
+- sub_0594
+- sub_0595
+- sub_0596
+- sub_0597
+- sub_0598
+- sub_0599
+- sub_0600
+- sub_0601
+- sub_0602
+- sub_0603
+- sub_0604
+- sub_0605
+- sub_0606
+- sub_0607
+- sub_0608
+- sub_0609
+- sub_0610
+- sub_0611
+- sub_0612
+- sub_0613
+- sub_0614
+- sub_0615
+- sub_0616
+- sub_0617
+- sub_0618
+- sub_0619
+- sub_0620
+- sub_0621
+- sub_0622
+- sub_0623
+- sub_0624
+- sub_0625
+- sub_0626
+- sub_0627
+- sub_0628
+- sub_0629
+- sub_0630
+- sub_0631
+- sub_0632
+- sub_0633
+- sub_0634
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

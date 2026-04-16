@@ -1,0 +1,150 @@
+# seg_07 Contract
+
+Source range:
+- transcript: 00:40:28,680 -- 00:46:55,359
+- segment hint: Segment 7
+
+Must cover unit ids:
+- sub_0787
+- sub_0788
+- sub_0789
+- sub_0790
+- sub_0791
+- sub_0792
+- sub_0793
+- sub_0794
+- sub_0795
+- sub_0796
+- sub_0797
+- sub_0798
+- sub_0799
+- sub_0800
+- sub_0801
+- sub_0802
+- sub_0803
+- sub_0804
+- sub_0805
+- sub_0806
+- sub_0807
+- sub_0808
+- sub_0809
+- sub_0810
+- sub_0811
+- sub_0812
+- sub_0813
+- sub_0814
+- sub_0815
+- sub_0816
+- sub_0817
+- sub_0818
+- sub_0819
+- sub_0820
+- sub_0821
+- sub_0822
+- sub_0823
+- sub_0824
+- sub_0825
+- sub_0826
+- sub_0827
+- sub_0828
+- sub_0829
+- sub_0830
+- sub_0831
+- sub_0832
+- sub_0833
+- sub_0834
+- sub_0835
+- sub_0836
+- sub_0837
+- sub_0838
+- sub_0839
+- sub_0840
+- sub_0841
+- sub_0842
+- sub_0843
+- sub_0844
+- sub_0845
+- sub_0846
+- sub_0847
+- sub_0848
+- sub_0849
+- sub_0850
+- sub_0851
+- sub_0852
+- sub_0853
+- sub_0854
+- sub_0855
+- sub_0856
+- sub_0857
+- sub_0858
+- sub_0859
+- sub_0860
+- sub_0861
+- sub_0862
+- sub_0863
+- sub_0864
+- sub_0865
+- sub_0866
+- sub_0867
+- sub_0868
+- sub_0869
+- sub_0870
+- sub_0871
+- sub_0872
+- sub_0873
+- sub_0874
+- sub_0875
+- sub_0876
+- sub_0877
+- sub_0878
+- sub_0879
+- sub_0880
+- sub_0881
+- sub_0882
+- sub_0883
+- sub_0884
+- sub_0885
+- sub_0886
+- sub_0887
+- sub_0888
+- sub_0889
+- sub_0890
+- sub_0891
+- sub_0892
+- sub_0893
+- sub_0894
+- sub_0895
+- sub_0896
+- sub_0897
+- sub_0898
+- sub_0899
+- sub_0900
+- sub_0901
+- sub_0902
+- sub_0903
+- sub_0904
+- sub_0905
+- sub_0906
+- sub_0907
+- sub_0908
+- sub_0909
+- sub_0910
+- sub_0911
+- sub_0912
+- sub_0913
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+
