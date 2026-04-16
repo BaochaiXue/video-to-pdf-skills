@@ -299,11 +299,12 @@ def enrich_source_manifest(lecture_dir: Path) -> None:
 def bootstrap_lecture(lecture_dir: Path) -> None:
     ensure_structured_evidence(lecture_dir)
     normalize_coverage_rows(lecture_dir)
+    ensure_repair_log(lecture_dir)
+    (lecture_dir / "eval_reports").mkdir(parents=True, exist_ok=True)
+    enrich_source_manifest(lecture_dir)
     write_json(lecture_dir / "lecture_plan.json", build_lecture_plan(lecture_dir))
     write_json(lecture_dir / "figure_plan.json", build_figure_plan(lecture_dir))
     build_segment_contracts(lecture_dir)
-    ensure_repair_log(lecture_dir)
-    (lecture_dir / "eval_reports").mkdir(parents=True, exist_ok=True)
     enrich_source_manifest(lecture_dir)
 
 

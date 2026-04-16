@@ -1,0 +1,183 @@
+# seg_20 Contract
+
+Source range:
+- transcript: 01:03:51,799 -- 01:07:24,870
+- segment hint: 我们到底在评方法、模型还是系统
+
+Must cover unit ids:
+- sub_2832
+- sub_2833
+- sub_2834
+- sub_2835
+- sub_2836
+- sub_2837
+- sub_2838
+- sub_2839
+- sub_2840
+- sub_2841
+- sub_2842
+- sub_2843
+- sub_2844
+- sub_2845
+- sub_2846
+- sub_2847
+- sub_2848
+- sub_2849
+- sub_2850
+- sub_2851
+- sub_2852
+- sub_2853
+- sub_2854
+- sub_2855
+- sub_2856
+- sub_2857
+- sub_2858
+- sub_2859
+- sub_2860
+- sub_2861
+- sub_2862
+- sub_2863
+- sub_2864
+- sub_2865
+- sub_2866
+- sub_2867
+- sub_2868
+- sub_2869
+- sub_2870
+- sub_2871
+- sub_2872
+- sub_2873
+- sub_2874
+- sub_2875
+- sub_2876
+- sub_2877
+- sub_2878
+- sub_2879
+- sub_2880
+- sub_2881
+- sub_2882
+- sub_2883
+- sub_2884
+- sub_2885
+- sub_2886
+- sub_2887
+- sub_2888
+- sub_2889
+- sub_2890
+- sub_2891
+- sub_2892
+- sub_2893
+- sub_2894
+- sub_2895
+- sub_2896
+- sub_2897
+- sub_2898
+- sub_2899
+- sub_2900
+- sub_2901
+- sub_2902
+- sub_2903
+- sub_2904
+- sub_2905
+- sub_2906
+- sub_2907
+- sub_2908
+- sub_2909
+- sub_2910
+- sub_2911
+- sub_2912
+- sub_2913
+- sub_2914
+- sub_2915
+- sub_2916
+- sub_2917
+- sub_2918
+- sub_2919
+- sub_2920
+- sub_2921
+- sub_2922
+- sub_2923
+- sub_2924
+- sub_2925
+- sub_2926
+- sub_2927
+- sub_2928
+- sub_2929
+- sub_2930
+- sub_2931
+- sub_2932
+- sub_2933
+- sub_2934
+- sub_2935
+- sub_2936
+- sub_2937
+- sub_2938
+- sub_2939
+- sub_2940
+- sub_2941
+- sub_2942
+- sub_2943
+- sub_2944
+- sub_2945
+- sub_2946
+- sub_2947
+- sub_2948
+- sub_2949
+- sub_2950
+- sub_2951
+- sub_2952
+- sub_2953
+- sub_2954
+- sub_2955
+- sub_2956
+- sub_2957
+- sub_2958
+- sub_2959
+- sub_2960
+- sub_2961
+- sub_2962
+- sub_2963
+- sub_2964
+- sub_2965
+- sub_2966
+- sub_2967
+- sub_2968
+- sub_2969
+- sub_2970
+- sub_2971
+- sub_2972
+- sub_2973
+- sub_2974
+- sub_2975
+- sub_2976
+- sub_2977
+- sub_2978
+- sub_2979
+- sub_2980
+- trace_0248
+- trace_0249
+- trace_0250
+- trace_0251
+- trace_0252
+- trace_0253
+- trace_0254
+- trace_0256
+- trace_0257
+- trace_0258
+- trace_0259
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

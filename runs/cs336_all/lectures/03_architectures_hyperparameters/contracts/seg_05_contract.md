@@ -1,0 +1,180 @@
+# seg_05 Contract
+
+Source range:
+- transcript: 00:10:31,030 -- 00:13:03,190
+- segment hint: 为什么课程说当代模型整体在向 LLaMA-like 收敛
+
+Must cover unit ids:
+- sub_0601
+- sub_0602
+- sub_0603
+- sub_0604
+- sub_0605
+- sub_0606
+- sub_0607
+- sub_0608
+- sub_0609
+- sub_0610
+- sub_0611
+- sub_0612
+- sub_0613
+- sub_0614
+- sub_0615
+- sub_0616
+- sub_0617
+- sub_0618
+- sub_0619
+- sub_0620
+- sub_0621
+- sub_0622
+- sub_0623
+- sub_0624
+- sub_0625
+- sub_0626
+- sub_0627
+- sub_0628
+- sub_0629
+- sub_0630
+- sub_0631
+- sub_0632
+- sub_0633
+- sub_0634
+- sub_0635
+- sub_0636
+- sub_0637
+- sub_0638
+- sub_0639
+- sub_0640
+- sub_0641
+- sub_0642
+- sub_0643
+- sub_0644
+- sub_0645
+- sub_0646
+- sub_0647
+- sub_0648
+- sub_0649
+- sub_0650
+- sub_0651
+- sub_0652
+- sub_0653
+- sub_0654
+- sub_0655
+- sub_0656
+- sub_0657
+- sub_0658
+- sub_0659
+- sub_0660
+- sub_0661
+- sub_0662
+- sub_0663
+- sub_0664
+- sub_0665
+- sub_0666
+- sub_0667
+- sub_0668
+- sub_0669
+- sub_0670
+- sub_0671
+- sub_0672
+- sub_0673
+- sub_0674
+- sub_0675
+- sub_0676
+- sub_0677
+- sub_0678
+- sub_0679
+- sub_0680
+- sub_0681
+- sub_0682
+- sub_0683
+- sub_0684
+- sub_0685
+- sub_0686
+- sub_0687
+- sub_0688
+- sub_0689
+- sub_0690
+- sub_0691
+- sub_0692
+- sub_0693
+- sub_0694
+- sub_0695
+- sub_0696
+- sub_0697
+- sub_0698
+- sub_0699
+- sub_0700
+- sub_0701
+- sub_0702
+- sub_0703
+- sub_0704
+- sub_0705
+- sub_0706
+- sub_0707
+- sub_0708
+- sub_0709
+- sub_0710
+- sub_0711
+- sub_0712
+- sub_0713
+- sub_0714
+- sub_0715
+- sub_0716
+- sub_0717
+- sub_0718
+- sub_0719
+- sub_0720
+- sub_0721
+- sub_0722
+- sub_0723
+- sub_0724
+- sub_0725
+- sub_0726
+- sub_0727
+- sub_0728
+- sub_0729
+- sub_0730
+- sub_0731
+- sub_0732
+- sub_0733
+- sub_0734
+- sub_0735
+- sub_0736
+- sub_0737
+- sub_0738
+- sub_0739
+- sub_0740
+- sub_0741
+- sub_0742
+- sub_0743
+- sub_0744
+- sub_0745
+- sub_0746
+- sub_0747
+- sub_0748
+- sub_0749
+- sub_0750
+- note_0029
+- note_0030
+- note_0031
+- note_0032
+- note_0033
+- note_0034
+- note_0035
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

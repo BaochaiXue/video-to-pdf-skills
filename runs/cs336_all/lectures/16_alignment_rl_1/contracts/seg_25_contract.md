@@ -1,0 +1,179 @@
+# seg_25 Contract
+
+Source range:
+- transcript: 01:04:10,069 -- 01:06:45,029
+- segment hint: DeepSeek R1：为什么它成了这一波 RLVR 的中心案例
+
+Must cover unit ids:
+- sub_3601
+- sub_3602
+- sub_3603
+- sub_3604
+- sub_3605
+- sub_3606
+- sub_3607
+- sub_3608
+- sub_3609
+- sub_3610
+- sub_3611
+- sub_3612
+- sub_3613
+- sub_3614
+- sub_3615
+- sub_3616
+- sub_3617
+- sub_3618
+- sub_3619
+- sub_3620
+- sub_3621
+- sub_3622
+- sub_3623
+- sub_3624
+- sub_3625
+- sub_3626
+- sub_3627
+- sub_3628
+- sub_3629
+- sub_3630
+- sub_3631
+- sub_3632
+- sub_3633
+- sub_3634
+- sub_3635
+- sub_3636
+- sub_3637
+- sub_3638
+- sub_3639
+- sub_3640
+- sub_3641
+- sub_3642
+- sub_3643
+- sub_3644
+- sub_3645
+- sub_3646
+- sub_3647
+- sub_3648
+- sub_3649
+- sub_3650
+- sub_3651
+- sub_3652
+- sub_3653
+- sub_3654
+- sub_3655
+- sub_3656
+- sub_3657
+- sub_3658
+- sub_3659
+- sub_3660
+- sub_3661
+- sub_3662
+- sub_3663
+- sub_3664
+- sub_3665
+- sub_3666
+- sub_3667
+- sub_3668
+- sub_3669
+- sub_3670
+- sub_3671
+- sub_3672
+- sub_3673
+- sub_3674
+- sub_3675
+- sub_3676
+- sub_3677
+- sub_3678
+- sub_3679
+- sub_3680
+- sub_3681
+- sub_3682
+- sub_3683
+- sub_3684
+- sub_3685
+- sub_3686
+- sub_3687
+- sub_3688
+- sub_3689
+- sub_3690
+- sub_3691
+- sub_3692
+- sub_3693
+- sub_3694
+- sub_3695
+- sub_3696
+- sub_3697
+- sub_3698
+- sub_3699
+- sub_3700
+- sub_3701
+- sub_3702
+- sub_3703
+- sub_3704
+- sub_3705
+- sub_3706
+- sub_3707
+- sub_3708
+- sub_3709
+- sub_3710
+- sub_3711
+- sub_3712
+- sub_3713
+- sub_3714
+- sub_3715
+- sub_3716
+- sub_3717
+- sub_3718
+- sub_3719
+- sub_3720
+- sub_3721
+- sub_3722
+- sub_3723
+- sub_3724
+- sub_3725
+- sub_3726
+- sub_3727
+- sub_3728
+- sub_3729
+- sub_3730
+- sub_3731
+- sub_3732
+- sub_3733
+- sub_3734
+- sub_3735
+- sub_3736
+- sub_3737
+- sub_3738
+- sub_3739
+- sub_3740
+- sub_3741
+- sub_3742
+- sub_3743
+- sub_3744
+- sub_3745
+- sub_3746
+- sub_3747
+- sub_3748
+- sub_3749
+- sub_3750
+- note_0145
+- note_0146
+- note_0147
+- note_0148
+- note_0149
+- note_0150
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

@@ -1,0 +1,173 @@
+# seg_16 Contract
+
+Source range:
+- transcript: 00:40:19,349 -- 00:43:06,710
+- segment hint: DeepSeek v3 的所谓 auxiliary-loss-free balancing 为什么值得注意
+
+Must cover unit ids:
+- sub_2191
+- sub_2192
+- sub_2193
+- sub_2194
+- sub_2195
+- sub_2196
+- sub_2197
+- sub_2198
+- sub_2199
+- sub_2200
+- sub_2201
+- sub_2202
+- sub_2203
+- sub_2204
+- sub_2205
+- sub_2206
+- sub_2207
+- sub_2208
+- sub_2209
+- sub_2210
+- sub_2211
+- sub_2212
+- sub_2213
+- sub_2214
+- sub_2215
+- sub_2216
+- sub_2217
+- sub_2218
+- sub_2219
+- sub_2220
+- sub_2221
+- sub_2222
+- sub_2223
+- sub_2224
+- sub_2225
+- sub_2226
+- sub_2227
+- sub_2228
+- sub_2229
+- sub_2230
+- sub_2231
+- sub_2232
+- sub_2233
+- sub_2234
+- sub_2235
+- sub_2236
+- sub_2237
+- sub_2238
+- sub_2239
+- sub_2240
+- sub_2241
+- sub_2242
+- sub_2243
+- sub_2244
+- sub_2245
+- sub_2246
+- sub_2247
+- sub_2248
+- sub_2249
+- sub_2250
+- sub_2251
+- sub_2252
+- sub_2253
+- sub_2254
+- sub_2255
+- sub_2256
+- sub_2257
+- sub_2258
+- sub_2259
+- sub_2260
+- sub_2261
+- sub_2262
+- sub_2263
+- sub_2264
+- sub_2265
+- sub_2266
+- sub_2267
+- sub_2268
+- sub_2269
+- sub_2270
+- sub_2271
+- sub_2272
+- sub_2273
+- sub_2274
+- sub_2275
+- sub_2276
+- sub_2277
+- sub_2278
+- sub_2279
+- sub_2280
+- sub_2281
+- sub_2282
+- sub_2283
+- sub_2284
+- sub_2285
+- sub_2286
+- sub_2287
+- sub_2288
+- sub_2289
+- sub_2290
+- sub_2291
+- sub_2292
+- sub_2293
+- sub_2294
+- sub_2295
+- sub_2296
+- sub_2297
+- sub_2298
+- sub_2299
+- sub_2300
+- sub_2301
+- sub_2302
+- sub_2303
+- sub_2304
+- sub_2305
+- sub_2306
+- sub_2307
+- sub_2308
+- sub_2309
+- sub_2310
+- sub_2311
+- sub_2312
+- sub_2313
+- sub_2314
+- sub_2315
+- sub_2316
+- sub_2317
+- sub_2318
+- sub_2319
+- sub_2320
+- sub_2321
+- sub_2322
+- sub_2323
+- sub_2324
+- sub_2325
+- sub_2326
+- sub_2327
+- sub_2328
+- sub_2329
+- sub_2330
+- sub_2331
+- sub_2332
+- sub_2333
+- sub_2334
+- sub_2335
+- sub_2336
+- note_0061
+- note_0062
+- note_0063
+- note_0064
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

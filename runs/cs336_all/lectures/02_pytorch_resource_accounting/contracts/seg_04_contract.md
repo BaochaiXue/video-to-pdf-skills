@@ -1,0 +1,153 @@
+# seg_04 Contract
+
+Source range:
+- transcript: 00:07:46,800 -- 00:10:55,190
+- segment hint: 资源核算为什么是语言模型工程的起点
+
+Must cover unit ids:
+- sub_0358
+- sub_0359
+- sub_0360
+- sub_0361
+- sub_0362
+- sub_0363
+- sub_0364
+- sub_0365
+- sub_0366
+- sub_0367
+- sub_0368
+- sub_0369
+- sub_0370
+- sub_0371
+- sub_0372
+- sub_0373
+- sub_0374
+- sub_0375
+- sub_0376
+- sub_0377
+- sub_0378
+- sub_0379
+- sub_0380
+- sub_0381
+- sub_0382
+- sub_0383
+- sub_0384
+- sub_0385
+- sub_0386
+- sub_0387
+- sub_0388
+- sub_0389
+- sub_0390
+- sub_0391
+- sub_0392
+- sub_0393
+- sub_0394
+- sub_0395
+- sub_0396
+- sub_0397
+- sub_0398
+- sub_0399
+- sub_0400
+- sub_0401
+- sub_0402
+- sub_0403
+- sub_0404
+- sub_0405
+- sub_0406
+- sub_0407
+- sub_0408
+- sub_0409
+- sub_0410
+- sub_0411
+- sub_0412
+- sub_0413
+- sub_0414
+- sub_0415
+- sub_0416
+- sub_0417
+- sub_0418
+- sub_0419
+- sub_0420
+- sub_0421
+- sub_0422
+- sub_0423
+- sub_0424
+- sub_0425
+- sub_0426
+- sub_0427
+- sub_0428
+- sub_0429
+- sub_0430
+- sub_0431
+- sub_0432
+- sub_0433
+- sub_0434
+- sub_0435
+- sub_0436
+- sub_0437
+- sub_0438
+- sub_0439
+- sub_0440
+- sub_0441
+- sub_0442
+- sub_0443
+- sub_0444
+- sub_0445
+- sub_0446
+- sub_0447
+- sub_0448
+- sub_0449
+- sub_0450
+- sub_0451
+- sub_0452
+- sub_0453
+- sub_0454
+- sub_0455
+- sub_0456
+- sub_0457
+- sub_0458
+- sub_0459
+- sub_0460
+- sub_0461
+- sub_0462
+- sub_0463
+- sub_0464
+- sub_0465
+- sub_0466
+- sub_0467
+- sub_0468
+- sub_0469
+- sub_0470
+- sub_0471
+- sub_0472
+- sub_0473
+- sub_0474
+- sub_0475
+- sub_0476
+- trace_0034
+- trace_0035
+- trace_0037
+- trace_0038
+- trace_0039
+- trace_0040
+- trace_0041
+- trace_0042
+- trace_0043
+- trace_0044
+- trace_0045
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

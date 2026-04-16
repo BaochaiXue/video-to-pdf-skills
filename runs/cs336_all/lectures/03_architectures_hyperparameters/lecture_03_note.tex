@@ -147,6 +147,12 @@
 
 这一点和第 2 讲的资源会计语言正好接上：别只看 FLOPs，要看 runtime；别只看数学形式，要看 memory movement。RMSNorm 在这里就是一个非常典型的例子。
 
+如果把课程页里的高层写法补成一条更标准的公式，RMSNorm 可以写成
+\[
+\mathrm{RMSNorm}(x)=\gamma \odot \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^{d} x_i^2+\varepsilon}}.
+\]
+其中，$x \in \mathbb{R}^{d}$ 是当前 token 在残差流中的激活向量，$d$ 是隐藏维度，$x_i$ 是第 $i$ 个通道的值，$\varepsilon$ 是防止分母为零的数值稳定常数，$\gamma$ 是可学习的逐通道缩放参数，$\odot$ 表示逐元素乘法。课程强调的重点恰恰体现在这条公式里：它只根据均方根做缩放，不显式减去均值，也不再额外引入 bias，因此读写的参数更少、数据搬运更轻。
+
 \begin{warningbox}{norm 选择最容易被误解的地方}
 课程没有说 RMSNorm 在所有场景都理论上更优，而是强调它在现代大模型里通常“够好而且更省”。这类判断的关键词是工程折中，而不是绝对优越。
 \end{warningbox}

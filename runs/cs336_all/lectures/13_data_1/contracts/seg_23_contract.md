@@ -1,0 +1,185 @@
+# seg_23 Contract
+
+Source range:
+- transcript: 01:12:19,350 -- 01:15:52,709
+- segment hint: Segment 23
+
+Must cover unit ids:
+- sub_3169
+- sub_3170
+- sub_3171
+- sub_3172
+- sub_3173
+- sub_3174
+- sub_3175
+- sub_3176
+- sub_3177
+- sub_3178
+- sub_3179
+- sub_3180
+- sub_3181
+- sub_3182
+- sub_3183
+- sub_3184
+- sub_3185
+- sub_3186
+- sub_3187
+- sub_3188
+- sub_3189
+- sub_3190
+- sub_3191
+- sub_3192
+- sub_3193
+- sub_3194
+- sub_3195
+- sub_3196
+- sub_3197
+- sub_3198
+- sub_3199
+- sub_3200
+- sub_3201
+- sub_3202
+- sub_3203
+- sub_3204
+- sub_3205
+- sub_3206
+- sub_3207
+- sub_3208
+- sub_3209
+- sub_3210
+- sub_3211
+- sub_3212
+- sub_3213
+- sub_3214
+- sub_3215
+- sub_3216
+- sub_3217
+- sub_3218
+- sub_3219
+- sub_3220
+- sub_3221
+- sub_3222
+- sub_3223
+- sub_3224
+- sub_3225
+- sub_3226
+- sub_3227
+- sub_3228
+- sub_3229
+- sub_3230
+- sub_3231
+- sub_3232
+- sub_3233
+- sub_3234
+- sub_3235
+- sub_3236
+- sub_3237
+- sub_3238
+- sub_3239
+- sub_3240
+- sub_3241
+- sub_3242
+- sub_3243
+- sub_3244
+- sub_3245
+- sub_3246
+- sub_3247
+- sub_3248
+- sub_3249
+- sub_3250
+- sub_3251
+- sub_3252
+- sub_3253
+- sub_3254
+- sub_3255
+- sub_3256
+- sub_3257
+- sub_3258
+- sub_3259
+- sub_3260
+- sub_3261
+- sub_3262
+- sub_3263
+- sub_3264
+- sub_3265
+- sub_3266
+- sub_3267
+- sub_3268
+- sub_3269
+- sub_3270
+- sub_3271
+- sub_3272
+- sub_3273
+- sub_3274
+- sub_3275
+- sub_3276
+- sub_3277
+- sub_3278
+- sub_3279
+- sub_3280
+- sub_3281
+- sub_3282
+- sub_3283
+- sub_3284
+- sub_3285
+- sub_3286
+- sub_3287
+- sub_3288
+- sub_3289
+- sub_3290
+- sub_3291
+- sub_3292
+- sub_3293
+- sub_3294
+- sub_3295
+- sub_3296
+- sub_3297
+- sub_3298
+- sub_3299
+- sub_3300
+- sub_3301
+- sub_3302
+- sub_3303
+- sub_3304
+- sub_3305
+- sub_3306
+- sub_3307
+- sub_3308
+- sub_3309
+- sub_3310
+- sub_3311
+- sub_3312
+- trace_0411
+- trace_0412
+- trace_0413
+- trace_0414
+- trace_0415
+- trace_0416
+- trace_0417
+- trace_0418
+- trace_0419
+- trace_0420
+- trace_0421
+- trace_0422
+- trace_0423
+- trace_0424
+- trace_0425
+- trace_0426
+- trace_0427
+- trace_0428
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

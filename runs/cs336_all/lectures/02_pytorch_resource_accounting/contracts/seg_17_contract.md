@@ -1,0 +1,153 @@
+# seg_17 Contract
+
+Source range:
+- transcript: 00:45:59,990 -- 00:48:52,640
+- segment hint: Tensor storage 与 stride：为什么“view 是免费的，copy 不是”
+
+Must cover unit ids:
+- sub_1905
+- sub_1906
+- sub_1907
+- sub_1908
+- sub_1909
+- sub_1910
+- sub_1911
+- sub_1912
+- sub_1913
+- sub_1914
+- sub_1915
+- sub_1916
+- sub_1917
+- sub_1918
+- sub_1919
+- sub_1920
+- sub_1921
+- sub_1922
+- sub_1923
+- sub_1924
+- sub_1925
+- sub_1926
+- sub_1927
+- sub_1928
+- sub_1929
+- sub_1930
+- sub_1931
+- sub_1932
+- sub_1933
+- sub_1934
+- sub_1935
+- sub_1936
+- sub_1937
+- sub_1938
+- sub_1939
+- sub_1940
+- sub_1941
+- sub_1942
+- sub_1943
+- sub_1944
+- sub_1945
+- sub_1946
+- sub_1947
+- sub_1948
+- sub_1949
+- sub_1950
+- sub_1951
+- sub_1952
+- sub_1953
+- sub_1954
+- sub_1955
+- sub_1956
+- sub_1957
+- sub_1958
+- sub_1959
+- sub_1960
+- sub_1961
+- sub_1962
+- sub_1963
+- sub_1964
+- sub_1965
+- sub_1966
+- sub_1967
+- sub_1968
+- sub_1969
+- sub_1970
+- sub_1971
+- sub_1972
+- sub_1973
+- sub_1974
+- sub_1975
+- sub_1976
+- sub_1977
+- sub_1978
+- sub_1979
+- sub_1980
+- sub_1981
+- sub_1982
+- sub_1983
+- sub_1984
+- sub_1985
+- sub_1986
+- sub_1987
+- sub_1988
+- sub_1989
+- sub_1990
+- sub_1991
+- sub_1992
+- sub_1993
+- sub_1994
+- sub_1995
+- sub_1996
+- sub_1997
+- sub_1998
+- sub_1999
+- sub_2000
+- sub_2001
+- sub_2002
+- sub_2003
+- sub_2004
+- sub_2005
+- sub_2006
+- sub_2007
+- sub_2008
+- sub_2009
+- sub_2010
+- sub_2011
+- sub_2012
+- sub_2013
+- sub_2014
+- sub_2015
+- sub_2016
+- sub_2017
+- sub_2018
+- sub_2019
+- sub_2020
+- sub_2021
+- sub_2022
+- sub_2023
+- trace_0184
+- trace_0185
+- trace_0186
+- trace_0187
+- trace_0188
+- trace_0189
+- trace_0190
+- trace_0191
+- trace_0192
+- trace_0193
+- trace_0194
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

@@ -1,0 +1,184 @@
+# seg_18 Contract
+
+Source range:
+- transcript: 00:58:00,309 -- 01:01:21,670
+- segment hint: 不改答案，只重写执行：Speculative Decoding 与动态调度
+
+Must cover unit ids:
+- sub_2483
+- sub_2484
+- sub_2485
+- sub_2486
+- sub_2487
+- sub_2488
+- sub_2489
+- sub_2490
+- sub_2491
+- sub_2492
+- sub_2493
+- sub_2494
+- sub_2495
+- sub_2496
+- sub_2497
+- sub_2498
+- sub_2499
+- sub_2500
+- sub_2501
+- sub_2502
+- sub_2503
+- sub_2504
+- sub_2505
+- sub_2506
+- sub_2507
+- sub_2508
+- sub_2509
+- sub_2510
+- sub_2511
+- sub_2512
+- sub_2513
+- sub_2514
+- sub_2515
+- sub_2516
+- sub_2517
+- sub_2518
+- sub_2519
+- sub_2520
+- sub_2521
+- sub_2522
+- sub_2523
+- sub_2524
+- sub_2525
+- sub_2526
+- sub_2527
+- sub_2528
+- sub_2529
+- sub_2530
+- sub_2531
+- sub_2532
+- sub_2533
+- sub_2534
+- sub_2535
+- sub_2536
+- sub_2537
+- sub_2538
+- sub_2539
+- sub_2540
+- sub_2541
+- sub_2542
+- sub_2543
+- sub_2544
+- sub_2545
+- sub_2546
+- sub_2547
+- sub_2548
+- sub_2549
+- sub_2550
+- sub_2551
+- sub_2552
+- sub_2553
+- sub_2554
+- sub_2555
+- sub_2556
+- sub_2557
+- sub_2558
+- sub_2559
+- sub_2560
+- sub_2561
+- sub_2562
+- sub_2563
+- sub_2564
+- sub_2565
+- sub_2566
+- sub_2567
+- sub_2568
+- sub_2569
+- sub_2570
+- sub_2571
+- sub_2572
+- sub_2573
+- sub_2574
+- sub_2575
+- sub_2576
+- sub_2577
+- sub_2578
+- sub_2579
+- sub_2580
+- sub_2581
+- sub_2582
+- sub_2583
+- sub_2584
+- sub_2585
+- sub_2586
+- sub_2587
+- sub_2588
+- sub_2589
+- sub_2590
+- sub_2591
+- sub_2592
+- sub_2593
+- sub_2594
+- sub_2595
+- sub_2596
+- sub_2597
+- sub_2598
+- sub_2599
+- sub_2600
+- sub_2601
+- sub_2602
+- sub_2603
+- sub_2604
+- sub_2605
+- sub_2606
+- sub_2607
+- sub_2608
+- sub_2609
+- sub_2610
+- sub_2611
+- sub_2612
+- sub_2613
+- sub_2614
+- sub_2615
+- sub_2616
+- sub_2617
+- sub_2618
+- sub_2619
+- sub_2620
+- sub_2621
+- sub_2622
+- sub_2623
+- sub_2624
+- sub_2625
+- sub_2626
+- sub_2627
+- sub_2628
+- trace_0283
+- trace_0284
+- trace_0285
+- trace_0286
+- trace_0287
+- trace_0289
+- trace_0290
+- trace_0291
+- trace_0292
+- trace_0293
+- trace_0294
+- trace_0295
+- trace_0296
+- trace_0297
+- trace_0298
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

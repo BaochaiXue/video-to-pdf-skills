@@ -1,0 +1,159 @@
+# seg_32 Contract
+
+Source range:
+- transcript: 01:24:40,390 -- 01:26:59,960
+- segment hint: Segment 32
+
+Must cover unit ids:
+- sub_4651
+- sub_4652
+- sub_4653
+- sub_4654
+- sub_4655
+- sub_4656
+- sub_4657
+- sub_4658
+- sub_4659
+- sub_4660
+- sub_4661
+- sub_4662
+- sub_4663
+- sub_4664
+- sub_4665
+- sub_4666
+- sub_4667
+- sub_4668
+- sub_4669
+- sub_4670
+- sub_4671
+- sub_4672
+- sub_4673
+- sub_4674
+- sub_4675
+- sub_4676
+- sub_4677
+- sub_4678
+- sub_4679
+- sub_4680
+- sub_4681
+- sub_4682
+- sub_4683
+- sub_4684
+- sub_4685
+- sub_4686
+- sub_4687
+- sub_4688
+- sub_4689
+- sub_4690
+- sub_4691
+- sub_4692
+- sub_4693
+- sub_4694
+- sub_4695
+- sub_4696
+- sub_4697
+- sub_4698
+- sub_4699
+- sub_4700
+- sub_4701
+- sub_4702
+- sub_4703
+- sub_4704
+- sub_4705
+- sub_4706
+- sub_4707
+- sub_4708
+- sub_4709
+- sub_4710
+- sub_4711
+- sub_4712
+- sub_4713
+- sub_4714
+- sub_4715
+- sub_4716
+- sub_4717
+- sub_4718
+- sub_4719
+- sub_4720
+- sub_4721
+- sub_4722
+- sub_4723
+- sub_4724
+- sub_4725
+- sub_4726
+- sub_4727
+- sub_4728
+- sub_4729
+- sub_4730
+- sub_4731
+- sub_4732
+- sub_4733
+- sub_4734
+- sub_4735
+- sub_4736
+- sub_4737
+- sub_4738
+- sub_4739
+- sub_4740
+- sub_4741
+- sub_4742
+- sub_4743
+- sub_4744
+- sub_4745
+- sub_4746
+- sub_4747
+- sub_4748
+- sub_4749
+- sub_4750
+- sub_4751
+- sub_4752
+- sub_4753
+- sub_4754
+- sub_4755
+- sub_4756
+- sub_4757
+- sub_4758
+- sub_4759
+- sub_4760
+- sub_4761
+- sub_4762
+- sub_4763
+- sub_4764
+- sub_4765
+- sub_4766
+- sub_4767
+- sub_4768
+- sub_4769
+- sub_4770
+- sub_4771
+- sub_4772
+- sub_4773
+- sub_4774
+- sub_4775
+- sub_4776
+- sub_4777
+- sub_4778
+- sub_4779
+- sub_4780
+- note_0218
+- note_0219
+- note_0220
+- note_0221
+- note_0222
+- note_0223
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

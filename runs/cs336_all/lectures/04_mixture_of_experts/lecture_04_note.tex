@@ -161,6 +161,16 @@ MoE 并不是一类完全不同的语言模型，而更像是“在 Transformer 
 
 原因并不神秘。top-k 足够简单，可微近似和实现路径都比较成熟，而且能在“效果、复杂度、系统友好性”之间达成很现实的平衡。Switch Transformer 用过 k=1；很多后续模型用 k=2；更晚近系统又探索了更大的 k，例如 Qwen、DBRX、DeepSeek 系列。
 
+为了把课程里的“old and classic top-k routing”说得更具体，我们可以用一组高层公式概括它的机制：
+\[
+s_i(x)=w_i^\top x,\qquad \mathcal{T}_k(x)=\operatorname{TopK}(s(x),k),
+\]
+\[
+y(x)=\sum_{i\in \mathcal{T}_k(x)} p_i(x)\,E_i(x),\qquad
+p_i(x)=\frac{\exp(s_i(x))}{\sum_{j\in \mathcal{T}_k(x)} \exp(s_j(x))}.
+\]
+其中，$x$ 是当前 token 的隐藏状态，$w_i$ 是第 $i$ 个 expert 对应的 router/gating 向量，$s_i(x)$ 是 token 对 expert $i$ 的打分，$\mathcal{T}_k(x)$ 表示分数最高的 $k$ 个 experts，$E_i(\cdot)$ 是第 $i$ 个 expert 的前馈网络，$p_i(x)$ 是只在被选中的 experts 上重新归一化后的门控权重。课程后面提到 DeepSeek v3 会把 softmax 的归一化位置稍微前移，但它特别说明：\textbf{概念上仍然是在做 top-k routing decision。}
+
 \subsection{为什么 RL routing 没有成为主流}
 从理论直觉看，RL 似乎才是更“正确”的路由学习方案，因为 routing 本身就是一个离散决策问题。课程也承认，REINFORCE 一类办法是能工作的。但现实问题在于：\textbf{方差大、实现复杂，而且收益并没有大到足以碾压 top-k 启发式。}
 
@@ -191,6 +201,14 @@ Routing 这一节的真正收获是：虽然 MoE 论文很多，但实践层面�
 
 课程在这里展示了负载均衡损失的直觉：频繁被选中的专家会被显式下调，从而鼓励 token 分配更均匀。你可以把这理解成一种面向系统效率的训练正则项。
 
+把这个直觉写成公式，最常见的高层目标可以概括为
+\[
+\mathcal{L}=\mathcal{L}_{\mathrm{LM}}+\lambda\,\mathcal{L}_{\mathrm{balance}},
+\qquad
+f_i=\frac{1}{T}\sum_{t=1}^{T}\mathbf{1}\!\left[i\in\mathcal{T}_k(x_t)\right].
+\]
+其中，$\mathcal{L}_{\mathrm{LM}}$ 是原始语言建模损失，$\mathcal{L}_{\mathrm{balance}}$ 是鼓励 expert 使用更均匀的辅助项，$\lambda$ 控制两类目标的权重，$T$ 是当前 batch 或 sequence 中参与统计的 token 数，$f_i$ 则表示 expert $i$ 被选中的频率。课程并没有把所有 balancing loss 统一成一条唯一正确的公式；它真正强调的是：如果某些 experts 的 $f_i$ 长期明显偏高，系统吞吐、通信和训练稳定性都会一起变差。
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.88\textwidth]{frames/load_balancing.png}
@@ -205,6 +223,14 @@ Routing 这一节的真正收获是：虽然 MoE 论文很多，但实践层面�
 
 \subsection{DeepSeek v3 的所谓 auxiliary-loss-free balancing 为什么值得注意}
 课程还提到 DeepSeek v3 的一个有趣变体：通过 per-expert bias 的在线调节，让某些专家更可能被选中，从而在不完全依赖传统 auxiliary loss 的情况下改善负载均衡。课程也很谨慎地指出，这种方法并不是真的“完全没有 auxiliary 目标”，但它代表了 balancing 设计的一种新方向。
+
+如果只保留课程想传达的机制层含义，这类做法可以抽象成
+\[
+s_i'(x)=s_i(x)+b_i,
+\qquad
+b_i \leftarrow b_i + \eta\,\mathrm{sign}(u^\star-u_i).
+\]
+其中，$s_i(x)$ 是原始 router score，$b_i$ 是 expert $i$ 的可在线更新偏置，$u_i$ 是当前观测到的 expert 负载，$u^\star$ 是期望负载水平，$\eta$ 是更新步长。当某个 expert 过载时，它的 bias 会朝着“更不容易被选中”的方向调整；当某个 expert 长期吃不到 token 时，bias 又会往相反方向推。课程的关键信息是：这不是把 balancing 问题消失掉，而是把“靠显式 auxiliary loss 纠偏”改写成“靠在线 bias 调节纠偏”。
 
 \begin{knowledgebox}{为什么 balancing 设计会持续演化}
 因为它同时面对两个目标：一是语言建模性能不能掉，二是专家利用必须足够均匀、系统吞吐不能太差。只要这两个目标之间还有张力，就会不断有新设计出现。 

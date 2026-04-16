@@ -1,0 +1,151 @@
+# seg_31 Contract
+
+Source range:
+- transcript: 01:19:44,229 -- 01:22:00,199
+- segment hint: Segment 31
+
+Must cover unit ids:
+- sub_4381
+- sub_4382
+- sub_4383
+- sub_4384
+- sub_4385
+- sub_4386
+- sub_4387
+- sub_4388
+- sub_4389
+- sub_4390
+- sub_4391
+- sub_4392
+- sub_4393
+- sub_4394
+- sub_4395
+- sub_4396
+- sub_4397
+- sub_4398
+- sub_4399
+- sub_4400
+- sub_4401
+- sub_4402
+- sub_4403
+- sub_4404
+- sub_4405
+- sub_4406
+- sub_4407
+- sub_4408
+- sub_4409
+- sub_4410
+- sub_4411
+- sub_4412
+- sub_4413
+- sub_4414
+- sub_4415
+- sub_4416
+- sub_4417
+- sub_4418
+- sub_4419
+- sub_4420
+- sub_4421
+- sub_4422
+- sub_4423
+- sub_4424
+- sub_4425
+- sub_4426
+- sub_4427
+- sub_4428
+- sub_4429
+- sub_4430
+- sub_4431
+- sub_4432
+- sub_4433
+- sub_4434
+- sub_4435
+- sub_4436
+- sub_4437
+- sub_4438
+- sub_4439
+- sub_4440
+- sub_4441
+- sub_4442
+- sub_4443
+- sub_4444
+- sub_4445
+- sub_4446
+- sub_4447
+- sub_4448
+- sub_4449
+- sub_4450
+- sub_4451
+- sub_4452
+- sub_4453
+- sub_4454
+- sub_4455
+- sub_4456
+- sub_4457
+- sub_4458
+- sub_4459
+- sub_4460
+- sub_4461
+- sub_4462
+- sub_4463
+- sub_4464
+- sub_4465
+- sub_4466
+- sub_4467
+- sub_4468
+- sub_4469
+- sub_4470
+- sub_4471
+- sub_4472
+- sub_4473
+- sub_4474
+- sub_4475
+- sub_4476
+- sub_4477
+- sub_4478
+- sub_4479
+- sub_4480
+- sub_4481
+- sub_4482
+- sub_4483
+- sub_4484
+- sub_4485
+- sub_4486
+- sub_4487
+- sub_4488
+- sub_4489
+- sub_4490
+- sub_4491
+- sub_4492
+- sub_4493
+- sub_4494
+- sub_4495
+- sub_4496
+- sub_4497
+- sub_4498
+- sub_4499
+- sub_4500
+- sub_4501
+- sub_4502
+- sub_4503
+- sub_4504
+- sub_4505
+- sub_4506
+- sub_4507
+- sub_4508
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

@@ -10,6 +10,14 @@
 \usepackage{booktabs}
 \usepackage{subcaption}
 \usepackage{float}
+\usepackage{listings}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single
+}
 
 \newtcolorbox{knowledgebox}[1]{
     enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
@@ -173,6 +181,17 @@ tiling 不是一个孤立 trick，而是把“尽量在快存储里重复利用�
 课程先让学生看一个简单的 CUDA GeLU 实现，这件事的意义不在于“未来你必须全部手写 CUDA”，而在于把抽象层扒开，让你看到 kernel 最底层到底在做什么：线程索引怎样决定处理哪个元素、grid / block 怎样映射、边界怎样处理、输出张量怎样写回。
 
 这一步很重要，因为只有理解过这层结构，你才会真正知道 PyTorch fused op 或 Triton kernel 到底替你自动完成了哪些事情。
+
+\begin{lstlisting}[language=Python,caption={课程里 CUDA / Triton 视角的最小 kernel 骨架：先确定索引，再做局部计算}]
+pid = program_id(0)
+offsets = pid * BLOCK + arange(0, BLOCK)
+mask = offsets < n_elements
+x = load(x_ptr + offsets, mask=mask)
+y = gelu(x)
+store(y_ptr + offsets, y, mask=mask)
+\end{lstlisting}
+
+这段伪代码的教学作用很明确。它把课程里反复强调的 kernel 实现骨架浓缩成四步：先用 \texttt{program\_id} 或 thread/block 索引确定谁负责哪段数据，再按 mask 处理边界，再在寄存器或更近的层级完成局部计算，最后统一写回输出。也正因为这个骨架很清楚，课程后面才会继续讨论 fusion、tiling 和 Triton 编译器到底替我们省掉了哪些机械活。
 
 \subsection{Triton 的真正价值：把大量底层机械活自动化，但不抹掉硬件思维}
 课程对 Triton 的定位非常准确。它不是让你“忘掉硬件”，而是让你以更高层的方式表达 kernel，同时把 memory coalescing、shared memory 管理、部分调度细节交给编译器。也就是说，\textbf{Triton 降低了进入 kernel 世界的门槛，但并没有取消对 hardware-aware 思维的要求。}

@@ -1,0 +1,185 @@
+# seg_19 Contract
+
+Source range:
+- transcript: 00:59:50,870 -- 01:03:01,990
+- segment hint: 长上下文和能力增强往往不该在预训练里硬做
+
+Must cover unit ids:
+- sub_2593
+- sub_2594
+- sub_2595
+- sub_2596
+- sub_2597
+- sub_2598
+- sub_2599
+- sub_2600
+- sub_2601
+- sub_2602
+- sub_2603
+- sub_2604
+- sub_2605
+- sub_2606
+- sub_2607
+- sub_2608
+- sub_2609
+- sub_2610
+- sub_2611
+- sub_2612
+- sub_2613
+- sub_2614
+- sub_2615
+- sub_2616
+- sub_2617
+- sub_2618
+- sub_2619
+- sub_2620
+- sub_2621
+- sub_2622
+- sub_2623
+- sub_2624
+- sub_2625
+- sub_2626
+- sub_2627
+- sub_2628
+- sub_2629
+- sub_2630
+- sub_2631
+- sub_2632
+- sub_2633
+- sub_2634
+- sub_2635
+- sub_2636
+- sub_2637
+- sub_2638
+- sub_2639
+- sub_2640
+- sub_2641
+- sub_2642
+- sub_2643
+- sub_2644
+- sub_2645
+- sub_2646
+- sub_2647
+- sub_2648
+- sub_2649
+- sub_2650
+- sub_2651
+- sub_2652
+- sub_2653
+- sub_2654
+- sub_2655
+- sub_2656
+- sub_2657
+- sub_2658
+- sub_2659
+- sub_2660
+- sub_2661
+- sub_2662
+- sub_2663
+- sub_2664
+- sub_2665
+- sub_2666
+- sub_2667
+- sub_2668
+- sub_2669
+- sub_2670
+- sub_2671
+- sub_2672
+- sub_2673
+- sub_2674
+- sub_2675
+- sub_2676
+- sub_2677
+- sub_2678
+- sub_2679
+- sub_2680
+- sub_2681
+- sub_2682
+- sub_2683
+- sub_2684
+- sub_2685
+- sub_2686
+- sub_2687
+- sub_2688
+- sub_2689
+- sub_2690
+- sub_2691
+- sub_2692
+- sub_2693
+- sub_2694
+- sub_2695
+- sub_2696
+- sub_2697
+- sub_2698
+- sub_2699
+- sub_2700
+- sub_2701
+- sub_2702
+- sub_2703
+- sub_2704
+- sub_2705
+- sub_2706
+- sub_2707
+- sub_2708
+- sub_2709
+- sub_2710
+- sub_2711
+- sub_2712
+- sub_2713
+- sub_2714
+- sub_2715
+- sub_2716
+- sub_2717
+- sub_2718
+- sub_2719
+- sub_2720
+- sub_2721
+- sub_2722
+- sub_2723
+- sub_2724
+- sub_2725
+- sub_2726
+- sub_2727
+- sub_2728
+- sub_2729
+- sub_2730
+- sub_2731
+- sub_2732
+- sub_2733
+- sub_2734
+- sub_2735
+- sub_2736
+- trace_0339
+- trace_0340
+- trace_0341
+- trace_0342
+- trace_0343
+- trace_0344
+- trace_0345
+- trace_0346
+- trace_0347
+- trace_0348
+- trace_0349
+- trace_0350
+- trace_0351
+- trace_0352
+- trace_0353
+- trace_0354
+- trace_0355
+- trace_0356
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

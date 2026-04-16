@@ -1,0 +1,185 @@
+# seg_16 Contract
+
+Source range:
+- transcript: 00:49:53,829 -- 00:53:18,309
+- segment hint: 版权法关心的是表达，不只是字面复制
+
+Must cover unit ids:
+- sub_2161
+- sub_2162
+- sub_2163
+- sub_2164
+- sub_2165
+- sub_2166
+- sub_2167
+- sub_2168
+- sub_2169
+- sub_2170
+- sub_2171
+- sub_2172
+- sub_2173
+- sub_2174
+- sub_2175
+- sub_2176
+- sub_2177
+- sub_2178
+- sub_2179
+- sub_2180
+- sub_2181
+- sub_2182
+- sub_2183
+- sub_2184
+- sub_2185
+- sub_2186
+- sub_2187
+- sub_2188
+- sub_2189
+- sub_2190
+- sub_2191
+- sub_2192
+- sub_2193
+- sub_2194
+- sub_2195
+- sub_2196
+- sub_2197
+- sub_2198
+- sub_2199
+- sub_2200
+- sub_2201
+- sub_2202
+- sub_2203
+- sub_2204
+- sub_2205
+- sub_2206
+- sub_2207
+- sub_2208
+- sub_2209
+- sub_2210
+- sub_2211
+- sub_2212
+- sub_2213
+- sub_2214
+- sub_2215
+- sub_2216
+- sub_2217
+- sub_2218
+- sub_2219
+- sub_2220
+- sub_2221
+- sub_2222
+- sub_2223
+- sub_2224
+- sub_2225
+- sub_2226
+- sub_2227
+- sub_2228
+- sub_2229
+- sub_2230
+- sub_2231
+- sub_2232
+- sub_2233
+- sub_2234
+- sub_2235
+- sub_2236
+- sub_2237
+- sub_2238
+- sub_2239
+- sub_2240
+- sub_2241
+- sub_2242
+- sub_2243
+- sub_2244
+- sub_2245
+- sub_2246
+- sub_2247
+- sub_2248
+- sub_2249
+- sub_2250
+- sub_2251
+- sub_2252
+- sub_2253
+- sub_2254
+- sub_2255
+- sub_2256
+- sub_2257
+- sub_2258
+- sub_2259
+- sub_2260
+- sub_2261
+- sub_2262
+- sub_2263
+- sub_2264
+- sub_2265
+- sub_2266
+- sub_2267
+- sub_2268
+- sub_2269
+- sub_2270
+- sub_2271
+- sub_2272
+- sub_2273
+- sub_2274
+- sub_2275
+- sub_2276
+- sub_2277
+- sub_2278
+- sub_2279
+- sub_2280
+- sub_2281
+- sub_2282
+- sub_2283
+- sub_2284
+- sub_2285
+- sub_2286
+- sub_2287
+- sub_2288
+- sub_2289
+- sub_2290
+- sub_2291
+- sub_2292
+- sub_2293
+- sub_2294
+- sub_2295
+- sub_2296
+- sub_2297
+- sub_2298
+- sub_2299
+- sub_2300
+- sub_2301
+- sub_2302
+- sub_2303
+- sub_2304
+- trace_0283
+- trace_0284
+- trace_0285
+- trace_0287
+- trace_0288
+- trace_0289
+- trace_0290
+- trace_0291
+- trace_0292
+- trace_0293
+- trace_0294
+- trace_0295
+- trace_0296
+- trace_0297
+- trace_0298
+- trace_0299
+- trace_0301
+- trace_0302
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

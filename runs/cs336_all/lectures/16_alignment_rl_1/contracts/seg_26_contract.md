@@ -1,0 +1,179 @@
+# seg_26 Contract
+
+Source range:
+- transcript: 01:06:45,029 -- 01:09:24,789
+- segment hint: Kimi K1.5：另一条同时期路线说明 objective 还在快速演化
+
+Must cover unit ids:
+- sub_3751
+- sub_3752
+- sub_3753
+- sub_3754
+- sub_3755
+- sub_3756
+- sub_3757
+- sub_3758
+- sub_3759
+- sub_3760
+- sub_3761
+- sub_3762
+- sub_3763
+- sub_3764
+- sub_3765
+- sub_3766
+- sub_3767
+- sub_3768
+- sub_3769
+- sub_3770
+- sub_3771
+- sub_3772
+- sub_3773
+- sub_3774
+- sub_3775
+- sub_3776
+- sub_3777
+- sub_3778
+- sub_3779
+- sub_3780
+- sub_3781
+- sub_3782
+- sub_3783
+- sub_3784
+- sub_3785
+- sub_3786
+- sub_3787
+- sub_3788
+- sub_3789
+- sub_3790
+- sub_3791
+- sub_3792
+- sub_3793
+- sub_3794
+- sub_3795
+- sub_3796
+- sub_3797
+- sub_3798
+- sub_3799
+- sub_3800
+- sub_3801
+- sub_3802
+- sub_3803
+- sub_3804
+- sub_3805
+- sub_3806
+- sub_3807
+- sub_3808
+- sub_3809
+- sub_3810
+- sub_3811
+- sub_3812
+- sub_3813
+- sub_3814
+- sub_3815
+- sub_3816
+- sub_3817
+- sub_3818
+- sub_3819
+- sub_3820
+- sub_3821
+- sub_3822
+- sub_3823
+- sub_3824
+- sub_3825
+- sub_3826
+- sub_3827
+- sub_3828
+- sub_3829
+- sub_3830
+- sub_3831
+- sub_3832
+- sub_3833
+- sub_3834
+- sub_3835
+- sub_3836
+- sub_3837
+- sub_3838
+- sub_3839
+- sub_3840
+- sub_3841
+- sub_3842
+- sub_3843
+- sub_3844
+- sub_3845
+- sub_3846
+- sub_3847
+- sub_3848
+- sub_3849
+- sub_3850
+- sub_3851
+- sub_3852
+- sub_3853
+- sub_3854
+- sub_3855
+- sub_3856
+- sub_3857
+- sub_3858
+- sub_3859
+- sub_3860
+- sub_3861
+- sub_3862
+- sub_3863
+- sub_3864
+- sub_3865
+- sub_3866
+- sub_3867
+- sub_3868
+- sub_3869
+- sub_3870
+- sub_3871
+- sub_3872
+- sub_3873
+- sub_3874
+- sub_3875
+- sub_3876
+- sub_3877
+- sub_3878
+- sub_3879
+- sub_3880
+- sub_3881
+- sub_3882
+- sub_3883
+- sub_3884
+- sub_3885
+- sub_3886
+- sub_3887
+- sub_3888
+- sub_3889
+- sub_3890
+- sub_3891
+- sub_3892
+- sub_3893
+- sub_3894
+- sub_3895
+- sub_3896
+- sub_3897
+- sub_3898
+- sub_3899
+- sub_3900
+- note_0151
+- note_0152
+- note_0153
+- note_0154
+- note_0155
+- note_0156
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

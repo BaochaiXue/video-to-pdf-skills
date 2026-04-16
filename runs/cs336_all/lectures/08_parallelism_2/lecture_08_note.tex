@@ -9,6 +9,14 @@
 \usepackage{booktabs}
 \usepackage{subcaption}
 \usepackage{float}
+\usepackage{listings}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single
+}
 
 \newtcolorbox{knowledgebox}[1]{enhanced,colback=blue!5!white,colframe=blue!75!black,colbacktitle=blue!75!black,coltitle=white,fonttitle=\bfseries,title=#1,attach boxed title to top left={yshift=-2mm,xshift=2mm},boxrule=1pt,sharp corners}
 \newtcolorbox{importantbox}[1]{enhanced,colback=yellow!10!white,colframe=yellow!80!black,colbacktitle=yellow!80!black,coltitle=black,fonttitle=\bfseries,title=#1,sharp corners}
@@ -114,6 +122,17 @@ PyTorch 的 `torch.distributed` 在这里扮演的是“把 collectives 包成�
 \includegraphics[width=0.58\textwidth]{../../materials/spring2025-lectures/images/data-parallelism.png}
 \caption{data parallel 的直觉：切的是 batch，不是模型本体。}
 \end{figure}
+
+\begin{lstlisting}[language=Python,caption={课程里 data parallel 的代码骨架：本地反向后做 all-reduce}]
+loss = model(local_batch).mean()
+loss.backward()
+for param in model.parameters():
+    dist.all_reduce(param.grad, op=dist.ReduceOp.SUM)
+    param.grad /= world_size
+optimizer.step()
+\end{lstlisting}
+
+这段代码不是在炫技，而是在把课程口头解释 concretize 成最小实现骨架。它清楚表达了 data parallel 的三层逻辑：每个 rank 先看自己的 batch，梯度通过 collective 同步成全局平均，然后各副本再执行一致的参数更新。你一旦能把课程讲解压缩成这样一段代码，就更容易看懂 DDP、FSDP 或 ZeRO 只是在哪些位置继续做了更细的分片与调度。
 
 \subsection{Tensor parallel：切层内宽度，激活要频繁协同}
 tensor parallel 的关键不同，在于每个 rank 拿每层的一部分权重矩阵。你切开的是层内宽度，因此需要对 activations 做更细粒度的通信和同步。它的好处是没有 pipeline 的 bubble，坏处则是对高带宽互连依赖更强。

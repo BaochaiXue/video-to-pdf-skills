@@ -1,0 +1,153 @@
+# seg_13 Contract
+
+Source range:
+- transcript: 00:34:09,589 -- 00:37:14,480
+- segment hint: FP8：更便宜，但并不意味着可以无脑全量替换
+
+Must cover unit ids:
+- sub_1429
+- sub_1430
+- sub_1431
+- sub_1432
+- sub_1433
+- sub_1434
+- sub_1435
+- sub_1436
+- sub_1437
+- sub_1438
+- sub_1439
+- sub_1440
+- sub_1441
+- sub_1442
+- sub_1443
+- sub_1444
+- sub_1445
+- sub_1446
+- sub_1447
+- sub_1448
+- sub_1449
+- sub_1450
+- sub_1451
+- sub_1452
+- sub_1453
+- sub_1454
+- sub_1455
+- sub_1456
+- sub_1457
+- sub_1458
+- sub_1459
+- sub_1460
+- sub_1461
+- sub_1462
+- sub_1463
+- sub_1464
+- sub_1465
+- sub_1466
+- sub_1467
+- sub_1468
+- sub_1469
+- sub_1470
+- sub_1471
+- sub_1472
+- sub_1473
+- sub_1474
+- sub_1475
+- sub_1476
+- sub_1477
+- sub_1478
+- sub_1479
+- sub_1480
+- sub_1481
+- sub_1482
+- sub_1483
+- sub_1484
+- sub_1485
+- sub_1486
+- sub_1487
+- sub_1488
+- sub_1489
+- sub_1490
+- sub_1491
+- sub_1492
+- sub_1493
+- sub_1494
+- sub_1495
+- sub_1496
+- sub_1497
+- sub_1498
+- sub_1499
+- sub_1500
+- sub_1501
+- sub_1502
+- sub_1503
+- sub_1504
+- sub_1505
+- sub_1506
+- sub_1507
+- sub_1508
+- sub_1509
+- sub_1510
+- sub_1511
+- sub_1512
+- sub_1513
+- sub_1514
+- sub_1515
+- sub_1516
+- sub_1517
+- sub_1518
+- sub_1519
+- sub_1520
+- sub_1521
+- sub_1522
+- sub_1523
+- sub_1524
+- sub_1525
+- sub_1526
+- sub_1527
+- sub_1528
+- sub_1529
+- sub_1530
+- sub_1531
+- sub_1532
+- sub_1533
+- sub_1534
+- sub_1535
+- sub_1536
+- sub_1537
+- sub_1538
+- sub_1539
+- sub_1540
+- sub_1541
+- sub_1542
+- sub_1543
+- sub_1544
+- sub_1545
+- sub_1546
+- sub_1547
+- trace_0140
+- trace_0141
+- trace_0142
+- trace_0143
+- trace_0144
+- trace_0145
+- trace_0146
+- trace_0147
+- trace_0148
+- trace_0149
+- trace_0150
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

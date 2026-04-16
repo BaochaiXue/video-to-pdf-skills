@@ -196,6 +196,35 @@ Delivery is allowed only when all of the following are true:
 - `lecture_XX_note.tex` compiles
 
 If any condition fails, the lecture is not deliverable.
+Do not stop the run, declare success, or hand off the task as complete until the deliverable export step has finished and the final user-facing note or textbook has been copied into `deliverable/`.
+
+## Deliverable Folder
+
+When a lecture note or merged textbook becomes an actual user-facing deliverable, place the final exported assets in a run-local `deliverable/` folder.
+
+At minimum, copy:
+
+- the final `.tex`
+- the final compiled `.pdf`
+
+For lecture-level handoff, prefer a stable per-lecture export layout such as:
+
+- `deliverable/lectures/<lecture_slug>/lecture_XX_note.tex`
+- `deliverable/lectures/<lecture_slug>/lecture_XX_note.pdf`
+
+For merged course textbooks, the run's merge step should populate `deliverable/` automatically after the merged `.tex` and `.pdf` have been generated successfully.
+Prefer a stable merged-book layout such as:
+
+- `deliverable/book/<course>_complete_notes.tex`
+- `deliverable/book/<course>_complete_notes.pdf`
+
+Do not move or delete the canonical lecture workspace outputs under `lectures/` or the canonical merge outputs under `book/` / `build/`; copy the final user-facing handoff files into `deliverable/`.
+If the final lecture note or final merged textbook exists only in the workspace/build area and has not been exported into `deliverable/`, the run is not complete yet.
+The final validator should explicitly check for the exported `deliverable/` copy before marking a lecture note or merged textbook as complete.
+This is a persistence requirement, not just a folder preference: keep working through merge, export, and validation until the `deliverable/` copy exists.
+
+Do not treat transient build products such as `.aux`, `.log`, `.out`, or `.toc` as deliverables by default.
+The `deliverable/` folder is for the final handoff artifact, not the full build scratch space.
 
 ## Handoff Rules
 

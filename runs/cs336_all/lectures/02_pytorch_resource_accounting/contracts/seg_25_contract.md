@@ -1,0 +1,153 @@
+# seg_25 Contract
+
+Source range:
+- transcript: 01:10:59,149 -- 01:13:56,480
+- segment hint: Data loading、pinned memory 与训练并行性
+
+Must cover unit ids:
+- sub_2857
+- sub_2858
+- sub_2859
+- sub_2860
+- sub_2861
+- sub_2862
+- sub_2863
+- sub_2864
+- sub_2865
+- sub_2866
+- sub_2867
+- sub_2868
+- sub_2869
+- sub_2870
+- sub_2871
+- sub_2872
+- sub_2873
+- sub_2874
+- sub_2875
+- sub_2876
+- sub_2877
+- sub_2878
+- sub_2879
+- sub_2880
+- sub_2881
+- sub_2882
+- sub_2883
+- sub_2884
+- sub_2885
+- sub_2886
+- sub_2887
+- sub_2888
+- sub_2889
+- sub_2890
+- sub_2891
+- sub_2892
+- sub_2893
+- sub_2894
+- sub_2895
+- sub_2896
+- sub_2897
+- sub_2898
+- sub_2899
+- sub_2900
+- sub_2901
+- sub_2902
+- sub_2903
+- sub_2904
+- sub_2905
+- sub_2906
+- sub_2907
+- sub_2908
+- sub_2909
+- sub_2910
+- sub_2911
+- sub_2912
+- sub_2913
+- sub_2914
+- sub_2915
+- sub_2916
+- sub_2917
+- sub_2918
+- sub_2919
+- sub_2920
+- sub_2921
+- sub_2922
+- sub_2923
+- sub_2924
+- sub_2925
+- sub_2926
+- sub_2927
+- sub_2928
+- sub_2929
+- sub_2930
+- sub_2931
+- sub_2932
+- sub_2933
+- sub_2934
+- sub_2935
+- sub_2936
+- sub_2937
+- sub_2938
+- sub_2939
+- sub_2940
+- sub_2941
+- sub_2942
+- sub_2943
+- sub_2944
+- sub_2945
+- sub_2946
+- sub_2947
+- sub_2948
+- sub_2949
+- sub_2950
+- sub_2951
+- sub_2952
+- sub_2953
+- sub_2954
+- sub_2955
+- sub_2956
+- sub_2957
+- sub_2958
+- sub_2959
+- sub_2960
+- sub_2961
+- sub_2962
+- sub_2963
+- sub_2964
+- sub_2965
+- sub_2966
+- sub_2967
+- sub_2968
+- sub_2969
+- sub_2970
+- sub_2971
+- sub_2972
+- sub_2973
+- sub_2974
+- sub_2975
+- trace_0273
+- trace_0274
+- trace_0275
+- trace_0276
+- trace_0277
+- trace_0278
+- trace_0279
+- trace_0280
+- trace_0281
+- trace_0282
+- trace_0283
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

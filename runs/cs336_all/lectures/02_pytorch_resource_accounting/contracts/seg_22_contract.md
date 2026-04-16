@@ -1,0 +1,153 @@
+# seg_22 Contract
+
+Source range:
+- transcript: 01:01:42,559 -- 01:04:53,990
+- segment hint: Backward、模型对象与训练循环：从数学对象到工程系统
+
+Must cover unit ids:
+- sub_2500
+- sub_2501
+- sub_2502
+- sub_2503
+- sub_2504
+- sub_2505
+- sub_2506
+- sub_2507
+- sub_2508
+- sub_2509
+- sub_2510
+- sub_2511
+- sub_2512
+- sub_2513
+- sub_2514
+- sub_2515
+- sub_2516
+- sub_2517
+- sub_2518
+- sub_2519
+- sub_2520
+- sub_2521
+- sub_2522
+- sub_2523
+- sub_2524
+- sub_2525
+- sub_2526
+- sub_2527
+- sub_2528
+- sub_2529
+- sub_2530
+- sub_2531
+- sub_2532
+- sub_2533
+- sub_2534
+- sub_2535
+- sub_2536
+- sub_2537
+- sub_2538
+- sub_2539
+- sub_2540
+- sub_2541
+- sub_2542
+- sub_2543
+- sub_2544
+- sub_2545
+- sub_2546
+- sub_2547
+- sub_2548
+- sub_2549
+- sub_2550
+- sub_2551
+- sub_2552
+- sub_2553
+- sub_2554
+- sub_2555
+- sub_2556
+- sub_2557
+- sub_2558
+- sub_2559
+- sub_2560
+- sub_2561
+- sub_2562
+- sub_2563
+- sub_2564
+- sub_2565
+- sub_2566
+- sub_2567
+- sub_2568
+- sub_2569
+- sub_2570
+- sub_2571
+- sub_2572
+- sub_2573
+- sub_2574
+- sub_2575
+- sub_2576
+- sub_2577
+- sub_2578
+- sub_2579
+- sub_2580
+- sub_2581
+- sub_2582
+- sub_2583
+- sub_2584
+- sub_2585
+- sub_2586
+- sub_2587
+- sub_2588
+- sub_2589
+- sub_2590
+- sub_2591
+- sub_2592
+- sub_2593
+- sub_2594
+- sub_2595
+- sub_2596
+- sub_2597
+- sub_2598
+- sub_2599
+- sub_2600
+- sub_2601
+- sub_2602
+- sub_2603
+- sub_2604
+- sub_2605
+- sub_2606
+- sub_2607
+- sub_2608
+- sub_2609
+- sub_2610
+- sub_2611
+- sub_2612
+- sub_2613
+- sub_2614
+- sub_2615
+- sub_2616
+- sub_2617
+- sub_2618
+- trace_0240
+- trace_0241
+- trace_0242
+- trace_0243
+- trace_0244
+- trace_0245
+- trace_0246
+- trace_0247
+- trace_0248
+- trace_0249
+- trace_0250
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

@@ -1,0 +1,183 @@
+# seg_11 Contract
+
+Source range:
+- transcript: 00:33:38,230 -- 00:36:53,040
+- segment hint: 从“会做题”到“用户愿不愿意用”
+
+Must cover unit ids:
+- sub_1491
+- sub_1492
+- sub_1493
+- sub_1494
+- sub_1495
+- sub_1496
+- sub_1497
+- sub_1498
+- sub_1499
+- sub_1500
+- sub_1501
+- sub_1502
+- sub_1503
+- sub_1504
+- sub_1505
+- sub_1506
+- sub_1507
+- sub_1508
+- sub_1509
+- sub_1510
+- sub_1511
+- sub_1512
+- sub_1513
+- sub_1514
+- sub_1515
+- sub_1516
+- sub_1517
+- sub_1518
+- sub_1519
+- sub_1520
+- sub_1521
+- sub_1522
+- sub_1523
+- sub_1524
+- sub_1525
+- sub_1526
+- sub_1527
+- sub_1528
+- sub_1529
+- sub_1530
+- sub_1531
+- sub_1532
+- sub_1533
+- sub_1534
+- sub_1535
+- sub_1536
+- sub_1537
+- sub_1538
+- sub_1539
+- sub_1540
+- sub_1541
+- sub_1542
+- sub_1543
+- sub_1544
+- sub_1545
+- sub_1546
+- sub_1547
+- sub_1548
+- sub_1549
+- sub_1550
+- sub_1551
+- sub_1552
+- sub_1553
+- sub_1554
+- sub_1555
+- sub_1556
+- sub_1557
+- sub_1558
+- sub_1559
+- sub_1560
+- sub_1561
+- sub_1562
+- sub_1563
+- sub_1564
+- sub_1565
+- sub_1566
+- sub_1567
+- sub_1568
+- sub_1569
+- sub_1570
+- sub_1571
+- sub_1572
+- sub_1573
+- sub_1574
+- sub_1575
+- sub_1576
+- sub_1577
+- sub_1578
+- sub_1579
+- sub_1580
+- sub_1581
+- sub_1582
+- sub_1583
+- sub_1584
+- sub_1585
+- sub_1586
+- sub_1587
+- sub_1588
+- sub_1589
+- sub_1590
+- sub_1591
+- sub_1592
+- sub_1593
+- sub_1594
+- sub_1595
+- sub_1596
+- sub_1597
+- sub_1598
+- sub_1599
+- sub_1600
+- sub_1601
+- sub_1602
+- sub_1603
+- sub_1604
+- sub_1605
+- sub_1606
+- sub_1607
+- sub_1608
+- sub_1609
+- sub_1610
+- sub_1611
+- sub_1612
+- sub_1613
+- sub_1614
+- sub_1615
+- sub_1616
+- sub_1617
+- sub_1618
+- sub_1619
+- sub_1620
+- sub_1621
+- sub_1622
+- sub_1623
+- sub_1624
+- sub_1625
+- sub_1626
+- sub_1627
+- sub_1628
+- sub_1629
+- sub_1630
+- sub_1631
+- sub_1632
+- sub_1633
+- sub_1634
+- sub_1635
+- sub_1636
+- sub_1637
+- sub_1638
+- sub_1639
+- trace_0129
+- trace_0130
+- trace_0131
+- trace_0132
+- trace_0133
+- trace_0134
+- trace_0135
+- trace_0136
+- trace_0137
+- trace_0138
+- trace_0140
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

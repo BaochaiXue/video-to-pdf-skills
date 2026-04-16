@@ -1,0 +1,185 @@
+# seg_17 Contract
+
+Source range:
+- transcript: 00:53:18,309 -- 00:56:43,589
+- segment hint: 许可、fair use 和 ToS 是三层不同约束
+
+Must cover unit ids:
+- sub_2305
+- sub_2306
+- sub_2307
+- sub_2308
+- sub_2309
+- sub_2310
+- sub_2311
+- sub_2312
+- sub_2313
+- sub_2314
+- sub_2315
+- sub_2316
+- sub_2317
+- sub_2318
+- sub_2319
+- sub_2320
+- sub_2321
+- sub_2322
+- sub_2323
+- sub_2324
+- sub_2325
+- sub_2326
+- sub_2327
+- sub_2328
+- sub_2329
+- sub_2330
+- sub_2331
+- sub_2332
+- sub_2333
+- sub_2334
+- sub_2335
+- sub_2336
+- sub_2337
+- sub_2338
+- sub_2339
+- sub_2340
+- sub_2341
+- sub_2342
+- sub_2343
+- sub_2344
+- sub_2345
+- sub_2346
+- sub_2347
+- sub_2348
+- sub_2349
+- sub_2350
+- sub_2351
+- sub_2352
+- sub_2353
+- sub_2354
+- sub_2355
+- sub_2356
+- sub_2357
+- sub_2358
+- sub_2359
+- sub_2360
+- sub_2361
+- sub_2362
+- sub_2363
+- sub_2364
+- sub_2365
+- sub_2366
+- sub_2367
+- sub_2368
+- sub_2369
+- sub_2370
+- sub_2371
+- sub_2372
+- sub_2373
+- sub_2374
+- sub_2375
+- sub_2376
+- sub_2377
+- sub_2378
+- sub_2379
+- sub_2380
+- sub_2381
+- sub_2382
+- sub_2383
+- sub_2384
+- sub_2385
+- sub_2386
+- sub_2387
+- sub_2388
+- sub_2389
+- sub_2390
+- sub_2391
+- sub_2392
+- sub_2393
+- sub_2394
+- sub_2395
+- sub_2396
+- sub_2397
+- sub_2398
+- sub_2399
+- sub_2400
+- sub_2401
+- sub_2402
+- sub_2403
+- sub_2404
+- sub_2405
+- sub_2406
+- sub_2407
+- sub_2408
+- sub_2409
+- sub_2410
+- sub_2411
+- sub_2412
+- sub_2413
+- sub_2414
+- sub_2415
+- sub_2416
+- sub_2417
+- sub_2418
+- sub_2419
+- sub_2420
+- sub_2421
+- sub_2422
+- sub_2423
+- sub_2424
+- sub_2425
+- sub_2426
+- sub_2427
+- sub_2428
+- sub_2429
+- sub_2430
+- sub_2431
+- sub_2432
+- sub_2433
+- sub_2434
+- sub_2435
+- sub_2436
+- sub_2437
+- sub_2438
+- sub_2439
+- sub_2440
+- sub_2441
+- sub_2442
+- sub_2443
+- sub_2444
+- sub_2445
+- sub_2446
+- sub_2447
+- sub_2448
+- trace_0303
+- trace_0304
+- trace_0305
+- trace_0306
+- trace_0307
+- trace_0308
+- trace_0309
+- trace_0310
+- trace_0311
+- trace_0312
+- trace_0313
+- trace_0314
+- trace_0315
+- trace_0316
+- trace_0317
+- trace_0318
+- trace_0319
+- trace_0320
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

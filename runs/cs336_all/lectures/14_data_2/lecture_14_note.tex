@@ -265,6 +265,46 @@ k^\star \approx \frac{m}{n}\ln 2
 \]
 附近。像 Dolma 这样的数据集之所以能把 paragraph 级去重推到极低误判率，就是因为它愿意在这一步花额外内存，先把大量显然没见过的样本快速排除掉。
 
+\subsection{课程隐含的数据去重流水线，其实可以写成一段伪代码}
+第 14 讲虽然没有把整套系统写成正式代码，但从讲课顺序看，它实际上给出了一条非常明确的工程流水线：先做轻量级 exact duplicate 过滤，再用 MinHash/LSH 只提名候选近重复，最后才进入更昂贵的比对或人工验收。把这条逻辑写成伪代码，能更清楚地看到课程强调的“先用便宜算法缩小搜索空间，再把贵计算留给少数候选”。
+
+\begin{lstlisting}[caption={根据课程内容重建的近重复检测流水线伪代码},label={lst:data2-dedup-pipeline}]
+def deduplicate_corpus(documents, num_perm, bands, rows_per_band):
+    exact_filter = BloomFilter(expected_items=len(documents))
+    signatures = {}
+    buckets = {}
+    kept = []
+
+    for doc in documents:
+        shingles = extract_ngrams(doc)
+        exact_key = stable_hash(shingles)
+        if exact_key in exact_filter:
+            continue
+        exact_filter.add(exact_key)
+
+        signature = minhash_signature(shingles, num_perm=num_perm)
+        signatures[doc.id] = signature
+
+        is_near_duplicate = False
+        for band_id, band_value in lsh_bands(signature, bands, rows_per_band):
+            bucket_key = (band_id, band_value)
+            for candidate_id in buckets.get(bucket_key, []):
+                candidate_ngrams = load_cached_ngrams(candidate_id)
+                if jaccard(shingles, candidate_ngrams) >= THRESHOLD:
+                    is_near_duplicate = True
+                    break
+            if is_near_duplicate:
+                break
+            buckets.setdefault(bucket_key, []).append(doc.id)
+
+        if not is_near_duplicate:
+            kept.append(doc)
+
+    return kept
+\end{lstlisting}
+
+这段伪代码对应课程里的三层结构。第一层 Bloom filter 负责拦住最容易识别的 exact duplicates；第二层 MinHash 签名把原始 n-gram 集合压缩成可比对的短表示；第三层 LSH banding 只让高相似度文档在同一桶里相遇，从而避免全体两两比较。课程真正要学生掌握的不是某个库函数名字，而是这条复杂度控制链条：\textbf{大部分样本只接受便宜检查，只有少数可疑候选才值得付出更高代价。}
+
 \subsection{LSH 的 band 参数，其实就是在调一条“阈值 S 曲线”}
 MinHash 单独使用时，碰撞概率等于 Jaccard，相似样本只是“平均上更容易撞上”，但边界很软。LSH 的 banding 技巧之所以巧妙，就在于它把这种平滑概率重新塑形成更陡峭的阈值曲线。课程虽然只给了公式，但配图其实更直观：参数一改，整条“被提名概率”曲线就会左右平移、陡峭或变缓。
 

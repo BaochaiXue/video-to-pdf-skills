@@ -10,6 +10,14 @@
 \usepackage{booktabs}
 \usepackage{subcaption}
 \usepackage{float}
+\usepackage{listings}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single
+}
 
 \newtcolorbox{knowledgebox}[1]{
     enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
@@ -187,6 +195,22 @@ GPU 的 global memory 读取常常是 burst mode。如果同一 warp 的线程�
 
 \subsection{FlashAttention 的意义：让 attention 更像硬件愿意接受的矩阵程序}
 虽然这讲只是预告性质地“unpack FlashAttention”，但它真正想传递的是：FlashAttention 的伟大之处，不只在于减少了某个 big-O，而是它把注意力计算重新组织成了更符合 GPU memory hierarchy 的形状。换句话说，它是一种典型的“respect the hardware”式算法设计。
+
+\subsection{把 tiling 直觉写成伪代码}
+如果把这讲最后关于矩阵乘法与 FlashAttention 的硬件直觉压缩成一段伪代码，核心其实就是：\textbf{不要一次把整块大矩阵从远端内存反复搬进来，而要分 tile 载入、在近端缓存里反复复用、累加后再写回。} 下面这段伪代码不是课程逐行展示的源码，而是对课程里 tiled matmul / blockwise attention 计算路径的结构化重述：
+
+\begin{lstlisting}[language=Python,caption={分块矩阵乘法伪代码：先装 tile，再在片上存储中重复利用}]
+for m_tile in range(0, M, BM):
+    for n_tile in range(0, N, BN):
+        acc = zeros((BM, BN))
+        for k_tile in range(0, K, BK):
+            a_shared = load_to_shared(A[m_tile:m_tile+BM, k_tile:k_tile+BK])
+            b_shared = load_to_shared(B[k_tile:k_tile+BK, n_tile:n_tile+BN])
+            acc += a_shared @ b_shared
+        C[m_tile:m_tile+BM, n_tile:n_tile+BN] = acc
+\end{lstlisting}
+
+这段代码式总结有三个和课程完全一致的重点。第一，真正贵的是 \texttt{load\_to\_shared(...)} 之前那次从更远层级搬数据的动作，所以一旦搬进来，就应该尽量重复使用。第二，\texttt{acc} 的分块累加解释了为什么 larger matrix 并不总是更慢，因为不同 tile 形状会改变 reuse 和 wave scheduling。第三，FlashAttention 之所以重要，正是因为它把 attention 重写成更接近这种“块内累计、块间推进”的实现结构。
 
 \begin{knowledgebox}{为什么第 5 讲和第 6 讲是天然连续的}
 第 5 讲给的是硬件直觉和性能语言，第 6 讲才会进一步进入 kernel 层。没有这讲的 memory wall、tiling 和 coalescing 直觉，后面很多 kernel 技巧都会显得像魔法配方。

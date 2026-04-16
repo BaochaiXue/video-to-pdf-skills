@@ -1,0 +1,189 @@
+# seg_30 Contract
+
+Source range:
+- transcript: 01:17:37,440 -- 01:20:18,840
+- segment hint: Segment 30
+
+Must cover unit ids:
+- sub_4264
+- sub_4265
+- sub_4266
+- sub_4267
+- sub_4268
+- sub_4269
+- sub_4270
+- sub_4271
+- sub_4272
+- sub_4273
+- sub_4274
+- sub_4275
+- sub_4276
+- sub_4277
+- sub_4278
+- sub_4279
+- sub_4280
+- sub_4281
+- sub_4282
+- sub_4283
+- sub_4284
+- sub_4285
+- sub_4286
+- sub_4287
+- sub_4288
+- sub_4289
+- sub_4290
+- sub_4291
+- sub_4292
+- sub_4293
+- sub_4294
+- sub_4295
+- sub_4296
+- sub_4297
+- sub_4298
+- sub_4299
+- sub_4300
+- sub_4301
+- sub_4302
+- sub_4303
+- sub_4304
+- sub_4305
+- sub_4306
+- sub_4307
+- sub_4308
+- sub_4309
+- sub_4310
+- sub_4311
+- sub_4312
+- sub_4313
+- sub_4314
+- sub_4315
+- sub_4316
+- sub_4317
+- sub_4318
+- sub_4319
+- sub_4320
+- sub_4321
+- sub_4322
+- sub_4323
+- sub_4324
+- sub_4325
+- sub_4326
+- sub_4327
+- sub_4328
+- sub_4329
+- sub_4330
+- sub_4331
+- sub_4332
+- sub_4333
+- sub_4334
+- sub_4335
+- sub_4336
+- sub_4337
+- sub_4338
+- sub_4339
+- sub_4340
+- sub_4341
+- sub_4342
+- sub_4343
+- sub_4344
+- sub_4345
+- sub_4346
+- sub_4347
+- sub_4348
+- sub_4349
+- sub_4350
+- sub_4351
+- sub_4352
+- sub_4353
+- sub_4354
+- sub_4355
+- sub_4356
+- sub_4357
+- sub_4358
+- sub_4359
+- sub_4360
+- sub_4361
+- sub_4362
+- sub_4363
+- sub_4364
+- sub_4365
+- sub_4366
+- sub_4367
+- sub_4368
+- sub_4369
+- sub_4370
+- sub_4371
+- sub_4372
+- sub_4373
+- sub_4374
+- sub_4375
+- sub_4376
+- sub_4377
+- sub_4378
+- sub_4379
+- sub_4380
+- sub_4381
+- sub_4382
+- sub_4383
+- sub_4384
+- sub_4385
+- sub_4386
+- sub_4387
+- sub_4388
+- sub_4389
+- sub_4390
+- sub_4391
+- sub_4392
+- sub_4393
+- sub_4394
+- sub_4395
+- sub_4396
+- sub_4397
+- sub_4398
+- sub_4399
+- sub_4400
+- sub_4401
+- sub_4402
+- trace_1170
+- trace_1171
+- trace_1172
+- trace_1173
+- trace_1174
+- trace_1175
+- trace_1176
+- trace_1177
+- trace_1178
+- trace_1179
+- trace_1180
+- trace_1181
+- trace_1182
+- trace_1183
+- trace_1184
+- trace_1185
+- trace_1186
+- trace_1187
+- trace_1188
+- trace_1189
+- trace_1190
+- trace_1191
+- trace_1192
+- trace_1193
+- trace_1194
+- trace_1195
+- trace_1196
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

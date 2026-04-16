@@ -1,0 +1,183 @@
+# seg_10 Contract
+
+Source range:
+- transcript: 00:30:19,679 -- 00:33:38,230
+- segment hint: 开放式回答、偏好和 agent 任务：评估开始越来越像真实使用
+
+Must cover unit ids:
+- sub_1342
+- sub_1343
+- sub_1344
+- sub_1345
+- sub_1346
+- sub_1347
+- sub_1348
+- sub_1349
+- sub_1350
+- sub_1351
+- sub_1352
+- sub_1353
+- sub_1354
+- sub_1355
+- sub_1356
+- sub_1357
+- sub_1358
+- sub_1359
+- sub_1360
+- sub_1361
+- sub_1362
+- sub_1363
+- sub_1364
+- sub_1365
+- sub_1366
+- sub_1367
+- sub_1368
+- sub_1369
+- sub_1370
+- sub_1371
+- sub_1372
+- sub_1373
+- sub_1374
+- sub_1375
+- sub_1376
+- sub_1377
+- sub_1378
+- sub_1379
+- sub_1380
+- sub_1381
+- sub_1382
+- sub_1383
+- sub_1384
+- sub_1385
+- sub_1386
+- sub_1387
+- sub_1388
+- sub_1389
+- sub_1390
+- sub_1391
+- sub_1392
+- sub_1393
+- sub_1394
+- sub_1395
+- sub_1396
+- sub_1397
+- sub_1398
+- sub_1399
+- sub_1400
+- sub_1401
+- sub_1402
+- sub_1403
+- sub_1404
+- sub_1405
+- sub_1406
+- sub_1407
+- sub_1408
+- sub_1409
+- sub_1410
+- sub_1411
+- sub_1412
+- sub_1413
+- sub_1414
+- sub_1415
+- sub_1416
+- sub_1417
+- sub_1418
+- sub_1419
+- sub_1420
+- sub_1421
+- sub_1422
+- sub_1423
+- sub_1424
+- sub_1425
+- sub_1426
+- sub_1427
+- sub_1428
+- sub_1429
+- sub_1430
+- sub_1431
+- sub_1432
+- sub_1433
+- sub_1434
+- sub_1435
+- sub_1436
+- sub_1437
+- sub_1438
+- sub_1439
+- sub_1440
+- sub_1441
+- sub_1442
+- sub_1443
+- sub_1444
+- sub_1445
+- sub_1446
+- sub_1447
+- sub_1448
+- sub_1449
+- sub_1450
+- sub_1451
+- sub_1452
+- sub_1453
+- sub_1454
+- sub_1455
+- sub_1456
+- sub_1457
+- sub_1458
+- sub_1459
+- sub_1460
+- sub_1461
+- sub_1462
+- sub_1463
+- sub_1464
+- sub_1465
+- sub_1466
+- sub_1467
+- sub_1468
+- sub_1469
+- sub_1470
+- sub_1471
+- sub_1472
+- sub_1473
+- sub_1474
+- sub_1475
+- sub_1476
+- sub_1477
+- sub_1478
+- sub_1479
+- sub_1480
+- sub_1481
+- sub_1482
+- sub_1483
+- sub_1484
+- sub_1485
+- sub_1486
+- sub_1487
+- sub_1488
+- sub_1489
+- sub_1490
+- trace_0115
+- trace_0116
+- trace_0117
+- trace_0118
+- trace_0119
+- trace_0120
+- trace_0121
+- trace_0123
+- trace_0124
+- trace_0127
+- trace_0128
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

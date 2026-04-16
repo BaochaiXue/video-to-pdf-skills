@@ -1,0 +1,177 @@
+# seg_12 Contract
+
+Source range:
+- transcript: 00:29:16,720 -- 00:32:04,630
+- segment hint: joint fit 和 lower envelope 给出了更高的数据比
+
+Must cover unit ids:
+- sub_1640
+- sub_1641
+- sub_1642
+- sub_1643
+- sub_1644
+- sub_1645
+- sub_1646
+- sub_1647
+- sub_1648
+- sub_1649
+- sub_1650
+- sub_1651
+- sub_1652
+- sub_1653
+- sub_1654
+- sub_1655
+- sub_1656
+- sub_1657
+- sub_1658
+- sub_1659
+- sub_1660
+- sub_1661
+- sub_1662
+- sub_1663
+- sub_1664
+- sub_1665
+- sub_1666
+- sub_1667
+- sub_1668
+- sub_1669
+- sub_1670
+- sub_1671
+- sub_1672
+- sub_1673
+- sub_1674
+- sub_1675
+- sub_1676
+- sub_1677
+- sub_1678
+- sub_1679
+- sub_1680
+- sub_1681
+- sub_1682
+- sub_1683
+- sub_1684
+- sub_1685
+- sub_1686
+- sub_1687
+- sub_1688
+- sub_1689
+- sub_1690
+- sub_1691
+- sub_1692
+- sub_1693
+- sub_1694
+- sub_1695
+- sub_1696
+- sub_1697
+- sub_1698
+- sub_1699
+- sub_1700
+- sub_1701
+- sub_1702
+- sub_1703
+- sub_1704
+- sub_1705
+- sub_1706
+- sub_1707
+- sub_1708
+- sub_1709
+- sub_1710
+- sub_1711
+- sub_1712
+- sub_1713
+- sub_1714
+- sub_1715
+- sub_1716
+- sub_1717
+- sub_1718
+- sub_1719
+- sub_1720
+- sub_1721
+- sub_1722
+- sub_1723
+- sub_1724
+- sub_1725
+- sub_1726
+- sub_1727
+- sub_1728
+- sub_1729
+- sub_1730
+- sub_1731
+- sub_1732
+- sub_1733
+- sub_1734
+- sub_1735
+- sub_1736
+- sub_1737
+- sub_1738
+- sub_1739
+- sub_1740
+- sub_1741
+- sub_1742
+- sub_1743
+- sub_1744
+- sub_1745
+- sub_1746
+- sub_1747
+- sub_1748
+- sub_1749
+- sub_1750
+- sub_1751
+- sub_1752
+- sub_1753
+- sub_1754
+- sub_1755
+- sub_1756
+- sub_1757
+- sub_1758
+- sub_1759
+- sub_1760
+- sub_1761
+- sub_1762
+- sub_1763
+- sub_1764
+- sub_1765
+- sub_1766
+- sub_1767
+- sub_1768
+- sub_1769
+- sub_1770
+- sub_1771
+- sub_1772
+- sub_1773
+- sub_1774
+- sub_1775
+- sub_1776
+- sub_1777
+- sub_1778
+- sub_1779
+- sub_1780
+- sub_1781
+- sub_1782
+- sub_1783
+- sub_1784
+- sub_1785
+- sub_1786
+- sub_1787
+- sub_1788
+- note_0056
+- note_0057
+- note_0058
+- note_0059
+- note_0060
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

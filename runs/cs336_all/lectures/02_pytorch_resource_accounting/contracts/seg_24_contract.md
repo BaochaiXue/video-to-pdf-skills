@@ -1,0 +1,153 @@
+# seg_24 Contract
+
+Source range:
+- transcript: 01:07:48,480 -- 01:10:59,149
+- segment hint: nn.Parameter、module 与 initialization 的角色
+
+Must cover unit ids:
+- sub_2738
+- sub_2739
+- sub_2740
+- sub_2741
+- sub_2742
+- sub_2743
+- sub_2744
+- sub_2745
+- sub_2746
+- sub_2747
+- sub_2748
+- sub_2749
+- sub_2750
+- sub_2751
+- sub_2752
+- sub_2753
+- sub_2754
+- sub_2755
+- sub_2756
+- sub_2757
+- sub_2758
+- sub_2759
+- sub_2760
+- sub_2761
+- sub_2762
+- sub_2763
+- sub_2764
+- sub_2765
+- sub_2766
+- sub_2767
+- sub_2768
+- sub_2769
+- sub_2770
+- sub_2771
+- sub_2772
+- sub_2773
+- sub_2774
+- sub_2775
+- sub_2776
+- sub_2777
+- sub_2778
+- sub_2779
+- sub_2780
+- sub_2781
+- sub_2782
+- sub_2783
+- sub_2784
+- sub_2785
+- sub_2786
+- sub_2787
+- sub_2788
+- sub_2789
+- sub_2790
+- sub_2791
+- sub_2792
+- sub_2793
+- sub_2794
+- sub_2795
+- sub_2796
+- sub_2797
+- sub_2798
+- sub_2799
+- sub_2800
+- sub_2801
+- sub_2802
+- sub_2803
+- sub_2804
+- sub_2805
+- sub_2806
+- sub_2807
+- sub_2808
+- sub_2809
+- sub_2810
+- sub_2811
+- sub_2812
+- sub_2813
+- sub_2814
+- sub_2815
+- sub_2816
+- sub_2817
+- sub_2818
+- sub_2819
+- sub_2820
+- sub_2821
+- sub_2822
+- sub_2823
+- sub_2824
+- sub_2825
+- sub_2826
+- sub_2827
+- sub_2828
+- sub_2829
+- sub_2830
+- sub_2831
+- sub_2832
+- sub_2833
+- sub_2834
+- sub_2835
+- sub_2836
+- sub_2837
+- sub_2838
+- sub_2839
+- sub_2840
+- sub_2841
+- sub_2842
+- sub_2843
+- sub_2844
+- sub_2845
+- sub_2846
+- sub_2847
+- sub_2848
+- sub_2849
+- sub_2850
+- sub_2851
+- sub_2852
+- sub_2853
+- sub_2854
+- sub_2855
+- sub_2856
+- trace_0262
+- trace_0263
+- trace_0264
+- trace_0265
+- trace_0266
+- trace_0267
+- trace_0268
+- trace_0269
+- trace_0270
+- trace_0271
+- trace_0272
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

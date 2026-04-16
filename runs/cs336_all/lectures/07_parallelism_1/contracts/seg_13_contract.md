@@ -1,0 +1,178 @@
+# seg_13 Contract
+
+Source range:
+- transcript: 00:32:01,509 -- 00:34:31,119
+- segment hint: 为什么 sequence parallel 会自然冒出来
+
+Must cover unit ids:
+- sub_1789
+- sub_1790
+- sub_1791
+- sub_1792
+- sub_1793
+- sub_1794
+- sub_1795
+- sub_1796
+- sub_1797
+- sub_1798
+- sub_1799
+- sub_1800
+- sub_1801
+- sub_1802
+- sub_1803
+- sub_1804
+- sub_1805
+- sub_1806
+- sub_1807
+- sub_1808
+- sub_1809
+- sub_1810
+- sub_1811
+- sub_1812
+- sub_1813
+- sub_1814
+- sub_1815
+- sub_1816
+- sub_1817
+- sub_1818
+- sub_1819
+- sub_1820
+- sub_1821
+- sub_1822
+- sub_1823
+- sub_1824
+- sub_1825
+- sub_1826
+- sub_1827
+- sub_1828
+- sub_1829
+- sub_1830
+- sub_1831
+- sub_1832
+- sub_1833
+- sub_1834
+- sub_1835
+- sub_1836
+- sub_1837
+- sub_1838
+- sub_1839
+- sub_1840
+- sub_1841
+- sub_1842
+- sub_1843
+- sub_1844
+- sub_1845
+- sub_1846
+- sub_1847
+- sub_1848
+- sub_1849
+- sub_1850
+- sub_1851
+- sub_1852
+- sub_1853
+- sub_1854
+- sub_1855
+- sub_1856
+- sub_1857
+- sub_1858
+- sub_1859
+- sub_1860
+- sub_1861
+- sub_1862
+- sub_1863
+- sub_1864
+- sub_1865
+- sub_1866
+- sub_1867
+- sub_1868
+- sub_1869
+- sub_1870
+- sub_1871
+- sub_1872
+- sub_1873
+- sub_1874
+- sub_1875
+- sub_1876
+- sub_1877
+- sub_1878
+- sub_1879
+- sub_1880
+- sub_1881
+- sub_1882
+- sub_1883
+- sub_1884
+- sub_1885
+- sub_1886
+- sub_1887
+- sub_1888
+- sub_1889
+- sub_1890
+- sub_1891
+- sub_1892
+- sub_1893
+- sub_1894
+- sub_1895
+- sub_1896
+- sub_1897
+- sub_1898
+- sub_1899
+- sub_1900
+- sub_1901
+- sub_1902
+- sub_1903
+- sub_1904
+- sub_1905
+- sub_1906
+- sub_1907
+- sub_1908
+- sub_1909
+- sub_1910
+- sub_1911
+- sub_1912
+- sub_1913
+- sub_1914
+- sub_1915
+- sub_1916
+- sub_1917
+- sub_1918
+- sub_1919
+- sub_1920
+- sub_1921
+- sub_1922
+- sub_1923
+- sub_1924
+- sub_1925
+- sub_1926
+- sub_1927
+- sub_1928
+- sub_1929
+- sub_1930
+- sub_1931
+- sub_1932
+- sub_1933
+- sub_1934
+- sub_1935
+- sub_1936
+- sub_1937
+- note_0073
+- note_0074
+- note_0075
+- note_0076
+- note_0077
+- note_0078
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+
