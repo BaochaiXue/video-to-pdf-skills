@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_DIR = ROOT / "build"
+LECTURES_DIR = ROOT / "lectures"
 
 
 def latex_escape(text: str) -> str:
@@ -67,6 +68,20 @@ def blocked_reason(lecture: dict) -> str:
     return "lecture not marked deliverable"
 
 
+def lecture_meta(lecture: dict) -> dict:
+    return json.loads((LECTURES_DIR / lecture["lecture_slug"] / "meta.json").read_text())
+
+
+def provenance_row(lecture: dict) -> tuple[str, str]:
+    meta = lecture_meta(lecture)
+    video_title = str(meta.get("video_title") or "")
+    if video_title.startswith("[Fall 2023]"):
+        return "2023 official video", "Directly grounded in the official Fall 2023 WAVLab public playlist."
+    if meta.get("video_url") and meta.get("auxiliary_official_page_url"):
+        return "official auxiliary video", "Reconstructed from the 2023 course row plus an official same-course auxiliary public video."
+    return "official reconstruction", "Reconstructed from official course-page rows and other official public materials without a recovered lecture video."
+
+
 def main() -> None:
     manifest = json.loads((BUILD_DIR / "course_manifest.json").read_text())
     tex_path = BUILD_DIR / "speech_recognition_understanding_fall2023_textbook.tex"
@@ -111,6 +126,23 @@ def main() -> None:
         status = "deliverable" if lecture["lecture_id"] in deliverable_ids else "blocked"
         lines.append(
             f"{lecture['lecture_id']} & {latex_escape(lecture['title'])} & {lecture['date']} & {status}\\\\"
+        )
+    lines.extend([r"\end{longtable}", ""])
+
+    lines.extend(
+        [
+            r"\section*{来源说明}",
+            r"\addcontentsline{toc}{section}{来源说明}",
+            r"本书以 2023 年课程页与官方公开录像为主；当某讲在 2023 年没有公开视频时，才使用同门课同主题的官方公开辅助材料或明确标注的官方重建材料。",
+            r"\begin{longtable}{p{0.08\textwidth}p{0.32\textwidth}p{0.18\textwidth}p{0.34\textwidth}}",
+            r"\textbf{讲次} & \textbf{主题} & \textbf{来源类型} & \textbf{说明}\\",
+            r"\hline",
+        ]
+    )
+    for lecture in deliverable:
+        source_type, note = provenance_row(lecture)
+        lines.append(
+            f"{lecture['lecture_id']} & {latex_escape(lecture['title'])} & {latex_escape(source_type)} & {latex_escape(note)}\\\\"
         )
     lines.extend([r"\end{longtable}", ""])
 
