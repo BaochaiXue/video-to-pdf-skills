@@ -11,6 +11,7 @@ RUN_ROOT = Path(__file__).resolve().parents[1]
 LECTURES_DIR = RUN_ROOT / "lectures"
 BOOK_DIR = RUN_ROOT / "book"
 DELIVERABLE_DIR = RUN_ROOT / "deliverable" / "book"
+SUPPLEMENTS_DIR = RUN_ROOT / "supplements"
 
 
 def require(condition: bool, errors: list[str], message: str) -> None:
@@ -24,6 +25,12 @@ def load_json(path: Path) -> dict | list:
 
 def lecture_dirs() -> list[Path]:
     return sorted(path for path in LECTURES_DIR.iterdir() if path.is_dir())
+
+
+def supplement_dirs() -> list[Path]:
+    if not SUPPLEMENTS_DIR.exists():
+        return []
+    return sorted(path for path in SUPPLEMENTS_DIR.iterdir() if path.is_dir())
 
 
 def main() -> None:
@@ -66,6 +73,22 @@ def main() -> None:
         if lecture_quality.exists():
             text = lecture_quality.read_text()
             require("validator_status: pass" in text, errors, f"{lecture_dir.name}: lecture validator did not pass")
+
+    for supplement_dir in supplement_dirs():
+        manifest = supplement_dir / "COURSE_SOURCE_MANIFEST.json"
+        coverage = supplement_dir / "COURSE_COVERAGE_INDEX.jsonl"
+        omission = supplement_dir / "COURSE_OMISSION_LOG.jsonl"
+        tex = supplement_dir / "course_extension.tex"
+        eval_report = supplement_dir / "supplement_eval.json"
+        require(manifest.exists() and manifest.stat().st_size > 0, errors, f"{supplement_dir.name}: missing COURSE_SOURCE_MANIFEST.json")
+        require(coverage.exists() and coverage.stat().st_size > 0, errors, f"{supplement_dir.name}: missing COURSE_COVERAGE_INDEX.jsonl")
+        require(omission.exists(), errors, f"{supplement_dir.name}: missing COURSE_OMISSION_LOG.jsonl")
+        require(tex.exists() and tex.stat().st_size > 0, errors, f"{supplement_dir.name}: missing course_extension.tex")
+        require(eval_report.exists(), errors, f"{supplement_dir.name}: missing supplement_eval.json")
+        if eval_report.exists():
+            report = load_json(eval_report)
+            if isinstance(report, dict):
+                require(report.get("overall") == "pass", errors, f"{supplement_dir.name}: supplement evaluator did not pass")
 
     textbook_manifest = BOOK_DIR / "textbook_source_manifest.json"
     main_tex = BOOK_DIR / "main.tex"

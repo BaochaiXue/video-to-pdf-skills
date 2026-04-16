@@ -6,6 +6,7 @@ Current state:
 
 - course-level planning artifacts are complete and synchronized with the official syllabus page plus the official Berkeley RDI YouTube playlist
 - all `12` lecture workspaces under `lectures/` have completed evaluator and validator gates
+- `3` supplement workspaces under `supplements/` extend the main textbook with Berkeley Fall 2024, Berkeley Fall 2025, and Stanford CS329A official/public materials
 - the merged textbook under `book/` and the final handoff copy under `deliverable/` have both been generated
 
 Primary source of truth:
@@ -19,6 +20,22 @@ Course-level sources discovered from the official page:
 - 2 special-time lecture entries: `2025-03-31` and `2025-04-21` at `10:00AM-12:00PM PT`
 - 1 extra official asset for L01: an intro deck in addition to the main lecture slides
 
+Supplemental course sources folded into the final textbook:
+
+- Berkeley Fall 2024 `CS294/194-196: Large Language Model Agents`
+  - official course page: `https://rdi.berkeley.edu/llm-agents/f24`
+  - public MOOC page: `https://llmagents-learning.org/f24`
+  - official playlist: `https://www.youtube.com/playlist?list=PLS01nW3RtgopsNLeM936V4TNSsvvVglLc`
+- Berkeley Fall 2025 `CS294/194-196: Agentic AI`
+  - official course page: `https://rdi.berkeley.edu/agentic-ai/f25`
+  - public MOOC page: `https://agenticai-learning.org/f25`
+  - official playlist: `https://www.youtube.com/playlist?list=PLS01nW3RtgoqGkm4UeqNeZLccW-OGc1fJ`
+  - official unlisted public recording for `2025-10-06`: `https://www.youtube.com/watch?v=VfOA2a0dj4w`
+- Stanford `CS329A: Self-Improving AI Agents (Autumn 2025)`
+  - official course page: `https://cs329a.stanford.edu/`
+  - official schedule: `https://cs329a.stanford.edu/#schedule`
+  - no official public video page or official slide index was found; the supplement remains schedule-and-readings grounded
+
 ## Directory Map
 
 - `AGENTS.md`: short map for all agents entering this run
@@ -28,6 +45,7 @@ Course-level sources discovered from the official page:
 - `COURSE_OMISSION_LOG.jsonl`: explicit gaps and pending source-acquisition issues
 - `docs/`: harness, rubric, style, glossary, evaluator, and failure-mode references
 - `lectures/`: one workspace per lecture, using `lecXX_*` slugs from `COURSE_SPEC.md`
+- `supplements/`: one workspace per supplemental course extension chapter
 - `book/`: final textbook integration outputs
 - `deliverable/`: final user-facing handoff copy of the merged textbook
 - `eval_reports/`: book-level evaluator outputs
@@ -39,13 +57,15 @@ Course-level sources discovered from the official page:
 1. Course planner seeds the course-level record system.
 2. Per lecture, agents run:
    `Source Curator -> Transcript & Slide Parser -> Coverage Planner -> Figure Agent -> Lecture Writer -> Reading Integrator -> Skeptical Evaluator -> Repair Writer`.
-3. Only lectures that pass evaluator and validator may enter the textbook merge.
-4. Book-level agents add frontmatter, consistency, glossary, exercises, final merge, and final evaluation.
+3. Supplemental-course agents build course-level extension chapters with explicit source manifests, coverage indexes, omission logs, and supplement evaluators.
+4. Only lectures or supplements that pass their gates may enter the textbook merge.
+5. Book-level agents add frontmatter, consistency, glossary, exercises, final merge, and final evaluation.
 
 ## Agent Responsibilities
 
 - Course planner owns only the top-level files listed above plus `docs/`.
 - Lecture agents own only their assigned `lectures/lecXX_*` workspace.
+- Supplement agents own only their assigned `supplements/<course_slug>/` workspace.
 - Book-level agents own only `book/`, `eval_reports/`, and `repair_logs/`.
 - No agent should overwrite another lecture workspace without an explicit repair handoff.
 
@@ -88,13 +108,14 @@ The final merged `.tex` and `.pdf` are copied to:
 
 ## Known Limitations
 
-- The official syllabus page exposes per-lecture recording URLs; the official Berkeley RDI YouTube channel additionally exposes a canonical playlist for this course: `https://www.youtube.com/playlist?list=PLS01nW3RtgorL3AW8REU9nGkzhvtn6Egn`.
-- Readings are currently recorded as remote URLs only; local mirroring is deferred to lecture-level source acquisition.
-- The existing local `build/` helpers currently enumerate lecture directories whose names start with digits. This run is specified to use `lecXX_*` workspace names, so lecture execution must add a selector shim or update the local helpers before bulk validation and merge.
+- Readings are recorded primarily as remote URLs; local mirroring is deferred to lecture-level or supplement-level source acquisition.
+- Berkeley Fall 2024 has two official but private playlist entries and official bCourses-only original recordings; those gaps are logged and not silently filled.
+- Berkeley Fall 2025 includes a slides-only introduction and one official but unlisted public recording.
+- Stanford CS329A official pages did not expose an official public video page or slide index; its supplement is therefore schedule-and-readings grounded rather than media-grounded.
 
 ## Unresolved Omissions
 
-See `COURSE_OMISSION_LOG.jsonl` for the current course-level open items.
+See `COURSE_OMISSION_LOG.jsonl` plus each supplement workspace's `COURSE_OMISSION_LOG.jsonl` for the explicit source gaps.
 
 ## Incremental Update Procedure
 
@@ -102,4 +123,4 @@ See `COURSE_OMISSION_LOG.jsonl` for the current course-level open items.
 2. Update `COURSE_SPEC.md` and the manifest if lectures, readings, or time notes changed.
 3. Run or repair one lecture workspace at a time under `lectures/`.
 4. Re-run lecture validation before allowing a chapter into `book/`.
-5. Re-run course merge and final evaluation only after all required lectures pass.
+5. Re-run course merge and final evaluation only after all required lectures and supplemental extension chapters pass.

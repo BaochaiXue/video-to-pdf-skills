@@ -1,0 +1,1149 @@
+       Introduction to training
+       LLMs for AI agents
+       LLM Agents MOOC series
+       Yann Dubois |Sep. 15th 2025
+
+
+
+
+All views are my own, and the methods based on information found online (esp Kimi, LlaMA, DeepSeek)
+(nothing is related to OpenAI, unless explicitly stated)
+                                                                                                           2
+
+
+
+
+             LLMs
+
+• LLMs & chatbots took over the world
+
+
+
+• How do train those?
+
+
+
+
+All numbers are approximate from different open-source projects, especially LLaMA and DeepSeek and Kimi.
+                                                                                                        3
+
+
+
+
+           General LLM training pipeline
+                                       Only for reasoning models
+
+
+    Pretraining                        Reasoning RL
+                                    Think on questions with
+                                                                                Classic post-
+ Predict next word on                                                         training / RLHF
+                                       objective answers
+       internet
+                                                                             Max user utility & prefs
+                                    Data: ~1M problems
+Data: > 10T tokens                                                          Data: ~100k problems
+                                    Time: weeks
+Time: months                                                                Time: days
+                                    Compute cost: > $1M
+Compute cost: > $10M                                                        Compute cost: > $100K
+                                    Bottleneck: RL env & hacks
+Bottleneck: data & comp.                                                    Bottleneck: data & evals
+        Eg LLaMA 3                          Eg DeepSeek R1                          Eg LLaMA-instruct
+
+
+                                                           Still called post-training
+All numbers are approximate from different open-source projects, especially LLaMA and DeepSeek.
+                                              4
+
+
+
+
+               LLM training pipeline
+
+                               What people
+• Architecture
+                                have been
+                               focusing on
+• Training algorithm/loss       until 2023
+
+• Data & RL env
+                                   What
+• Evaluation                     matters in
+                                  practice
+• Systems and infra to scale
+                                                                        5
+
+
+
+
+             LLM specializing pipeline
+
+          Prompting                          Finetuning
+ Art of asking the model what you     Second stage of posttraining to
+                want                      domain specific data
+
+Data: 0                             Data: ~10k-100k problems
+Time: hours                         Time: days
+Compute cost: 0                     Compute cost: ~$10k-$100K
+Bottleneck: evals                   Bottleneck: data & evals
+Pretraining
+
+Method
+Data
+Compute
+                                                       7
+
+
+
+Pretraining
+
+• Goal: teach the model everything in the world
+• Task: predict the next word
+• Data: any reasonable data on internet
+   • > 10T tokens (20-40T for llama 4, 15T for DSv3)
+
+   • > 20B unique web pages
+
+• Key since GPT-2 (2019)
+                                                                    8
+
+                                                             dogs
+AR Language Models                                           5
+
+
+• Task: predict the next word
+• Steps:
+1. tokenize                                       Model
+2. forward
+3. predict probability of next token
+4. sample                               1     2     3
+                       Inference only
+5. detokenize                           She likely prefers
+                                                                                   9
+
+
+
+A Simple Language Model: N-grams
+• How can you learn what to predict?
+• Eg how can you know what comes after the grass is
+• Idea: statistics!
+    • Take all occurrences of the grass is on Wikipedia
+    • Predicted probability for X is
+                 P(X| the grass is) = Count(X| the grass is)/Count(the grass is)
+• Problem:
+    • You need to keep count of all occurrences for each n-gram
+    • Most sentences are unique: this can’t generalize
+• Solution: neural networks
+                                                                                 10
+
+
+
+Neural Language Models
+
+
+
+
+          https://lena-voita.github.io/nlp_course/language_modeling.html#intro
+Pretraining
+
+Method
+Data
+Compute
+                                                                                                               12
+
+
+                               Pretraining Data
+• Idea: use all of the clean internet
+• Note: internet is dirty & not representative of what we want. Practice:
+    1.   Download all of internet. Common crawl: 250 billion pages, > 1PB (>1e6 GB), WARC file
+
+    2.   Text extraction from HTML (challenges: math, boiler plate, etc.)
+    3.   Filter undesirable content (e.g. NSFW, harmful content, PII)
+
+    4.   Deduplicates (url/document/line). E.g. all the headers/footers/menu in forums are always same
+
+    5.   Heuristic filtering. Rm low quality documents (e.g. # words, word length, outlier toks, dirty toks)
+
+    6.   Model based filtering. Predict if page could be references by Wikipedia.
+
+    7.   Data mix. Classify data categories (code/books/entertainment). Reweight domains using scaling
+         laws to get high downstream performance.
+
+•   Also: lr annealing on high-quality data, continual pretraining with longer context
+                                                                                              13
+
+
+                 Pretraining Data                                              Additional filters
+                                                                                   20B -> 15B
+                                                                            JS, len, lorem ipsum, {
+                                                                                   36B -> 20B
+                                                                             Dedup for <100 docs
+                                                                                 36B -> 20B
+                                                                            NSFW blocklist, mostly
+                                                                                English, simple
+                                                                              document filtering
+                                                                            (repetition, length, etc)
+                                                                                  200B -> 36B
+
+
+
+
+The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale
+                                                                                                    14
+
+
+                            Midtraining data
+• Continued pretraining to adapt the model to desired properties / higher quality data (<1T toks)
+
+
+• Data mix changes shifts: eg more scientific, coding, multilingual data
+
+• Longer context extension: bump (eg 4 → 128k for DSv3)
+
+• Desired formatting/instruction following
+
+• Higher quality data
+
+• Reasoning data
+• …
+                                                                                 15
+
+
+                       Pre/mid training Data
+• Collecting well data is a huge part of practical LLM (~the key)
+• Lot of research to be done!
+    • How do you process well and efficiently?        • Synthetic data?
+
+    • How do you balance domains?                     • Multi-modal data?
+
+• A lot of secrecy:
+      • Competitive dynamics                            • Copyright liability
+
+• Common academic datasets:
+      • C4 (150B tokens | 800GB)                        • Dolma (3T tokens)
+
+      • The Pile (280B tokens)                          • FineWeb (15T tokens)
+
+• Closed: LLaMA 2 (2T tokens), LLaMA 3 (15T tokens), LLaMA 4 (20-40T)
+Pretraining
+
+Method
+Data
+Compute
+                                                                                         17
+
+
+                   Pretraining compute
+• Empirically: for any type of data and model, the most important is how
+  much compute you spend on training (data & size)
+• You can even predict performance with compute with scaling laws!
+
+
+                                                    You can now do research at low
+                                                    scale and then predict how well it
+                                                    would hold at larger scale
+
+
+
+
+                                                                             Scaling laws
+                                                                            [Kaplan+ 2020]
+                                                                                                  18
+
+
+                       Scaling laws: tuning
+• You have 10K GPUs for a month, what model do you train?
+
+• Old pipeline:
+   • Tune hyperparameters on big models (e.g. 30 models)
+
+   • Pick the best => final model is trained for as much as each filtered out ones (e.g. 1 day)
+
+• New pipeline:
+   • Find scaling recipes (eg lr decrease with size)
+   • Tune hyperparameters on small models of different sizes (e.g. for <3 days)
+   • Extrapolate using scaling laws to larger ones
+   • Train the final huge model (e.g. >27 days)
+                                                                                           19
+
+
+         Scaling laws for development
+• Q: Should we use transformers or LSTM?
+
+
+
+
+             A: Transformers have a better constant and scaling rate (slope)
+                                                                                Scaling laws
+                                                                               [Kaplan+ 2020]
+                                                                                                       20
+
+
+             Scaling laws: eg Chinchilla
+• Q: How do we optimally allocate training* resources (size vs data)?
+
+                         Isoflop:
+                       Isoflop:
+                     varytokens
+                    vary   tokens&&
+                       parameters
+                     parameters
+
+
+
+                                                                                        Best tokens
+                                                         Best                            for each
+                                                     parameters                           isoflop
+                                                      for each
+                                                       isoflop
+
+
+
+
+                         A: Use 20:1 tokens for each parameter (20:1)
+                                                                                            Chinchilla
+                 *doesn’t consider inference cost => in practice use larger (> 150:1)    [Hoffmann+ 2022]
+                                                                                                                  21
+
+
+                                  Bitter lesson
+• Bitter lesson: models improve with scale & Moore’s Law
+      => “only thing that matters in the long run is the leveraging of computation.”
+
+                                 Bitter [Sutton 2019] http://www.incompleteideas.net/IncIdeas/BitterLesson.html
+
+• Don’t spend time over complicating: do the simple things and scale them!
+
+
+
+
+                                                             Image from Gwern
+                                                                                                          22
+
+
+                      Training a SOTA model
+                                                                               ~40 tok/param => train
+• Example of current SOTA: LLaMA 3 400B                                          compute optimal
+                  Data: 15.6T tokens                             Parameters: 405B
+
+• FLOPs: 6NP = 6 * 15.6e12 * 405e9 = 3.8 e25 FLOPs               ~2x less than executive order
+
+• Compute: 16K H100 with average throughput of 400 TFLOPS
+
+• Time: 3.8e25 / (400e12 * 3600) = 26M GPU hour / (16e3 * 24) = 70 days   From paper: ~30M h
+
+• Cost: rented compute + salary=~$2/h*26Mh = ~$52M                 $50-80M
+
+• Carbon emitted= 26Mh*0.7kW*0.24kg/kWh = 4400 tCO2eq                        ~2k return tickets JFK-LHR
+
+• Next model? ~10x more FLOPs
+                                                          23
+
+
+
+
+                       Pretraining
+                Predict next word on internet
+
+
+Data: > 10T words                         Examples:
+Time: months                              • DeepSeek v3
+Compute cost: > $10M                      • LLaMA 4
+Bottleneck: data & comp.
+Post-training
+Method
+Data
+Compute
+                                                   25
+
+
+ Language Modeling ≠ assisting users
+• Problem: language modeling is not what we want
+                                                           26
+
+
+
+Classic PT / alignment / IF
+
+• Goal: steer the model to be useful on real-world tasks
+• Task: maximize answer preferences of humans
+• Data: 5k-500k problems
+• Important since ChatGPT (2022)
+                                        27
+
+
+
+
+Reasoning
+
+• Goal: teach the model to reason
+• Task: answer correctly
+• Data: any hard task with verifiable
+  answer
+• Important since o1(2024)
+                                        28
+
+
+                            Reasoning
+• Goal: test-time scaling
+Post-training
+Methods:
+ SFT
+ RL
+
+Data
+Compute
+                                                                                 30
+
+
+                     Eg task: “alignment”
+• We want LLM follows user instructions and designer’s desires (eg moderation)
+                                                                X
+
+
+
+
+• Background:
+   • data of desired behaviors is what we want but scarce and expensive
+   • pretraining data scales but is not what we want
+
+• Idea: finetune pretrained LLM on a little desired data => “post-”training
+                                                                                      31
+
+
+           Supervised finetuning (SFT)
+• Idea: finetune the LLM with language modeling of the desired answers
+                                    Next word prediction       “supervised”
+• How do we collect the data? Ask humans
+
+
+
+                                                                      OpenAssistant
+                                                                      [Kopf+ 2023]
+
+
+
+
+                 This was the ~key to GPT3 -> ChatGPT model!
+                                                                                                          32
+
+
+      Scalable data for SFT: eg Alpaca
+• Problem: human data is slow to collect and expensive
+• Idea: use LLMs to scale data collection
+
+
+
+
+                                                                                                        Alpaca
+                                                                                                     [Taori+ 2023]
+
+
+
+
+     Started for academic replication of ChatGPT but “synthetic data generation” is now hot topic!
+                                                                                                      33
+
+
+   Scalable data for SFT: eg DeepSeek R1
+• Problem: LLM-generated data ~assumes that you have a smarter LLM
+• Idea: use rejection sampling based on verifiers
+                                                                                             DeepSeek-R1
+   1.   Temporary LLM generates many answers                                              [DeepSeek-AI 2025]
+
+   2.   Keep answer if it’s correct (eg, passes test case), or preferred over others
+
+
+
+
+                                                                        Image from Jay Alammar
+                                                                   34
+
+
+               What to learn during SFT
+• Instruction following
+• Desired format or style
+• Tool use [eg Kimi 2 or xLAM]
+• Early reasoning [eg DeepSeek R1]
+• … anything where you can get good input, output pairs…
+
+
+• SFT is either seen as a final stage or as a preparation for RL
+                                                                                       35
+
+
+SFT pipelines can be complex: eg Kimi k2
+• SFT pipelines can use complex system to build useful SFT data
+
+• Eg Kimi K2 uses LLM simulated user & tools, and rubric based rejection sampling to
+  build data for agentic tool use
+
+
+
+
+                                                                                Kimi K2
+                                                                            [Kimi team 2025]
+
+            >3k                     >20k
+
+                                               Grounded for code
+                                                                                                         36
+
+
+       Scalable data for SFT: quantity?
+• You learn quickly from SFT! ~ 10k are sufficient for learning style & IF
+
+
+
+
+                                                                                             LIMA
+                                                                                          [Zhou+ 2023]
+
+
+
+
+• Just learns the format of desired answers (length, bullet points, …)
+        • The knowledge is already in the pretrained LLM => Specializes to one “type of user”
+
+• DeepSeek-R1 uses ~800K examples for learning reasoning using R1-zero
+Post-training
+Methods:
+ SFT
+ RL
+
+Data
+Compute
+                                                                                                     38
+
+
+                   Reinforcement learning
+• Problem: SFT is behavior cloning of humans
+   1. Bound by human abilities: humans may prefer things that they are not able to generate
+   2. Hallucination: cloning correct answer teaches LLM to hallucinate if it didn’t know about it!
+
+
+
+
+   If LLM doesn’t know [Bivens 2013] => teaches the model to make up plausibly sounding references
+
+   3. Price: collecting ideal answers can be expensive
+                                                                                                          39
+
+
+                    Reinforcement learning
+• Idea: maximize desired behavior rather than clone it
+                                               Kimi K2               DeepSeek-R1
+• Read: DeepSeek R1 & Kimi K2
+                                           [Kimi team 2025]       [DeepSeek-AI 2025]
+• Key: where the reward comes from:
+    •   Rule-based rewards (eg string match for close-ended QA, or passing coding function)
+
+    •   Reward model trained to predict human preferences (RLHF)
+    •   LLM as a judge
+
+    •   …
+
+
+
+
+                                                                                       Image from Jay Alammar
+                                               40
+
+
+Reinforcement learning: DeepSeek R1
+
+
+
+
+                            Image from Jay Alammar
+                                                                                        41
+
+
+      Reinforcement learning: GRPO
+DeepSeek R1 optimizes GRPO which uses MC estimates for computing the advantage
+
+Similar loss for Kimi K1.5 & K2
+
+
+
+
+                                                                      DeepSeek-R1
+                                                                   [DeepSeek-AI 2025]
+                                                                                                                42
+
+
+                                 RL: Infra is key
+• Sampling is an important bottleneck since you sample multiple outputs per problem
+
+• Infra is key, especially for agents:
+     •   Long rollouts: Kimi pauses long tail rollouts
+
+     •   Environment feedback can be slow: Kimi uses concurrent rollouts & dedicated services for envs
+
+
+
+
+                                                                                       Engines are collocated
+                                                                                     to avoid communication
+                                                                                              overhead
+
+
+
+
+                                                                                                 Kimi K2
+                                                         Communication < 30 sec              [Kimi team 2025]
+                                                                                 43
+
+
+       RL from Human Feedback (RLHF)
+• Idea: maximize human preference rather than clone their behavior
+• Made ChatGPT
+
+• Pipeline:
+    1. For each instruction: generate 2 answers from a pretty good model (SFT)
+
+    2. Ask labelers to select their preferred answers
+
+    3. Finetune the model to generate more preferred answers (PPO or DPO)
+
+                               How?
+
+
+    Instruction
+                                                      44
+
+
+                     RLHF: gains
+
+                       PPO     DPO
+
+
+
+                             SFT
+
+
+
+
+                         Pretrain
+
+
+
+
+Learn to summarize                    AlpacaFarm
+ [Stiennon+ 2020]                    [Dubois+ 2023]
+                                                 45
+
+
+                    RLHF: human data
+• Data: human crowdsourcing
+                                       example
+
+
+
+
+                          guidelines
+                                                                                     46
+
+
+       RLHF: challenges of human data
+• Slow & expensive
+
+• Hard to focus on correctness rather than form (eg length)                     LLM Opinion
+                                                                              [Santurkar+ 202
+• Annotator distribution shifts its behavior                  Posttrain
+                                                Pretrain
+                                                                          Long way to go
+• Crowdsourcing ethics                                                    [Singhal+ 2024]
+                                                                                    47
+
+
+                         RLHF: LLM data
+• Idea: replace human preferences with LLM preferences
+
+
+
+
+                                                         Works surprisingly well!
+
+
+
+
+                                                            AlpacaFarm
+                                                           [Dubois+ 2023]
+Evaluation
+Close-ended
+Open-ended
+                                                               49
+
+
+  Importance of evaluation in AI
+
+      Quantify progress towards desired task to:
+
+
+
+
+  Identify              Select                  Decide if
+improvements            models              production ready
+                                                                           50
+
+
+                Close-ended Evaluation
+• Idea: few possible answers =>automate verification
+• Eg MMLU
+
+
+
+
+                                                           MMLU
+                                                       [Hendrycks+ 2020]
+                                             51
+
+
+                 Evaluation: challenges
+• Sensitivity to prompting/inconsistencies
+                                                                52
+
+
+                 Evaluation: challenges
+• Sensitivity to prompting/inconsistencies
+• Train & test contamination (~not important for development)
+Evaluation
+Close-ended
+Open-ended
+                                                                        54
+
+
+                 Evaluation: aligned LLM
+• How do we evaluate something like ChatGPT?
+
+• Challenges:
+   • Large diversity
+
+   • Open-ended tasks => hard to automate
+
+• Idea: ask for annotator preference between answers
+
+
+
+
+                                                         InstructGPT
+                                                       [Ouyang+ 2022]
+                                                                                         55
+
+
+ Human evaluation: eg ChatBot Arena
+• Idea: have users interact (blinded) with two chatbots, rate which is better.
+
+
+
+
+• Problem: cost & speed!
+                                                                                 ChatBot Arena
+                                                                                 [Chiang+ 2024]
+                                                                                             56
+
+
+           LLM evaluation: eg AlpacaEval
+• Idea: use LLM instead of human
+
+• Steps:
+   • For each instruction: generate output by baseline and model to eval
+
+   • Ask GPT-4 which output is better
+   • Average win-probability => win rate
+                                                                                           LLM
+• Benefits:
+                                                                                Evaluate
+   • 98% correlation with ChatBot Arena                       VS
+   • < 3 min and < $10
+
+• Challenge: spurious correlation                                  AlpacaEval
+                                                                   [Li+ 2023]
+Systems
+                                                                                58
+
+
+                                       Systems
+
+• Problem: everyone is bottlenecked by compute!
+• Why not buy more GPUs?
+    • GPUs are expensive and scarce!
+
+    • Physical limitations (eg communication between GPUs)
+
+• => importance of resource allocation (scaling laws) and optimized pipelines
+                                                                                            59
+
+
+                         Systems 101: GPUs
+• Massively parallel: same instruction applied on all thread but different inputs.
+             => Optimized for throughput!
+
+
+
+
+                                                                               SM
+                                                                           Streaming
+                                                                          Multiprocessors
+                                                                                        60
+
+
+                         Systems 101: GPUs
+• Massively parallel
+• Fast matrix multiplication: special cores >10x faster than other floating point ops
+                                                                        61
+
+
+                                   Systems 101: GPUs
+         • Massively parallel
+         • Fast matrix multiplication
+
+         • Compute > memory & communication:
+             • Hard to keep processors fed with data
+
+
+
+
+                BERT transformer
+
+
+                                                       DataMovement
+Matmul
+                                                       [Ivanov+ 2020]
+Activation
+                                                     62
+
+
+                          Systems 101: GPUs
+• Massively parallel
+• Fast matrix multiplication
+
+• Compute > memory & communication
+• Memory hierarchy:
+    • Closer to cores => faster but less memory
+    • Further from cores => more memory but slower
+                                                                     63
+
+
+                              Systems 101: GPUs
+• Massively parallel
+• Fast matrix multiplication
+
+• Compute > memory & communication
+• Memory hierarchy
+
+
+• Metric: Model Flop Utilization (MFU)
+    •   Ratio: observed throughput / theoretical best for that GPU
+
+    •   50% is great!
+                                                                              64
+
+
+                 Systems: low precision
+• Fewer bits => faster communication & lower memory consumption
+• For deep learning: decimal precision ~doesn’t matter except exp & updates
+   • Matrix multiplications can use bf16 instead of fp32
+
+• For training: Automatic Mixed Precision (AMP)
+   • Weights stored in fp32, but before computation convert to bf16
+   • Activation in bf16 => main memory gains
+   • (Only) matrix multiplication in bf16 => speed gains
+   • Gradients in bf16 => memory gains
+   • Master weights updated fp32 => full precision
+                                                                    65
+
+
+               Systems: operator fusion
+• Problem:
+   • communication is slow
+   • every new PyTorch line moves variables to global memory
+
+• Idea: communicate once
+• torch.compile                       DRAM                 SRAM
+                                                             &
+                                                          Compute
+                                                                                  66
+
+
+                               Systems: tiling
+• Idea: group and order threads to minimize global memory access (slow)
+
+• Eg matrix multiplication
+
+• Compute matrix multiplications in subphases to reuse memory
+    1.   Load M_00 and N_00 tiles into SM
+
+    2.   Compute partial sums for P
+    3.   Load M_00 and N_20 into SM
+    4.   …
+
+•   => reuse reads (~cache)
+                      E.g. assume that thread can only keep 8 values in memory.
+•   T reduction of global reads
+                             Then have to reread all values (no cache hits)!
+                                                                         67
+
+
+             Systems: eg FlashAttention
+• Idea: kernel fusion, tiling, recomputation for attention!
+
+• 1.7x end to end speed up!
+
+
+
+
+                                                              FlashAttention
+                                                               [Dao+ 2022]
+                                                                                      68
+
+
+                Systems: parallelization
+• Problem:
+   • model very big => can’t fit on one GPU
+   • Want to use as many GPUs as possible
+
+• Idea: split memory and compute across GPUs
+
+• Background: to naively train a P parameter model you need at least 16P GB of DRAM
+   • 4P GB for model weights
+   • 2 * 4P GB for optimizer
+   • 4P GP for gradients
+
+• E.g. for 7B model you need 112GB!
+                                                69
+
+
+                    Systems: data parallelism
+• Goal: use more GPUs
+• Naïve data parallelization:
+    1. Copy model & optimizer on each GPU
+
+    2. Split data
+
+    3. Communicate and reduce (sum) gradients
+
+• Pro: use parallel GPU
+
+• Con: no memory gains!
+                                                                                       70
+
+
+              Systems: data parallelism
+• Goal: split up memory
+
+• Idea: each GPU updates subset of weights and them before next step => sharding
+
+
+
+
+                                                                               ZeRO
+                                                                         [Rajbhandari+ 2019]
+                                                                                          71
+
+
+            Systems: model parallelism
+• Problem: data parallelism only works if batch size >= # GPUS
+
+• Idea: have every GPU take care of applying specific parameters (rather than updating)
+   • Eg pipeline parallel: every GPU has different layer
+
+
+
+
+                                                                                GPipe
+                                                                             [Huang+ 2018]
+                                                                                           72
+
+
+            Systems: model parallelism
+• Problem: data parallelism only works if batch size >= # GPUS
+
+• Idea: have every GPU take care of applying specific parameters (rather than updating)
+   • Eg pipeline parallel: every GPU has different layer
+
+   • Eg tensor parallel: split single matrix across GPUs and use partial sum
+
+
+
+
+                                                                                Megatron-LM:
+                                                                               [Shoeybi+ 2019]
+                                                                                                 73
+
+
+        Systems: architecture sparsity
+• Idea: models are huge => not every datapoint needs to go through every parameter
+   • Eg Mixture of Experts: use a selector layer to have less “active” parameter => same FLOPs
+      more parameters
+
+
+
+
+                                    Sparse Expert Models:
+                                        [Fedus+ 2012]
+Questions?
+                                                                                       75
+
+
+             LLM evaluation: Perplexity
+• Idea: validation loss
+                                                            1
+                                              𝑃𝑃𝐿 𝑥1:𝐿   = 2𝐿 ℒ(𝑥1:𝐿 ) = ∏ 𝑝 𝑥𝑖 𝑥1:𝑖−1 −1/𝐿
+• To be more interpretable: use perplexity
+   • avg per token (~independent of length)
+
+   • Exponentiate => units independent of log base
+
+• Perplexity: between 1 and |Vocab|
+   • Intuition: number of tokens that you are hesitating between
+                                                                                         76
+
+
+           LLM evaluation: Perplexity
+
+
+
+
+  Between 2017-2023, models went from ”hesitating” between ~70 tokens to <10 tokens
+Perplexity not used anymore for academic benchmark but still important for development
+                                                                                            77
+
+
+  LLM evaluation: spurious correlation
+• e.g. LLM prefers longer outputs
+
+• Possible solution: regression analysis / causal inferece to “control” length
+
+
+
+
+                                                                                 AlpacaEval LC
+                                                                                 [Dubois+ 2023]
+Wrap-up
+                                                                                   79
+
+
+                                      Outlook
+Haven’t touched upon:
+
+      • Architecture: MoE & SSM                 • Misuse
+
+      • Decoding & inference                    • Context size
+      • UI & tools: ChatGPT                     • Data wall
+
+      • Multimodality                           • Legality of data collection
+
+Going further:
+• CS224N: more of the background and historical context. Some adjacent material.
+• CS324: more in-depth reading and lectures.
+
+• CS336: you actually build your LLM. Heavy workload!
+                                                                   80
+
+
+Tokenizer
+• Why?
+   • More general than words (eg typos)            tokenizer:
+                                                   text to token
+   • Shorter sequences than with characters
+
+• Idea: tokens as common subsequences (~3 letters)
+• Eg: Byte Pair Encoding (BPE). Train steps:       index
+1. Take large corpus of text
+Start with one token per character
+Merge common pairs of tokens into a token
+Repeat until desired vocab size
+                                                               81
+
+
+Tokenizer
+• Why?
+   • More general than words (eg typos)        tokenizer:
+                                               text to token
+   • Shorter sequences than with characters
+
+• Idea: tokens as common subsequences
+• Eg: Byte Pair Encoding (BPE). Train steps:   index
+1. Take large corpus of text
+2. Start with one token per character
+3. Merge common pairs of tokens into a token
+4. Repeat until desired vocab size
+                                                               82
+
+
+Tokenizer
+• Why?
+   • More general than words (eg typos)        tokenizer:
+                                               text to token
+   • Shorter sequences than with characters
+
+• Idea: tokens as common subsequences
+• Eg: Byte Pair Encoding (BPE). Train steps:   index
+1. Take large corpus of text
+2. Start with one token per character
+3. Merge common pairs of tokens into a token
+4. Repeat until desired vocab size
+                                                                   83
+
+
+Tokenizer
+• Why?
+   • More general than words (eg typos)            tokenizer:
+                                                   text to token
+   • Shorter sequences than with characters
+
+• Idea: tokens as common subsequences
+• Eg: Byte Pair Encoding (BPE). Train steps:       index
+1. Take large corpus of text
+2. Start with one token per character
+3. Merge common pairs of tokens into a token
+4. Repeat until desired vocab size or all merged
+                                                                   84
+
+
+Tokenizer
+• Why?
+   • More general than words (eg typos)            tokenizer:
+                                                   text to token
+   • Shorter sequences than with characters
+
+• Idea: tokens as common subsequences
+• Eg: Byte Pair Encoding (BPE). Train steps:       index
+1. Take large corpus of text
+2. Start with one token per character
+3. Merge common pairs of tokens into a token
+4. Repeat until desired vocab size or all merged
+                                                                   85
+
+
+Tokenizer
+• Why?
+   • More general than words (eg typos)            tokenizer:
+                                                   text to token
+   • Shorter sequences than with characters
+
+• Idea: tokens as common subsequences
+• Eg: Byte Pair Encoding (BPE). Train steps:       index
+1. Take large corpus of text
+2. Start with one token per character
+3. Merge common pairs of tokens into a token
+4. Repeat until desired vocab size or all merged
+                                                                   86
+
+
+Tokenizer
+• Why?
+   • More general than words (eg typos)            tokenizer:
+                                                   text to token
+   • Shorter sequences than with characters
+
+• Idea: tokens as common subsequences
+• Eg: Byte Pair Encoding (BPE). Train steps:       index
+1. Take large corpus of text
+2. Start with one token per character
+3. Merge common pairs of tokens into a token
+4. Repeat until desired vocab size or all merged
+

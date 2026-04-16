@@ -15,6 +15,7 @@ Agent boundaries:
 
 - Top-level course planner owns only course-level files in the run root and `docs/`.
 - Lecture agents own only their assigned `lectures/lecXX_*` directory.
+- Supplement agents own only their assigned `supplements/<course_slug>/` directory.
 - Book-level agents own only `book/`, `eval_reports/`, and `repair_logs/`.
 
 Operating rules:

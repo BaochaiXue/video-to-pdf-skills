@@ -1,0 +1,1338 @@
+                                                                Survey on Evaluation of LLM-based Agents
+
+                                                            Asaf Yehudai1,2 , Lilach Eden2 , Alan Li3 , Guy Uziel2 ,
+                                                   Yilun Zhao3 , Roy Bar-Haim2 , Arman Cohan3 , Michal Shmueli-Scheuer2
+                                                       1
+                                                      The Hebrew University of Jerusalem 2 IBM Research 3 Yale University
+                                                  {Asaf.Yehudai, Guy.Uziel1}@ibm.com {lilache, roybar, shmueli}@il.ibm.com
+                                                                 {haoxin.li, yilun.zhao, arman.cohan}@yale.edu
+
+
+                                                               Abstract                              plans in real-world environments. This newfound
+                                             The emergence of LLM-based agents repre-                agency empowers them to address problems previ-
+                                             sents a paradigm shift in AI, enabling au-              ously beyond the reach of AI, paving the way for
+                                                                                                     innovative applications across a wide spectrum of
+
+
+
+
+arXiv:2503.16416v1 [cs.AI] 20 Mar 2025
+                                             tonomous systems to plan, reason, use tools,
+                                             and maintain memory while interacting with              domains.
+                                             dynamic environments. This paper provides                   Reliable evaluation of agents is critical to en-
+                                             the first comprehensive survey of evaluation
+                                                                                                     sure their efficacy in real-world applications, and to
+                                             methodologies for these increasingly capa-
+                                             ble agents. We systematically analyze eval-
+                                                                                                     guide further progress in this rapidly evolving field.
+                                             uation benchmarks and frameworks across                 Since agents are sometimes applied to “classical”
+                                             four critical dimensions: (1) fundamental               text-to-text AI tasks, there is some overlap between
+                                             agent capabilities, including planning, tool use,       their evaluation and standard LLM benchmarking.
+                                             self-reflection, and memory; (2) application-           However, as their applicability is much broader,
+                                             specific benchmarks for web, software engi-             they require new types of evaluation methodolo-
+                                             neering, scientific, and conversational agents;         gies, benchmarks, environments and metrics. The
+                                             (3) benchmarks for generalist agents; and (4)
+                                                                                                     very characteristics that define LLM-based agents
+                                             frameworks for evaluating agents. Our analy-
+                                             sis reveals emerging trends, including a shift          – their reliance on specific LLM abilities, their se-
+                                             toward more realistic, challenging evaluations          quential operation within dynamic environments,
+                                             with continuously updated benchmarks. We                and their capacity to undertake diverse, intricate
+                                             also identify critical gaps that future research        tasks – introduce novel challenges for their evalua-
+                                             must address—particularly in assessing cost-            tion.1
+                                             efficiency, safety, and robustness, and in de-              This survey provides the first comprehensive
+                                             veloping fine-grained, and scalable evaluation
+                                                                                                     mapping of LLM-based agent evaluation, serving
+                                             methods. This survey maps the rapidly evolv-
+                                             ing landscape of agent evaluation, reveals the          four key audiences: (1) LLM agent developers as-
+                                             emerging trends in the field, identifies current        sessing the capabilities of their systems, (2) prac-
+                                             limitations, and proposes directions for future         titioners deploying agents in domain-specific ap-
+                                             research.                                               plications, (3) benchmark developers addressing
+                                         1   Introduction                                            evaluation challenges, (4) AI researchers broadly
+                                                                                                     studying current capabilities, risks and limitations
+                                         Recent years saw a huge leap in the ability of Large        of agents.
+                                         Language Models (LLMs) to address a wide range                  We begin by discussing the evaluation of funda-
+                                         of challenging tasks. Yet, LLMs are static mod-             mental agentic capabilities (§2), which are com-
+                                         els that are restricted to single-turn, text-to-text        monly employed by agents across different do-
+                                         interactions. LLM-based agents, hereinafter also            mains and applications. These include planning
+                                         referred to as LLM agents, take the power of LLMs           and multi-step reasoning, tool use, self-reflection,
+                                         a step further by integrating them into a multi-step
+                                                                                                        1
+                                         flow, while maintaining a state that is shared by               The terminology for more complex systems that utilize
+                                                                                                     LLMs as core components varies across the literature. Com-
+                                         multiple LLM calls, providing context and consis-           mon terms include “LLM-based Agents”, ‘LLM Agents”,
+                                         tency. They also utilize external tools to perform          “Language Agents”, “AI Agents”, “Agents,” and “Agentic
+                                         computations, access external knowledge and inter-          Systems”. We adopt the terms “LLM-based agents” and
+                                                                                                     “LLM agents” to emphasize both the foundational technol-
+                                         act with their environment. Agents are able to au-          ogy (LLMs) and the agentic capabilities that extend beyond
+                                         tonomously conceive, execute and adapt complex              single model inference.
+
+
+                                                                                                 1
+                                                                              AQUA-RAT (Ling et al., 2017); HotpotQA (Yang et al., 2018); ARC
+                                                                            (Clark et al., 2018a); StrategyQA (Geva et al., 2021); GSM8K (Cobbe
+                                                                               et al., 2021); MATH (Hendrycks et al., 2021b); Game of 24 (Yao
+                                                                            et al., 2023); MINT (Wang et al., 2023); PlanBench (Valmeekam et al.,
+                                             Planning and Multi-
+                                                                              2023); FlowBench (Xiao et al., 2024); FOLIO (Han et al., 2022); P-
+                                            Step Reasoning (§2.1)
+                                                                              FOLIO (Han et al., 2024); MultiRC (Khashabi et al., 2018); MUSR
+                                                                              (Sprague et al., 2023); BBH (Suzgun et al., 2022); ToolEmu (Ruan
+                                                                             et al., 2023); MINT (Wang et al., 2023); AutoPlanBench (Stein et al.,
+                                                                           2023); ACPBench (Kokel et al., 2024); Natural Plan (Zheng et al., 2024)
+
+                                                                              BFCL (Yan et al., 2024); ToolBench (Qin et al., 2023); ToolAlpaca
+                                                                             (Tang et al., 2023); APIBench (Patil et al., 2025); API-Bank (Li et al.,
+                     Agent Capabilities       Function Calling                  2023); NexusRaven (team, 2023); Seal-Tools (Wu et al., 2024b);
+                      Evaluation (§2)         & Tool Use (§2.2)                ComplexFuncBench (Zhong et al., 2025); ToolSandbox (Lu et al.,
+                                                                               2024); RestBench (Song et al., 2023); APIGen (Liu et al., 2024c);
+                                                                              StableToolBench (Guo et al., 2024); NESTFUL (Basu et al., 2024b)
+
+                                                                                      LLF-Bench (Cheng et al., 2023); LLM-Evolve (You
+                                             Self-Reflection (§2.3)
+                                                                                        et al., 2024); Reflection-Bench (Li et al., 2024)
+
+                                                                              NarrativeQA (Kočiskỳ et al., 2018); QMSum (Zhong et al., 2021);
+                                                                               QUALITY (Pang et al., 2021); RAISE(Liu et al., 2024a); ReadA-
+                                                Memory (§2.4)                 gent (Lee et al., 2024); MemGPT (Packer et al., 2024); LoCoMo
+                                                                               (Maharana et al., 2024); A-MEM (Xu et al., 2025); StreamBench
+                                                                              (Wu et al., 2024a); LTMbenchmark (Castillo-Bolado et al., 2024a)
+
+                                                                              MiniWob (Shi et al., 2017); MiniWoB++ (Liu et al., 2018); Web-
+                                                                              Shop (Yao et al., 2022); Mind2web (Deng et al., 2023); WebVoy-
+                                                                                ager (He et al., 2024); WebLinX (Lù et al., 2024); WebArena
+                                              Web Agents (§3.1)               (Zhou et al., 2023); VisualWebArena (Koh et al., 2024); MMInA
+                                                                               (Zhang et al., 2024); AssistantBench (Yoran et al., 2024); Web-
+                                                                             Canvas (Pan et al., 2024b); ST-WebAgentBench (Levy et al., 2024);
+                                                                            WorkArena (Drouin et al., 2024); WorkArena++ (Boisvert et al., 2025)
+
+                                                                             HumanEval (Chen et al., 2021b); SWE-bench (Jimenez et al., 2023);
+                                                                               SWE-bench Verified (OpenAI, 2024); SWE-bench Lite (SWE-
+                     Application-Specific   Software Engineering               bench Lite, 2024); SWE-bench+ (Aleithan et al., 2024); SWE-
+                    Agent Evaluation (§3)       Agents (§3.2)                    bench Multimodal (Yang et al., 2024); TDD-Bench Verified
+                                                                                (Ahmed et al., 2024); SWT-Bench (Mündler et al., 2024); IT-
+                                                                              Bench (Jha et al., 2025); SWELancer (Miserendino et al., 2025)
+
+                                                                            ScienceQA (Lu et al., 2022); QASPER (Dasigi et al., 2021); MS2 (DeY-
+                                                                             oung et al., 2021); ScienceWorld(Wang et al., 2022a); SUPER (Bogin
+                                                                             et al., 2024); Ideation (Si et al., 2025); AAAR-1.0 (Lou et al., 2025);
+                                            Scientific Agents (§3.3)
+                                                                              ScienceAgentBench (Chen et al., 2024); CORE-Bench (Siegel et al.,
+                                                                           2024); SciCode (Tian et al., 2024b); MLGym-Bench (Nathani et al., 2025);
+                                                                            DiscoveryWorld (Jansen et al., 2024); LAB-Bench (Laurent et al., 2024)
+
+                                                                                  ABCD (Chen et al., 2021a); MultiWOZ (Budzianowski et al.,
+                                                Conversational                    2018); SMCalFlow (Andreas et al., 2020); ALMITA (Arcad-
+                                                Agents (§3.4)                      inho et al., 2024); τ -Bench (Yao et al., 2024); IntellAgent
+                                                                                 (Levi and Kadar, 2025a); LTM (Castillo-Bolado et al., 2024b)
+
+                                                                                  GAIA (Mialon et al., 2023); AgentBench (Liu et al., 2023b);
+                                                                                 Galileo’s Agent Leaderboard (Bhavsar, 2025); OSWorld (Xie
+                      Generalist Agents
+ Agent Evaluation                                                              et al., 2024); AppWorld (Trivedi et al., 2024); OmniACT (Kapoor
+                       Evaluation (§4)
+                                                                                     et al., 2024a); TheAgentCompany (Xu et al., 2024); CR-
+                                                                                    MArena (Huang et al., 2025); HAL (Stroebl et al., 2025)
+
+                                                                              Databricks Mosaic AI (Databricks, 2023); Galileo Agentic (Galileo,
+                      Frameworks for             Development                      2025); Vertex AI Gen AI (Google Cloud, 2025); LangSmith
+                    Agent Evaluation (§5)        Frameworks                    (LangChain, 2023); Langfuse (Langfuse, 2023); Patronus AI (Pa-
+                                                                               tronus AI, Inc., 2023); LangChain AgentEvals (LangChain, 2025)
+
+                                                                                     MLGym(Nathani et al., 2025); BrowserGym(Chezelles
+                                            Gym-like Environments
+                                                                                         et al., 2024); SWE-Gym(Pan et al., 2024a)
+
+                       Discussion (§6)       Current Trends (§6.1)                  Realistic and Challenging Evaluation; Live Benchmarks
+
+                                                 Emergent Di-                      Advancing Granular Evaluation; Cost and Efficiency Met-
+                                                rections (§6.2)                      rics; Scaling & Automating; Safety and Compliance
+
+
+                                              Figure 1: Overview of the paper.
+
+
+and memory. We then review benchmarks and                                  for evaluating general-purpose agents (§4), which
+evaluation strategies for prominent types of agen-                         assess the agent’s ability to perform different tasks
+tic applications: web agents, software engineering                         that require diverse skills. The next section (§5)
+agents, scientific agents and conversational agents                        reviews current evaluation frameworks for agent
+(§3).                                                                      developers. These frameworks integrate with the
+   Next, we describe benchmarks and leaderboards                           agent’s development environment, and support its
+
+                                                                       2
+evaluation throughout the entire development cy-            across diverse domains, including: mathematical
+cle. We conclude with a discussion (§6) of current          reasoning (GSM8K (Cobbe et al., 2021), MATH
+trends and emerging research directions in agent            (Hendrycks et al., 2021b), AQUA-RAT (Ling et al.,
+evaluation. Figure 1 provides a visual overview of          2017)), multi-hop question answering (HotpotQA
+the structure of our survey. Our survey is intended         (Yang et al., 2018), StrategyQA (Geva et al., 2021),
+to offer researchers and practitioners a comprehen-         MultiRC (Khashabi et al., 2018)), scientific rea-
+sive understanding of the current state of agent            soning (ARC (Clark et al., 2018a)), logical reason-
+evaluation and to highlight key areas for future            ing (FOLIO, P-FOLIO (Han et al., 2024, 2022))
+innovation.                                                 constraint satisfaction puzzles (Game of 24 (Yao
+   Scope In this survey, we specifically focus on           et al., 2023)), everyday common sense (MUSR
+evaluation methodologies for LLM-based agents.              (Sprague et al., 2023)), and challenging reasoning
+Consequently, widely-used single-call LLM bench-            tasks (BBH (Suzgun et al., 2022)). Several of
+marks, such as MMLU, AlpacaEval, GSM8K, or                  these benchmarks, particularly HotpotQA, ALF-
+similar standardized evaluation datasets, won’t be          Worlds, and Game of 24, have been specifically
+extensively discussed. Additionally, detailed intro-        adapted for evaluating agent-based approaches like
+duction to LLM-based agents, modeling choices               ReAct, where planning and calling the tools pro-
+and architectures, and design considerations are            posed by the agent are interleaved in interactive
+outside our focus, given their comprehensive treat-         problem-solving settings.
+ment in existing surveys (e.g., Wang et al. (2024a)).          Recent work has developed more specialized
+Similarly, while we mention topics such as inter-           frameworks targeting LLM planning capabili-
+actions between multi-agent systems, game agents,           ties. ToolEmu (Ruan et al., 2023) introduces a
+and embodied agents in some sections, they are              simulator-based approach for evaluating tool-using
+not the main focus of this survey. Instead, our ob-         agents, revealing that successful planning requires
+jective is to provide a comprehensive overview of           explicit state tracking and the ability to recover
+evaluation methods for LLM-based agents.                    from errors. The MINT benchmark (Wang et al.,
+                                                            2023) evaluates planning in interactive environ-
+2     Agent Capabilities Evaluation                         ments, showing that even advanced LLMs struggle
+                                                            with long-horizon tasks requiring multiple steps.
+LLM-based agents have evolved to rely on spe-                  PlanBench (Valmeekam et al., 2023) provides a
+cific design patterns that encapsulate a core suite         comprehensive evaluation framework specifically
+of LLM abilities. Evaluating these capabilities             designed to assess planning capabilities in LLM
+is paramount to understanding the potential and             agents across diverse domains, revealing that cur-
+limitations of LLM-based agents. Here we focus              rent models excel at short-term tactical planning
+on four foundational capabilities of LLM-based              but struggle with strategic long-horizon planning.
+agents.                                                     Complementing this, AutoPlanBench (Stein et al.,
+                                                            2023) focuses on evaluating planning in everyday
+2.1    Planning and Multi-Step Reasoning
+                                                            scenarios, demonstrating that even SoTA LLM
+Planning and multi-step reasoning form the foun-            agents lag behind classical symbolic planners.
+dation of an LLM agent’s ability to tackle complex             FlowBench (Xiao et al., 2024) evaluates work-
+tasks effectively which enables agents to decom-            flow planning abilities, focusing on expertise-
+pose problems into smaller, more manageable sub-            intensive tasks. ACPBench (Kokel et al., 2024) fo-
+tasks and create strategic execution paths toward           cuses on evaluating LLMs on core reasoning skills.
+solutions (Gao et al., 2023a).                              The Natural Plan benchmark (Zheng et al., 2024) is
+   Multi-step reasoning in LLMs typically involves          designed to evaluate how LLMs handle real-world
+executing sequential logical operations—typically           planning tasks presented in natural language. SoTA
+requiring 3-10 intermediate steps—to arrive at so-          LLM agents perform poorly on this benchmark,
+lutions that cannot be derived through single-step          particularly as complexity increases.
+inference (Cobbe et al., 2021; Yang et al., 2018;              These benchmarks highlight key abilities essen-
+Suzgun et al., 2022). This foundational need for            tial for effective agent planning: (1) task decom-
+multi-step planning has led to the development              position for breaking down complex problems, (2)
+of specialized benchmarks and evaluation frame-             state tracking and belief maintenance for accurate
+works that systematically assess these capabilities         multi-step reasoning, (3) self-correction to detect
+
+                                                        3
+and recover from errors, (4) causal understanding            evaluation logic. These enhancements provide a
+to predict action outcomes, and (5) meta-planning            closer approximation of real-world complexity and
+to refine planning strategies.                               emphasize the importance of continuous state man-
+                                                             agement.
+2.2   Function Calling & Tool Use
+                                                                Complementing this evolution, several bench-
+The ability of LLMs to interact with external tools
+                                                             marks have broadened the evaluation landscape.
+through function calling is fundamental for build-
+                                                             For example, ToolSandbox (Lu et al., 2024) dif-
+ing intelligent agents capable of delivering real-
+                                                             fers from previous benchmarks by incorporating
+time, contextually accurate responses (Qin et al.,
+                                                             stateful tool execution, implicit state dependencies,
+2023; Tang et al., 2023). Early works utilized tar-
+                                                             on-policy conversational evaluation with a built-in
+geted tools, such as retrieval in approaches by aug-
+                                                             user simulator, and dynamic evaluation strategies
+mented language models with retrieval capabilities
+                                                             for intermediate and final milestones across arbi-
+(Lewis et al., 2020; Gao et al., 2023b; Nakano et al.,
+                                                             trary trajectories. Seal-Tools (Wu et al., 2024b)
+2021). Later developments included more general-
+                                                             adopts a self-instruct (Wang et al., 2022b) method-
+purpose tools, exemplified by ToolFormer (Schick
+                                                             ology to generate nested tool calls, effectively mod-
+et al., 2023), Chameleon (Lu et al., 2023), and
+                                                             eling layered and interdependent interactions. In
+MRKL (Karpas et al., 2022).
+                                                             parallel, API-Bank (Li et al., 2023) emphasizes
+    Function calling involves several sub-tasks that
+                                                             realistic API engagements by utilizing dialogue-
+work together seamlessly. Intent recognition iden-
+                                                             based evaluations and extensive training datasets.
+tifies when a function is needed based on user re-
+                                                             Frameworks like NexusRaven (team, 2023) fur-
+quests. Function selection determines the most
+                                                             ther enrich this landscape by focusing on general-
+appropriate tool for the task. Parameter-value-pair
+                                                             ized tool-use scenarios that mirror the diverse chal-
+mapping extracts relevant arguments from the con-
+                                                             lenges encountered in practice. API-Blend (Basu
+versation and assigns them to function parameters.
+                                                             et al., 2024a) suggested a comprehensive approach
+Function execution invokes the selected function
+                                                             focusing on identifying, curating, and transforming
+with those parameters to interact with external sys-
+                                                             existing datasets into a large corpus for training
+tems. Finally, response generation processes the
+                                                             and systematic testing of tool-augmented LLMs.
+function output and incorporates it into the LLM’s
+                                                             API-Blend mimics real-world scenarios involving
+reply to the user. This integrated process ensures
+                                                             API tasks such as API/tool detection, slot filling,
+accurate and efficient function calling within the
+                                                             and sequencing of detected APIs, providing utility
+LLM’s workflow.
+                                                             for both training and benchmarking purposes. Rest-
+    Early evaluation efforts offered approaches to
+                                                             Bench (Song et al., 2023) facilitates exploration
+evaluate the above sub-tasks while focusing on rel-
+                                                             of utilizing multiple APIs to address complex real-
+atively simple, one-step interactions with explicitly
+                                                             world user instructions. APIGen (Liu et al., 2024c)
+provided parameters. Benchmarks such as ToolAl-
+                                                             provides a comprehensive automated data genera-
+paca (Tang et al., 2023), APIBench (Patil et al.,
+                                                             tion pipeline that synthesizes high-quality function-
+2025), ToolBench (Qin et al., 2023), and the Berke-
+                                                             calling datasets verified through hierarchical stages.
+ley Function Calling Leaderboard v1 (BFCL) (Yan
+                                                             StableToolBench (Guo et al., 2024) addresses the
+et al., 2024) exemplify this phase, employing syn-
+                                                             challenges of function-calling evaluation by intro-
+thetic datasets and rule-based matching (e.g., via
+                                                             ducing a virtual API server with caching and simu-
+Abstract Syntax Trees) to establish baseline met-
+                                                             lators to alleviate API status changes.
+rics like pass rates and structural accuracy. How-
+ever, these methods were limited in capturing the               Addressing the inherent complexity of multi-
+complexities of real-world scenarios, which might            step interactions, ComplexFuncBench (Zhong
+include multistep conversations, parameters that             et al., 2025) was specifically designed to assess
+are not explicitly mentioned in the conversation,            scenarios requiring implicit parameter inference,
+and tools with complex input structures and long,            adherence to user-defined constraints, and efficient
+intricate outputs.                                           long-context processing. NESTFUL (Basu et al.,
+    The live nature of BFCL aimed to bridge some             2024b) focuses on adding complexity by evaluat-
+of these gaps by introducing BFCL v2, which in-              ing LLMs on nested sequences of API calls where
+cludes organizational tools, and BFCL v3, which              outputs from one call serve as inputs to subsequent
+incorporates integrated multi-turn and multi-step            calls.
+
+                                                         4
+2.3   Self-Reflection                                      new information, memory usage, belief updating
+                                                           following surprise, decision-making adjustments,
+An emerging line of research focuses on whether
+                                                           counterfactual reasoning, and meta-reflection.
+agents can self-reflect and improve their reasoning
+through interactive feedback, thereby reducing er-         2.4   Memory
+rors in multi-step interactions. This requires the
+                                                           Memory mechanisms in LLM-based agents im-
+model to understand the feedback and dynamically
+                                                           prove their handling of long contexts and informa-
+update its beliefs to carry out adjusted actions or
+                                                           tion retrieval, overcoming static knowledge limits
+reasoning steps over extensive trajectories.
+                                                           and supporting reasoning and planning in dynamic
+   Early efforts to gauge LLM agent self-reflection        scenarios (Park et al., 2023). Unlike tool use, which
+were often indirect, repurposing existing reason-          connects agents to external resources, memory en-
+ing or planning tasks, such as AGIEval (Zhong              sures context retention for extended interactions
+et al., 2023), MedMCQA (Pal et al., 2022), ALF-            like processing documents or maintaining conver-
+World (Shridhar et al., 2021), MiniWoB++ (Liu              sations. Agents rely on short-term memory for real-
+et al., 2018), etc., into multi-turn feedback loops,       time responses and long-term memory for deeper
+to see if models could recognize or correct their          understanding and applying knowledge over time.
+own errors given external feedback in confined set-        Together, these memory systems allow LLM-based
+tings (Renze and Guven, 2024; Huang et al., 2024;          agents to adapt, learn, and make well-informed
+Shinn et al., 2023; You et al., 2024; Sun et al.,          decisions in tasks requiring persistent information
+2023; Liu et al., 2025). Improvement was typically         access.
+measured by determining if the final answer was               One prominent line of research focuses on ad-
+corrected, providing only a coarse evaluation and          dressing the challenge of limited context lengths
+potentially ill-defined measurement, as observed           in LLMs by incorporating memory mechanisms to
+improvements may depend on specific prompting              enhance reasoning and retrieval across extended
+techniques lacking proper standardization (Huang           contexts and conversations. Recent works, such as
+et al., 2024; Liu et al., 2025).                           ReadAgent (Lee et al., 2024), MemGPT (Packer
+   As a dedicated effort to establish a standard-          et al., 2024), and A-MEM (Xu et al., 2025), in-
+ized benchmark for interactive self-reflection, LLF-       vestigate these methods and evaluate their efficacy
+Bench (Cheng et al., 2023) was proposed. This              through reasoning and retrieval metrics.
+benchmark extends diverse decision-making tasks               Specifically, ReadAgent structures reading by
+and incorporates task instructions as part of the          grouping content, condensing episodes into memo-
+environment rather than as part of the agent. To           ries, and retrieving passages, with effectiveness
+mitigate overfitting to specific environments, LLF-        shown on datasets like QUALITY (Pang et al.,
+Bench offers options to randomize textual descrip-         2021), NarrativeQA (Kočiskỳ et al., 2018), and
+tions of task instructions and feedback received by        QMSum (Zhong et al., 2021).
+agents.                                                       Similarly, A-MEM introduces an advanced
+   Similarly, LLM-Evolve (You et al., 2024) was in-        memory architecture evaluated using the Lo-
+troduced to evaluate LLM agents’ self-reflection ca-       CoMo benchmark (Maharana et al., 2024), while
+pabilities on standard benchmarks such as MMLU             MemGPT manages a tiered memory system tested
+(Hendrycks et al., 2020). This approach evaluates          on NaturalQuestions-Open (Liu et al., 2024b) and
+agents based on past experiences by collecting pre-        multi-session chat datasets (Xu et al., 2021).
+vious queries with feedback and extracting them as            For episodic memory evaluation, (Huet et al.,
+in-context demonstrations. To provide more gran-           2025) proposes a specialized benchmark to as-
+ular insights into different feedback types, (Pan          sess how LLMs generate and manage memories
+et al., 2025) focused specifically on coding agents,       that capture specific events with contextual details.
+extending existing coding benchmarks like APPS             This benchmark utilizes synthetically created book
+(Hendrycks et al., 2021a) and LiveCodeBench (Jain          chapters and events with LLMs-based judge eval-
+et al., 2024) to interactive settings.                     uation metrics to measure accuracy and relevance.
+   From a cognitive science perspective, Reflection-       StreamBench (Wu et al., 2024a) represents a more
+Bench (Li et al., 2024) was designed to assess             challenging setting, evaluating how agents lever-
+LLMs’ cognitive reflection capabilities, breaking          age external memory components—including the
+down reflection into components like perception of         memory of previous interactions and external feed-
+
+                                                       5
+back—to continuously improve performance over                plex scientific problem-solving—that outline what
+time, with quality and efficiency assessed across            agents are expected to achieve. Second, they estab-
+diverse datasets including text-to-SQL tasks (e.g.,          lish the operating environment, which may be sim-
+Spider (Yu et al., 2018)), ToolBench (Xu et al.,             ulated (whether static or dynamic) or real-world,
+2023), and HotpotQA (Yang et al., 2018).                     and can incorporate user simulations, a variety of
+   Beyond context length optimization, mem-                  tools, and specific policies to adhere to. Third, they
+ory mechanisms also enhance real-time decision-              apply evaluation metrics, such as success rate,
+making and learning in agent settings, focusing              efficiency, and accuracy, to measure performance.
+on action optimization (Liu et al., 2024a; Shinn             These metrics can be applied with varying degrees
+et al., 2023; Wang et al., 2024b). For exam-                 of granularity, from tracking individual actions and
+ple, Reflexion (Shinn et al., 2023) tracks suc-              milestones to assessing overall, end-to-end task
+cess rate on tasks like HotPotQA (Yang et al.,               completion.
+2018) and ALFWorld (Shridhar et al., 2021), while
+RAISE (Liu et al., 2024a) enhances the ReAct                 3.1   Web Agents
+framework with a two-part memory system evalu-               Web agents are AI systems designed to interact
+ated through human judgment on quality metrics               with websites to perform tasks such as booking
+and efficiency. Similarly, KARMA (Wang et al.,               flights or shopping. Their evaluation involves test-
+2024b) tests memory in household tasks using met-            ing how effectively they complete tasks, navigate
+rics such as success rate, retrieval accuracy, and           web environments, and adhere to safety and com-
+memory hit rate, demonstrating how memory mech-              pliance rules. As these agents have evolved, so too
+anisms significantly improve agent performance               have the benchmarks used to assess them, with re-
+across diverse domains requiring complex reason-             cent developments capturing an increasingly com-
+ing and persistent information retention. LTM-               plex range of real-world interactions.
+benchmark (Castillo-Bolado et al., 2024a) evalu-                Initial efforts in web-agent evaluation focused on
+ates conversational agents through extended, multi-          basic simulation environments. Early benchmarks
+task interactions with frequent context switching to         such as MiniWob (Shi et al., 2017) and MiniWoB++
+test long-term memory and information integration            (Liu et al., 2018) provided fundamental frameworks
+capabilities. The results demonstrate that while             for assessing navigation and task automation ca-
+LLMs generally perform well in single-task sce-              pabilities. These pioneering studies established
+narios, they struggle with interleaved tasks, and            essential evaluation protocols and highlighted key
+interestingly, short-context LLMs equipped with              challenges in executing web-based tasks, laying the
+long-term memory systems can match or exceed                 groundwork for more sophisticated assessments.
+the performance of models with larger context win-              Building on these early efforts, subsequent re-
+dows.                                                        search introduced static datasets that enable offline,
+                                                             reproducible evaluation. For example, WebShop
+3   Application-Specific Agents Evaluation                   (Yao et al., 2022) simulates online shopping scenar-
+                                                             ios, requiring agents to perform tasks ranging from
+The landscape of application-specific agents is
+                                                             product search to checkout processes. Similarly,
+rapidly expanding, with an increasing number of
+                                                             Mind2Web (Deng et al., 2023) and WebVoyager
+specialized agents emerging across popular cate-
+                                                             (He et al., 2024) extend this paradigm by incor-
+gories such as tools, web, software, game, embod-
+                                                             porating a broader spectrum of web interactions,
+ied, and scientific agents (Wang et al., 2024a). In
+                                                             thereby allowing for comprehensive assessments
+this section, we focus on four prominent categories
+                                                             of an agent’s ability to navigate complex website
+that exemplify the diversity and potential of these
+                                                             structures and achieve intermediate goals. These
+agents, offering insights into their evaluation frame-
+                                                             benchmarks have been instrumental in standardiz-
+works and performance metrics tailored to their
+                                                             ing the evaluation process, and facilitating direct
+unique applications.
+                                                             comparisons across different methodologies.
+Agent benchmarks offer a systematic frame-                      More recent efforts have shifted toward dynamic,
+work for assessing the diverse capabilities of LLM-          online benchmarks that more closely mimic real-
+based agents by integrating three key elements.              world conditions. WebLinX (Lù et al., 2024) in-
+First, they utilize a dataset of clearly defined             troduces a dynamic interaction model in which
+tasks—ranging from website navigation to com-                agents must adapt to continuous changes in the web
+
+                                                         6
+interface, testing the robustness of their decision-        usage, thus falling short of addressing the full com-
+making processes. WebArena (Zhou et al., 2023)              plexity of real-world SWE tasks.
+and its visual variant, Visual-WebArena (Koh
+et al., 2024), incorporate realistic user interface            SWE-bench (Jimenez et al., 2023) was intro-
+elements and visual cues, requiring agents to not           duced to address the above shortcomings. It is
+only follow predefined workflows but also inter-            constructed from real-world GitHub issues and of-
+pret and respond to visual information. In addition,        fers an end-to-end evaluation framework, including
+WorkArena (Drouin et al., 2024) and WorkArena++             detailed issue descriptions, complete code reposi-
+(Boisvert et al., 2025) simulate complex, multi-            tories, execution environments (e.g., Docker), and
+step tasks typical of office or enterprise environ-         validation tests. To enhance evaluation reliability,
+ments, where coordinating several actions is nec-           several variants have been proposed. SWE-bench
+essary to achieve long-term objectives. MMInA               Lite (SWE-bench Lite, 2024) focuses on a subset of
+(Zhang et al., 2024) provides multimodal, Multi-            300 issues involving bug fixing, filtering out tasks
+hop, holistic evaluation. AssistantBench (Yoran             requiring complicated multi-file edits or extrane-
+et al., 2024) focuses on realistic multi-site time-         ous elements. SWE-bench LiteS (Xia et al., 2024)
+consuming tasks. Notably, WebCanvas (Pan et al.,            further refines the dataset by removing tasks with
+2024b) refines the dynamic evaluation framework             exact patches or insufficient descriptive informa-
+by specifically measuring the completion rates of           tion, while SWE-bench Verified (OpenAI, 2024)
+key navigational nodes, thereby offering a more             includes only those issues with clear, informative
+granular analysis of agent performance.                     descriptions and robust test cases. More recently,
+   Recent advances have further broadened the               SWE-bench+ (Aleithan et al., 2024) has been in-
+evaluation landscape. The introduction of ST-               troduced to mitigate critical evaluation flaws such
+WebAgentBench (Levy et al., 2024) represents an             as solution leakage and weak test cases, thereby
+effort to assess web agents in settings that inte-          providing a more robust benchmark for assess-
+grate both static and dynamic elements, provid-             ing SWE agents. Additionally, a Java version of
+ing insights into agents’ performance under varied          SWE-bench was introduced in (Zan et al., 2024).
+conditions. While these benchmarks have signifi-            SWE-bench Multimodal (Yang et al., 2024) eval-
+cantly advanced our understanding of web-agent              uates agents in visual software domains, targeting
+capabilities, most of them continue to focus primar-        JavaScript-based applications with visual elements
+ily on task completion and navigational efficiency.         in problems and tests. It highlights challenges in
+Critical aspects such as policy compliance, risk            visual problem-solving and cross-language general-
+mitigation, and adherence to organizational safety          ization, with top systems showing lower resolution
+protocols remain underexplored. As web agents               rates. TDD-Bench Verified (Ahmed et al., 2024)
+move closer to real-world deployment, addressing            and SWT-Bench (Mündler et al., 2024) evaluate
+these gaps will be essential for ensuring both their        the agent’s ability to generate tests from user issues
+practical utility and safe operation.                       in real-world Github repositories. ITBench (Jha
+                                                            et al., 2025) offers a benchmark for evaluating chal-
+3.2   Software Engineering Agents                           lenging real-world IT automation tasks.
+The evaluation of software engineering (SWE)
+agents began with benchmarks that measured fun-                Complementing these developments, Agent-
+damental coding capabilities, such as HumanEval             Bench (Liu et al., 2023b) has emerged as a ded-
+(Chen et al., 2021b) and MBPP (Austin et al., 2021).        icated framework for evaluating the interactive ca-
+These early benchmarks focused on short, self-              pabilities of SWE agents. AgentBench provides
+contained, algorithm-specific tasks, offering an ini-       insights into agent performance in dynamic set-
+tial glimpse into the potential of LLMs for code            tings through real-time interaction and environment
+generation. More recently, open-domain coding               manipulation. Finally, the introduction of SWE-
+benchmarks (Wang et al., 2022c; Lai et al., 2022)           Lancer (Miserendino et al., 2025) represents the
+have emerged as a notable step forward by incor-            latest trend in benchmark development. By target-
+porating application-specific scenarios and inter-          ing freelance coding tasks, SWELancer links agent
+actions with diverse libraries and tools. However,          performance to monetary value, underscoring the
+while these benchmarks mark clear progress, they            challenges in achieving long-term reasoning and
+generally evaluate simpler intents and limited tool         decision-making in complex, real-world scenarios.
+
+                                                        7
+3.3   Scientific Agents                                      across four core research tasks, i.e., equation infer-
+                                                             ence, experiment design, paper weakness identifi-
+The evaluation of scientific agents has evolved              cation, and review critique, focusing on tasks that
+from early benchmarks assessing basic reason-                require deep domain expertise. MLGym (Nathani
+ing to comprehensive frameworks evaluating di-               et al., 2025) introduces a gym-like environment
+verse scientific research capabilities. Initial bench-       for AI research tasks, covering 13 diverse chal-
+marks emphasized scientific knowledge recall and             lenges that simulate real-world research workflows,
+reasoning—examples include ARC (Clark et al.,                from hypothesis generation to experimentation and
+2018b), ScienceQA (Lu et al., 2022), and Science-            analysis. DiscoveryWorld (Jansen et al., 2024)
+World (Wang et al., 2022a). Others focused on                offers a virtual, text-based environment for sim-
+the synthesis and contextualization of scientific lit-       ulating complete scientific discovery cycles across
+erature, such as QASPER (Dasigi et al., 2021),               120 diverse tasks, emphasizing hypothesis forma-
+QASA (Lee et al., 2023), and MS2 (DeYoung et al.,            tion, experimentation, and result interpretation.
+2021). More recent benchmarks, like SciRiff (Wad-            LAB-Bench (Laurent et al., 2024) offers a domain-
+den et al., 2024), have expanded to evaluate a               specific evaluation tailored to biological research.
+broader range of tasks, emphasizing the ability to           It challenges agents with tasks ranging from experi-
+follow user instructions across scientific domains.          mental design to the interpretation of texts, images,
+    Recent advancements have shifted the focus to-           and tables.
+ward developing and assessing scientific agents in
+accelerating scientific research. Emerging bench-            3.4   Conversational Agents
+marks now cover various stages of the scientific             Customer-facing agents are required to handle user
+research process: (1) Scientific Ideation: This              requests, while adhering to the company’s policies
+stage explores whether scientific agents can au-             and procedures. Successful completion of such
+tonomously generate novel, expert-level research             tasks requires the agent to engage with a user in a
+ideas that are comparable to those proposed by               multi-turn, task-oriented dialogue, while perform-
+human experts (Si et al., 2025). The emphasis is             ing a sequence of actions that involve various func-
+on creativity, relevance, and feasibility in scien-          tion calls.
+tific thinking. (2) Experiment Design: Benchmarks               A common benchmarking approach for these
+like the AAAR-1.0 dataset (Lou et al., 2025) as-             agents is to collect ground truth trajectories with
+sess an agent’s ability to systematically plan ex-           user and agent messages, and function calls. Given
+periments. This includes formulating hypotheses,             a prefix of such a trajectory, the agent is evalu-
+selecting appropriate methodologies, and outlin-             ated on predicting the next step. A more flexible
+ing experimental procedures that adhere to scien-            approach simulates both the environment and the
+tific rigor. (3) Code Generation for Experiment              user. The agent is assessed on its ability to bring the
+Execution: Benchmarks such as SciCode (Tian                  environment to the desired state and communicate
+et al., 2024a), ScienceAgentBench (Chen et al.,              the right answer to the user.
+2025), SUPER (Bogin et al., 2024), and CORE-                    The Action-Based Conversations Dataset
+Bench (Siegel et al., 2024) are pivotal in veri-             (ABCD) (Chen et al., 2021a) includes over
+fying whether agents can produce accurate, exe-              10K customer-agent conversations, collected
+cutable scientific code. These benchmarks ensure             via crowdsourcing. These dialogues contain 55
+the code aligns with the specific demands of sci-            distinct user intents, each requiring a unique
+entific protocols and maintains computational ac-            sequence of actions defined by the corresponding
+curacy. (4) Peer-Review Generation: It examines              policy. Additional examples of crowdsourced
+whether agents can provide comprehensive, sub-               task-oriented dialogue benchmarks are MultiWOZ
+stantive feedback that matches or surpasses the              (Budzianowski et al., 2018) and SMCalFlow
+quality of human peer reviewers (Chamoun et al.,             (Andreas et al., 2020).
+2024).                                                          A fully automated pipeline for generating tests
+    Beyond the individual task-specific benchmarks           for conversational AI agents in the customer service
+described above, there is a growing interest in uni-         domain is described in (Arcadinho et al., 2024).
+fied frameworks that integrate multiple, interre-            Utilizing an LLM as a generator at each step, they
+lated scientific tasks into single platforms. AAAR-          create a set of intents, a procedure defining how
+1.0 (Lou et al., 2025) evaluates scientific agents           each intent should be handled by the agent, tool
+
+                                                         8
+APIs to be called by the agent, a flow graph and a         eral tool-use abilities. Similarly, Galileo’s Agent
+conversation graph, from which conversation paths          Leaderboard (Galileo, 2025) emphasizes the evalu-
+are sampled. Finally, prefixes of the conversation         ation of agents’ abilities to perform function calls
+path are extracted as tests. Their manually-filtered       and API invocations in real-world applications such
+ALMITA benchmark includes 192 conversations                as database queries, online calculators, and web
+for 14 intents, resulting in 1420 tests.                   services. AgentBench (Liu et al., 2023a) intro-
+   The τ -Bench benchmark (Yao et al., 2024) emu-          duces a suite of interactive environments that in-
+lates dynamic conversations between an agent and           clude operating system commands, SQL databases,
+an LLM-simulated user in two customer service              digital games, and household tasks. These bench-
+domains, airline and retail. The benchmark was             marks collectively highlight the core competencies
+constructed manually, with some LM assistance.             required for general agents—flexibility, multi-step
+Each domain includes several databases, associ-            reasoning, and adaptive tool use.
+ated APIs, and a domain policy provided to the
+                                                              Beyond general reasoning and tool use, another
+agent as a system prompt. Task instances include
+                                                           crucial dimension in evaluating general agents lies
+an instruction for the user simulation and ground
+                                                           in their performance within full-scale computer
+truth annotation for the expected database write
+                                                           operating environments. Benchmarks like OS-
+operation and the required output for the user’s
+                                                           World (Xie et al., 2024), OmniACT (Kapoor et al.,
+question. The dataset includes 115 retail tasks and
+                                                           2024a), and AppWorld (Trivedi et al., 2024) test
+50 airline tasks.
+                                                           whether agents can navigate real-world computer
+   IntellAgent (Levi and Kadar, 2025a) provides an
+                                                           systems, execute complex tasks, and coordinate
+open-source framework for automatic benchmark-
+                                                           actions across multiple applications. In these set-
+ing of conversational agents, taking a schema of
+                                                           tings, agents must write and modify interactive
+the system database and a company policies doc-
+                                                           code, handle complex control flows, and ensure ro-
+ument as input. It constructs a policy graph, from
+                                                           bust execution without causing unintended system
+which a list of policies is sampled. It then creates
+                                                           changes.
+an event addressing these policies, and simulates a
+dialogue between the tested agent and a user agent,           Motivated by the need to assess how general
+based on the event information. Finally, a critique        agents perform in realistic professional settings,
+agent analyzes the dialogue and provides detailed          recent benchmarks extend evaluation into digital
+feedback on the tested policies.                           work environments, where agents must manage
+                                                           tasks akin to those of human employees. TheAgent-
+4   Generalist Agents Evaluation                           Company (Xu et al., 2024) creates an extensible en-
+                                                           vironment resembling a small software company, in
+Building on the evaluation of basic agentic capabil-
+                                                           which agents browse internal websites, write code,
+ities and application-specific ones, we now turn to
+                                                           run programs, and communicate with coworkers.
+examine benchmarks for general agents. As LLMs
+                                                           CRMArena (Huang et al., 2025) focuses on cus-
+evolved from task-specific to general-purpose,
+                                                           tomer relationship management (CRM), simulating
+agents are now transitioning from application-
+                                                           a large-scale CRM environment filled with inter-
+specific to more general-purpose ones. These
+                                                           connected data about accounts, orders, knowledge
+agents integrate core LLM abilities with skills like
+                                                           articles, and cases. It examines whether agents can
+web navigation, information retrieval, and code ex-
+                                                           perform multi-step operations using both UI and
+ecution to tackle complex challenges. This shift
+                                                           API access, adhere to domain-specific policies, and
+necessitates broader evaluation methods, leading
+                                                           integrate various pieces of information to complete
+to the development of benchmarks that assess their
+                                                           complex enterprise tasks.
+diverse capabilities.
+   A primary category of these benchmarks focuses             As benchmarks diversify, there is a growing need
+on evaluating general capabilities that emphasize          for unified platforms that consolidate testing crite-
+multi-step reasoning, interactive problem-solving,         ria. Holistic Agent Leaderboard (HAL) (Stroebl
+and proficient tool use. The GAIA benchmark (Mi-           et al., 2025) serves as a standardized evaluation
+alon et al., 2023) includes 466 human-crafted, real-       platform that aggregates multiple benchmarks, cov-
+world questions that test an agent’s reasoning, mul-       ering coding, interactive applications, and safety
+timodal understanding, web navigation, and gen-            assessments.
+
+                                                       9
+5   Frameworks for Agent Evaluation                            observability and monitoring, each framework in-
+                                                               corporates unique methodologies for quality assess-
+In response to the growing need for systematic as-             ment, providing additional layers of evaluation.
+sessment of LLM agents, several frameworks have                   Evaluating agentic workflows occurs at multiple
+recently emerged, providing developers with essen-             levels of granularity, each focusing on different
+tial tools to evaluate, refine, and improve their per-         aspects of the agent’s dynamics.
+formance, quality, and efficiency. Unlike the bench-              Final Response Evaluation. Frameworks often
+marks discussed in the preceding section, which                incorporate LLM-based judges to evaluate agent
+compare the performance of fully developed sys-                responses against predefined criteria, with some
+tems across predefined scenarios, these frameworks             offering proprietary judge models (e.g. Databricks
+serve as integral components of the development                Mosaic (Databricks, 2023), and PatronusAI (Pa-
+ecosystem, enabling continuous monitoring and in-              tronus AI, Inc., 2023)). Additionally, most plat-
+depth error analysis across both development and               forms allow for customizable assessment metrics,
+deployment. Rather than supplying standardized                 enabling domain-specific evaluation of output qual-
+test data, they allow developers to design and eval-           ity and relevance.
+uate their own scenarios, offering greater flexibility.           Stepwise Evaluation. Most evaluation frame-
+Moreover, these frameworks are designed to be                  works support granular assessments of individual
+highly general, supporting a wide range of devel-              agent actions or LLM calls, facilitating root cause
+opment use cases rather than focusing on specific              analysis of errors. This includes assessing textual
+tasks, making them versatile tools for AI research             output with predefined judges, and assessing tool
+and application.                                               selection and execution by either comparing the
+   While earlier evaluation frameworks for LLM-                selected tool against an expected tool for a given
+based applications primarily focused on assessing a            step, or using an automated judge to verify the tool
+model’s task completion ability through single-call            choice, its parameters, and the correctness of the
+interactions (e.g. OpenAI Evals (OpenAI, 2023)),               execution output. Furthermore, Galileo Agentic
+the rise of agentic workflows has created a need for           Evaluation (Galileo, 2025) introduces an action ad-
+more advanced evaluation frameworks capable of                 vancement metric, which measures whether each
+assessing multi-step reasoning, trajectory analysis,           step successfully contributes to or advances toward
+and specific agent capabilities such as tool usage.            a user-defined goal. This approach refines stepwise
+   There are many frameworks supporting the eval-              evaluation by assessing progress rather than solely
+uation of a wide range of agent types, including               relying on binary success/failure outcomes.
+LangSmith (LangChain, 2023), Langfuse (Lang-                      A key challenge in the current stepwise evalua-
+fuse, 2023), Google Vertex AI evaluation ser-                  tion schemes lies in the scope and reliability of the
+vice (Google Cloud, 2025), Arize AI’s Evaluation               automated judges. Many judges are task-specific,
+Framework (Arize AI, Inc, 2025), Galileo Agen-                 making them well-suited for particular evaluations
+tic Evaluation (Galileo, 2025), Patronus AI (Pa-               but difficult to generalize across complex work-
+tronus AI, Inc., 2023), LangChains’ AgentEvals                 flows. Conversely, more general-purpose judges
+(LangChain, 2025); Databricks Mosaic AI Agent                  may offer broad applicability but lack clear quality
+Evaluation (Databricks, 2023) which is mostly de-              guarantees.
+signed for RAG like tasks, Botpress Multi-Agent                   Trajectory-Based Assessment. In addition
+Evaluation System (Kargwal, 2025) and AutoGen                  to stepwise evaluation, some platforms—such as
+(Dibia et al., 2024) for multi-agent systems, and              Google Vertex AI (Google Cloud, 2025) and Lang-
+more.                                                          Smith (LangChain, 2023) support trajectory-based
+   All evaluation platforms provide continuous                 assessments, which analyze the sequence of steps
+monitoring of agent trajectories, assessing key per-           taken by an agent in relation to an expected optimal
+formance metrics such as task completion rates, la-            path. This method evaluates the agent’s decision-
+tency, execution speed, and, in some cases, through-           making process, particularly regarding tool selec-
+put and memory usage (LangChain, 2023). Some                   tion and sequencing. AgentEvals (LangChain,
+frameworks utilize the OpenTelemetry (Blanco,                  2025) also enables LLM-as-judge evaluation of
+2023) observability framework and their infras-                agent trajectories, with or without a reference tra-
+tructure, including Langfuse (Langfuse, 2023) and              jectory. Additionally, it supports graph evalua-
+Google Vertex AI (Google Cloud, 2025). Beyond                  tion for frameworks like LangGraph, which model
+
+                                                          10
+Framework                                    Stepwise Assessment   Monitoring   Trajectory Assessment   Human in the Loop   Synthetic Data Generation   A/B Comparisons
+LangSmith (LangChain)                                ✓                 ✓                   ✓                   ✓                       ×                      ✓
+Langfuse (Langfuse)                                  ✓                 ✓                   ×                   ✓                       ×                      ✓
+Google Vertex AI evaluation (Google Cloud)           ✓                 ✓                   ✓                   ×                       ×                      ✓
+Arize AI’s Evaluation (Arize AI, Inc)                ✓                 ✓                   ×                   ✓                       ✓                      ✓
+Galileo Agentic Evaluation (Galileo)                 ✓                 ✓                   ×                   ✓                       ×                      ✓
+Patronus AI (Patronus AI, Inc.)                      ✓                 ✓                   ×                   ✓                       ✓                      ✓
+AgentsEval (LangChain)                               ×                 ×                   ✓                   ×                       ×                      ×
+Mosaic AI (Databricks)                               ✓                 ✓                   ×                   ✓                       ✓                      ✓
+
+
+Table 1: Supported evaluation capabilities of major agent frameworks. Note that some of these capabilities are still
+in initial phases of development, as discussed further in the text.
+
+
+agents as graphs, by assessing whether an agent fol-                                   ment, provided by Gym-like frameworks. Inspired
+lows the expected workflow and correctly invokes                                       by OpenAI Gym (Brockman et al., 2016), which
+the appropriate nodes and transitions. However, the                                    was originally designed for training and evaluating
+reliance on reference sequences, combined with the                                     Reinforcement Learning algorithms, these frame-
+non-deterministic nature of agentic workflows and                                      works have been adapted to the training and evalua-
+the existence of multiple valid solutions, introduces                                  tion of LLM agents using realistic task simulations,
+significant challenges in defining and benchmark-                                      allowing LLM agents to interact with dynamic en-
+ing optimal trajectories.                                                              vironments. Moreover, these frameworks enable
+   Datasets. A critical aspect of agent evaluation                                     standardized evaluation across various benchmarks,
+is input data curation and annotation. Most frame-                                     with proposals made for web agents (Chezelles
+works provide integrated annotation tools, support                                     et al., 2024), AI research agents (Nathani et al.,
+human-in-the-loop evaluation, where human feed-                                        2025) and SWE agents (Pan et al., 2024a).
+back is collected from production runs to refine
+model configurations, and enable the extraction of                                     6       Discussion
+evaluation datasets from production logs, leverag-
+ing real-world interactions to enhance assessment                                      6.1      Current Trends
+quality. Additionally, platforms such as Patronus                                      Our review of the evolution of agent benchmarking
+AI (Patronus AI, Inc., 2023), and Databricks Mo-                                       highlights several converging trends shaping the
+saic (Databricks, 2023) facilitate synthetic data gen-                                 field. We identify two primary motives exhibited in
+eration using proprietary seed data.                                                   the development of new evaluation methodologies,
+   A/B comparisons. Current evaluation frame-                                          which we outline in the subsequent discussion.
+works support A/B comparisons, enabling the side-                                      Realistic and Challenging Evaluation. Early
+by-side analysis of inputs, outputs, and metrics                                       agent evaluations often relied on simplified, static
+from at least two test runs. In some cases—such                                        environments. However, there is a clear shift to-
+as Patronus AI (Patronus AI, Inc., 2023)—these                                         ward benchmarks that more accurately reflect real-
+frameworks also facilitate the comparison of aggre-                                    world complexities. In web agent evaluation, for
+gated results across multiple runs from distinct ex-                                   example, we have moved from basic simulations
+perimental setups. Additionally, these frameworks                                      like MiniWob to dynamic online environments like
+provide the capability to drill down into individ-                                     WebArena and VisualWebArena, and from LAB-
+ual trajectories, identifying specific failure points.                                 Bench which is static and narrow to Discovery-
+However, obtaining large-scale insights at the tra-                                    World for scientific agents. In software engineer-
+jectory or stepwise level remains a significant chal-                                  ing, SWE-bench utilizes real-world GitHub issues,
+lenge.                                                                                 moving beyond synthetic coding problems. This
+   Table 1 presents key frameworks for agent eval-                                     shift toward realism is key to evaluating agents in
+uation along with their support for the evaluation                                     real-world scenarios, capturing interaction nuances
+features discussed in this section.                                                    missed by simpler benchmarks. Benchmarks like
+                                                                                       Natural Plan, which incorporates simulated API
+Gym-like Environments.                                                                 results from real-world tools like Google Calendar
+The frameworks discussed primarily monitor and                                         and Maps, further exemplify this drive for realistic
+assess agent behavior passively in real-world sce-                                     task settings. Concurrently, to keep pace with in-
+narios. However, evaluation often requires a con-                                      creasingly capable agents and ensure benchmarks
+trolled, interactive setting with a simulated environ-                                 remain challenging, there is a distinct trend toward
+
+                                                                                  11
+greater task complexity and difficulty. This is evi-          guide targeted improvements.
+dent from benchmarks like SWE-bench and SWE-
+Lancer targeting complex coding tasks, CORE-                  Cost and Efficiency Metrics. As observed
+Bench for scientific computational reproducibility,           by Kapoor et al. (2024b), current evaluations of-
+and intricate general agent benchmarks like GAIA              ten prioritize accuracy while overlooking cost and
+and TheAgentCompany. A key indicator of their                 efficiency measurements. This emphasis can inad-
+difficulty is the low score of the best-performing            vertently drive the development of highly capable
+agents in their papers, sometimes as low as 2%.               but resource-intensive agents, limiting their prac-
+This increased challenge is crucial for stress-testing        tical deployment. Future evaluation frameworks
+agents, revealing limitations, and driving advances           should integrate cost efficiency as a core metric,
+in long-horizon planning, robust reasoning, and               tracking factors such as token usage, API expenses,
+tool use.                                                     inference time, and overall resource consumption.
+Live Benchmarks. The rapid pace of LLM and                    Establishing standardized cost metrics will help
+agent development necessitates evaluation method-             guide the development of agents that balance per-
+ologies that are adaptive and continuously updated.           formance with operational viability.
+Static benchmarks can quickly become outdated                 Scaling & Automating. The reliance on static
+as models improve, potentially leading to bench-              human annotated evaluation poses significant scala-
+mark saturation and a reduced ability to differenti-          bility challenges, as these methods can be resource-
+ate between systems. We observe this dynamic                  intensive and quickly outdated in a rapidly evolving
+approach in the evolution of BFCL, which has                  field. This shortcoming underscores the need for
+progressed through multiple versions, incorporat-             scalable, automated evaluation approaches. Future
+ing live datasets, organizational tools, and multi-           directions include leveraging synthetic data gen-
+turn evaluation logic to remain relevant. Simi-               eration techniques to create diverse and realistic
+larly, the continuous refinement and variant cre-             task scenarios— imitated by efforts such as IntellA-
+ation within the SWE-bench family (SWE-bench                  gent (Levi and Kadar, 2025b) and Mosaic AI Agent
+Lite, SWE-bench Verified, SWE-bench+) along with              Evaluation (Databricks, 2023). Another avenue is
+the development of IntellAgent based on τ -Bench              automating evaluation by employing LLM-based
+, demonstrates an ongoing effort to enhance and               agents as evaluators, termed Agent-as-a-Judge. As
+adapt agent benchmarks to meet evolving evalua-               highlighted by Zhuge et al. (2024), this approach
+tion needs. This dynamic approach is essential for            not only reduces the reliance on resource-intensive
+maintaining the relevance of benchmarks in this               human annotation but also holds the potential to
+rapidly advancing field.                                      capture more nuanced aspects of agent perfor-
+6.2   Emergent Directions                                     mance through agentic evaluation processes. By
+                                                              harnessing these approaches, the community can
+Observed but not yet fully established trends point           achieve continuous, fine-grained, and cost-effective
+to promising future research opportunities for ad-            assessment of agent performance.
+vancing agent evaluation.
+Advancing Granular Evaluation. Many current                   Safety and Compliance. A notable shortcoming in
+benchmarks rely on coarse-grained, end-to-end suc-            current benchmarks is the limited focus on safety,
+cess metrics that, while useful for gauging overall           trustworthiness, and policy compliance. While
+performance, fall short in diagnosing specific agent          early efforts (e.g., AgentHarm (Andriushchenko
+failures. This lack of granularity obscures insights          et al., 2024) and ST-WebAgentBench) have begun
+into intermediate decision processes such as tool             to address these dimensions, evaluations still lack
+selection and reasoning quality. Addressing this              comprehensive tests for robustness against adver-
+limitation calls for the development of standard-             sarial inputs, bias mitigation, and organizational
+ized, fine-grained evaluation metrics that capture            and societal policy compliance. Future research
+the trajectory of an agent’s task execution. Future           should prioritize developing multi-dimensional
+work should explore detailed, step-by-step assess-            safety benchmarks that simulate real-world sce-
+ments—similar to those emerging in benchmarks                 narios, particularly in multi-agent scenarios where
+like WebCanvas (Pan et al., 2024b) and frameworks             emergent risks may arise (Hammond et al., 2025).
+like LangSmith and Galileo Agentic Evaluations                This can ensure that agents are not only effective
+(Galileo, 2025) —to provide richer feedback and               but also safe and secure.
+
+                                                         12
+7   Conclusion                                                  Jacob Austin, Augustus Odena, Maxwell Nye, Maarten
+                                                                   Bosma, Henryk Michalewski, David Dohan, Ellen
+The field of LLM-based agent evaluation is rapidly                 Jiang, Carrie J. Cai, Michael Terry, Quoc V. Le, and
+advancing, driven by the need to assess increas-                   Charles Sutton. 2021. Program synthesis with large
+ingly complex and autonomous systems. While sig-                   language models. ArXiv, abs/2108.07732.
+nificant progress has been made in creating more                Kinjal Basu, Ibrahim Abdelaziz, Subhajit Chaudhury,
+realistic, dynamic, and challenging benchmarks,                   Soham Dan, Maxwell Crouse, Asim Munawar, Sad-
+critical gaps remain, particularly in the areas of                hana Kumaravel, Vinod Muthusamy, Pavan Kapa-
+                                                                  nipathi, and Luis A Lastras. 2024a. Api-blend: A
+safety, fine-grained evaluation, and cost-efficiency.             comprehensive corpora for training and benchmark-
+Addressing these shortcomings and pursuing the                    ing api llms. arXiv preprint arXiv:2402.15491.
+outlined future directions will be crucial for en-
+                                                                Kinjal Basu, Ibrahim Abdelaziz, Kiran Kate, Mayank
+suring the responsible development and effective
+                                                                  Agarwal, Maxwell Crouse, Yara Rizk, Kelsey Brad-
+deployment of LLM-based agents in real-world                      ford, Asim Munawar, Sadhana Kumaravel, Saurabh
+applications.                                                     Goyal, et al. 2024b. Nestful: A benchmark for eval-
+                                                                  uating llms on nested sequences of api calls. arXiv
+                                                                  preprint arXiv:2409.03797.
+References                                                      Pratik Bhavsar. 2025.      Agent leaderboard.
+Toufique Ahmed, Martin Hirzel, Rangeet Pan, Avraham               https://huggingface.co/spaces/galileo-ai/
+  Shinnar, and Saurabh Sinha. 2024. Tdd-bench veri-               agent-leaderboard.
+  fied: Can llms generate tests for issues before they
+  get resolved? arXiv preprint arXiv:2412.02883.                Daniel Gomez Blanco. 2023. Practical OpenTelemetry.
+                                                                  Springer.
+Reem Aleithan, Haoran Xue, Mohammad Mahdi Mo-
+                                                                Ben Bogin, Kejuan Yang, Shashank Gupta, Kyle
+  hajer, Elijah Nnorom, Gias Uddin, and Song Wang.
+                                                                  Richardson, Erin Bransom, Peter Clark, Ashish Sab-
+  2024. Swe-bench+: Enhanced coding benchmark for
+                                                                  harwal, and Tushar Khot. 2024. Super: Evaluating
+  llms. ArXiv, abs/2410.06992.
+                                                                  agents on setting up and executing tasks from re-
+Jacob Andreas, John Bufe, David Burkett, Charles                  search repositories. Preprint, arXiv:2409.07440.
+   Chen, Josh Clausman, Jean Crawford, Kate Crim,               Léo Boisvert, Megh Thakkar, Maxime Gasse, Mas-
+  Jordan DeLoach, Leah Dorner, Jason Eisner, Hao                  simo Caccia, Thibault de Chezelles, Quentin Cappart,
+   Fang, Alan Guo, David Hall, Kristin Hayes, Kellie              Nicolas Chapados, Alexandre Lacoste, and Alexan-
+   Hill, Diana Ho, Wendy Iwaszuk, Smriti Jha, Dan                 dre Drouin. 2025. Workarena++: Towards composi-
+   Klein, Jayant Krishnamurthy, Theo Lanman, Percy                tional planning and reasoning-based common knowl-
+   Liang, Christopher H. Lin, Ilya Lintsbakh, Andy Mc-            edge work tasks. Advances in Neural Information
+   Govern, Aleksandr Nisnevich, Adam Pauls, Dmitrij               Processing Systems, 37:5996–6051.
+   Petters, Brent Read, Dan Roth, Subhro Roy, Jesse
+   Rusak, Beth Short, Div Slomin, Ben Snyder, Stephon           Greg Brockman, Vicki Cheung, Ludwig Pettersson,
+   Striplin, Yu Su, Zachary Tellman, Sam Thomson, An-             Jonas Schneider, John Schulman, Jie Tang, and Woj-
+   drei Vorobev, Izabela Witoszko, Jason Wolfe, Abby              ciech Zaremba. 2016. Openai gym. arXiv preprint
+  Wray, Yuchen Zhang, and Alexander Zotov. 2020.                  arXiv:1606.01540.
+  Task-oriented dialogue as dataflow synthesis. Trans-
+   actions of the Association for Computational Linguis-        Paweł Budzianowski, Tsung-Hsien Wen, Bo-Hsiang
+   tics, 8:556–571.                                               Tseng, Iñigo Casanueva, Stefan Ultes, Osman Ra-
+                                                                  madan, and Milica Gašić. 2018. MultiWOZ - a large-
+Maksym Andriushchenko, Alexandra Souly, Mateusz                   scale multi-domain Wizard-of-Oz dataset for task-
+ Dziemian, Derek Duenas, Maxwell Lin, Justin                      oriented dialogue modelling. In Proceedings of the
+ Wang, Dan Hendrycks, Andy Zou, Zico Kolter, Matt                 2018 Conference on Empirical Methods in Natural
+ Fredrikson, Eric Winsor, Jerome Wynne, Yarin Gal,                Language Processing, pages 5016–5026, Brussels,
+ and Xander Davies. 2024. Agentharm: A benchmark                  Belgium. Association for Computational Linguistics.
+ for measuring harmfulness of llm agents. Preprint,
+ arXiv:2410.09024.                                              David Castillo-Bolado, Joseph Davidson, Finlay Gray,
+                                                                  and Marek Rosa. 2024a. Beyond prompts: Dynamic
+Samuel Arcadinho, David Oliveira Aparicio, and Mari-              conversational benchmarking of large language mod-
+  ana S. C. Almeida. 2024. Automated test generation              els. arXiv preprint arXiv:2409.20222.
+  to evaluate tool-augmented LLMs as conversational
+  AI agents. In Proceedings of the 2nd GenBench                 David Castillo-Bolado, Joseph Davidson, Finlay Gray,
+  Workshop on Generalisation (Benchmarking) in NLP,               and Marek Rosa. 2024b. Beyond prompts: Dynamic
+  pages 54–68, Miami, Florida, USA. Association for               conversational benchmarking of large language mod-
+  Computational Linguistics.                                      els. In The Thirty-eight Conference on Neural In-
+                                                                  formation Processing Systems Datasets and Bench-
+Arize AI, Inc. 2025. Agent evaluation.                            marks Track.
+
+
+                                                           13
+Eric Chamoun, Michael Schlichtkrull, and Andreas Vla-               Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot,
+   chos. 2024. Automated focused feedback generation                  Ashish Sabharwal, Carissa Schoenick, and Oyvind
+   for scientific writing assistance. In Findings of the As-          Tafjord. 2018a. Think you have solved question an-
+   sociation for Computational Linguistics: ACL 2024,                 swering? try arc, the ai2 reasoning challenge. arXiv
+   pages 9742–9763, Bangkok, Thailand. Association                    preprint arXiv:1803.05457.
+   for Computational Linguistics.
+                                                                    Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot,
+Derek Chen, Howard Chen, Yi Yang, Alexander Lin,                      Ashish Sabharwal, Carissa Schoenick, and Oyvind
+  and Zhou Yu. 2021a. Action-based conversations                      Tafjord. 2018b. Think you have solved question
+  dataset: A corpus for building more in-depth task-                  answering? try arc, the ai2 reasoning challenge.
+  oriented dialogue systems. In Proceedings of the                    Preprint, arXiv:1803.05457.
+  2021 Conference of the North American Chapter of
+  the Association for Computational Linguistics: Hu-                Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian,
+  man Language Technologies, pages 3002–3017, On-                     Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias
+  line. Association for Computational Linguistics.                    Plappert, Jerry Tworek, Jacob Hilton, Reiichiro
+                                                                      Nakano, Christopher Hesse, and John Schulman.
+Mark Chen, Jerry Tworek, Heewoo Jun, Qiming                           2021. Training verifiers to solve math word prob-
+ Yuan, Henrique Pondé, Jared Kaplan, Harrison Ed-                     lems. arXiv preprint arXiv:2110.14168.
+ wards, Yura Burda, Nicholas Joseph, Greg Brockman,
+ Alex Ray, Raul Puri, Gretchen Krueger, Michael                     Pradeep Dasigi, Kyle Lo, Iz Beltagy, Arman Cohan,
+ Petrov, Heidy Khlaaf, Girish Sastry, Pamela Mishkin,                 Noah A. Smith, and Matt Gardner. 2021. A dataset of
+ Brooke Chan, Scott Gray, Nick Ryder, Mikhail                         information-seeking questions and answers anchored
+ Pavlov, Alethea Power, Lukasz Kaiser, Mo Bavar-                      in research papers. Preprint, arXiv:2105.03011.
+ ian, Clemens Winter, Philippe Tillet, Felipe Petroski
+ Such, David W. Cummings, Matthias Plappert, Fo-                    Databricks. 2023. Mosaic ai agent evaluation: Assess-
+ tios Chantzis, Elizabeth Barnes, Ariel Herbert-Voss,                 ing ai application performance.
+ William H. Guss, Alex Nichol, Igor Babuschkin,
+ Suchir Balaji, Shantanu Jain, Andrew Carr, Jan Leike,              Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Sam
+ Joshua Achiam, Vedant Misra, Evan Morikawa,                          Stevens, Boshi Wang, Huan Sun, and Yu Su. 2023.
+ Alec Radford, Matthew M. Knight, Miles Brundage,                     Mind2web: Towards a generalist agent for the web.
+ Mira Murati, Katie Mayer, Peter Welinder, Bob                        Advances in Neural Information Processing Systems,
+ McGrew, Dario Amodei, Sam McCandlish, Ilya                           36:28091–28114.
+ Sutskever, and Wojciech Zaremba. 2021b. Evalu-
+ ating large language models trained on code. ArXiv,                Jay DeYoung, Iz Beltagy, Madeleine van Zuylen,
+ abs/2107.03374.                                                      Bailey Kuehl, and Lucy Lu Wang. 2021. Ms2:
+                                                                      Multi-document summarization of medical studies.
+Ziru Chen, Shijie Chen, Yuting Ning, Qianheng Zhang,                  Preprint, arXiv:2104.06486.
+   Boshi Wang, Botao Yu, Yifei Li, Zeyi Liao, Chen
+  Wei, Zitong Lu, Vishal Dey, Mingyi Xue, Frazier N.                Victor Dibia, Jingya Chen, Gagan Bansal, Suff Syed,
+   Baker, Benjamin Burns, Daniel Adu-Ampratwum,                       Adam Fourney, Erkang Zhu, Chi Wang, and Saleema
+   Xuhui Huang, Xia Ning, Song Gao, Yu Su, and Huan                   Amershi. 2024. Autogen studio: A no-code devel-
+   Sun. 2024. Scienceagentbench: Toward rigorous as-                  oper tool for building and debugging multi-agent
+   sessment of language agents for data-driven scientific             systems. In Proceedings of the 2024 Conference on
+   discovery. Preprint, arXiv:2410.05080.                             Empirical Methods in Natural Language Processing:
+                                                                      System Demonstrations, pages 72–79.
+Ziru Chen, Shijie Chen, Yuting Ning, Qianheng Zhang,
+   Boshi Wang, Botao Yu, Yifei Li, Zeyi Liao, Chen                  Alexandre Drouin, Maxime Gasse, Massimo Caccia, Is-
+  Wei, Zitong Lu, Vishal Dey, Mingyi Xue, Frazier N.                  sam H Laradji, Manuel Del Verme, Tom Marty, Léo
+   Baker, Benjamin Burns, Daniel Adu-Ampratwum,                       Boisvert, Megh Thakkar, Quentin Cappart, David
+   Xuhui Huang, Xia Ning, Song Gao, Yu Su, and Huan                   Vazquez, et al. 2024. Workarena: How capable
+   Sun. 2025. Scienceagentbench: Toward rigorous as-                  are web agents at solving common knowledge work
+   sessment of language agents for data-driven scientific             tasks? arXiv preprint arXiv:2403.07718.
+   discovery. In The Thirteenth International Confer-
+   ence on Learning Representations.                                Galileo. 2025. Introducing agentic evaluations.
+
+Ching-An Cheng, Andrey Kolobov, Dipendra Misra,                     Chen Gao, Xiaochong Lan, Nian Li, Yuan Yuan, Jingtao
+  Allen Nie, and Adith Swaminathan. 2023. Llf-bench:                  Ding, Zhilun Zhou, Fengli Xu, and Yong Li. 2023a.
+  Benchmark for interactive learning from language                    Large language models empowered agent-based mod-
+  feedback. Preprint, arXiv:2312.06853.                               eling and simulation: A survey and perspectives.
+                                                                      Preprint, arXiv:2312.11970.
+De Chezelles, Thibault Le Sellier, Maxime Gasse,
+  Alexandre Lacoste, Alexandre Drouin, Massimo                      Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia, Jin-
+  Caccia, Léo Boisvert, Megh Thakkar, Tom Marty,                      liu Pan, Yuxi Bi, Yi Dai, Jiawei Sun, Haofen Wang,
+  Rim Assouel, et al. 2024.      The browsergym                       and Haofen Wang. 2023b. Retrieval-augmented gen-
+  ecosystem for web agent research. arXiv preprint                    eration for large language models: A survey. arXiv
+  arXiv:2412.05467.                                                   preprint arXiv:2312.10997, 2.
+
+
+                                                               14
+Mor Geva, Daniel Khashabi, Elad Segal, Tushar Khot,            Jie Huang, Xinyun Chen, Swaroop Mishra,
+ Dan Roth, and Jonathan Berant. 2021. Did aristotle               Huaixiu Steven Zheng, Adams Wei Yu, Xiny-
+ use a laptop? a question answering benchmark with                ing Song, and Denny Zhou. 2024. Large language
+ implicit reasoning strategies. Transactions of the               models cannot self-correct reasoning yet. Preprint,
+ Association for Computational Linguistics, 9:346–                arXiv:2310.01798.
+ 361.
+                                                               Kung-Hsiang Huang, Akshara Prabhakar, Sidharth
+Google Cloud. 2025. Evaluate your ai agents with ver-            Dhawan, Yixin Mao, Huan Wang, Silvio Savarese,
+  tex gen ai evaluation service.                                 Caiming Xiong, Philippe Laban, and Chien-Sheng
+                                                                 Wu. 2025. Crmarena: Understanding the capacity
+Zhicheng Guo, Sijie Cheng, Hao Wang, Shihao Liang,               of llm agents to perform professional crm tasks in
+  Yujia Qin, Peng Li, Zhiyuan Liu, Maosong Sun, and              realistic environments. Preprint, arXiv:2411.02305.
+  Yang Liu. 2024. Stabletoolbench: Towards stable
+  large-scale benchmarking on tool learning of large           Alexis Huet, Zied Ben Houidi, and Dario Rossi.
+  language models. arXiv preprint arXiv:2403.07714.              2025. Episodic memories generation and evalua-
+                                                                 tion benchmark for large language models. Preprint,
+                                                                 arXiv:2501.13121.
+Lewis Hammond, Alan Chan, Jesse Clifton, Jason
+  Hoelscher-Obermaier, Akbir Khan, Euan McLean,                Naman Jain, King Han, Alex Gu, Wen-Ding Li, Fanjia
+  Chandler Smith, Wolfram Barfuss, Jakob Foerster,               Yan, Tianjun Zhang, Sida Wang, Armando Solar-
+  Tomáš Gavenčiak, et al. 2025. Multi-agent risks from          Lezama, Koushik Sen, and Ion Stoica. 2024. Live-
+  advanced ai. arXiv preprint arXiv:2502.14143.                  codebench: Holistic and contamination free evalu-
+                                                                 ation of large language models for code. Preprint,
+Simeng Han, Hailey Schoelkopf, Yilun Zhao, Zhent-                arXiv:2403.07974.
+  ing Qi, Martin Riddell, Luke Benson, Lucy Sun,
+  E. Zubova, Yujie Qiao, Matthew Burtell, David Peng,          Peter Jansen, Marc-Alexandre Côté, Tushar Khot,
+  Jonathan Fan, Yixin Liu, Brian Wong, Malcolm                   Erin Bransom, Bhavana Dalvi Mishra, Bod-
+  Sailor, Ansong Ni, Linyong Nan, Jungo Kasai, Tao               hisattwa Prasad Majumder, Oyvind Tafjord, and Peter
+  Yu, Rui Zhang, Shafiq R. Joty, Alexander R. Fab-               Clark. 2024. Discoveryworld: A virtual environment
+  bri, Wojciech Kryscinski, Xi Victoria Lin, Caiming             for developing and evaluating automated scientific
+  Xiong, and Dragomir R. Radev. 2022. Folio: Natural             discovery agents. Preprint, arXiv:2406.06769.
+  language reasoning with first-order logic. EMNLP
+  2024.                                                        Saurabh Jha, Rohan Arora, Yuji Watanabe, Takumi
+                                                                 Yanagawa, Yinfang Chen, Jackson Clark, Bhavya
+Simeng Han, Aaron Yu, Rui Shen, Zhenting Qi, Mar-                Bhavya, Mudit Verma, Harshit Kumar, Hirokuni Ki-
+  tin Riddell, Wenfei Zhou, Yujie Qiao, Yilun Zhao,              tahara, et al. 2025. Itbench: Evaluating ai agents
+  Semih Yavuz, Ye Liu, Shafiq Joty, Yingbo Zhou,                 across diverse real-world it automation tasks. arXiv
+  Caiming Xiong, Dragomir R. Radev, Rex Ying, and                preprint arXiv:2502.05352.
+  Arman Cohan. 2024. P-folio: Evaluating and improv-
+  ing logical reasoning with abundant human-written            Carlos E. Jimenez, John Yang, Alexander Wettig,
+  reasoning chains. EMNLP 2024 Findings.                         Shunyu Yao, Kexin Pei, Ofir Press, and Karthik
+                                                                 Narasimhan. 2023. Swe-bench: Can language
+Hongliang He, Wenlin Yao, Kaixin Ma, Wenhao Yu,                  models resolve real-world github issues? ArXiv,
+  Yong Dai, Hongming Zhang, Zhenzhong Lan, and                   abs/2310.06770.
+  Dong Yu. 2024. Webvoyager: Building an end-to-
+  end web agent with large multimodal models. arXiv            Raghav Kapoor, Yash Parag Butala, Melisa Russak,
+  preprint arXiv:2401.13919.                                     Jing Yu Koh, Kiran Kamble, Waseem AlShikh, and
+                                                                 Ruslan Salakhutdinov. 2024a. Omniact: A dataset
+                                                                 and benchmark for enabling multimodal generalist
+Dan Hendrycks, Steven Basart, Saurav Kadavath, Man-
+                                                                 autonomous agents for desktop and web. In Com-
+  tas Mazeika, Akul Arora, Ethan Guo, Collin Burns,
+                                                                 puter Vision – ECCV 2024: 18th European Confer-
+  Samir Puranik, Horace He, Dawn Song, and Jacob
+                                                                 ence, Milan, Italy, September 29–October 4, 2024,
+  Steinhardt. 2021a. Measuring coding challenge com-
+                                                                 Proceedings, Part LXVIII, page 161–178, Berlin, Hei-
+  petence with apps. Preprint, arXiv:2105.09938.
+                                                                 delberg. Springer-Verlag.
+Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou,          Sayash Kapoor, Benedikt Stroebl, Zachary S Siegel,
+  Mantas Mazeika, Dawn Song, and Jacob Steinhardt.               Nitya Nadgir, and Arvind Narayanan. 2024b. Ai
+  2020. Measuring massive multitask language under-              agents that matter. arXiv preprint arXiv:2407.01502.
+  standing. arXiv preprint arXiv:2009.03300.
+                                                               Aryan Kargwal. 2025. Mastering multi-agent evaluation
+Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul               systems in 2025. Botpress Blog.
+  Arora, Steven Basart, Eric Tang, Dawn Song, and
+  Jacob Steinhardt. 2021b. Measuring mathemati-                Ehud Karpas, Omri Abend, Yonatan Belinkov, Barak
+  cal problem solving with the math dataset. arXiv               Lenz, Opher Lieber, Nir Ratner, Yoav Shoham, Hofit
+  preprint arXiv:2103.03874.                                     Bata, Yoav Levine, Kevin Leyton-Brown, et al. 2022.
+
+
+                                                          15
+  Mrkl systems: A modular, neuro-symbolic architec-               Elad Levi and Ilan Kadar. 2025a. Intellagent: A multi-
+  ture that combines large language models, external                agent framework for evaluating conversational ai sys-
+  knowledge sources and discrete reasoning. arXiv                   tems. Preprint, arXiv:2501.11067.
+  preprint arXiv:2205.00445.
+                                                                  Elad Levi and Ilan Kadar. 2025b. Intellagent: A multi-
+Daniel Khashabi, Snigdha Chaturvedi, Michael Roth,                  agent framework for evaluating conversational ai sys-
+  Shyam Upadhyay, and Dan Roth. 2018. Looking                       tems. arXiv preprint arXiv:2501.11067.
+  beyond the surface: A challenge set for reading com-
+  prehension over multiple sentences. In Proceedings              Ido Levy, Ben Wiesel, Sami Marreed, Alon Oved,
+  of the 2018 Conference of the North American Chap-                Avi Yaeli, and Segev Shlomov. 2024.           St-
+  ter of the Association for Computational Linguistics:             webagentbench: A benchmark for evaluating safety
+  Human Language Technologies, Volume 1 (Long Pa-                   and trustworthiness in web agents. arXiv preprint
+  pers), pages 252–262.                                             arXiv:2410.06703.
+
+Tomáš Kočiskỳ, Jonathan Schwarz, Phil Blunsom, Chris            Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+  Dyer, Karl Moritz Hermann, Gábor Melis, and Ed-                   Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+  ward Grefenstette. 2018. The narrativeqa reading                  rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+  comprehension challenge. Transactions of the Asso-                täschel, et al. 2020. Retrieval-augmented generation
+  ciation for Computational Linguistics, 6:317–328.                 for knowledge-intensive nlp tasks. Advances in neu-
+                                                                    ral information processing systems, 33:9459–9474.
+Jing Yu Koh, Robert Lo, Lawrence Jang, Vikram
+                                                                  Lingyu Li, Yixu Wang, Haiquan Zhao, Shuqi Kong,
+   Duvvur, Ming Chong Lim, Po-Yu Huang, Graham
+                                                                    Yan Teng, Chunbo Li, and Yingchun Wang. 2024.
+   Neubig, Shuyan Zhou, Ruslan Salakhutdinov, and
+                                                                    Reflection-bench: probing ai intelligence with reflec-
+   Daniel Fried. 2024. Visualwebarena: Evaluating mul-
+                                                                    tion. Preprint, arXiv:2410.16270.
+   timodal agents on realistic visual web tasks. arXiv
+   preprint arXiv:2401.13649.                                     Minghao Li, Yingxiu Zhao, Bowen Yu, Feifan Song,
+                                                                    Hangyu Li, Haiyang Yu, Zhoujun Li, Fei Huang,
+Harsha Kokel, Michael Katz, Kavitha Srinivas, and                   and Yongbin Li. 2023. Api-bank: A comprehen-
+  Shirin Sohrabi. 2024. Acpbench: Reasoning about                   sive benchmark for tool-augmented llms. Preprint,
+  action, change, and planning. arXiv preprint                      arXiv:2304.08244.
+  arXiv:2410.05669.
+                                                                  Wang Ling, Dani Yogatama, Chris Dyer, and Phil Blun-
+Yuhang Lai, Chengxi Li, Yiming Wang, Tianyi Zhang,                  som. 2017. Program induction by rationale genera-
+  Ruiqi Zhong, Luke Zettlemoyer, Scott Yih, Daniel                  tion: Learning to solve and explain algebraic word
+  Fried, Si yi Wang, and Tao Yu. 2022. Ds-1000: A                   problems. In Proceedings of the 55th Annual Meet-
+  natural and reliable benchmark for data science code              ing of the Association for Computational Linguistics
+  generation. In International Conference on Machine               (Volume 1: Long Papers), pages 158–167, Vancouver,
+  Learning.                                                         Canada. Association for Computational Linguistics.
+LangChain. 2025. Agentevals: Evaluating agent trajec-             Evan Zheran Liu, Kelvin Guu, Panupong Pasupat, Tian-
+  tories.                                                           lin Shi, and Percy Liang. 2018. Reinforcement learn-
+                                                                    ing on web interfaces using workflow-guided explo-
+Inc LangChain. 2023. Langsmith: Evaluation frame-                   ration. Preprint, arXiv:1802.08802.
+  work for ai applications.
+                                                                  Fengyuan Liu, Nouar AlDahoul, Gregory Eady, Yasir
+Langfuse. 2023. Langfuse: Observability for ai applica-             Zaki, and Talal Rahwan. 2025. Self-reflection makes
+  tions.                                                            large language models safer, less biased, and ideolog-
+                                                                    ically neutral. Preprint, arXiv:2406.10400.
+Jon M. Laurent, Joseph D. Janizek, Michael Ruzo,
+  Michaela M. Hinks, Michael J. Hammerling, Sid-                  Na Liu, Liangyu Chen, Xiaoyu Tian, Wei Zou, Kai-
+  dharth Narayanan, Manvitha Ponnapati, Andrew D.                   jiang Chen, and Ming Cui. 2024a. From llm to con-
+  White, and Samuel G. Rodriques. 2024. Lab-bench:                  versational agent: A memory enhanced architecture
+  Measuring capabilities of language models for biol-               with fine-tuning of large language models. ArXiv,
+  ogy research. Preprint, arXiv:2407.10362.                         abs/2401.02777.
+Kuang-Huei Lee, Xinyun Chen, Hiroki Furuta, John                  Nelson F Liu, Kevin Lin, John Hewitt, Ashwin Paran-
+  Canny, and Ian Fischer. 2024. A human-inspired                    jape, Michele Bevilacqua, Fabio Petroni, and Percy
+  reading agent with gist memory of very long contexts.             Liang. 2024b. Lost in the middle: How language
+  Preprint, arXiv:2402.09727.                                       models use long contexts. Transactions of the Asso-
+                                                                    ciation for Computational Linguistics, 12:157–173.
+Yoonjoo Lee, Kyungjae Lee, Sunghyun Park, Dasol
+  Hwang, Jaehyeon Kim, Hong-in Lee, and Moontae                   Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xu-
+  Lee. 2023. Qasa: advanced question answering on                   anyu Lei, Hanyu Lai, Yu Gu, Hangliang Ding,
+  scientific articles. In Proceedings of the 40th Interna-          Kaiwen Men, Kejuan Yang, et al. 2023a. Agent-
+  tional Conference on Machine Learning, ICML’23.                   bench: Evaluating llms as agents. arXiv preprint
+  JMLR.org.                                                         arXiv:2308.03688.
+
+
+                                                             16
+Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xu-                    Niels Mündler, Mark Müller, Jingxuan He, and Martin
+  anyu Lei, Hanyu Lai, Yu Gu, Yuxian Gu, Hangliang                  Vechev. 2024. Swt-bench: Testing and validating
+  Ding, Kai Men, Kejuan Yang, Shudan Zhang, Xi-                     real-world bug-fixes with code agents. Advances in
+  ang Deng, Aohan Zeng, Zhengxiao Du, Chenhui                       Neural Information Processing Systems, 37:81857–
+  Zhang, Shengqi Shen, Tianjun Zhang, Sheng Shen,                   81887.
+  Yu Su, Huan Sun, Minlie Huang, Yuxiao Dong, and
+  Jie Tang. 2023b. Agentbench: Evaluating llms as                 Reiichiro Nakano, Jacob Hilton, Suchir Balaji, Jeff Wu,
+  agents. ArXiv, abs/2308.03688.                                    Long Ouyang, Christina Kim, Christopher Hesse,
+                                                                    Shantanu Jain, Vineet Kosaraju, William Saunders,
+Zuxin Liu, Thai Hoang, Jianguo Zhang, Ming Zhu, Tian                et al. 2021. Webgpt: Browser-assisted question-
+  Lan, Juntao Tan, Weiran Yao, Zhiwei Liu, Yihao                    answering with human feedback. arXiv preprint
+  Feng, Rithesh RN, et al. 2024c. Apigen: Auto-                     arXiv:2112.09332.
+  mated pipeline for generating verifiable and diverse
+  function-calling datasets. Advances in Neural Infor-            Deepak Nathani, Lovish Madaan, Nicholas Roberts,
+  mation Processing Systems, 37:54463–54482.                        Nikolay Bashlykov, Ajay Menon, Vincent Moens,
+                                                                    Amar Budhiraja, Despoina Magka, Vladislav
+Renze Lou, Hanzi Xu, Sijia Wang, Jiangshu Du,                       Vorotilov, Gaurav Chaurasia, et al. 2025. Mlgym:
+  Ryo Kamoi, Xiaoxin Lu, Jian Xie, Yuxuan Sun,                      A new framework and benchmark for advancing ai
+  Yusen Zhang, Jihyun Janice Ahn, Hongchao Fang,                    research agents. arXiv preprint arXiv:2502.14499.
+  Zhuoyang Zou, Wenchao Ma, Xi Li, Kai Zhang, Con-
+                                                                  OpenAI. 2023. Openai evals: A framework for evaluat-
+  gying Xia, Lifu Huang, and Wenpeng Yin. 2025.
+                                                                    ing large language models. https://github.com/
+  Aaar-1.0: Assessing ai’s potential to assist research.
+                                                                    openai/evals.
+  Preprint, arXiv:2410.22394.
+                                                                  OpenAI. 2024. Introducing swe-bench verified.
+Jiarui Lu, Thomas Holleis, Yizhe Zhang, Bernhard Au-                urlhttps://openai.com/index/introducing-swe-bench-
+   mayer, Feng Nan, Felix Bai, Shuang Ma, Shen Ma,                  verified/.
+   Mengyu Li, Guoli Yin, et al. 2024. Toolsandbox: A
+   stateful, conversational, interactive evaluation bench-        Charles Packer, Sarah Wooders, Kevin Lin, Vivian Fang,
+   mark for llm tool use capabilities. arXiv preprint               Shishir G. Patil, Ion Stoica, and Joseph E. Gonzalez.
+   arXiv:2408.04682.                                                2024. Memgpt: Towards llms as operating systems.
+                                                                    Preprint, arXiv:2310.08560.
+Pan Lu, Swaroop Mishra, Tony Xia, Liang Qiu, Kai-
+  Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter                 Ankit Pal, Logesh Kumar Umapathi, and Malaikannan
+  Clark, and Ashwin Kalyan. 2022. Learn to explain:                 Sankarasubbu. 2022. Medmcqa : A large-scale multi-
+  Multimodal reasoning via thought chains for science               subject multi-choice dataset for medical domain ques-
+  question answering. Preprint, arXiv:2209.09513.                   tion answering. Preprint, arXiv:2203.14371.
+
+Pan Lu, Baolin Peng, Hao Cheng, Michel Galley, Kai-               Jane Pan, Ryan Shar, Jacob Pfau, Ameet Talwalkar,
+  Wei Chang, Ying Nian Wu, Song-Chun Zhu, and                       He He, and Valerie Chen. 2025. When benchmarks
+  Jianfeng Gao. 2023. Chameleon: Plug-and-play com-                 talk: Re-evaluating code llms with interactive feed-
+  positional reasoning with large language models. Ad-              back. Preprint, arXiv:2502.18413.
+  vances in Neural Information Processing Systems,
+  36:43447–43478.                                                 Jiayi Pan, Xingyao Wang, Graham Neubig, Navdeep
+                                                                     Jaitly, Heng Ji, Alane Suhr, and Yizhe Zhang. 2024a.
+Xing Han Lù, Zdeněk Kasner, and Siva Reddy. 2024.                   Training software engineering agents and verifiers
+  Weblinx: Real-world website navigation with multi-                 with swe-gym. arXiv preprint arXiv:2412.21139.
+  turn dialogue. arXiv preprint arXiv:2402.05930.                 Yichen Pan, Dehan Kong, Sida Zhou, Cheng Cui, Yifei
+                                                                    Leng, Bing Jiang, Hangyu Liu, Yanyi Shang, Shuyan
+Adyasha Maharana, Dong-Ho Lee, Sergey Tulyakov,                     Zhou, Tongshuang Wu, et al. 2024b. Webcanvas:
+  Mohit Bansal, Francesco Barbieri, and Yuwei                       Benchmarking web agents in online environments.
+  Fang. 2024. Evaluating very long-term conver-                     arXiv preprint arXiv:2406.12373.
+  sational memory of llm agents. arXiv preprint
+  arXiv:2402.17753.                                               Richard Yuanzhe Pang, Alicia Parrish, Nitish Joshi,
+                                                                    Nikita Nangia, Jason Phang, Angelica Chen, Vishakh
+Grégoire Mialon, Clémentine Fourrier, Craig Swift,                  Padmakumar, Johnny Ma, Jana Thompson, He He,
+  Thomas Wolf, Yann LeCun, and Thomas Scialom.                      et al. 2021. Quality: Question answering with long
+  2023. Gaia: a benchmark for general ai assistants.                input texts, yes! arXiv preprint arXiv:2112.08608.
+  Preprint, arXiv:2311.12983.
+                                                                  Joon Sung Park, Joseph O’Brien, Carrie Jun Cai, Mered-
+Samuel Miserendino, Michele Wang, Tejal Patward-                    ith Ringel Morris, Percy Liang, and Michael S Bern-
+  han, and Johannes Heidecke. 2025. Swe-lancer:                     stein. 2023. Generative agents: Interactive simulacra
+  Can frontier llms earn $1 million from real-world                 of human behavior. In Proceedings of the 36th an-
+  freelance software engineering? arXiv preprint                    nual acm symposium on user interface software and
+  arXiv:2502.12115.                                                 technology, pages 1–22.
+
+
+                                                             17
+Shishir G Patil, Tianjun Zhang, Xin Wang, and Joseph E            Li, Ke Wang, Rong Yao, et al. 2023. Restgpt: Con-
+  Gonzalez. 2025. Gorilla: Large language model                   necting large language models with real-world restful
+  connected with massive apis. Advances in Neural                 apis. arXiv preprint arXiv:2306.06624.
+  Information Processing Systems, 37:126544–126565.
+                                                                Zayne Sprague, Xi Ye, Kaj Bostrom, Swarat Chaudhuri,
+Patronus AI, Inc. 2023. Patronus ai: Automated testing            and Greg Durrett. 2023. Musr: Testing the limits
+  and evaluation platform for generative ai applica-              of chain-of-thought with multistep soft reasoning.
+  tions.                                                          arXiv preprint arXiv:2310.16049.
+
+Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan             Katharina Stein, Daniel Fišer, Jörg Hoffmann, and
+  Yan, Yaxi Lu, Yankai Lin, Xin Cong, Xiangru Tang,               Alexander Koller. 2023. Autoplanbench: Automati-
+  Bill Qian, et al. 2023. Toolllm: Facilitating large             cally generating benchmarks for llm planners from
+  language models to master 16000+ real-world apis.               pddl. arXiv preprint arXiv:2311.09830.
+  arXiv preprint arXiv:2307.16789.
+                                                                Benedikt Stroebl, Sayash Kapoor, and Arvind
+Matthew Renze and Erhan Guven. 2024. Self-reflection              Narayanan. 2025. Hal: A holistic agent leader-
+  in llm agents: Effects on problem-solving perfor-               board for centralized and reproducible agent eval-
+  mance. Preprint, arXiv:2405.06682.                              uation.   https://github.com/princeton-pli/
+                                                                  hal-harness.
+Yangjun Ruan, Honghua Dong, Andrew Wang, Sil-
+  viu Pitis, Yongchao Zhou, Jimmy Ba, Yann Dubois,              Haotian Sun, Yuchen Zhuang, Lingkai Kong, Bo Dai,
+  Chris J. Maddison, and Tatsunori Hashimoto. 2023.               and Chao Zhang. 2023. Adaplanner: Adaptive plan-
+  Identifying the risks of lm agents with an lm-                  ning from feedback with language models. Preprint,
+  emulated sandbox. ArXiv, abs/2309.15817.                        arXiv:2305.16653.
+                                                                Mirac Suzgun, Nathan Scales, Nathanael Schärli, Se-
+Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta
+                                                                  bastian Gehrmann, Yi Tay, Hyung Won Chung,
+  Raileanu, Maria Lomeli, Eric Hambro, Luke Zettle-
+                                                                  Aakanksha Chowdhery, Quoc V Le, Ed H Chi, Denny
+  moyer, Nicola Cancedda, and Thomas Scialom. 2023.
+                                                                  Zhou, et al. 2022. Challenging big-bench tasks and
+  Toolformer: Language models can teach themselves
+                                                                  whether chain-of-thought can solve them. arXiv
+  to use tools. Advances in Neural Information Pro-
+                                                                  preprint arXiv:2210.09261.
+  cessing Systems, 36:68539–68551.
+                                                                SWE-bench Lite. 2024. Swe-bench lite.
+Tianlin Shi, Andrej Karpathy, Linxi Fan, Jonathan Her-            urlhttps://www.swebench.com/lite.html.
+   nandez, and Percy Liang. 2017. World of bits: An
+   open-domain platform for web-based agents. In Pro-           Qiaoyu Tang, Ziliang Deng, Hongyu Lin, Xianpei
+   ceedings of the 34th International Conference on               Han, Qiao Liang, Boxi Cao, and Le Sun. 2023.
+  Machine Learning, volume 70 of Proceedings of Ma-               Toolalpaca: Generalized tool learning for language
+   chine Learning Research, pages 3135–3144. PMLR.                models with 3000 simulated cases. arXiv preprint
+                                                                  arXiv:2306.05301.
+Noah Shinn, Federico Cassano, Beck Labash, Ashwin
+  Gopinath, Karthik Narasimhan, and Shunyu Yao.                 Nexusflow.ai team. 2023. Nexusraven-v2: Surpassing
+  2023. Reflexion: language agents with verbal re-                gpt-4 for zero-shot function calling.
+  inforcement learning. In Neural Information Pro-
+  cessing Systems.                                              Minyang Tian, Luyu Gao, Dylan Zhang, Xinan Chen,
+                                                                  Cunwei Fan, Xuefei Guo, Roland Haas, Pan Ji, Kit-
+Mohit Shridhar, Xingdi Yuan, Marc-Alexandre Côté,                 tithat Krongchon, Yao Li, Shengyan Liu, Di Luo,
+ Yonatan Bisk, Adam Trischler, and Matthew                       Yutao Ma, HAO TONG, Kha Trinh, Chenyu Tian,
+ Hausknecht. 2021. Alfworld: Aligning text and                    Zihan Wang, Bohao Wu, Shengzhu Yin, Minhui Zhu,
+ embodied environments for interactive learning.                  Kilian Lieret, Yanxin Lu, Genglin Liu, Yufeng Du,
+ Preprint, arXiv:2010.03768.                                      Tianhua Tao, Ofir Press, Jamie Callan, Eliu A Huerta,
+                                                                  and Hao Peng. 2024a. Scicode: A research coding
+Chenglei Si, Diyi Yang, and Tatsunori Hashimoto. 2025.            benchmark curated by scientists. In The Thirty-eight
+  Can LLMs generate novel research ideas? a large-                Conference on Neural Information Processing Sys-
+  scale human study with 100+ NLP researchers. In                 tems Datasets and Benchmarks Track.
+  The Thirteenth International Conference on Learning
+  Representations.                                              Minyang Tian, Luyu Gao, Shizhuo Dylan Zhang, Xinan
+                                                                  Chen, Cunwei Fan, Xuefei Guo, Roland Haas, Pan Ji,
+Zachary S. Siegel, Sayash Kapoor, Nitya Nagdir,                   Kittithat Krongchon, Yao Li, Shengyan Liu, Di Luo,
+  Benedikt Stroebl, and Arvind Narayanan. 2024.                   Yutao Ma, Hao Tong, Kha Trinh, Chenyu Tian, Zi-
+  Core-bench: Fostering the credibility of published re-          han Wang, Bohao Wu, Yanyu Xiong, Shengzhu Yin,
+  search through a computational reproducibility agent            Minhui Zhu, Kilian Lieret, Yanxin Lu, Genglin Liu,
+  benchmark. Preprint, arXiv:2409.11363.                          Yufeng Du, Tianhua Tao, Ofir Press, Jamie Callan,
+                                                                  Eliu Huerta, and Hao Peng. 2024b. Scicode: A
+Yifan Song, Weimin Xiong, Dawei Zhu, Wenhao Wu,                   research coding benchmark curated by scientists.
+  Han Qian, Mingbo Song, Hailiang Huang, Cheng                    Preprint, arXiv:2407.13168.
+
+
+                                                           18
+Harsh Trivedi, Tushar Khot, Mareike Hartmann, Ruskin             Mengsong Wu, Tong Zhu, Han Han, Chuanyuan Tan,
+  Manku, Vinty Dong, Edward Li, Shashank Gupta,                   Xiang Zhang, and Wenliang Chen. 2024b. Seal-tools:
+  Ashish Sabharwal, and Niranjan Balasubramanian.                 Self-instruct tool learning dataset for agent tuning
+  2024. AppWorld: A controllable world of apps and                and detailed benchmark. In CCF International Con-
+  people for benchmarking interactive coding agents.              ference on Natural Language Processing and Chi-
+  In Proceedings of the 62nd Annual Meeting of the                nese Computing, pages 372–384. Springer.
+  Association for Computational Linguistics (Volume 1:
+  Long Papers), pages 16022–16076, Bangkok, Thai-                Chun Xia, Yinlin Deng, Soren Dunn, and Lingming
+  land. Association for Computational Linguistics.                 Zhang. 2024. Agentless: Demystifying llm-based
+                                                                   software engineering agents. ArXiv, abs/2407.01489.
+Karthik Valmeekam, Matthew Marquez, Alberto Olmo,
+  Sarath Sreedharan, and Subbarao Kambhampati.                   Ruixuan Xiao, Wentao Ma, Ke Wang, Yuchuan Wu,
+  2023. Planbench: An extensible benchmark for eval-               Junbo Zhao, Haobo Wang, Fei Huang, and Yongbin
+  uating large language models on planning and reason-             Li. 2024. Flowbench: Revisiting and benchmark-
+  ing about change. Advances in Neural Information                 ing workflow-guided planning for llm-based agents.
+  Processing Systems, 36:38975–38987.                              arXiv preprint arXiv:2406.14884.
+David Wadden, Kejian Shi, Jacob Morrison, Aakanksha              Tianbao Xie, Danyang Zhang, Jixuan Chen, Xiaochuan
+  Naik, Shruti Singh, Nitzan Barzilay, Kyle Lo, Tom                 Li, Siheng Zhao, Ruisheng Cao, Toh Jing Hua, Zhou-
+  Hope, Luca Soldaini, Shannon Zejiang Shen, Doug                   jun Cheng, Dongchan Shin, Fangyu Lei, Yitao Liu,
+  Downey, Hannaneh Hajishirzi, and Arman Cohan.                    Yiheng Xu, Shuyan Zhou, Silvio Savarese, Caiming
+  2024. Sciriff: A resource to enhance language                    Xiong, Victor Zhong, and Tao Yu. 2024. OSWorld:
+  model instruction-following over scientific literature.           Benchmarking multimodal agents for open-ended
+  Preprint, arXiv:2406.07835.                                       tasks in real computer environments. In The Thirty-
+Lei Wang, Chen Ma, Xueyang Feng, Zeyu Zhang, Hao                    eight Conference on Neural Information Processing
+  Yang, Jingsen Zhang, Zhiyuan Chen, Jiakai Tang,                   Systems Datasets and Benchmarks Track.
+  Xu Chen, Yankai Lin, et al. 2024a. A survey on large
+  language model based autonomous agents. Frontiers              Frank F. Xu, Yufan Song, Boxuan Li, Yuxuan Tang,
+  of Computer Science, 18(6):186345.                               Kritanjali Jain, Mengxue Bao, Zora Z. Wang, Xuhui
+                                                                   Zhou, Zhitong Guo, Murong Cao, Mingyang Yang,
+Ruoyao Wang, Peter Jansen, Marc-Alexandre Côté, and                Hao Yang Lu, Amaad Martin, Zhe Su, Lean-
+  Prithviraj Ammanabrolu. 2022a. ScienceWorld: Is                  der Maben, Raj Mehta, Wayne Chi, Lawrence
+  your agent smarter than a 5th grader? In Proceedings             Jang, Yiqing Xie, Shuyan Zhou, and Graham Neu-
+  of the 2022 Conference on Empirical Methods in                   big. 2024. Theagentcompany: Benchmarking llm
+  Natural Language Processing, pages 11279–11298,                  agents on consequential real world tasks. Preprint,
+  Abu Dhabi, United Arab Emirates. Association for                 arXiv:2412.14161.
+  Computational Linguistics.
+                                                                 Jing Xu, Arthur Szlam, and Jason Weston. 2021. Be-
+Xingyao Wang, Zihan Wang, Jiateng Liu, Yangyi                       yond goldfish memory: Long-term open-domain con-
+  Chen, Lifan Yuan, Hao Peng, and Heng Ji. 2023.                    versation. arXiv preprint arXiv:2107.07567.
+  Mint: Evaluating llms in multi-turn interaction
+  with tools and language feedback. arXiv preprint               Qiantong Xu, Fenglu Hong, Bo Li, Changran Hu,
+  arXiv:2309.10691.                                                Zhengyu Chen, and Jian Zhang. 2023. On the tool
+                                                                   manipulation capability of open-source large lan-
+Yizhong Wang, Yeganeh Kordi, Swaroop Mishra, Al-                   guage models. arXiv preprint arXiv:2305.16504.
+  isa Liu, Noah A Smith, Daniel Khashabi, and Han-
+  naneh Hajishirzi. 2022b. Self-instruct: Aligning lan-          Wujiang Xu, Zujie Liang, Kai Mei, Hang Gao, Juntao
+  guage models with self-generated instructions. arXiv            Tan, and Yongfeng Zhang. 2025. A-mem: Agentic
+  preprint arXiv:2212.10560.                                      memory for llm agents. Preprint, arXiv:2502.12110.
+Zhiruo Wang, Shuyan Zhou, Daniel Fried, and Graham
+  Neubig. 2022c. Execution-based evaluation for open-            Fanjia Yan, Huanzhi Mao, Charlie Cheng-Jie Ji,
+  domain code generation. In Conference on Empirical               Tianjun Zhang, Shishir G. Patil, Ion Stoica, and
+  Methods in Natural Language Processing.                          Joseph E. Gonzalez. 2024. Berkeley function calling
+                                                                   leaderboard.     https://gorilla.cs.berkeley.
+Zixuan Wang, Bo Yu, Junzhe Zhao, Wenhao Sun, Sai                   edu/blogs/8_berkeley_function_calling_
+  Hou, Shuai Liang, Xing Hu, Yinhe Han, and Yim-                   leaderboard.html.
+  ing Gan. 2024b. Karma: Augmenting embodied ai
+  agents with long-and-short term memory systems.                John Yang, Carlos E. Jimenez, Alex L. Zhang, Kil-
+  Preprint, arXiv:2409.14908.                                      ian Lieret, Joyce Yang, Xindi Wu, Ori Press,
+                                                                   Niklas Muennighoff, Gabriele Synnaeve, Karthik R.
+Cheng-Kuang Wu, Zhi Rui Tam, Chieh-Yen Lin, Yun-                   Narasimhan, Diyi Yang, Sida I. Wang, and Ofir
+  Nung Chen, and Hung-yi Lee. 2024a. Streambench:                  Press. 2024. Swe-bench multimodal: Do ai sys-
+  Towards benchmarking continuous improvement of                   tems generalize to visual software domains? ArXiv,
+  language agents. arXiv preprint arXiv:2406.08747.                abs/2410.03859.
+
+
+                                                            19
+Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Ben-             Ming Zhong, Da Yin, Tao Yu, Ahmad Zaidi, Mutethia
+  gio, William W. Cohen, Ruslan Salakhutdinov, and              Mutuma, Rahul Jha, Ahmed Hassan Awadallah, Asli
+  Christopher D. Manning. 2018. Hotpotqa: A dataset             Celikyilmaz, Yang Liu, Xipeng Qiu, et al. 2021.
+  for diverse, explainable multi-hop question answer-           Qmsum: A new benchmark for query-based multi-
+  ing. Preprint, arXiv:1809.09600.                              domain meeting summarization. arXiv preprint
+                                                                arXiv:2104.05938.
+Shunyu Yao, Howard Chen, John Yang, and Karthik
+  Narasimhan. 2022. Webshop: Towards scalable real-           Wanjun Zhong, Ruixiang Cui, Yiduo Guo, Yaobo
+  world web interaction with grounded language agents.         Liang, Shuai Lu, Yanlin Wang, Amin Saied, Weizhu
+  Advances in Neural Information Processing Systems,           Chen, and Nan Duan. 2023. Agieval: A human-
+  35:20744–20757.                                              centric benchmark for evaluating foundation models.
+                                                               Preprint, arXiv:2304.06364.
+Shunyu Yao, Noah Shinn, Pedram Razavi, and Karthik
+  Narasimhan. 2024. τ -bench: A benchmark for                 Shuyan Zhou, Frank F Xu, Hao Zhu, Xuhui Zhou,
+  tool-agent-user interaction in real-world domains.            Robert Lo, Abishek Sridhar, Xianyi Cheng, Tianyue
+  Preprint, arXiv:2406.12045.                                   Ou, Yonatan Bisk, Daniel Fried, et al. 2023. We-
+                                                                barena: A realistic web environment for building au-
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran,               tonomous agents. arXiv preprint arXiv:2307.13854.
+  Tom Griffiths, Yuan Cao, and Karthik Narasimhan.
+  2023. Tree of thoughts: Deliberate problem solving          Mingchen Zhuge, Changsheng Zhao, Dylan Ashley,
+  with large language models. Advances in neural               Wenyi Wang, Dmitrii Khizbullin, Yunyang Xiong,
+  information processing systems, 36:11809–11822.               Zechun Liu, Ernie Chang, Raghuraman Krishnamoor-
+                                                                thi, Yuandong Tian, et al. 2024. Agent-as-a-
+Ori Yoran, Samuel Joseph Amouyal, Chaitanya                     judge: Evaluate agents with agents. arXiv preprint
+  Malaviya, Ben Bogin, Ofir Press, and Jonathan Be-             arXiv:2410.10934.
+  rant. 2024. Assistantbench: Can web agents solve
+  realistic and time-consuming tasks? arXiv preprint
+  arXiv:2407.15711.
+Jiaxuan You, Mingjie Liu, Shrimai Prabhumoye,
+   Mostofa Patwary, Mohammad Shoeybi, and Bryan
+   Catanzaro. 2024. LLM-evolve: Evaluation for
+   LLM‘s evolving capability on benchmarks. In Pro-
+   ceedings of the 2024 Conference on Empirical Meth-
+   ods in Natural Language Processing, pages 16937–
+   16942, Miami, Florida, USA. Association for Com-
+   putational Linguistics.
+Tao Yu, Rui Zhang, Kai Yang, Michihiro Yasunaga,
+  Dongxu Wang, Zifan Li, James Ma, Irene Li, Qingn-
+  ing Yao, Shanelle Roman, et al. 2018. Spider: A
+  large-scale human-labeled dataset for complex and
+  cross-domain semantic parsing and text-to-sql task.
+  arXiv preprint arXiv:1809.08887.
+Daoguang Zan, Zhirong Huang, Ailun Yu, Shaoxin Lin,
+  Yifan Shi, Wei Liu, Dong Chen, Zongshuai Qi, Hao
+  Yu, Lei Yu, et al. 2024. Swe-bench-java: A github
+  issue resolving benchmark for java. arXiv preprint
+  arXiv:2408.14354.
+Ziniu Zhang, Shulin Tian, Liangyu Chen, and Ziwei Liu.
+  2024. Mmina: Benchmarking multihop multimodal
+  internet agents. arXiv preprint arXiv:2404.09992.
+Huaixiu Steven Zheng, Swaroop Mishra, Hugh Zhang,
+  Xinyun Chen, Minmin Chen, Azade Nova, Le Hou,
+  Heng-Tze Cheng, Quoc V Le, Ed H Chi, et al. 2024.
+  Natural plan: Benchmarking llms on natural lan-
+  guage planning. arXiv preprint arXiv:2406.04520.
+Lucen Zhong, Zhengxiao Du, Xiaohan Zhang, Haiyi
+  Hu, and Jie Tang. 2025. Complexfuncbench: Ex-
+  ploring multi-step and constrained function call-
+  ing under long-context scenario. arXiv preprint
+  arXiv:2501.10132.
+
+
+                                                         20
+

@@ -1,0 +1,716 @@
+                                                               Adding Error Bars to Evals:
+                                                 A Statistical Approach to Language Model Evaluations
+                                                                                   Evan Miller
+                                                                                    Anthropic
+                                                                            evanmiller@anthropic.com
+
+
+
+
+arXiv:2411.00640v1 [stat.AP] 1 Nov 2024
+                                                                                   November 4, 2024
+
+
+                                                                                         Abstract
+                                                   Evaluations are critical for understanding the capabilities of large language models (LLMs).
+                                               Fundamentally, evaluations are experiments; but the literature on evaluations has largely ig-
+                                               nored the literature from other sciences on experiment analysis and planning. This article
+                                               shows researchers with some training in statistics how to think about and analyze data from
+                                               language model evaluations. Conceptualizing evaluation questions as having been drawn
+                                               from an unseen super-population, we present formulas for analyzing evaluation data, mea-
+                                               suring differences between two models, and planning an evaluation experiment. We make a
+                                               number of specific recommendations for running language model evaluations and reporting
+                                               experiment results in a way that minimizes statistical noise and maximizes informativeness.
+
+
+                                          1    Introduction
+                                          Language models are measured in the literature by evaluations, or evals. Evals are commonly
+                                          run and reported with a “highest number is best” mentality; industry practice is to highlight
+                                          a state-of-the-art (SOTA) result in bold, but not necessarily to test that result for any kind
+                                          of statistical significance.[15] Chatbot Arena[4] has popularized the use of confidence intervals
+                                          in its Elo scores, but error bars remain noticeably absent from traditional question-and-answer
+                                          evals. One recent and notable exception is the technical report on the Llama 3 model family[7],
+                                          which includes simple confidence intervals on a number of evals.
+                                              In this article, we seek to introduce rigorous statistical thinking into the world of language
+                                          model evaluations, so that researchers may quantify the precision with which they are able to
+                                          answer questions and test hypotheses using evals. After developing a comprehensive analytic
+                                          framework, we make specific recommendations for the computation of confidence intervals and
+                                          the reporting of eval results. Using this framework, we show that the confidence intervals recently
+                                          reported in [7] are likely too narrow in some cases and too wide in other cases.
+                                              A short hypothetical example will motivate the overall discussion. Imagine that two compet-
+                                          ing models, code-named “Galleon” and “Dreadnought”, are being considered for deployment in
+                                          a particular application (say, with a bent toward coding and mathematical reasoning tasks). As
+                                          part of the decision-making process, three popular language model evaluations are performed on
+                                          the two models: MATH, a mathematical reasoning eval[9]; HumanEval, a Python coding eval[3];
+                                          and MGSM, a multilingual eval covering grade-school math[18]. The fictional results from this
+                                          hypothetical comparison are presented in Table 1.
+
+
+                                                                                             1
+                  Eval \ Model       “Galleon”       “Dreadnought”    Difference
+                     MATH             65.5%              63.0%         +2.5%
+                   HumanEval          83.6%              87.7%         −3.1%
+                    MGSM              75.3%              78.0%         −2.7%
+
+      Table 1: Hypothetical data from two fictional models across three (non-fictional) evals
+
+    On its face, the data table presents conflicting results: Galleon appears to outperform Dread-
+nought on MATH (65.5% vs 63.0%), but Dreadnought has performed better on HumanEval and
+MGSM by slightly wider margins. Is it safe to conclude from the results that Dreadnought is
+generally better suited for coding and mathematical tasks, given its margin of victory on two of
+three evals? Or should something in the data potentially give us pause?
+    “Evaluating the evaluations” is a complex undertaking fraught with both qualitative and
+quantitative considerations.[8] Remaining agnostic about the relative and qualitative merits
+of various evals, this article develops a framework for answering quantitative questions about
+specific eval results. With the aim of informing holistic decision-making, we offer a series of
+recommendations for running and reporting evals in a way that enables researchers to test
+well-formed hypotheses about competing models, competing hyperparameters, and competing
+prompts. Our specific recommendations to researchers include:
+
+    1. Computing standard errors of the mean using the Central Limit Theorem
+    2. When questions are drawn in related groups, computing clustered standard errors
+    3. Reducing variance by resampling answers and by analyzing next-token probabilities
+    4. When two models are being compared, conducting statistical inference on the question-
+       level paired differences, rather than the population-level summary statistics
+    5. Using power analysis to determine whether an eval (or a random subsample) is capable of
+       testing a hypothesis of interest
+
+   Drawing on statistical theory and the experimental design literature, we demonstrate that
+a small number of conceptual assumptions unlocks a rich theoretical landscape for researchers
+studying language model evaluations, and show practitioners how to conduct statistical inference
+on often-noisy eval data. For an overview of experiment design, we refer the reader to [11].
+
+
+2     Analysis framework
+Suppose that the questions in an eval do not represent all possible questions, but instead were
+drawn at random from a (hypothetical, infinite, unseen) super-population of questions. This
+simple supposition lets us jump “through the looking glass” of the specific questions that appear
+in an eval in order to study the underlying skill that the eval is attempting to measure. We
+modify this assumption in Section 2.2 to study questions that may have been drawn together.
+
+2.1     Independent questions
+More formally, suppose an eval consists of n independently drawn questions. We write the score
+on question i as si , decomposing the score into a mean component xi and a zero-mean random
+
+                                                 2
+                            # Questions          “Galleon”            “Dreadnought”
+                                                  65.5%                   63.0%
+                 MATH           5,000
+                                                  (0.7%)                  (0.7%)
+                                                  83.6%                   86.7%
+             HumanEval           164
+                                                  (3.2%)                  (3.0%)
+                                                  75.3%                   78.0%
+                 MGSM           2,500
+                                                  (0.9%)                  (0.9%)
+
+Table 2: We suggest two new reporting practices: including the number of questions in each
+eval, and the standard error of each estimate in parentheses (fictional models and numbers).
+
+
+component ϵi :
+                                            si = xi + ϵi
+    We refer to xi as the conditional mean and the variance of the random component ϵi as the
+conditional variance, that is, the mean and variance conditional on the selection of question i
+in the eval. Denote this latter quantity σi2 = Var(ϵi ).
+    We also write an unconditional version of these numbers (that is, unconditional on the
+selection of i) as
+                                             s=x+ϵ
+    Let µ represent the unobserved mean value of the super-population with µ = E[s] = E[x].
+We wish to conduct inference on (that P      is, the “true” mean eval score) given only the observed
+question scores s1 , . . . , sn . Let s̄ = n1 i si represent the average of the observed scores. It
+follows from the Law of Large Numbers that µ may be estimated using µ̂ = s̄, and from the
+Central Limit Theorem (C.L.T.) that the standard error of µ̂ can be estimated as
+                                                     v                      !
+                                                     u
+                                      p              u     1  X
+                         SEC.L.T. = Var(s)/n = t                  (si − s̄)2 /n                  (1)
+                                                         n−1
+                                                                i
+
+   In the special case where si ∈ {0, 1} (a Bernoulli variable), Equation 1 becomes
+                                                     p
+                                     SEBernoulli =    s̄(1 − s̄)/n                                (2)
+    We note that it is common practice to compute the standard error of the mean by boot-
+strapping; see, for instance, the OpenAI evals[16] frameworks. But the Central Limit Theorem
+is applicable to any evals having scores with finite variance and a large number of questions, and
+so we regard bootstrapping as unnecessary unless a complicated sampling scheme or estimator is
+being used. We also note that [7] incorrectly estimates all of its standard errors using SEBernoulli ,
+even when si takes fractional values, such as with an F1 score. In these cases, SEBernoulli will
+tend to be conservative (too wide) compared to SEC.L.T. . The Inspect framework[12] correctly
+computes SEC.L.T. with its built-in stderr() metric.
+    We suggest reporting the standard error of the mean alongside (beneath) the mean when
+reporting eval scores. A common practice in other sciences is to report the standard error in
+parentheses; we suggest emulating this practice. See Table 2 for an example.
+    A 95% confidence interval may be computed from such a table as
+
+                                   CI 95% = s̄ ± 1.96 × SEC.L.T.                                  (3)
+
+                                                  3
+                       # Questions    # Clusters              “Galleon”   “Dreadnought”
+                                                                87.1           83.1
+            DROP           9,622             588
+                                                                (0.8)          (0.9)
+                                                               91.5%          82.9%
+           RACE-H          3,498             1,045
+                                                               (0.5%)         (0.7%)
+                                                               75.3%          78.0%
+            MGSM           2,500             250
+                                                               (1.6%)         (1.5%)
+
+Table 3: We suggest including the cluster count alongside the question count when reporting
+cluster-adjusted standard errors (fictional models and numbers).
+
+                               SEclustered               SEC.L.T.         Ratio
+                 DROP            (1.34)                   (0.44)          3.05
+                RACE-H          (0.51%)                  (0.46%)          1.10
+                 MGSM           (1.62%)                  (0.86%)          1.88
+
+Table 4: Clustered and naive standard errors computed on two popular evals using Anthropic
+models (non-fictional numbers). Analyzing the same data, clustered standard errors can be over
+3X larger than naive standard errors.
+
+
+2.2   Clustered questions
+We next consider eval questions that are drawn in groups, or clusters. For instance, DROP[6],
+QuAC[5], RACE[13], and SQuAD[17] are reading-comprehension evals having multiple related
+questions about independently selected passages of text, and multilingual evals such as MGSM[18]
+consist of the same question translated into many languages. Because the inclusion of questions
+is non-independent, a key assumption of the Central Limit Theorem (or a bootstrap) is violated,
+and so a naive application of Equation 1 will yield inconsistent standard errors. Here we show
+how to use clustered standard errors[1], a technique developed in the social sciences, to account
+for the dependence and correlation structure present in question clusters.
+    Let si,c denote the ith question score within cluster c, and assume that draws of clusters are
+independent. Continue to denote the mean observed score as s̄. The cluster-adjusted standard
+error of the mean score can be computed as
+                                                                        1/2
+                                            1 X X X
+                 SEclustered = SE2C.L.T. + 2      (si,c − s̄)(sj,c − s̄)                    (4)
+                                           n c
+                                                          i   j̸=i
+
+    The clustered standard error acts as a kind of “sliding scale” between cases where scores
+within a cluster are perfectly correlated (in which case each cluster acts as a single independent
+observation) and perfectly uncorrelated (in which case the clustered standard error is equivalent
+to the unclustered case). The intra-cluster correlations (or lack thereof) are captured by the
+triple summation (over clusters and cross-terms within clusters); for a derivation of Equation 4,
+see Appendix A.
+    A suggested format for reporting cluster-adjusted standard errors is presented in Table 3, and
+some real-world numbers are reported in Table 4. We note that the cluster adjustment in our
+real-world example is far from trivial (up to 3X). Failure to adjust standard errors for clustered
+sampling may lead an unsuspecting analyst to suppose that the measurement of the overall eval
+
+
+                                                     4
+score is much more precise than it actually is. We therefore advise that the confidence intervals
+for reading-comprehension evals reported in [7] are likely anti-conservative (too narrow).
+
+
+3     Variance reduction
+The standard error of µ̂ quantifies the uncertainty associated with our estimate of the overall
+eval score. Reducing this quantity (which is the square root of the estimate variance) improves
+the precision of the estimate.
+    The variance associated with µ̂ may be decomposed into two components: the variance of
+the conditional mean, that is, the variance associated with choosing questions from the super-
+population, and the mean conditional variance, which is the mean variance of scores associated
+with the questions that were chosen. This decomposition is additive, and follows from the law
+of total variance. Mathematically,
+
+                           Var(µ̂) = Var(s)/n = (Var(x) + E[σi2 ])/n
+
+    This equation has a few implications: the simplest way to reduce the variance of µ̂ is to
+increase n, the number of sampled questions. The variance of the conditional mean, Var(x), is
+a property of the super-population and therefore immutable; but we have a couple of strategies
+available for reducing the overall variance via the expected conditional variance, E[σi2 ].
+
+3.1   Resampling
+The first strategy for reducing the expected conditional variance is to resample the model a
+number of times, and to compute the standard error using the question-level mean scores from
+the resamples. Suppose each question is sampled (answered) K times, and the score si is the
+mean of these K answer scores. Since the conditional variances are equal for all K answer scores,
+the overall conditional variance becomes
+
+                                        Var(si ) = σi2 /K
+
+    This relation should clarify the issue of how many times to resample a given question. Once
+E[σi2 ]/K ≪ Var(x), increasing K further will have little effect on the standard error of µ̂.
+    We work through an example to show how to compute a value for K. Suppose scores are
+binary (0 or 1) and question difficulty is uniformly distributed, x ∼ U [0, 1]. Then ϵi = 1 − xi
+with probability xi and ϵi = −xi otherwise. A bit of integration reveals that Var(x) = 1/12 and
+E[σi2 ] = 1/6. The required relation reduces to K ≫ 2, or equivalently 2/K ≪ 1. Writing the
+variance of this estimator with arbitrary K in terms of the estimator with K = 1, we have
+
+                         Var(µ̂|K > 1) = Var(µ̂|K = 1) × (1 + 2/K)/3
+
+    Going from K = 1 (no resampling of answers) to K = 2, the total variance is reduced by
+1/3. Increasing to K = 4, we have a variance reduction of 1/2, and setting K = 6, we reduce
+variance by 5/9. The upper limit on variance reduction via resampling in this example is 2/3.
+    Note that computing a pooled standard error across all KN answers will be inconsistent,
+as multiple answers to the same question would violate the assumption of independent draws.
+Refer to Section 2.2 for a discussion of questions drawn in related groups.
+
+
+                                               5
+3.2   Next-token probabilities
+The second strategy for reducing the expected conditional variance E[σi2 ] is to eliminate the term
+altogether. For language model evals that do not utilize chain-of-thought reasoning, the con-
+ditional variance can be removed by analyzing next-token probabilities, rather than evaluating
+the model’s sampled (or resampled) output.
+    Consider for instance a multiple-choice eval, and a prompt that induces a model to produce
+its answer in its first token. If a correct answer is worth 1 and an incorrect answer is worth 0,
+and the probability of the correct token is denoted pi , then si = xi = pi and ϵi = 0. This yields
+Var(µ̂) = Var(p)/n. Using the uniform-difficulty example from the previous section, next-token
+probabilities will reduce the variance of the estimator by 2/3 (the upper limit achievable via
+resampling) compared to grading a single sample from each question.
+
+3.3   Don’t touch the thermostat!
+It may be tempting to reduce the “sampling temperature”[10] of the model in order to reduce (or
+eliminate) the conditional variance. However, we advise against this practice, unless the purpose
+is to study the model at the new temperature. Besides altering the model’s behavior, adjusting
+the sampling temperature may simply shift the conditional variance (which can be mitigated
+using the two techniques above) into the variance of the conditional means (which cannot), or
+else reduce conditional variance by injecting bias into the estimator. Two short examples will
+illustrate these points.
+    Consider a single-token true/false eval where the conditional score means at T = 1 are
+uniformly distributed, xT =1 ∼ U [0, 1]. As in Section 3.1, Var(xT =1 ) = 1/12. But at T = 0,
+xT =0 = 1{xT =1 > 0.5} and the uniform distribution is “rounded” into a Bernoulli distribution
+with p = 1/2. So Var(xT =0 ) = 1/4. In this case, reducing the sampling temperature, and
+thereby eliminating the conditional variance, has inadvertently tripled the minimum variance in
+the score data from 1/12 to 1/4.
+    In the above case, E[xT =1 ] = E[xT =0 ], but this does not always hold. Consider a similar
+(single-token, true/false) case where xT =1 ∼ U [1/3, 1] and (as a consequence) xT =0 is rounded to
+a Bernoulli distribution with p = 1/4. Then E[xT =1 ] = 2/3 < E[xT =0 ] = 3/4 and Var(xT =1 ) =
+1/27 ≪ Var(xT =0 ) = 3/16; that is, not only has the temperature change shifted the expected
+score, but the variance of the conditional means has increased approximately five-fold.
+    We therefore recommend a two-pronged variance-reduction strategy. When next-token prob-
+abilities are available, and the language model eval can be conducted using next-token probabili-
+ties (i.e. without token generation), compute the expected score for each question, and compute
+the standard error of expected scores across questions. When next-token probabilities are not
+available, or the answer requires a chain of thought or other complex interaction, choose a K
+such that E[σi2 ]/K ≪ Var(x) and compute the standard error across question-level mean scores.
+In neither case should the sampling temperature be adjusted for the sake of reducing variance
+in the scores.
+
+
+4     Comparing models
+Thus far we have only analyzed the standard error of eval scores considered in isolation. But a
+particular model’s score on a given eval usually does not have any inherent meaning; it primarily
+makes sense in relation to the scores of other models. In this section we provide formulas for
+
+
+                                                6
+comparing the scores of two models so that an analyst might determine if a model is outper-
+forming another model in a statistically significant way, or if the difference between two models
+is indistinguishable from noise.
+
+4.1   Unpaired analysis
+We introduce model subscripts A and B for the remainder of the article. A naive comparison
+between eval scores can be made by computing the difference between mean eval scores
+
+                                        µ̂A−B = µ̂A − µ̂B
+
+   and an associated standard error
+                                           q
+                                    SEA−B = SE2A + SE2B
+
+   This two quantities can be used to compute the usual 95% confidence interval and z-score
+
+                              CIA−B,95% = µ̂A−B ± 1.96 × SEA−B                                (5)
+
+                                      zA−B = µ̂A−B /SEA−B                                     (6)
+   If two models independently report their eval scores and standard errors, it is possible for an
+analyst to test their difference for statistical significance – even if the two model reports used
+non-identical random subsets of eval questions.
+
+4.2   Paired analysis
+The naive comparison above misses an opportunity to reduce the standard error when two
+models evaluate the same set of questions. Let sA−B,i = sA,i − sB,i represent the difference
+between scores on question i, and let s̄A−B = s̄A − s̄B represent the observed average difference.
+Then we can estimate the standard error of the estimated difference as
+                                                v                                !
+                                                u
+                            p                   u      1   X
+            SEA−B,paired = Var(sA−B )/n = t                    (sA−B,i − s̄A−B )2 /n           (7)
+                                                     n−1
+                                                             i
+
+    This revised standard error can be plugged into Equations 5 and 6 to compute a confidence
+interval and z-score.
+    We can compute the reduction in variance achieved with this paired differences test over the
+unpaired test. First, write out an expression for the variance in the unpaired case
+
+                          Var(µ̂A−B,unpaired ) = (Var(sA ) + Var(sB ))/n
+
+and the paired case
+
+                  Var(µ̂A−B,paired ) = (Var(sA ) + Var(sB ) − 2 Cov(sA , sB ))/n
+
+Combining, and recognizing that the cross-model residuals are uncorrelated, we have
+
+                   Var(µ̂A−B,paired ) = Var(µ̂A−B,unpaired ) − 2 Cov(xA , xB )/n
+
+
+                                                7
+    Eval        Model       Baseline          Model – Baseline   95% Conf. Interval   Correlation
+   MATH         Galleon   Dreadnought          +2.5% (0.7%)       (+1.2%, +3.8%)         0.50
+ HumanEval      Galleon   Dreadnought          −3.1% (2.1%)       (−7.2%, +1.0%)         0.64
+  MGSM          Galleon   Dreadnought          −2.7% (1.7%)       (−6.1%, +0.7%)         0.37
+
+Table 5: Suggested presentation of pairwise differences, standard errors, confidence intervals, and
+correlation values as a supplement to main results. In the fictional data above, the difference
+between the two models on MATH is statistically significant (the confidence interval is positive),
+but the differences on HumanEval and MGSM are not statistically significant at the 5% level.
+
+
+
+    We can thus reduce the variance with paired differences as long as the conditional means of
+the model scores are correlated; that is to say, if the two models have some amount of agreement
+on which questions are “easy” and which questions are “hard”.
+    A short calculation will demonstrate the degree of variance reduction that might be expected.
+Suppose an eval uses next-token probabilities to form continuous scores with zero conditional
+variance, and that these scores are uniformly distributed for two models over the [0, 1] interval.
+Suppose that the model scores  phave a correlation coefficient of 0.5. Then Var(sA ) = Var(sB ) =
+1/12 and Cov(xA , xB ) = 0.5 Var(sA )Var(sB ) = 1/24. In this case, using paired differences
+will reduce the variance of the estimator by 1/3 in relative terms (that is, from 1/6 to 1/9 in
+absolute terms).
+    Because eval question scores are likely to be positively correlated, even across unrelated
+models, paired differences represent a “free” reduction in estimator variance when comparing
+two models. We therefore recommend using the paired version of the standard error estimate
+wherever practicable. We encourage authors of technical reports to include pairwise differences,
+pairwise standard errors, and score correlations whenever two or more models are being evalu-
+ated. Pairwise standard errors may be computed either directly on the differences, or using the
+single-sample standard errors, the Pearson product-moment correlation, and the relation
+                                    q
+                     SEA−B,paired = SE2A + SE2B − 2 SEA SEB Corr(sA , sB )
+
+   A clustered version of the standard error, appropriate for DROP, QuAC, RACE, SQuAD,
+MGSM, and other evals where questions are drawn in related groups, is directly computable
+from the differences as
+                                                                                   1/2
+                                1  X  X   X
+        SEA−B,paired,clustered =             (sA−B,i,c − s̄A−B )(sA−B,j,c − s̄A−B )    (8)
+                                n   c     i     j
+
+    where sA−B,i,c denotes the score difference on the ith question within cluster c.
+    A suggested table format for reporting pairwise results is provided in Table 5. A 95%
+confidence interval on model differences may be computed from the base estimate and standard
+error, as in Equation 3.
+    We now possess the analytic tools needed to rigorously answer the questions posed in the
+Introduction. Using pairwise analysis on all three evals, and ensuring that standard errors were
+appropriately clustered on MSGM, the numbers in Table 5 would lead us to conclude that the
+Galleon indeed outperformed Dreadnought on MATH in a statistically significant way – but
+that the differences on HumanEval and MGSM are indistinguishable from statistical noise. In
+
+                                                    8
+other words, while a superficial reading of the eval data might have originally tempted us to
+conclude that Dreadnought was the overall better-performing model, a closer examination of
+the data would tend to lead the careful analyst to the opposite conclusion.
+
+
+5    Power analysis
+Power refers to the ability of an experiment to make a measurement of interest in the presence
+of statistical noise.[14] In the context of language model evals, we may wish to know whether a
+model represents an improvement of some magnitude over another model.[2] Due to the variance
+implied by sampling questions from the super-population (plus the conditional variance after
+the questions are chosen), power must always be defined in terms of probability. In this section
+we present a sample-size formula needed to conduct power analysis for language model evals,
+and apply it in a worked example to answer the empirical question posed in Section 1.
+    The sample-size formula – describing the relationship between the hypothesized difference
+between two models and the number of questions included in an experiment – ought to prove
+useful in several ways. Consumers of existing evals may use the formula to determine the number
+of questions to subsample from a large eval, or to determine an appropriate value of K defined
+in Section 3.1. If the number of questions in the eval is fixed, consumers can calculate the
+Minimum Detectable Effect and decide whether the eval is worth running. The authors of new
+evals may use the formula to decide how many questions should be commissioned.
+    The inputs into the sample-size formula include:
+
+    • Significance level α, which represents the Type I error rate under the null hypothesis
+    • Power level 1−β, where β represents the Type II error rate under the alternative hypothesis
+    • Minimum Detectable Effect δ, which represents the mean score difference between two
+      models under the alternative hypothesis
+
+    To simplify notation, let
+                           ω 2 = Var(xA ) + V ar(xB ) − 2Cov(xA , xB )
+                                            2      2
+                                           σA = E[σA,i ]
+                                           2      2
+                                          σB = E[σB,i ]
+    Let zp represent the (1 − p)th percentile of a standard normal distribution. We assume a
+paired analysis described in Section 4.2, and that answers will be sampled KA times from model
+A and KB times from model B (in the simplest case, KA = KB = 1). Then the number of
+independent questions n required to achieve a Type I error rate α and Type II error rate β with
+a given Minimum Detectable Effect δ is
+                          n = (zα/2 + zβ )2 (ω 2 + σA
+                                                    2        2
+                                                      /KA + σB /KB )/δ 2                       (9)
+    The quantities ω 2 , σA
+                          2 , and σ 2 may be estimated from previous eval data. A short derivation
+                                   B
+of the above formula is presented in Appendix B.
+    As a simple example, suppose σA   2 = σ 2 = 0 and ω 2 = 1/9, following the conditions described
+                                            B
+in Section 4.2. Suppose we wish to detect an absolute difference of δ = 0.03 at least 80% of the
+time (β = 0.20) with a false-positive rate of 5% (α = 0.05). Then the eval will need to contain
+at least
+                               n = (z0.025 + z0.20 )2 (1/9)/(0.03)2 ≈ 969
+
+                                                9
+    independent questions. Although these parameters are fictional, they are reasonable, and
+suggest that new evals should contain at least 1,000 questions in order to have good signaling
+ability.
+    If the number of questions is fixed, and the practitioner wishes to know the Minimum De-
+tectable Effect associated with n, Equation 9 is easily inverted as
+                                          q
+                                                   2 /K + σ 2 /K )/n
+                          δ = (zα/2 + zB ) (ω 2 + σA                                      (10)
+                                                         A    B    B
+
+    The above equation may be used, for instance, to predict the effect of increasing the per-
+question sample counts KA and KB on the Minimum Detectable Effect in a nondeterministic
+eval. Suppose that σA2 = σ 2 = 1/6 and ω 2 = 1/9, following the conditions of Section 3.1 with
+                           B
+an additional assumption that Corr(xA , xB ) = 0.5. Suppose n = 198, α = 0.05, and β = 0.20.
+It follows from Equation 10 that increasing KA = KB from 1 to 10 reduces the Minimum
+Detectable Effect from 13.2% to 7.5%.
+    Cluster-adjusted versions of Equations 9 and 10 are included in Appendix C.
+
+
+6      Conclusion
+This article has presented a statistical treatment of language model evaluations, drawing heavily
+from existing literature in experiment design.
+    For single-model analysis, we presented analytic formulas for naive and clustered standard
+errors, and for two-model analysis, we presented formulas for unpaired, paired, and paired-
+and-clustered standard errors. We recommended several techniques for reducing the variance
+of estimates, including resampling answers, analyzing next-token probabilities, and computing
+question-level differences between models, and advised against adjusting the sampling tempera-
+ture for the sake of variance reduction. We suggest that practitioners include standard errors of
+their eval scores in their technical reports, and also include pairwise differences, pairwise stan-
+dard errors, and score correlations when multiple models are being compared. We presented a
+sample-size formula so that model evaluators can determine in advance the size of difference that
+may be reliably detected between two models on a given eval using a given resampling strategy.
+    Experiment design represents a large and venerable literature. We hope that with proper
+statistical tools, such as those presented in this article, machine learning practitioners will think
+of their model evaluations as informative experiments rather than a series of contests to produce
+the largest number. We encourage researchers to continue exploring statistical techniques found
+in other experimental fields in order to further enrich our shared understanding of language
+models and their capabilities.
+
+
+References
+ [1]   Alberto Abadie et al. “When should you adjust standard errors for clustering?” In: The
+       Quarterly Journal of Economics 138.1 (Oct. 2022), pp. 1–35. issn: 0033-5533. doi: 10.
+       1093/qje/qjac038. eprint: https://academic.oup.com/qje/article-pdf/138/1/1/
+       47915437/qjac038.pdf. url: https://doi.org/10.1093/qje/qjac038.
+ [2]   Dallas Card et al. With Little Power Comes Great Responsibility. 2020. arXiv: 2010.06595
+       [cs.CL]. url: https://arxiv.org/abs/2010.06595.
+
+
+                                                 10
+ [3]   Mark Chen et al. Evaluating Large Language Models Trained on Code. 2021. arXiv: 2107.
+       03374 [cs.LG]. url: https://arxiv.org/abs/2107.03374.
+ [4]   Wei-Lin Chiang et al. Chatbot Arena: An Open Platform for Evaluating LLMs by Human
+       Preference. 2024. arXiv: 2403.04132 [cs.AI].
+ [5]   Eunsol Choi et al. QuAC : Question Answering in Context. 2018. arXiv: 1808 . 07036
+       [cs.CL]. url: https://arxiv.org/abs/1808.07036.
+ [6]   Dheeru Dua et al. “DROP: A Reading Comprehension Benchmark Requiring Discrete Rea-
+       soning Over Paragraphs”. In: Proceedings of the 2019 Conference of the North American
+       Chapter of the Association for Computational Linguistics: Human Language Technologies,
+       Volume 1 (Long and Short Papers). Ed. by Jill Burstein, Christy Doran, and Thamar
+       Solorio. Minneapolis, Minnesota: Association for Computational Linguistics, June 2019,
+       pp. 2368–2378. doi: 10.18653/v1/N19- 1246. url: https://aclanthology.org/N19-
+       1246.
+ [7]   Abhimanyu Dubey et al. The Llama 3 Herd of Models. 2024. arXiv: 2407.21783 [cs.AI].
+       url: https://arxiv.org/abs/2407.21783.
+ [8]   Deep Ganguli et al. Challenges in evaluating AI systems. Oct. 4, 2023. url: https://
+       www.anthropic.com/index/evaluating-ai-systems.
+ [9]   Dan Hendrycks et al. Measuring Mathematical Problem Solving With the MATH Dataset.
+       2021. arXiv: 2103.03874 [cs.LG]. url: https://arxiv.org/abs/2103.03874.
+[10]   Geoffrey Hinton, Oriol Vinyals, and Jeff Dean. Distilling the Knowledge in a Neural Net-
+       work. 2015. arXiv: 1503.02531 [stat.ML]. url: https://arxiv.org/abs/1503.02531.
+[11]   Guido W. Imbens and Donald B. Rubin. Causal Inference for Statistics, Social, and
+       Biomedical Sciences: An Introduction. Cambridge University Press, 2015.
+[12] Inspect: An open-source framework for large language model evaluations. https://inspect.
+     ai-safety-institute.org.uk/. Accessed: 2024-09-03.
+[13]   Guokun Lai et al. “RACE: Large-scale ReAding Comprehension Dataset From Exami-
+       nations”. In: Proceedings of the 2017 Conference on Empirical Methods in Natural Lan-
+       guage Processing. Ed. by Martha Palmer, Rebecca Hwa, and Sebastian Riedel. Copen-
+       hagen, Denmark: Association for Computational Linguistics, Sept. 2017, pp. 785–794. doi:
+       10.18653/v1/D17-1082. url: https://aclanthology.org/D17-1082.
+[14]   John A List, Sally Sadoff, and Mathis Wagner. So you want to run an experiment, now
+       what? Some simple rules of thumb for optimal experimental design. Working Paper 15701.
+       National Bureau of Economic Research, Jan. 2010. doi: 10.3386/w15701. url: http:
+       //www.nber.org/papers/w15701.
+[15]   Lovish Madaan et al. Quantifying Variance in Evaluation Benchmarks. 2024. arXiv: 2406.
+       10229 [cs.LG]. url: https://arxiv.org/abs/2406.10229.
+[16] OpenAI Evals. https://github.com/openai/evals. Accessed: 2024-09-03.
+[17]   Pranav Rajpurkar, Robin Jia, and Percy Liang. Know What You Don’t Know: Unanswer-
+       able Questions for SQuAD. 2018. arXiv: 1806.03822 [cs.CL]. url: https://arxiv.
+       org/abs/1806.03822.
+[18]   Freda Shi et al. Language Models are Multilingual Chain-of-Thought Reasoners. 2022.
+       arXiv: 2210.03057 [cs.CL]. url: https://arxiv.org/abs/2210.03057.
+
+
+                                              11
+A     Clustered standard errors
+We approach the problem with linear regression. Let si,c denote the ith of nc question scores
+within cluster c, decomposed into a mean and random component as
+
+                                            si,c = xi,c + ϵi,c
+
+   Let δi,c = xi,c − µ represent the deviation of the conditional (question-level) mean from the
+true mean (that is, the hypothetical mean across all questions and clusters). Then the regression
+can be specified as
+
+                                          si,c = µ + δi,c + ϵi,c
+
+     where ϵi,c is a random component and δi,c acts as a question-level fixed effect that is not
+separately estimated. We continue to estimate µ̂ = s̄ and denote the regression residual ui,c =
+si,c − s̄. The traditional clustered standard error formula is
+                                                                !
+                                                       X
+                         Varclustered (µ̂) = (X ′ X)−1   Xc′ ΩXc (X ′ X)−1
+                                                            c
+
+    where X represents the full matrix of covariates, Xc represents the covariates within cluster
+c, and Ωc represents the residual covariance matrix within cluster c.
+    In our application, X = 1n (a vectorPofP     n 1s), Xc = 1Pnc P(a vector of nc 1s), and Ωc = uc u′c .
+          ′    −1             ′
+Thus (X X) = 1/n and Xc Ωc Xc = i j ui,c uj,c = i j (si,c − s̄)(sj,c − s̄). Plugging in
+these values yields
+                    XXX                                XX                      XXX
+Varclustered (µ̂) =         (si,c −s̄)(sj,c −s̄)/n2 =         (si,c −s̄)2 /n2 +          (si,c −s̄)(sj,c −s̄)/n2
+                    c   i    j                          c       i               c   i   j̸=i
+
+    Recognizing that the first term is equal to the unclustered variance, we can write
+                                                        XXX
+              Varclustered (µ̂) = Varunclustered (µ̂) +      (si,c − s̄)(sj,c − s̄)/n2
+                                                        c       i   j̸=i
+
+   The two-sample version can be developed by analyzing the question-level score differences
+rather than the scores.
+
+
+B     Sample-size formula derivation
+Following [14], we set up the power analysis with a hypothetical measurement s̃A−B that will
+trigger a Type I error with probability α and a Type II error rate with probability β. The
+z-scores on such a measurement under the null hypothesis and the alternative hypothesis are
+                                        q
+                                                 2 /K + σ 2 /K )/n
+                          zα/2 = s̃A−B / (ω 2 + σA   A    B   B
+
+                                              q
+                                                       2 /K + σ 2 /K )/n
+                            zβ = (δ − s̃A−B )/ (ω 2 + σA   A   B    B
+
+    Combining to eliminate s̃A−B , we have an expression for the MDE in terms of the other
+variables
+
+                                                   12
+                                               q
+                                                        2 /K + σ 2 /K )/n
+                               δ = (zα/2 + zB ) (ω 2 + σA   A   B    B
+
+   Or inverting the equation, we have a sample-size formula for the number of questions n
+required to produce a desired MDE δ
+
+                               n = (zα/2 + zβ )2 (ω 2 + σA
+                                                         2        2
+                                                           /KA + σB /KB )/δ 2
+
+
+C     Cluster-adjusted sample-size formula
+In order to account for clustered questions, the sample-size formula requires cluster-adjusted
+versions of ω 2 , σA
+                   2 , and σ 2 . In this section we develop formulas for estimating these quantities
+                             B
+from previous eval data.
+    Start with the clustered score variance estimator
+                                       1 XXX
+              Varclustered (µ̂A−B ) =               (sA−B,i,c − s̄A−B )(sA−B,j,c − s̄A−B )
+                                       n c
+                                                        i   j
+
+    we can decompose s into x and ϵ,
+                          1 XXX
+Varclustered (µ̂A−B ) =         (xA,i,c −xB,i,c +ϵA,i,c −ϵB,i,c −s̄A−B )(xA,j,c −xB,j,c +ϵA,j,c −ϵB,j,c −s̄A−B )
+                          n c
+                                  i   j
+
+    which, dropping cross-terms which are zero in expectation, will reduce to
+                                  1 XXX
+        Varclustered (µ̂A−B ) =         (xA,i,c − xB,i,c − s̄A−B )(xA,j,c − xB,j,c − s̄A−B )
+                                  n c
+                                              i    j
+
+                               1 XXX                 1 XXX
+                           +         ϵA,i,c ϵA,j,c +       ϵB,i,c ϵB,j,c
+                               n c                   n c
+                                      i   j                                  i   j
+
+    We can denote the three terms on the right-hand side as
+
+                                              2            2              2
+                     Varclustered ( ˆ
+                                   muA−B ) = ωclustered + σA,clustered + σB,clustered
+
+    with
+                2
+               ωclustered = Varclustered (xA ) + Varclustered (xB ) − 2Covclustered (xA , xB )
+                                                  1 XXX
+                      Varclustered (xA ) =              (xA,i,c − s̄A )(xA,j,c − s̄A )
+                                                  n c
+                                                            i        j
+
+                                                  1 XXX
+                      Varclustered (xB ) =             (xB,i,c − s̄B )(xB,j,c − s̄B )
+                                                  n c
+                                                            i       j
+
+                                                       1 XXX
+                   Covclustered (xA , xB ) =                (xA,i,c − s̄A )(xB,j,c − s̄B )
+                                                       n c
+                                                                i        j
+
+
+
+
+                                                                13
+                                  2               1 XXX
+                                 σA,clustered =         ϵA,i,c ϵA,j,c
+                                                  n c
+                                                           i   j
+
+                                  2               1 XXX
+                                 σB,clustered =         ϵB,i,c ϵB,j,c
+                                                  n c
+                                                           i   j
+
+   These clustered versions of ω 2 , σA
+                                      2 , and σ 2 can be plugged into Equations 9 and 10 without
+                                               B
+further modification.
+    In practice, in both the clustered and non-clustered cases, the mean conditional variance and
+variance of conditional means will need to be estimated from previous data having K ≫ 1. For
+the sake of completeness, we briefly walk through this estimation process.
+    Let sM,i,c,k represent the kth score on the ith question within the cth cluster on model M
+and estimate x̂M,i,c = K1 K                                                            2
+                            P
+                              k=1 sM,i,c,k . This estimate is sufficient to estimate ω̂clustered . The
+clustered mean conditional variance on model M may then be estimated as
+
+              2                  1     XXXX
+            σ̂M,clustered =                 (sM,i,c,k − x̂M,i,c )(sM,j,c,k − x̂M,j,c )
+                              n(K − 1)  c
+                                        k         i   j
+
+    Note that we divide by K − 1 instead of K in order to obtain a consistent variance estimator
+with small K.
+    If a subsample of questions is being used for variance estimation, we recommend sampling
+at the cluster level (i.e. drawing clusters in their entirety) in order to capture the intra-cluster
+variance structure.
+
+
+
+
+                                                      14
+

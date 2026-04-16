@@ -3,6 +3,7 @@
 This outline turns the 12 validated lecture workspaces into a textbook architecture.
 The unit of authorship remains the lecture workspace, but the unit of reading becomes the thematic part.
 The book should read as a course textbook on advanced LLM agents, not as a date-ordered transcript digest.
+The Spring 2025 Berkeley course remains the main line of argument. A final extension part folds in cross-course material from Berkeley Fall 2024, Berkeley Fall 2025, and Stanford CS329A Autumn 2025 to keep the book current without collapsing the main course into a miscellaneous survey.
 
 ## Architectural Principles
 
@@ -126,6 +127,26 @@ Part introduction should explain:
 8. Course Omission Log
 9. Suggested Reading Paths
 
+### Part VI. Cross-Course Extensions And 2025 Updates
+
+Purpose:
+Anchor the Spring 2025 main line inside the broader Berkeley/Stanford agent curriculum that unfolded across Fall 2024, Fall 2025, and Stanford CS329A. This part should not replace the main course; it should show where the surrounding course ecosystem adds systems, evaluation, multi-agent, self-improvement, and deployment lessons that the core textbook should explicitly inherit.
+
+14. Chapter 14. Berkeley Fall 2024: Large Language Model Agents as the Systems Baseline
+    Source anchor: official Berkeley RDI Fall 2024 course page, MOOC page, playlist, slides, and readings
+    Role in the book: recover the earlier Berkeley systems curriculum around RAG, DSPy, AutoGen, software agents, robotics, evaluation, and trustworthy deployment
+15. Chapter 15. Berkeley Fall 2025: Agentic AI as the Latest Public Continuation
+    Source anchor: official Berkeley RDI Fall 2025 course page, MOOC page, playlist, slides, and readings
+    Role in the book: capture the latest public continuation of the Berkeley line, especially agent evaluation, verifiable agents, multi-agent systems, scientific discovery, deployment lessons, and modern safety framing
+16. Chapter 16. Stanford CS329A: Self-Improving Agents Through Schedule and Readings
+    Source anchor: official Stanford CS329A course site and schedule, with public but non-canonical instructor-affiliated playlist noted separately
+    Role in the book: connect the Spring 2025 textbook to a self-improvement-centric curriculum covering coding agents, research automation, evaluation, and agentic search
+
+Part introduction should explain:
+- why a textbook on advanced LLM agents should end with adjacent courses rather than pretending one semester is the whole field
+- why Fall 2024 provides the systems baseline, Fall 2025 provides the freshest Berkeley public continuation, and Stanford CS329A sharpens the self-improvement lens
+- how to treat official sources, public mirrors, unlisted recordings, and instructor-affiliated but non-official playlists with different trust levels
+
 ## Recommended Reading Paths
 
 1. Core course path
@@ -138,6 +159,8 @@ Part introduction should explain:
    Chapters 1, 2, 3, 9, 10, 11, 12, 13.
 5. Safety and security path
    Chapters 1, 4, 6, 8, 12, 13.
+6. Course-extension path
+   Chapters 14, 15, 16 after finishing the main line, or earlier if the reader specifically wants the Berkeley/Stanford 2024-2025 expansion.
 
 ## Merge Notes For The Final Editor
 
