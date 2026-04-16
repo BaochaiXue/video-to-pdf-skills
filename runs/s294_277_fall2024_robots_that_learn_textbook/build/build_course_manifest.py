@@ -29,6 +29,7 @@ def main() -> None:
         final["lectures"].append(
             {
                 "lecture_id": f"{meta['playlist_index']:02d}",
+                "kind": meta.get("kind", "lecture"),
                 "schedule_id": meta.get("schedule_id"),
                 "lecture_slug": lecture_dir.name,
                 "title": meta["title"],

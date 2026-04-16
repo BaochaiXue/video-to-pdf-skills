@@ -155,9 +155,7 @@ Required formulas:
 - none explicitly inferred
 
 Required code units:
-- sub_0984
-- sub_0985
-- sub_0986
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

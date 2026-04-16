@@ -59,9 +59,11 @@ def main() -> None:
     tex_path = BUILD_DIR / "s294_277_complete_textbook.tex"
     DELIVERABLE_DIR.mkdir(parents=True, exist_ok=True)
     lectures = manifest["lectures"]
+    main_lectures = [lecture for lecture in lectures if lecture.get("kind", "lecture") != "supplement"]
+    supplement_lectures = [lecture for lecture in lectures if lecture.get("kind", "lecture") == "supplement"]
     missing_public_video = [
         lecture
-        for lecture in lectures
+        for lecture in main_lectures
         if not lecture.get("video_url")
     ]
     eval_statuses = [latest_eval_status(lecture) for lecture in lectures]
@@ -111,13 +113,40 @@ def main() -> None:
         ]
     )
 
-    for lecture in lectures:
+    for lecture in main_lectures:
         lines.append(
             f"{lecture['lecture_id']} & {latex_escape(lecture['title'])} & {lecture['date']} & {latex_escape(str(lecture.get('schedule_id') or ''))}\\\\"
         )
     lines.extend([r"\end{longtable}", ""])
 
-    for lecture in lectures:
+    for lecture in main_lectures:
+        pdf_rel = lecture.get("lecture_pdf")
+        if not pdf_rel:
+            continue
+        pdf_path = ROOT / pdf_rel
+        if not pdf_path.exists():
+            continue
+        include_path = os.path.relpath(pdf_path, BUILD_DIR)
+        section_title = latex_escape(lecture["title"])
+        lines.extend(
+            [
+                f"\\section{{{section_title}}}",
+                f"\\includepdf[pages=-,pagecommand={{\\thispagestyle{{plain}}}}]{{{include_path}}}",
+                "",
+            ]
+        )
+
+    if supplement_lectures:
+        lines.extend(
+            [
+                r"\appendix",
+                r"\section*{补充附录}",
+                r"\addcontentsline{toc}{section}{补充附录}",
+                r"以下章节用于把 Spring 2026 的最新课程更新，以及 MIT Underactuated Spring 2024 的理论骨架，纳入当前主书的系统化补充。",
+                "",
+            ]
+        )
+    for lecture in supplement_lectures:
         pdf_rel = lecture.get("lecture_pdf")
         if not pdf_rel:
             continue
@@ -151,6 +180,8 @@ def main() -> None:
         f"- `{deliverable_tex.name}`",
         f"- `{deliverable_pdf.name}`",
         f"- `{deliverable_manifest.name}`",
+        f"- main lectures: {len(main_lectures)}",
+        f"- supplement appendices: {len(supplement_lectures)}",
         "",
         "Harness status:",
         f"- evaluator summary: {'all lectures pass' if all_eval_pass else 'not all lectures pass'}",

@@ -1,0 +1,292 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{Appendix B: Spring 2026 的 Diffusion Models 与 Video World Models 补充}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-16}
+\newcommand{\videochannel}{Robots That Learn / UC Berkeley}
+\newcommand{\videopublishdate}{Spring 2026 course page snapshot}
+\newcommand{\videoduration}{N/A}
+\newcommand{\videourl}{https://robots-that-learn.github.io/}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large Fall 2024 主书补充章\par}
+\vspace{1.1cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.7cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.1cm}
+
+\ifdefempty{\videocoverpath}{
+{\small This appendix is reconstructed from the official Spring 2026 course page and explicit paper links.\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{来源边界}：本章是 Fall 2024 主书的补充章；目录内没有公开视频，因此正文依据 Spring 2026 官方课程页、reading list、course notes excerpt、transcript.jsonl 与 slides.jsonl 重建，并只使用显式列出的官方论文链接。\\
+\textbf{课程页面}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{overview_cover.jpg}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{cover.jpg}
+\caption{Spring 2026 官方补充页的 provenance card。由于本目录没有公开视频，本章以官方页面和论文链接为主证据。}
+\end{figure}
+
+\section{本章定位}
+
+这一章专门补 Spring 2026 里最关键的两条更新线：Normalizing Flows / Flow Matching，以及 Diffusion Models / Video World Models。它们共同构成了课程从“学习动作”走向“生成动作、预测未来、用世界模型组织行动”的方法更新。
+
+\subsection{为什么要把这两条线放在一起}
+
+从课程页的 reading list 看，Lecture 3 把 Normalizing Flows 和 Flow Matching 与 Diffusion Models 放在同一脉络中；Lecture 6B 又把 Video World Models、World Action Models are Zero-shot Policies 和 Track2Act 放在一起。换句话说，Spring 2026 并不是零散地追热点，而是在把一组相关的生成式与预测式方法编成一条连续技术链。
+
+\begin{warningbox}{本章的事实来源}
+本章只把 Spring 2026 course page 与显式列出的论文标题当作课程事实来源。关于这些方法的机制解释，属于教材式延伸解释，用于帮助读者理解课程为什么会这样选题。
+\end{warningbox}
+
+\section{Normalizing Flows：显式似然的生成建模}
+
+\subsection{基本思想}
+
+归一化流（normalizing flows）是一类通过可逆变换（invertible transformation）来构造复杂分布的方法。设简单潜变量 \(z \sim p_Z(z)\)，通过可逆映射 \(x=f_\theta(z)\) 得到数据变量 \(x\)。由于映射可逆，数据密度可以写成
+\[
+p_X(x) = p_Z(f_\theta^{-1}(x)) \left|\det \frac{\partial f_\theta^{-1}(x)}{\partial x}\right|.
+\]
+
+这条公式之所以重要，是因为它保留了显式似然（explicit likelihood）。对 robot learning 来说，这意味着我们不仅能采样动作，还可以评估动作在模型下的概率密度。
+
+\subsection{为什么机器人学习会关心 flows}
+
+机器人动作经常是多模态的，但又比普通图像生成更强调可控性和可解释性。normalizing flows 的价值在于：
+\begin{itemize}
+  \item 它能保留概率结构，而不是把多个动作平均掉；
+  \item 它在理论上非常适合做条件生成（conditional generation）；
+  \item 它与连续时间建模、ODE 视角和后续的 flow matching 很容易衔接。
+\end{itemize}
+
+\subsection{课程为什么会把它放进 reading list}
+
+Spring 2026 选择了 Normalizing Flows for Probabilistic Modeling and Inference，说明课程希望读者把 diffusion 之前的生成式基础也补齐。对本书而言，这意味着：如果要讲清楚扩散策略，就不能只讲“去噪采样”，还要讲“概率变换如何把简单噪声变成复杂动作分布”。
+
+\subsection{本章小结}
+
+Normalizing flows 解决的是“如何用可逆结构表示复杂分布”这个问题。它在 robot learning 中的意义不只在于生成，而在于把生成过程重新变成可计算、可评估、可条件化的概率模型。
+
+\section{Flow Matching：用速度场描述生成过程}
+
+\subsection{从密度到轨迹}
+
+Flow matching（流匹配）关注的不是直接拟合最终密度，而是拟合一个随时间变化的速度场（velocity field）或向量场（vector field）。给定从简单分布到目标分布的一条概率路径（probability path），模型学习在每个时间点应该朝哪个方向移动。
+
+一个典型的教材式写法是：
+\[
+\min_\theta \; \mathbb{E}_{t, x_t} \left[\|v_\theta(x_t, t) - u_t(x_t)\|^2\right],
+\]
+其中 \(v_\theta\) 是模型学到的速度场，\(u_t\) 是目标轨迹上的真实速度或监督信号。
+
+\subsection{Flow matching 的直觉}
+
+如果说 normalizing flows 更偏向“显式变换”，那 flow matching 更偏向“连续运输（transport）”。它把生成问题想成一条从简单分布流向复杂分布的轨迹，而不是一次性跳过去。
+
+对机器人动作建模来说，这种视角很自然：动作并不是静态类别，而是时间上连续演化的轨迹。因而，用速度场而不是离散标签来描述动作，往往更符合物理过程。
+
+\subsection{和 diffusion 的关系}
+
+Diffusion models、flows 和 flow matching 经常被放在同一谱系里讨论，因为它们都在处理“如何从噪声走向数据”这件事。区别在于：
+\begin{itemize}
+  \item diffusion 更强调逐步去噪；
+  \item flows 更强调可逆变换与显式密度；
+  \item flow matching 更强调学习中间的连续流场。
+\end{itemize}
+
+\subsection{本章小结}
+
+Flow matching 提供的是一种更连续、更几何化的生成视角。它特别适合机器人，因为机器人动作本身就是连续时间对象，而不是离散类别。
+
+\section{Diffusion Models：生成式动作建模的课程入口}
+
+\subsection{Diffusion 为什么适合 robot learning}
+
+扩散模型（diffusion models）最适合机器人学习的一点，是它天然支持多模态输出。机器人在同一状态下可能有多个合理动作；diffusion 的逐步采样过程，可以把这种不确定性保留下来，而不是强迫模型做单点回归。
+
+\begin{importantbox}{动作平均不是好策略}
+如果把多个合理动作简单平均，得到的往往不是一个“折中可行解”，而是一个更危险的错误动作。扩散策略的价值就在于避免这种平均化塌缩。
+\end{importantbox}
+
+\subsection{条件生成视角}
+
+在 robot learning 中，扩散模型通常不是无条件生成，而是条件于观测、状态、任务指令或历史轨迹。于是问题变成：
+\[
+p(a_{1:T} \mid o_{1:T}, \text{task})
+\]
+如何建模，以及如何在采样时生成一个满足任务约束的动作序列。
+
+\subsection{为什么它和 imitation / policy learning 兼容}
+
+扩散策略之所以在机器人里流行，是因为它同时具备两种性质：
+\begin{itemize}
+  \item 它像监督学习一样，能直接拟合示范数据；
+  \item 它又像生成模型一样，能保留多模态和不确定性。
+\end{itemize}
+
+因此，扩散模型可以被理解为“生成式行为克隆（generative behavior cloning）”的一种重要实现路线。
+
+\subsection{本章小结}
+
+Spring 2026 把 diffusion models 放到课程前端，说明它们已经不是辅助技巧，而是机器人策略建模的核心方法之一。
+
+\section{Video World Models：从动作预测到未来预测}
+
+\subsection{世界模型的角色}
+
+世界模型（world model）是一种学环境动力学与未来演化的表示。它不只回答“我下一步该做什么”，还回答“如果我这样做，世界会如何变化”。当这种模型以视频为主要输入和输出形式时，就形成了 video world model。
+
+\subsection{为什么视频很关键}
+
+视频比单帧图像更适合表达接触、遮挡、运动与事件顺序。对于机器人操作，最重要的信息往往不在静态外观，而在时间上的变化模式。视频世界模型的价值就在于，它能把这些变化模式编码成可用于规划或控制的中间表征。
+
+\subsection{From prediction to policy}
+
+Spring 2026 的 Lecture 6B 把 Video World Models 与 World Action Models are Zero-shot Policies 放在一起，这表明课程正在把“预测”和“行动”靠得更近。一个自然的教材式理解是：
+\begin{itemize}
+  \item world model 负责预测未来状态或视频轨迹；
+  \item policy 负责把这种预测转成行动；
+  \item world action model 试图把两者合并成一个可以直接产出行为的系统。
+\end{itemize}
+
+\subsection{本章小结}
+
+Video world models 的重要性不在于它们“会做视频”，而在于它们把未来的视觉演化变成了规划可用的中间层。
+
+\section{World Action Models 与 Track2Act}
+
+\subsection{World Action Models are Zero-shot Policies}
+
+从标题本身可以看出，World Action Models are Zero-shot Policies 想讨论的是一种“无需专门任务微调即可执行”的策略形式。这里的关键概念是 zero-shot policy（零样本策略）：系统在没有针对当前任务重新训练的情况下，仍然能依靠世界建模和动作生成完成任务。
+
+教材式地看，这意味着策略不再只是“输入观测，输出动作”，而是“借助世界表示，将任务推理嵌入动作生成”。
+
+\subsection{Track2Act：point tracks 作为动作中介}
+
+Track2Act: Predicting Point Tracks from Internet Videos enables Generalizable Robot Manipulation 提供了另一条特别实用的路线：先从互联网视频中抽取 point tracks，再把这些时空轨迹作为操作学习的中间表示。
+
+point tracks 的价值在于它们是压缩过的几何信号：
+\begin{itemize}
+  \item 比原始视频更轻；
+  \item 比纯文本或类别标签更接近动作；
+  \item 比直接预测低层关节命令更容易跨任务泛化。
+\end{itemize}
+
+\subsection{和视频模仿的关系}
+
+Track2Act 与视频模仿（video imitation）的关系可以这样理解：视频模仿关注“从视频学策略”，而 Track2Act 更强调“先把视频中的运动线索结构化，再把结构化线索用于操作”。这一步很重要，因为它把原始视频中的复杂性压缩成更稳定的几何中间层。
+
+\subsection{本章小结}
+
+World action models 和 Track2Act 都表明：Spring 2026 已经把“从视频中学会行动”视为 robot learning 的主干方向之一，而不是边缘补充。
+
+\section{把这几条线合在一起看}
+
+如果把本章中的方法放在同一张地图上，可以得到一个很稳定的层级：
+\begin{itemize}
+  \item Normalizing flows 处理可逆生成和显式似然；
+  \item Flow matching 处理连续速度场与概率运输；
+  \item Diffusion models 处理多模态动作生成；
+  \item Video world models 处理未来视频和环境演化；
+  \item World action models 处理预测与决策的耦合；
+  \item Track2Act 处理从互联网视频到可操作几何中间层的转换。
+\end{itemize}
+
+这张地图告诉我们，Spring 2026 的更新不是一组分散的新名词，而是 robot learning 中“生成式建模 + 预测式表示 + 行动决策”三者逐渐融合的结果。
+
+\section{本章小结}
+
+本章的核心信息可以浓缩成一句话：Spring 2026 把 robot learning 从“学习动作”推进到了“学习如何生成动作、预测未来并组织行动”。
+
+从课程页与显式 reading list 可以稳定得出的结论是：
+\begin{itemize}
+  \item diffusion models 已成为 robot learning 的重要主线；
+  \item normalizing flows 和 flow matching 是理解这一主线的理论前置；
+  \item video world models、world action models 和 Track2Act 则把生成式建模进一步推向任务执行。
+\end{itemize}
+
+\section{总结与延伸}
+
+如果把这章放回整本《Robots That Learn》的主书框架里，它最重要的作用不是补一个“前沿小节”，而是告诉读者：机器人学习正在从模仿轨迹，走向建模概率、流场、视频演化和可零样本泛化的世界表示。
+
+后续最值得延伸的三个方向是：
+\begin{itemize}
+  \item 生成式策略与控制理论如何统一；
+  \item 视频世界模型如何真正进入长程 planning；
+  \item point tracks、diffusion 和 language-conditioned policy 如何构成一个层级化动作系统。
+\end{itemize}
+
+\subsection{本章小结}
+
+Spring 2026 的这条更新线不是“把新论文塞进课程”，而是在重写 robot learning 的方法骨架。对于主书来说，这意味着 diffusion、flow matching、world models 和 video-based action learning 都应该被视为核心章节，而不是附录里的边缘材料。
+
+\end{document}

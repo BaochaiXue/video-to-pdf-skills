@@ -159,9 +159,7 @@ Required formulas:
 - none explicitly inferred
 
 Required code units:
-- sub_1040
-- sub_1041
-- sub_1042
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

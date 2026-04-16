@@ -156,13 +156,7 @@ Must cover unit ids:
 - slide_0032
 
 Required formulas:
-- sub_3918
-- sub_3919
-- sub_3920
-- sub_3926
-- sub_3927
-- sub_3928
-- slide_0032
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

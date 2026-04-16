@@ -156,9 +156,7 @@ Must cover unit ids:
 - slide_0006
 
 Required formulas:
-- slide_0004
-- slide_0005
-- slide_0006
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

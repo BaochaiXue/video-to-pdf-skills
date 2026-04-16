@@ -18,7 +18,7 @@ Must cover unit ids:
 - slide_0024
 
 Required formulas:
-- slide_0023
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

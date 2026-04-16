@@ -155,35 +155,7 @@ Required formulas:
 - none explicitly inferred
 
 Required code units:
-- sub_1422
-- sub_1423
-- sub_1424
-- sub_1425
-- sub_1426
-- sub_1428
-- sub_1429
-- sub_1430
-- sub_1432
-- sub_1433
-- sub_1434
-- sub_1438
-- sub_1439
-- sub_1440
-- sub_1442
-- sub_1443
-- sub_1444
-- sub_1470
-- sub_1471
-- sub_1472
-- sub_1480
-- sub_1481
-- sub_1482
-- sub_1490
-- sub_1491
-- sub_1492
-- sub_1514
-- sub_1515
-- sub_1516
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

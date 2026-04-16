@@ -156,32 +156,7 @@ Must cover unit ids:
 - slide_0005
 
 Required formulas:
-- sub_0602
-- sub_0603
-- sub_0604
-- sub_0620
-- sub_0621
-- sub_0622
-- sub_0624
-- sub_0625
-- sub_0626
-- sub_0628
-- sub_0629
-- sub_0630
-- sub_0631
-- sub_0632
-- sub_0638
-- sub_0639
-- sub_0640
-- sub_0672
-- sub_0673
-- sub_0674
-- sub_0675
-- sub_0676
-- sub_0734
-- sub_0735
-- sub_0736
-- slide_0005
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

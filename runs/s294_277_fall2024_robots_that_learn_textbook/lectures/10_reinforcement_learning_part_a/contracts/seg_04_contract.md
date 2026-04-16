@@ -152,29 +152,10 @@ Must cover unit ids:
 - slide_0020
 
 Required formulas:
-- sub_0444
-- sub_0445
-- sub_0446
-- sub_0447
-- sub_0448
-- sub_0452
-- sub_0453
-- sub_0454
-- sub_0464
-- sub_0465
-- sub_0466
+- none explicitly inferred
 
 Required code units:
-- sub_0436
-- sub_0437
-- sub_0438
-- sub_0454
-- sub_0455
-- sub_0456
-- slide_0016
-- slide_0017
-- slide_0019
-- slide_0020
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

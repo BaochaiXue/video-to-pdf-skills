@@ -156,26 +156,7 @@ Must cover unit ids:
 - slide_0019
 
 Required formulas:
-- sub_1986
-- sub_1987
-- sub_1988
-- sub_2004
-- sub_2005
-- sub_2006
-- sub_2008
-- sub_2009
-- sub_2010
-- sub_2011
-- sub_2012
-- sub_2013
-- sub_2014
-- sub_2044
-- sub_2045
-- sub_2046
-- sub_2054
-- sub_2055
-- sub_2056
-- slide_0019
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

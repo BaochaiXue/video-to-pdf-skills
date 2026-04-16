@@ -156,12 +156,7 @@ Must cover unit ids:
 - sub_2086
 
 Required formulas:
-- sub_1954
-- sub_1955
-- sub_1956
-- sub_2024
-- sub_2025
-- sub_2026
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

@@ -153,17 +153,10 @@ Must cover unit ids:
 - sub_2044
 
 Required formulas:
-- sub_1958
-- sub_1959
-- sub_1960
+- none explicitly inferred
 
 Required code units:
-- sub_2010
-- sub_2011
-- sub_2012
-- sub_2016
-- sub_2017
-- sub_2018
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

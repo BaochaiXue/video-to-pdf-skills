@@ -4,6 +4,8 @@ Current deliverable assets:
 - `s294_277_complete_textbook.tex`
 - `s294_277_complete_textbook.pdf`
 - `course_manifest.json`
+- main lectures: 18
+- supplement appendices: 4
 
 Harness status:
 - evaluator summary: all lectures pass

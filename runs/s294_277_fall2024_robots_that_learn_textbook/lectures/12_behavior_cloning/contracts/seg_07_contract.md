@@ -155,13 +155,10 @@ Must cover unit ids:
 - slide_0025
 
 Required formulas:
-- slide_0024
+- none explicitly inferred
 
 Required code units:
-- sub_0872
-- sub_0873
-- sub_0874
-- slide_0023
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

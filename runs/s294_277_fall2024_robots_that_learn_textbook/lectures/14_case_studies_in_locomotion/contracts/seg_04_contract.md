@@ -162,8 +162,7 @@ Required formulas:
 - none explicitly inferred
 
 Required code units:
-- slide_0022
-- slide_0023
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

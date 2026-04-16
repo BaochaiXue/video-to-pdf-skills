@@ -1,0 +1,87 @@
+MIT Underactuated Spring 2024 适合作为这本书的理论骨架，尤其能补强 dynamics、optimal control、trajectory optimization 与 planning 的数学基础。
+
+Ch. 1 - Fully-actuated vs Underactuated Systems
+
+Underactuated Robotics
+
+© Russ Tedrake, 2024 Last modified . How to cite these notes, use annotations, and give feedback.
+
+Note: These are working notes used for a course being taught at MIT . They will be updated throughout the Spring 2024 semester. Lecture videos are available on YouTube .
+
+Fully-actuated vs Underactuated Systems
+
+Many robots today move far too conservatively, and accomplish only a fraction of the tasks and achieve a fraction of the performance that they are mechanically capable of. In some cases, we are still fundamentally limited by control technology which matured on rigid robotic arms in structured factory environments, where large actuators could be used to "shape" the dynamics of the machine to achieve precision and repeatability. The study of underactuated robotics focuses on building control systems which instead exploit the natural dynamics of the machines in an attempt to achieve extraordinary performance in terms of speed, efficiency, or robustness.
+
+In the last few years, controllers designed using machine learning have showcased the potential power of optimization-based control, but these methods do not yet enjoy the sample-efficiency nor algorithmic reliability that we've come to expect from more mature control technologies. The study of underactuated robotics asks us to look closely at the optimization landscapes that occur when we are optimizing mechanical systems, to understand and exploit that structure in our optimization and learning algorithms.
+
+Motivation
+
+Ch. 2 - The Simple Pendulum
+
+The Simple Pendulum
+
+Introduction
+
+Our goals for this chapter are modest: we'd like to understand the dynamics of a pendulum.
+
+Why a pendulum? In part, because the dynamics of a majority of our multi-link robotics manipulators are simply the dynamics of a large number of coupled pendula. Also, the dynamics of a single pendulum are rich enough to introduce most of the concepts from nonlinear dynamics that we will use in this text, but tractable enough for us to (mostly) understand in the next few pages.
+
+Ch. 7 - Dynamic Programming
+
+Dynamic Programming
+
+In chapter 2, we spent some time thinking about the phase portrait of the simple pendulum, and concluded with a challenge: can we design a nonlinear controller to reshape the phase portrait, with a very modest amount of actuation, so that the upright fixed point becomes globally stable? With enough actuators and unbounded torque, feedback-cancellation solutions (e.g., invert gravity) can work well, but can also require an unnecessarily large amount of control effort. The energy-based swing-up control solutions presented for the Acrobot and cart-pole systems are considerably more appealing, but required some cleverness and might not scale to more complicated systems. Here we investigate another approach to the problem, using computational optimal control to synthesize a feedback controller directly.
+
+Formulating control design as an optimization
+
+In this chapter, we will introduce optimal control. Reinforcement learning is the machine learning name for optimal control; we'll discuss that machine learning perspective later in the notes. Optimal control is powerful for a number of reasons. First and foremost, it is very general - allowing us to specify the goal of control equally well for fully-actuated or underactuated, linear or nonlinear, deterministic or stochastic, and continuous or discrete systems. Second, it permits concise descriptions of potentially very complex desired behaviors, specifying the goal of control as a scalar objective (plus a list of constraints). Finally, and most importantly, optimal control is very amenable to numerical solutions. Bertsekas00a is a fantastic reference on this material for those who want a somewhat rigorous treatment; Sutton18 is an excellent (free) reference for those who want something more approachable.
+
+Ch. 8 - Linear Quadratic Regulators
+
+Linear Quadratic Regulators
+
+While solving the dynamic programming problem for continuous systems is very hard in general, there are a few very important special cases where the solutions are very accessible. Most of these involve variants on the case of linear dynamics and convex (e.g. positive quadratic) cost. The simplest case, called the linear quadratic regulator (LQR), is formulated as stabilizing a time-invariant linear system to the origin.
+
+The linear quadratic regulator is likely the most important and influential result in optimal control theory to date. In this chapter we will derive the basic algorithm and a variety of useful extensions.
+
+Basic Derivation
+
+Ch. 3 - Acrobots, Cart-Poles, and Quadrotors
+
+Acrobots, Cart-Poles, and Quadrotors
+
+A great deal of work in the control of underactuated systems has been done in the context of low-dimensional model systems. These model systems capture the essence of the problem without introducing all of the complexity that is often involved in more real-world examples. In this chapter we will focus on two of the most well-known and well-studied model systems--the Acrobot and the Cart-Pole. After we have developed some tools, we will see that they can be applied directly to other model systems; we will give a number of examples using Quadrotors. All of these systems are trivially underactuated, having fewer actuators than degrees of freedom.
+
+The Acrobot
+
+The Acrobot is a planar two-link robotic arm in the vertical plane (working against gravity), with an actuator at the elbow, but no actuator at the shoulder. It was first described in detail in Murray91 . The companion system, with an actuator at the shoulder but not at the elbow, is known as the Pendubot Spong97 . The Acrobot is so named because of its resemblance to a gymnast (or acrobat) on a parallel bar, who controls his/her motion predominantly by effort at the waist (and not effort at the wrist). The most common control task studied for the Acrobot is the swing-up task, in which the system must use the elbow (or waist) torque to move the system into a vertical configuration then balance.
+
+Ch. 9 - Lyapunov Analysis
+
+Lyapunov Analysis
+
+Optimal control provides a powerful framework for formulating control problems using the language of optimization. But solving optimal control problems for nonlinear systems is hard! In many cases, we don't really care about finding the optimal controller, but would be satisfied with any controller that is guaranteed to accomplish the specified task. In many cases, we still formulate these problems using computational tools from optimization, and in this chapter we'll learn about tools that can provide guaranteed control solutions for systems that are beyond the complexity for which we can find the optimal feedback.
+
+There are many excellent books on Lyapunov analysis; for instance Slotine90 is an excellent and very readable reference and Khalil01 can provide a rigorous treatment. In this chapter I will summarize (without proof) some of the key theorems from Lyapunov analysis, but then will also introduce a number of numerical algorithms... many of which are new enough that they have not yet appeared in any mainstream textbooks.
+
+Lyapunov Functions
+
+Ch. 10 - Trajectory Optimization
+
+Trajectory Optimization
+
+I've argued that optimal control is a powerful framework for specifying complex behaviors with simple objective functions, letting the dynamics and constraints on the system shape the resulting feedback controller (and vice versa!). But the computational tools that we've provided so far have been limited in some important ways. The numerical approaches to dynamic programming which involve putting a mesh over the state space do not scale well to systems with state dimension more than four or five. Linearization around a nominal operating point (or trajectory) allowed us to solve for locally optimal control policies (e.g. using LQR) for even very high-dimensional systems, but the effectiveness of the resulting controllers is limited to the region of state space where the linearization is a good approximation of the nonlinear dynamics. The computational tools for Lyapunov analysis from the last chapter can provide, among other things, an effective way to compute estimates of those regions, and the sums-of-squares approaches to dynamic programming are still in their early days. We have not yet provided the mainstream computational tools for approximate optimal control that work for high-dimensional systems beyond the linearization around a goal. That is precisely the goal for this chapter.
+
+In order to scale to high-dimensional systems, we are going to formulate a simpler version of the optimization problem. Rather than trying to solve for the optimal feedback controller for the entire state space, in this chapter we will instead attempt to find an optimal control solution that is valid from only a single initial condition. Instead of representing this as a feedback control function, we can represent this solution as a trajectory , $\bx(t), \bu(t)$, typically defined over a finite interval.
+
+Problem Formulation
+
+Ch. 12 - Sampling-based motion planning
+
+Sampling-based motion planning
+
+The term "motion planning" is a quite general term which almost certainly encompasses the dynamic programming, feedback design, and trajectory optimization algorithms that we have already discussed. However, there are a number of algorithms and ideas that we have not yet discussed which have grown from the idea of formulating motion planning as a search problem -- for instance searching for a path from a start to a goal in a graph which is too large to fit in memory. In order to deal with the continuous domains that are common in robotics, these algorithms often rely on randomized sampling.
+
+My goal for this chapter is to introduce these additional tools into our toolkit. For robotics, they will play a particularly valuable role when the planning problem is geometrically complex (e.g. a robot moving around obstacles in 3D) or the optimization landscape is very nonconvex, because these are the problems where the nonlinear trajectory optimization formulations that we've studied before will potentially suffer badly from local minima. Many of these algorithms were developed initially for discrete or purely kinematic planning problems; a major theme of this chapter will be the adaptations that allow them to work for systems with dynamic constraints (including underactuated systems).
+
+LaValle06 is a very nice book on planning algorithms in general and on motion planning algorithms in particular.

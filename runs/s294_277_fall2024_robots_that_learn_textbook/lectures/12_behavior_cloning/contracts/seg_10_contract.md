@@ -156,7 +156,7 @@ Required formulas:
 - none explicitly inferred
 
 Required code units:
-- slide_0032
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

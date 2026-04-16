@@ -147,17 +147,10 @@ Must cover unit ids:
 - sub_0840
 
 Required formulas:
-- sub_0744
-- sub_0745
-- sub_0746
+- none explicitly inferred
 
 Required code units:
-- sub_0702
-- sub_0703
-- sub_0704
-- sub_0714
-- sub_0715
-- sub_0716
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

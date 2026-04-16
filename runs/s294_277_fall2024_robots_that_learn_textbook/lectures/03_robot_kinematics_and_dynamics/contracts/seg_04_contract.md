@@ -156,18 +156,7 @@ Must cover unit ids:
 - slide_0004
 
 Required formulas:
-- sub_0556
-- sub_0557
-- sub_0558
-- sub_0560
-- sub_0561
-- sub_0562
-- sub_0570
-- sub_0571
-- sub_0572
-- sub_0573
-- sub_0574
-- slide_0004
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

@@ -5,7 +5,8 @@ Source range:
 - segment hint: Human Hand and Dexterous Manipulation
 
 Must cover unit ids:
-- none explicitly assigned
+- sub_fallback_0001
+- slide_fallback_0001
 
 Required formulas:
 - none explicitly inferred

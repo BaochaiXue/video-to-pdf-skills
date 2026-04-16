@@ -1,0 +1,365 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{S294-277 主书理论补充章 D：Underactuated 的 locomotion、contact 与 robustness 补充}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-16}
+\newcommand{\videochannel}{MIT Underactuated / Russ Tedrake}
+\newcommand{\videopublishdate}{Spring 2024}
+\newcommand{\videoduration}{课程级补充章}
+\newcommand{\videourl}{https://underactuated.csail.mit.edu/Spring2024/schedule.html}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\bu}{\mathbf{u}}
+\newcommand{\bq}{\mathbf{q}}
+\newcommand{\bv}{\mathbf{v}}
+\newcommand{\bp}{\mathbf{p}}
+\newcommand{\bM}{\mathbf{M}}
+\newcommand{\bC}{\mathbf{C}}
+\newcommand{\bB}{\mathbf{B}}
+\newcommand{\bg}{\mathbf{g}}
+\newcommand{\bK}{\mathbf{K}}
+\newcommand{\bQ}{\mathbf{Q}}
+\newcommand{\bR}{\mathbf{R}}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{overview_cover.jpg}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{本章定位与主书关系}
+
+这一章是 S294-277 主书的理论补充章 D，主题围绕 locomotion、contact 和 robustness 展开。它仍然基于 MIT Underactuated Spring 2024 的官方 notes、schedule 页面和官方 YouTube playlist。与前一章相比，这一章更靠近腿足机器人、混合动力学（hybrid dynamics）、鲁棒控制（robust control）和策略化控制（policy-based control）的交汇处。
+
+如果说主书前面的操控与学习章节强调“机器人如何学会做事”，那么这一章强调的是“机器人为什么必须在接触、不连续和不确定性中做事”。这类问题在腿足运动、接触丰富的操作以及长程导航中都极其关键。
+
+\begin{importantbox}{这一章的核心结构}
+\[
+\text{接触与混合动力学} \to \text{极限环与 Poincaré map} \to \text{腿足模型与步态}
+\to \text{鲁棒/随机/输出反馈控制} \to \text{policy search 与 feedback motion planning}
+\]
+这一链条把 locomotion 和 robustness 统一成了“对非平滑系统做可计算控制设计”的问题。
+\end{importantbox}
+
+\subsection{为什么从 walking 开始}
+
+Underactuated notes 之所以从 walking and running 讲起，是因为腿足机器人同时具备两种最难处理的结构：欠驱动和接触。接触使得系统不再是单一光滑向量场，而是会在不同模式之间切换；欠驱动则意味着即便在每个模式内部，控制方向也不够自由。两者叠加后，传统连续控制方法会立即变得不够用。
+
+\subsection{本章小结}
+
+本章不是在讲“走路很难”这么一句空话，而是在讲：走路之所以难，是因为它要求我们把连续时间控制、离散事件、周期稳定性和不确定性控制放在同一张纸上讨论。
+
+\section{接触与混合动力学}
+
+\subsection{从光滑系统到混合系统}
+
+在光滑系统里，我们通常写
+\[
+\dot{\bx} = f(\bx,\bu).
+\]
+但一旦机器人需要和环境发生接触，系统就更自然地写成 hybrid dynamics（混合动力学）：
+\[
+\dot{\bx} = f_i(\bx,\bu), \quad \bx \in \mathcal{D}_i,
+\]
+并在 guard 条件触发时发生 reset map：
+\[
+\bx^+ = \Delta_i(\bx^-).
+\]
+这里：
+\begin{itemize}
+  \item $\mathcal{D}_i$ 是模式 $i$ 的可行域；
+  \item $\Delta_i$ 是碰撞或切换时的状态重置；
+  \item $\bx^-$ 和 $\bx^+$ 分别表示切换前后状态。
+\end{itemize}
+
+接触最重要的难点并不只是“不连续”，而是它带来了组合选择：机器人到底要不要接触、在哪个时刻接触、以什么顺序接触。这就是为什么课程说 contact introduces a fundamentally discrete/combinatorial element。
+
+\subsection{接触约束的最小形式}
+
+若用 $\phi(\bq)$ 表示间隙函数（gap function），则接触通常需要满足
+\[
+\phi(\bq)\ge 0,\qquad \lambda \ge 0,\qquad \lambda^\top \phi(\bq)=0,
+\]
+其中 $\lambda$ 是接触力。这个互补条件（complementarity condition）表达了一个事实：要么不接触，要么接触时不能相互穿透。即使在软接触模型里把不连续平滑掉，机器人仍然需要做“是否发生接触”的决策。
+
+\subsection{为什么 contact 对 planning 特别难}
+
+如果轨迹规划的状态空间里出现了接触切换，那么可行轨迹不再只是连续曲线，而是带有模式切换的分段轨迹。这样一来，规划器不仅要找到几何上可行的路径，还要找到模式顺序本身。这个结构是腿足机器人、操控与人形机器人中最核心的复杂性来源。
+
+\subsection{本章小结}
+
+接触不是简单的“额外约束”，而是让机器人控制从连续优化问题变成混合系统问题的关键原因。
+
+\section{步态、极限环与 Poincar\'e map}
+
+\subsection{极限环是什么}
+
+极限环（limit cycle）是一个周期轨道，它是动力系统的一个极限集。对于行走和奔跑机器人，我们通常不再把稳定性理解为固定点稳定，而是理解为周期轨道稳定，即 orbital stability（轨道稳定性）。
+
+一个典型的非线性振荡例子是 Van der Pol oscillator：
+\[
+\ddot{q} + \mu(q^2-1)\dot{q} + q = 0,\qquad \mu>0.
+\]
+它的意义在于：即便轨迹不会在时间上同步到同一个相位，只要它们都收敛到同一条闭合轨道，这个周期行为仍然是稳定的。于是，我们需要把“稳定”的定义从点推广到轨道。
+
+\subsection{Poincar\'e map}
+
+Poincar\'e map（庞加莱映射）是分析极限环的标准工具。做法是取一个横截面 $S$，把系统每次穿过 $S$ 的状态映射成离散时间系统：
+\[
+\bx_{n+1} = P(\bx_n).
+\]
+如果 $P$ 的某个固定点稳定，那么原连续系统中的对应周期轨道就局部稳定。其本质是把连续时间的周期稳定问题，转化成离散时间固定点稳定问题。
+
+\begin{knowledgebox}{为什么 Poincar\'e map 很有用}
+它把“无穷多时刻上的连续稳定性”压缩成“跨越一次一周期边界的离散稳定性”。对于腿足机器人这种周期性极强的系统，这是最自然的分析语言。
+\end{knowledgebox}
+
+\subsection{一个关键例子：rimless wheel}
+
+Rimless wheel 是最简单的步行模型之一。它只有一组刚性腿和一个髋部点质量，碰撞发生时会损失角动量。对于单步返回映射，典型形式可写为
+\[
+\dot{\theta}^{+}_{n+1}
+= \cos(2\alpha)\sqrt{(\dot{\theta}^{+}_n)^2 + 4\frac{g}{\ell}\sin\alpha\sin\gamma},
+\]
+其中：
+\begin{itemize}
+  \item $\alpha$ 是腿之间的夹角参数；
+  \item $\gamma$ 是坡度；
+  \item $\ell$ 是腿长；
+  \item $\dot{\theta}^{+}_n$ 是第 $n$ 次支撑阶段后、下一次碰撞前后的状态变量。
+\end{itemize}
+
+这个例子的价值在于，它展示了一个非常反直觉但非常重要的事实：有些步态的稳定性，恰恰来自碰撞中的能量损失，而不是对碰撞的回避。
+
+\subsection{Compass gait 与简单模型的意义}
+
+Compass gait 比 rimless wheel 多了一条摆动腿，因此更接近真实行走。它告诉我们：一旦把单腿的连续相位和换步瞬间都纳入考虑，系统就自然变成了 hybrid mechanical system。Underactuated notes 用这类模型反复强调一个原则：复杂腿足系统可以先用简单模型理解步态，再把理解迁移到更复杂的机器人上。
+
+\subsection{本章小结}
+
+极限环、Poincar\'e map 和简单步态模型一起，构成了腿足机器人控制的基础语言。只要系统是周期性的，就不应该只问“能否稳定一个点”，而应该问“能否稳定一条轨道”。
+
+\section{SLIP、周期控制与离散时间技能}
+
+\subsection{SLIP 模型}
+
+Spring-Loaded Inverted Pendulum（SLIP，弹簧负载倒立摆）是理解奔跑和弹跳的经典模型。它把腿当成轻量弹簧，把身体当成点质量。这个模型的重要性在于：它把 running 的核心简化为一个高层离散决策问题，即每一步选择什么触地角度、什么起跳能量、什么步频。
+
+如果把步间状态记为 $x_p[n]$，控制决策记为 $u[n]$，那么 apex-to-apex map 可以写成
+\[
+x_p[n+1] = P(x_p[n],u[n]).
+\]
+在这个视角下，奔跑不再只是连续控制问题，而是一个离散时间系统的稳定化问题。
+
+\subsection{Deadbeat control}
+
+如果控制代价几乎可以忽略，而动作空间又允许我们在一步内准确到达目标，那么 deadbeat controller（死拍控制）就是一个自然的构想：直接选取让系统一步到达目标固定点的输入。SLIP 的一个美妙之处就在于，触地角度与下一次 apex 状态之间可以形成可逆映射，从而允许这种一步到位的控制设计。
+
+\subsection{盲跑与 ground-speed matching}
+
+课程里还强调了一个很有启发性的现象：如果 touchdown angle 与 hopping speed 的关系足够光滑，那么可以在不精确感知地形的情况下，通过时间调制的腿摆轨迹实现“盲跑”。这与生物力学中的 ground-speed matching（足速匹配）现象相呼应，说明看似“过于简单”的模型其实能捕捉到非常深的运动控制规律。
+
+\subsection{离散时间技能视角}
+
+SLIP 的分析给我们一个非常现代的机器人观点：很多复杂的运动控制问题，可以被理解成“每一步做一次离散决策”。这与主书中 behavior cloning、policy search 和 model predictive control 的思想非常接近，因为它们本质上都在构造一步一决策的稳定闭环。
+
+\subsection{本章小结}
+
+SLIP 的价值不只是解释跑步，而是把周期运动转化为离散时间控制问题。这样，控制理论、学习策略和规划决策就可以放到同一个 step-to-step 框架中分析。
+
+\section{高维腿足系统与简单模型}
+
+\subsection{从 simple models 到 humanoids}
+
+Underactuated notes 明确指出，复杂腿足机器人最令人惊讶的一点，是估计、规划和控制仍然大量依赖简单模型。原因很直接：当自由度很多时，完整模型太大、太非线性、太难实时优化；而足够好的简化模型能保留最关键的动力学结构。
+
+在 humanoids 和 quadrupeds 的实践中，ZMP（zero-moment point）、footstep planning、centroidal model 以及空间代数（spatial algebra）常常构成高层规划的基础。课程中的意思不是“这些简化模型就是真相”，而是“这些简化模型足以作为控制接口”。
+
+\subsection{simple model 的工程地位}
+
+simple model 之所以重要，是因为它们帮助我们把复杂机器人系统拆成两层：
+\begin{itemize}
+  \item 高层决定步态、接触序列和质心运动；
+  \item 低层负责关节控制、力分配和局部稳定。
+\end{itemize}
+
+这种分层与主书里视觉模仿、局部策略和长程规划的结构非常类似：都不是把所有细节塞进一个模型，而是让一个简化层负责全局结构，再让另一个层负责局部执行。
+
+\subsection{本章小结}
+
+高维机器人并不意味着必须放弃简单模型。恰恰相反，机器人越复杂，越需要用更小、更可解释的模型做高层决策。
+
+\section{鲁棒控制、随机控制与输出反馈}
+
+\subsection{鲁棒控制的核心问题}
+
+鲁棒控制（robust control）关心的是：在模型不确定、扰动存在、参数漂移的情况下，系统还能不能保持性能。若把不确定项写成扰动 $w$，一个标准形式是
+\[
+\dot{\bx} = f(\bx,\bu,w), \qquad w \in \mathcal{W}.
+\]
+鲁棒控制并不要求知道真实扰动的精确分布，而是要求在最坏情况下也不崩溃。
+
+经典的 $\mathcal{H}_\infty$ 视角可以概括为：找一个控制器，使得从扰动到性能输出的最坏增益尽可能小，即
+\[
+\|T_{w\to z}\|_\infty \le \gamma.
+\]
+这与主书里强调的“算法可靠性”高度一致：当学习方法还不够稳定时，鲁棒控制提供的是结构化的安全边界。
+
+\subsection{随机控制}
+
+随机控制（stochastic control）则不是把不确定性看成未知最坏情况，而是把它看成随机过程。例如
+\[
+\bx_{k+1} = A\bx_k + B\bu_k + w_k,\qquad w_k \sim \mathcal{N}(0,\Sigma_w).
+\]
+这时我们关心的不仅是均值轨迹，还包括方差、风险和累积代价的统计性质。随机控制与 RL 的关系尤其紧密，因为很多 RL 问题本质上就是在随机环境中做期望意义下的最优决策。
+
+\subsection{输出反馈}
+
+在实际机器人里，控制器往往不能直接看到完整状态，只能看到测量输出 $y$。这就需要 output feedback（输出反馈）：
+\[
+\hat{\bx}_{k+1} = A\hat{\bx}_k + B\bu_k + L(y_k - C\hat{\bx}_k),
+\]
+其中 $L$ 是观测器增益。Kalman filter 和 LQG（linear quadratic Gaussian）就是这一思路的经典组合：LQR 负责控制，观测器负责估计。
+
+\subsection{本章小结}
+
+鲁棒、随机和输出反馈并不是额外的“高级附录”，而是把理想控制问题变成真实机器人问题的必要步骤。只要系统有噪声、延迟、模型误差或部分观测，这三类工具就无法回避。
+
+\section{Policy search 与 feedback motion planning}
+
+\subsection{参数化策略}
+
+Policy search（策略搜索）把控制器写成参数化形式
+\[
+\bu_t = \pi_\theta(\bx_t),
+\]
+然后直接优化参数 $\theta$。这与 value-based 方法不同：它不先估计价值函数，而是直接在策略空间里搜。Underactuated notes 把它和 optimal control 联系起来，是因为很多策略搜索算法本质上都是在近似求解一个控制优化问题。
+
+\subsection{为什么简单策略有时更好}
+
+课程摘录提到，很多复杂机器人上简单策略反而表现很好。这不是偶然，而是因为复杂系统中的很多结构可以被低维参数捕捉。对于高维腿足系统、接触任务和长程任务来说，直接追求完美的全局反馈律往往不可行，而一个足够好的参数化策略更容易优化、解释和部署。
+
+\subsection{Feedback motion planning}
+
+Feedback motion planning（反馈运动规划）把规划和控制彻底打通。若一个规划器足够快，可以在每个控制周期都重新求解，那么它实际上就成了 policy；反过来，如果一个策略可被前向模拟，它又可以生成轨迹规划。于是
+\[
+\text{planner} \leftrightarrow \text{policy}
+\]
+就不再是两类不同对象，而是同一对象的不同实现方式。
+
+在这个语境下，MPC（model predictive control）尤其关键：它每次只求解一个短时域规划问题，再把第一个控制动作执行出去。这样既保留了规划的前瞻性，也保留了反馈的实时修正能力。
+
+\subsection{与主书 learning 章节的联系}
+
+这一章和主书后半部分的关系非常直接：行为克隆、视觉模仿和长程操作本质上都是在构造某种参数化策略；而 feedback motion planning 则说明这些策略为何可以与轨迹优化和在线规划结合。换言之，学习并不是规划的替代品，而是把规划压缩成可执行策略的一种方式。
+
+\subsection{本章小结}
+
+Policy search 和 feedback motion planning 共同说明了一件事：控制器可以直接作为策略来学，而规划器也可以在闭环里被当作策略来跑。对于机器人系统而言，二者的边界本来就比教科书里的定义更模糊。
+
+\section{本章小结}
+
+这章的主线是：一旦机器人进入 locomotion、contact 和 robustness 的世界，控制就不再只是连续反馈问题，而是一个把混合动力学、周期稳定性、不确定性和策略优化揉在一起的系统问题。
+
+如果把本章压缩成几条最重要的结论，就是：
+\begin{itemize}
+  \item 接触让机器人控制变成混合系统问题；
+  \item 行走和奔跑更适合用极限环和 Poincar\'e map 来理解；
+  \item 简单步态模型是复杂腿足机器人的高层抽象；
+  \item 鲁棒控制、随机控制和输出反馈是走向真实系统的必要工具；
+  \item policy search 和 feedback motion planning 把学习、规划和控制统一了起来。
+\end{itemize}
+
+\section{总结与延伸}
+
+如果把这一章和主书的行为克隆、视觉模仿、locomotion case studies 以及 long-horizon planning 章节合起来看，就能得到一个很完整的机器人系统观：
+\begin{itemize}
+  \item 学习解决“从数据中获得动作结构”；
+  \item 规划解决“如何在任务空间里组织动作”；
+  \item 控制解决“如何在动力学和接触中稳定执行”；
+  \item 鲁棒与随机控制解决“如何在不确定性下仍然工作”。
+\end{itemize}
+
+这也是 Underactuated Spring 2024 对主书最大的补充意义：它把机器人学习的很多经验法则，重新翻译成可分析、可证明、可实现的动力学和优化语言。
+
+后续最值得继续阅读的内容是官方 schedule 中关于 simple walking, limit cycles, contact, humanoids, robust control, policy search 和 feedback motion planning 的章节；它们和主书中 locomotion、navigation、dexterous manipulation 的内容正好构成一条贯通“模型 -- 规划 -- 控制 -- 学习”的完整路径。
+
+\end{document}

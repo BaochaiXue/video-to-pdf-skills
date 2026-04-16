@@ -153,9 +153,7 @@ Must cover unit ids:
 - sub_2190
 
 Required formulas:
-- sub_2152
-- sub_2153
-- sub_2154
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

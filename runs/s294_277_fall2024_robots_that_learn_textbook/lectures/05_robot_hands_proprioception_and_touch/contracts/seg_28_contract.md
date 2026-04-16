@@ -155,9 +155,7 @@ Must cover unit ids:
 - slide_0067
 
 Required formulas:
-- sub_4096
-- sub_4097
-- sub_4098
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

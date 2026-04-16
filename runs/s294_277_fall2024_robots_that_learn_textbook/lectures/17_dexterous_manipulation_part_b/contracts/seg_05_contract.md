@@ -156,14 +156,10 @@ Must cover unit ids:
 - sub_0745
 
 Required formulas:
-- sub_0654
-- sub_0655
-- sub_0656
+- none explicitly inferred
 
 Required code units:
-- sub_0650
-- sub_0651
-- sub_0652
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

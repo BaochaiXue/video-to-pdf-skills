@@ -152,28 +152,10 @@ Must cover unit ids:
 - slide_0010
 
 Required formulas:
-- sub_0182
-- sub_0183
-- sub_0184
+- none explicitly inferred
 
 Required code units:
-- sub_0182
-- sub_0183
-- sub_0184
-- sub_0186
-- sub_0187
-- sub_0188
-- sub_0228
-- sub_0229
-- sub_0230
-- sub_0231
-- sub_0232
-- sub_0242
-- sub_0243
-- sub_0244
-- sub_0246
-- sub_0247
-- sub_0248
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

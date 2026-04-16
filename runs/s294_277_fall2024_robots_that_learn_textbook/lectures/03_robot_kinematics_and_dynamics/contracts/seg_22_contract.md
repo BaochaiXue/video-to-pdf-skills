@@ -156,19 +156,7 @@ Must cover unit ids:
 - slide_0027
 
 Required formulas:
-- sub_3110
-- sub_3111
-- sub_3112
-- sub_3172
-- sub_3173
-- sub_3174
-- sub_3204
-- sub_3205
-- sub_3206
-- sub_3222
-- sub_3223
-- sub_3224
-- slide_0027
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

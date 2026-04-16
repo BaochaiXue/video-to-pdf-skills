@@ -152,12 +152,10 @@ Must cover unit ids:
 - slide_0070
 
 Required formulas:
-- sub_1726
-- sub_1727
-- sub_1728
+- none explicitly inferred
 
 Required code units:
-- sub_1820
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

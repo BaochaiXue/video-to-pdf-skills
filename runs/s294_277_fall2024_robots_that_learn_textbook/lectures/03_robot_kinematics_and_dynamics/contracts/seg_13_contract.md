@@ -156,18 +156,7 @@ Must cover unit ids:
 - slide_0018
 
 Required formulas:
-- sub_1838
-- sub_1839
-- sub_1840
-- sub_1846
-- sub_1847
-- sub_1848
-- sub_1850
-- sub_1851
-- sub_1852
-- sub_1912
-- sub_1913
-- sub_1914
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

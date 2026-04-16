@@ -162,17 +162,7 @@ Required formulas:
 - none explicitly inferred
 
 Required code units:
-- sub_0588
-- sub_0589
-- sub_0590
-- sub_0630
-- sub_0631
-- sub_0632
-- sub_0696
-- sub_0697
-- sub_0698
-- slide_0026
-- slide_0028
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

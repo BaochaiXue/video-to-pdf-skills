@@ -156,9 +156,7 @@ Required formulas:
 - none explicitly inferred
 
 Required code units:
-- sub_1620
-- sub_1621
-- sub_1622
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

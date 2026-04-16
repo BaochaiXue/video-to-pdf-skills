@@ -158,12 +158,7 @@ Required formulas:
 - none explicitly inferred
 
 Required code units:
-- sub_0744
-- sub_0745
-- sub_0746
-- sub_0762
-- sub_0763
-- sub_0764
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

@@ -156,12 +156,7 @@ Must cover unit ids:
 - slide_0007
 
 Required formulas:
-- sub_0840
-- sub_0841
-- sub_0842
-- sub_0848
-- sub_0849
-- sub_0850
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

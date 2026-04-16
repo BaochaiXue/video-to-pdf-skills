@@ -159,9 +159,7 @@ Must cover unit ids:
 - slide_0094
 
 Required formulas:
-- sub_1982
-- sub_1983
-- sub_1984
+- none explicitly inferred
 
 Required code units:
 - none explicitly inferred

@@ -142,16 +142,10 @@ Must cover unit ids:
 - slide_0071
 
 Required formulas:
-- sub_1940
-- sub_1941
-- sub_1942
+- none explicitly inferred
 
 Required code units:
-- sub_1821
-- sub_1822
-- sub_1830
-- sub_1831
-- sub_1832
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred

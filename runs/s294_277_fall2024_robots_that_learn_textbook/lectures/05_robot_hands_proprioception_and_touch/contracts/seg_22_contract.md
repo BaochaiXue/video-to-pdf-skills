@@ -159,7 +159,7 @@ Required formulas:
 - none explicitly inferred
 
 Required code units:
-- slide_0045
+- none explicitly inferred
 
 Required figures:
 - none explicitly inferred
