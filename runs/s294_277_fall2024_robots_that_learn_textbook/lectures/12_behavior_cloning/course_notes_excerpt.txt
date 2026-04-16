@@ -1,0 +1,267 @@
+===== Lecture 7A | pages 78-84 =====
+
+13      Lecture7A
+CS294-277 Fall 2024                                                                    Lecturer: Jitendra Malik
+October 21, 2024                                                             Scribe: Katherine How, Tomson Qu
+
+                                   Lecture 7A: Behaviour Cloning
+                                                     Abstract
+          This lecture covers an introduction to various approaches of behaviour cloning, a method of teaching
+       robots new tasks through demonstrations.
+
+
+13.1      Introduction
+Behaviour cloning, or robot learning from demonstration (LfD) is summarized in the quote below from the
+abstract of Recent Advances in Robot Learning from Demonstration (Ravichandar et al. (2020)):
+
+"In the context of robotics and automation, learning from demonstration (LfD) is the paradigm in which
+robots acquire new skills by learning to imitate an expert. The choice of LfD over other robot learning methods
+is compelling when ideal behavior can be neither easily scripted (as is done in traditional robot programming)
+nor easily defined as an optimization problem, but can be demonstrated."
+
+13.2      Teaching Approaches
+13.3      Kinesthetic Teaching
+Kinesthetic teaching involves physically moving the robot through the desired task and logging the movements
+of each joint. The trajectory of each joint can then be stored and replayed or used as training data. An
+example of this can be painting a task where the robot holding a paintbrush is moved in the desired painting
+motion and logging the movement.
+
+
+
+
+                                    Figure 39: Kinesthetic Teaching Example
+
+
+
+13.4      Teleoperation
+Teleoperation is similar to kinesthetic teaching but instead of physically moving the robot it is moved via a
+controller. The same trajectories of each joint angle can be stored and replayed for later use. This method is
+ideal for when the robot is large or the task is dangerous. Because of this safety benefit, this approach is
+often used in industrial and manufacturing settings.
+
+
+
+
+                                                         78
+                                      Figure 40: Teleoperation Example
+
+
+13.5     Passive Observation
+Passive observation ("imitation learning") involves a robot learning a task solely by observing demonstrations
+of it. As it sees more successful and unsuccessful observations, the robot’s model of the task improves. This
+approach is similar to how young children learn things by simply observing their parents. If successful,
+imitation learning can theoretically make use of any image or video demonstrations of a task as training data.
+
+
+
+
+                                   Figure 41: Passive Observation Example
+
+
+
+13.6     Diffusion Policies
+13.7     Overview
+Diffusion policies are a relatively new approach in robotics to teaching new tasks to robots. Essentially, this
+approach is able to efficiently take in a set of robot trajectories and sensor inputs and use supervised learning
+to train a robot to do a task. Due to their design, they are inherently robust against perturbations and
+occlusions making them reliable in a real world setting when testing on hardware. Action diffusion policies
+take in images as an input and output a trajectory.
+
+
+
+
+                                                       79
+                          Figure 42: Image Diffusion vs Action Diffusion Examples
+
+
+13.8     Diffusion in Robotics
+This paper Chi et al. (2024a) was the first to apply diffusion policies to robotics by using them to generate
+robot trajectories to accomplish tasks. Their approach represented the robot’s visuomotor policy as a
+conditional denoising diffusion process on the robot’s action space. This new approach found an improvement
+of 46.9% when compared to existing optimal methods tested across 12 tasks.
+
+
+
+
+                            Figure 43: Comparison of Recent Learning Methods
+
+Diffusion policies for action generation begin with Gaussian noise and a neural network is then trained to
+denoise the potential actions by predicting the gradient of the actions conditioned on the inputs. This policy
+is then looped to create a reactive policy that can adapt to stochastic environments and disturbances.
+Rather than simply outputting an action, the diffusion policy infers an action score gradient that is conditioned
+on visual data over K denoising iterations. This provides several key benefits:
+
+   • Expressing Multimodal Action Distributions: It can output arbitrary normalizable distributions that
+     represent multi modal action distributions. This means in scenarios with multiple optimal paths, it is
+     able to select from the two rather than average them together.
+
+
+
+
+                                       Figure 44: Action Multimodality
+
+
+   • High-Dimensional Outputs: It can also scale well to high-dimensional outputs, as proven in the many
+     applications of diffusion policies for image generation. This means that the policy is able to infer a
+
+
+                                                       80
+       sequence of actions rather than a discrete action for the next time step with no consideration of the
+       future.
+
+
+
+
+                                     Figure 45: Action Space Scalability
+
+
+   • Stable Training: Another feature of diffusion policies is stable training. While energy-based policies
+     require negative sampling which can cause training instability, diffusion policies learn the gradient of
+     the energy function to maintain stability while training.
+
+
+
+
+                                        Figure 46: Training Stability
+
+
+
+13.9     Diffusion in Image Generation
+Diffusion policies are most commonly used for image generation. Using a dataset of images, a neural network
+can be trained to learn a probability density function for denoising and generating sample images. It is also
+possible to train the neural network to do conditional generation. For example, through a text prompt of the
+desired image, the generative models can create an image conditioned on the prompt
+
+
+
+
+                                                     81
+                                      Figure 47: Deep Generative Learning
+
+
+13.10     Statistics behind Diffusion
+Diffusion models consist of two processes, namely the forward diffusion process and the reverse denoising
+process. 48.
+
+
+
+
+                                                Figure 48: Diffusion model
+
+
+
+13.10.1    Forward diffusion process
+In this process, the model gradually adds noise of normal distribution to input.
+The formal definition of the forward process is a Markov chain with each step defined in the equation below:
+                                                                                           T
+                                                                                           Y
+                                                                                                                (28)
+                                          p
+                 q(xt |xt−1 ) = N (xt ;       1 − βt xt−1 , βt I)   ⇒     q(x1:T |x0 ) =         q(xt |xt−1 )
+                                                                                           t=1
+
+In this equation28, each xt represents a state of the image and xt−1 represents the state before. Bt ∈ (0, 1)
+is a scaling factor indicating the magnitude of the variance of the noise change at each step. The RHS
+formula is in form of a Gaussian distribution N (x; µ, Σ) with x with mean of µ and covariance Σ. Thus, the
+conditional probability distribution of xt given xt−1 is defined as a Gaussian distribution of xt with a mean
+   √
+of 1 − βt xt−1 and a covariance of βt I. The joint probability distribution of x1 , x2 , ..., xt given x0 on the
+RHS of the arrow can be derived from the LHS, which can be expressed as a product of the conditional
+probabilities at each step. Figure 49 shows the data distribution during the process of a forward diffusion
+process.
+We may use the linearity property of the Gaussian distribution to directly obtain xt from x0 as shown in the
+equation below:
+                      t
+                      Y                                           √
+              ᾱt =       (1 − βs )   ⇒       q(xt |x0 ) = N (xt ; ᾱt x0 , (1 − ᾱt )I)   (Diffusion Kernel)   (29)
+                      s=1
+
+
+
+                                                               82
+                                     Figure 49: Diffused Data Distributions
+
+
+In this equation 29, the conditional probability distribution of xt given x0 is expressed as a Normal distribution
+                          √
+of xt with the mean as ᾱt x0 and covariance as (1 − ᾱt )I, with ᾱ expressed as the product of the scaling
+factor at each step.
+In practice, the value of Bt is designed such that ᾱT → 0 and q(xT |x0 ) ≈ N (xT ; 0, I), which means the
+starting point of the reverse diffusion is approximately a standard normal distribution.
+
+13.10.2    Reverse denoising process
+In this process, the model learns to generate data by denoising. In this direction, the goal is to train a
+neural network that can do the reverse process. The statistics of the reverse direction can be captured in the
+equation below.
+                                   pθ (xt−1 |xt ) = N (xt−1 ; µθ (xt , t), σt2 I)                         (30)
+For training, we can form variational upper bound that is commonly used for training variational autoencoders
+                                                                                       
+                                                                            pθ (x0:T )
+                                                                                                         (31)
+                                             
+                        Eq(x0 ) − log pθ (x0 ) ≤ Eq(x0 )q(x1:T |x0 ) − log                =: L
+                                                                           q(x1:T |x0 )
+In this equation, the LHS equation refers to the estimated negative log-likelihood of the data, where pθ (x0 )
+represents the probability of generating the x0 . It is upper bounded by the RHS equation, where the term
+        pθ (x0:T )
+− log q(x  1:T |x0 )
+                     stands for the negative log ratio between the joint distribution we can derive for the reverse
+                                        QT
+diffusion process pθ (x0:T ) = p(xT ) t=1 pθ (xt−1 |xt ) and the joint distribution we have derived for the forward
+diffusion process as referred in 28. The training goal is to optimize this variational bound on negative log
+likelihood.
+More rigorous analysis on Learning Denoising Model and Variational upper bound can be found in Sohl-
+Dickstein et al. (2015) and Ho et al. (2020) which shows that:
+                                                                                                              
+                                                  X
+              L = Eq DKL (q(xT |x0 )∥p(xT )) +       DKL (q(xt−1 |xt , x0 )∥pθ (xt−1 |xt )) − log pθ (x0 |x1 ) (32)
+                                                  t>1
+
+where q(xt−1 |xt , x0 ) is the tractable posterior distribution:
+
+                                    q(xt−1 |xt , x0 ) = N (xt−1 ; µ̃t (xt , x0 ), β̃t I),                       (33)
+
+
+
+
+                                                             83
+where                                       √                   √
+                                                ᾱt−1 βt            1 − βt (1 − ᾱt−1 )
+                             µ̃t (xt , x0 ) :=           x0 +                           xt              (34)
+                                               1 − ᾱt                  1 − ᾱt
+                                                         1 − ᾱt−1
+                                                β̃t :=             βt .                                 (35)
+                                                          1 − ᾱt
+From an algorithmic view, the algorithm for training and sampling can be referred in the algorithms50 below:
+
+
+
+
+                                  Figure 50: Diffused Data Distributions
+
+In training stage, the network is trying to optimize the squared distance between ϵ and ϵθ which presents
+a function approximator aimed to predict ϵ from xt . The sampling algorithm is to sample inputs from a
+gaussian distribution, running it through sequences of denoising steps and land up to different images.
+
+13.10.3   Content-Detail Tradeoff
+In the denosing process, the low-frequency contents are produced first, then the higher-frequency contents
+gradually produce. Thus, it suggests that the weighting of the training objective for different timesteps is
+important.
+
+
+
+
+                                     Figure 51: Diffusion Model Design
+
+
+
+13.11     Diffusion Model Design
+In terms of the model selection for the reverse diffusion policy, different architectures such as U-Net
+architectures with ResNet blocks and self-attention layers can be used shown in Figure 51. Recently,
+transformers has become a more popular choice.
+
+
+
+
+                                                          84
+

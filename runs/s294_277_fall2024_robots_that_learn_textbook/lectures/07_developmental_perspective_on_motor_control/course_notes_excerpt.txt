@@ -1,0 +1,377 @@
+===== Lecture 4B | pages 48-55 =====
+
+8     Lecture4B
+CS294-277 Fall 2024                                                                    Lecturer: Jitendra Malik
+September 30, 2024                                                          Scribe: Yutaka Shimizu, Mintæ Kim
+
+             Lecture 4B: The developmental perspective on motor control
+                                                     Abstract
+          In this lecture, we explore how children develop embodied cognition during their growth. We also
+       investigate animal gaits to see how we can adapt the body structure of animals to help design robots.
+       Finally, we refer to a paper that introduces a novel approach to continually learning and improving the
+       agent’s policy.
+
+
+8.1     Logistics
+Prerequisite: Loquercio et al. (2023); Smith and Gasser (2005)
+
+8.2     Introduction
+This lecture focuses on the intersection of robot learning and child development, exploring principles that
+inspire advancements in AI and robotics. Key topics include phylogeny of intelligence, embodied cognition,
+and practical applications in robotics.
+
+8.3     Phylogeny of Intelligence
+8.4     Key Milestones
+    • Cambrian Explosion (540 million years ago): Rapid emergence of diverse life forms, enabling
+      mobility and vision.
+
+    • Hominid Evolution (Last 5 million years): Progression towards modern humans, with significant
+      milestones in tool use, language, and symbolic behavior.
+
+8.5     Quotations on Intelligence
+    • Anaxagoras: “It is because of his being armed with hands that man is the most intelligent animal.”
+
+    • Gibson: “We see in order to move and we move in order to see.”
+
+8.6     Development of Embodied Cognition: Six Lessons from Babies
+Based on the work of Linda Smith and Michael Gasser, six key lessons for embodied cognition are:
+
+    1. Be multi-modal: Intelligence develops through the integration of multiple sensory modalities (e.g.,
+       vision, hearing, touch). Babies learn by correlating time-locked sensory inputs, allowing each modality
+       to educate the others without explicit external teaching.
+
+    2. Be incremental: Development occurs step-by-step, with infants gradually gaining new capabili-
+       ties. This incremental approach enables them to build on earlier experiences, with the sequence of
+       developmental milestones playing a critical role in shaping intelligence.
+
+    3. Be physical: Interaction with the physical world provides a foundation for higher cognitive functions.
+       Infants use their bodies and spatial contexts to simplify complex cognitive tasks, effectively offloading
+       some mental processes onto the environment.
+
+
+                                                         48
+  4. Explore: Spontaneous, non-goal-directed exploration helps babies discover tasks and solutions in-
+     dependently. Through movement and play, they experiment, learn, and develop problem-solving
+     skills.
+
+  5. Be social: Social interactions with caregivers scaffold learning. Babies engage in mutual, responsive
+     exchanges, where mature partners provide structure and guide development. These interactions are
+     multimodal and help bind language and cognitive skills.
+
+  6. Use language: Language introduces symbolic reasoning and enables the development of abstract
+     thinking. It acts as a shared system for categorizing the world and facilitates the creation of higher-order
+     generalizations, enhancing cognitive and communicative capabilities.
+
+8.7    Animal Gaits and Real-Life Applications
+8.8    Observations
+   • Different gaits optimize energy efficiency at varying speeds.
+
+   • Walking bouts often include omnidirectional steps, as shown in studies by Lee et al. (2018).
+
+8.9    Gaits in Robotics
+Applications include improving energy-efficient locomotion and adapting to terrain changes.
+
+8.10    General In-Hand Object Rotation with Vision and Touch
+8.11    Overview
+RotateIt is a system that enables dexterous in-hand object rotation along multiple axes using a combination
+of vision, touch, and proprioceptive sensing. The system leverages:
+
+   • Multimodal sensory inputs to infer object shapes and physical properties.
+
+   • A visuotactile transformer for robust policy training in simulation, with successful sim-to-real transfer.
+
+This method significantly improves upon prior approaches by generalizing to diverse objects without fine-
+tuning.
+
+8.12    Oracle Policy Training
+The training process begins with an oracle policy, which has access to privileged information such as:
+
+   • Object shape encoded using a point cloud processed by a PointNet encoder.
+
+   • Physical properties like mass, friction, and center of mass.
+
+The oracle policy uses Proximal Policy Optimization (PPO) and a carefully crafted reward function to
+optimize rotation performance across three principal axes (x, y, and z).
+
+8.13    Visuotactile Policy Training
+In real-world deployment, privileged information is inaccessible. Instead, RotateIt uses:
+
+   • Vision-based depth sensing to capture object geometry.
+
+   • Tactile feedback from omnidirectional touch sensors for contact information.
+
+
+                                                      49
+   • A visuotactile transformer to integrate multimodal inputs (vision, touch, proprioception, and action
+     history).
+
+This transformer minimizes the gap between simulation and real-world scenarios, achieving robust in-hand
+manipulation policies.
+
+8.14    Results and Analysis
+Quantitative Improvements: RotateIt outperforms baseline models by incorporating vision and touch,
+achieving higher rotation rewards and stability. The addition of object shape encoding further enhances
+generalization.
+
+Real-World Application: In real-world tests, RotateIt successfully rotates objects over multiple axes with
+diverse geometries, demonstrating robust sim-to-real transfer. Objects include cubes, spheres, and irregular
+shapes.
+
+8.15    Conclusion and Implications
+RotateIt highlights the critical role of multimodal sensory integration in robot dexterity. By combining vision
+and touch with advanced learning techniques, the system represents a significant step toward general-purpose
+in-hand manipulation.
+
+8.16    Learning Visual Locomotion with Cross-Modal Supervision
+8.17    Overview
+This section introduces Cross-Modal Supervision (CMS), a novel technique for training visual walking
+policies. CMS enables quadruped robots to navigate complex terrains using a monocular RGB camera and
+proprioception. The approach allows continuous learning in real-world conditions, improving performance
+with minimal data.
+
+8.18    Core Insights and Methodology
+The CMS framework operates under the principle of using time-shifted proprioception to supervise visual
+modules. Key components include:
+
+   • Blind Policy πblind : Trained in simulation, this policy lacks visual input but uses proprioception for
+     terrain estimation. This policy can be trained in simulation, and transferred to the real world. This
+     policy does not have lookahead and uses proprioception to estimate the terrain under the feet.
+
+   • Lookahead Policy π: Combines visual predictions with proprioception to anticipate and adapt to
+     upcoming terrain changes. This policy can also be trained in simulation. It predicts the terrain at 15cm
+     lookahead in front of the robot.
+
+   • Vision Module: Trained in the real world using CMS, the module predicts terrain geometry from
+     egocentric RGB input.
+
+CMS leverages real-world data collected during deployment, continually refining the visual model through
+self-supervised learning.
+
+
+
+
+                                                      50
+Methodology Both blind policy and lookahead policy take the state xt , the extrinsic vector zt , and the
+terrain information γt to output the target joint angle at at 100Hz. The state input xt consists of the following
+components:
+                                           xt = [qt , q′t , at−1 , zt , γt ]⊤                                 (23)
+where qt ∈ R12 is current joint position, q′t ∈ R12 is Joint velocity, and at−1 ∈ R12 is previous action. The
+extrinsics vector zt is computed as:
+                                                  zt = µ(et )                                             (24)
+where µ is a multi-layer perceptron (MLP), and et represents environmental inputs. The terrain geometry γt
+is derived as:
+
+                                                    γt = δ(ht )
+                                                                                                             (25)
+                                                γt+∆t = δ(ht+∆t )
+
+where δ is an MLP, and ht represents terrain features. Note that γt+∆t is the predicted terrain 15cm in front
+of the robot. Blind policy and lookahead policy are described:
+
+                                            at = πblind (xt , zt , γt )
+                                                                                                             (26)
+                                            at = π(xt , zt , γt , γt+∆t )
+
+Note that the lookahead policy generates actions based on current terrain and predicted terrain.
+
+Environmental Design They train agents in fractal terrains and parameterized inclines and stairs to elicit
+robust locomotion. They build stairs that are comfortable for humans to mimic the real-world environment
+as closely as possible.
+
+Reinforcement Learning Rewards A reward function is designed to encourage the robot to move with a
+user-defined forward velocity vxd and angular speed wzd in the ranges:
+
+                                              vxd ∈ [0, 1] m/s
+                                                                                                             (27)
+                                              wzd ∈ [−0.4, 0.4] rad/s
+
+while penalizing lateral velocity and jerky motions. To begin with, we define the following characters.
+
+   • v: Linear velocity.
+
+   • ω: Angular velocity.
+
+   • α and α̇: Joint angles and velocities.
+
+   • τ : Joint torques.
+
+   • vf : Feet velocity.
+
+   • g: Binary foot contact indicator.
+
+The reward at time t is defined as the sum of the following terms:
+
+                                         Forward:     − ∥vxd − vx ∥ + vxd ,
+                                          Lateral: |vy |,
+                                         Angular:     − ∥wzd − wz ∥ + wzd ,
+                                            Work: ∥τ ⊤ · (αt − αt−1 )∥,
+                                        Foot Slip: |diag(g) · vf |.
+
+
+                                                         51
+Simulation to Real-World Transfer We summarize how CMS transfers its policy trained in a simulator
+to the real world.
+
+   • Training begins with a blind policy (πblind ) in simulation on diverse terrains, including fractal patterns
+     and parameterized staircases.
+
+   • The vision module is trained to predict future proprioceptive terrain estimates by minimizing the CMS
+     error.
+
+   • The lookahead policy (π) combines real-world visual data with simulation-learned policies, achieving
+     robust sim-to-real transfer.
+
+8.19     Experimental Results
+Lifelong Learning: CMS enables robots to adapt to new environments with minimal real-world data. For
+instance, performance on stairs improved from 40% to 100% success with only 30 minutes of training data
+collected over four days.
+
+Generalization: The system demonstrated robust navigation across diverse terrains, including unseen
+staircases, steep inclines, and discrete surfaces.
+
+Visual Plasticity: Using the "prism adaptation test," the system adapted to shifted visual inputs in under
+a minute, showcasing the flexibility of the visual policy.
+
+8.20     Conclusion
+The CMS framework exemplifies the power of cross-modal supervision in robot learning. By leveraging
+proprioceptive data to train visual models, the approach achieves significant performance improvements in
+visual locomotion with minimal real-world data. This method lays the foundation for lifelong learning and
+adaptability in autonomous robotic systems.
+
+8.21     Learning to Poke by Poking: Experiential Learning of Intuitive Physics
+8.22     Overview
+This section discusses an experiential learning paradigm that enables robots to develop intuitive physics
+models. By randomly interacting with objects through poking, robots can learn to predict object dynamics
+and plan actions. The approach combines forward and inverse dynamics models to achieve generalization and
+decision-making capabilities.
+
+8.23     Core Methodology
+8.23.1   Data Collection
+   • A Baxter robot was trained through over 100,000 pokes, collecting more than 400 hours of interaction
+     data with 16 distinct objects.
+
+   • Each interaction recorded the state of objects before and after a poke using RGB images.
+
+   • Actions were represented as pokes with randomized location, direction, and length.
+
+
+
+
+                                                      52
+8.23.2    Joint Modeling of Forward and Inverse Dynamics
+   • Forward Model: Predicts the next state of the object given the current state and action.
+
+   • Inverse Model: Infers the action required to transition between two states.
+
+   • These models are jointly trained to leverage complementary strengths:
+
+         – The inverse model helps learn a feature space relevant for abstract event prediction.
+         – The forward model regularizes the feature space, avoiding degenerate solutions.
+
+8.24     Evaluation and Results
+8.24.1    Generalization Capabilities
+The robot demonstrated the ability to:
+
+   • Successfully displace both familiar and unseen objects to desired goal locations.
+
+   • Operate in environments with distractor objects, maintaining accuracy.
+
+8.24.2    Performance Analysis
+   • The joint model outperformed both inverse-only models and baseline approaches, such as a blob model,
+     particularly in tasks requiring large object displacements.
+
+   • Simulation studies confirmed that forward models effectively regularize inverse models, improving
+     generalization with smaller datasets.
+
+8.24.3    Limitations
+The system struggled with tasks requiring navigation around obstacles due to greedy planning strategies,
+leading to suboptimal trajectories.
+
+8.25     Conclusion and Future Work
+This study establishes the potential of experiential learning for developing intuitive physics in robots. Future
+directions include:
+
+   • Exploring continuous control for more precise manipulation.
+
+   • Extending the framework to deformable objects and complex environments.
+
+   • Integrating forward models into planning strategies for improved efficiency.
+
+8.26     Humanoid Locomotion as Next Token Prediction
+8.27     Overview
+This section introduces a novel framework for real-world humanoid locomotion modeled as a next token
+prediction problem. By leveraging autoregressive generative modeling, the method predicts sensorimotor
+trajectories, enabling humanoids to walk in diverse and complex real-world environments.
+
+
+
+
+                                                      53
+8.28     Core Methodology
+8.28.1   Next Token Prediction Framework
+   • Humanoid locomotion is reformulated as a sequence modeling task. Sensorimotor trajectories are
+     tokenized, where each token corresponds to a sensory input or motor command.
+
+   • A causal transformer model predicts the next token in the sequence, given prior tokens, encompassing
+     both sensory and motor modalities.
+
+   • Missing modalities (e.g., actions in human motion capture or video data) are addressed using masked
+     tokens, allowing for joint training on heterogeneous data.
+
+8.28.2   Training Data Sources
+The model was trained on a diverse dataset of sensorimotor trajectories from:
+  1. Neural network policies trained in simulation.
+
+  2. Model-based controllers from a humanoid simulator.
+
+  3. Human motion capture datasets retargeted to humanoid morphology.
+
+  4. Internet videos of human motion processed via inverse kinematics.
+
+8.28.3   Model Architecture
+   • The transformer architecture utilizes modality-specific tokenization, temporal embeddings, and autore-
+     gressive attention mechanisms.
+
+   • Positional embeddings encode temporal sequence information, enabling predictions aligned with sensory
+     or motor modalities.
+
+   • During training, a mean squared error loss is used to minimize the difference between predicted and
+     ground truth tokens.
+
+8.29     Experimental Results
+8.29.1   Real-World Deployment
+   • A full-sized Digit humanoid robot successfully walked across various terrains in San Francisco, including
+     concrete, asphalt, dirt, and sand.
+
+   • The model demonstrated generalization to novel environments and robust adherence to velocity
+     commands.
+
+8.29.2   Comparative Performance
+   • Quantitative evaluations showed lower trajectory tracking error compared to reinforcement learning-
+     based policies, especially for complex commands.
+
+   • The model’s prediction error correlated strongly with its real-world tracking accuracy, highlighting the
+     importance of generative modeling.
+
+8.29.3   Unseen Command Generalization
+The transformer model extrapolated to commands not present during training, such as walking backward,
+demonstrating its adaptability and versatility.
+
+
+                                                      54
+8.30    Conclusion and Implications
+This study demonstrates the feasibility of using autoregressive generative modeling for humanoid locomotion.
+By leveraging diverse data sources and addressing missing modalities, the approach offers a scalable and
+adaptable solution for challenging real-world robotic control tasks. Future work includes expanding the
+dataset and exploring higher-capacity transformer models to further enhance performance.
+
+8.31    Conclusion
+The lecture highlights the integration of biological principles and embodied cognition in advancing robotics.
+The interdisciplinary approach provides insights into developing AI systems capable of nuanced physical
+interaction and learning.
+
+
+
+
+                                                     55
+

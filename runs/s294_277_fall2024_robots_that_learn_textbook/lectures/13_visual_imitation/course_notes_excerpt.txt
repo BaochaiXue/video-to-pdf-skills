@@ -1,0 +1,331 @@
+===== Lecture 8A | pages 85-89 =====
+
+14      Lecture8A
+CS294-277 Fall 2024                                                                         Lecturer: Jitendra Malik
+October 28, 2024                                                              Scribe: Tara Sadjadpour, Chenfeng Xu
+
+                                       Lecture 8A: Visual Imitation
+                                                        Abstract
+           Despite its popularity, behavior cloning cannot serve as an analogue for how children learn sensorimotor
+       skills from adults. According to Smith and Gasser (2005), social learning is how we acquire skills. Therefore,
+       this lecture focuses on visual imitation, a robot learning technique that uses high-fidelity computer vision
+       algorithms to extract information from humans, such as reference motions and subroutines in monocular
+       videos, to teach robots to navigate in and interact with the world.
+
+
+14.1      Introduction
+Visual imitation learning enables robots to acquire complex skills by observing human demonstrations.
+Compared to the reinforcement learning that requires dedicated reward design and the behavior cloning that
+requires laborious robot data collection, visual imitation learning opens up a new path that leverages the
+human demonstrations from daily video while enabling robot skill learning.
+Visual imitation mirrors how human babies learn. Human children begin to understand the world through
+observation and perception, with their closest role models often being their parents. By watching these
+parent demonstrations, babies learn fundamental skills like grasping, pushing, and walking. These skills
+remain adaptable despite changes in the children’s bodies as they grow (e.g., in limb length, joint angles, and
+strength). Smith and Gasser (2005) outline six lessons we can learn from human babies: (1) be multi-modal,
+(2) be incremental, (3) be physical, (4) go to explore, (5) be social, and (6) use language. Specifically, visual
+imitation learning focuses on the fifth lesson, teaching robots to “socially” learn from human demonstrations
+using visual perception in a way similar to human babies. In the following sections, we will discuss how we
+leverage computer vision techniques to perform visual imitation with robots.
+
+
+
+
+Figure 52: Example of SFV results for dynamic motion, courtesy of Peng et al. (2018b). The top row shows
+the monocular video with the human performing the backflip, the second row shows the 3D pose estimation,
+the third row shows the 2D pose estimation, and final row shows the result with the simulated character.
+
+
+
+
+                                                            85
+14.2     SFV: Reinforcement Learning of Skills from Videos
+Peng et al. (2018b) propose a method to enable physically simulated characters to learn skills from videos
+(SFV). This is a data-driven approach to animation that uses deep pose estimation and deep reinforcement
+learning on publicly available YouTube videos. The goal of this work is to query videos demonstrating desired
+behavior that a character controller can imitate. The character controllers are robust to environmental
+changes, perturbations, and retargeting to various morphologies. In prior work, Peng et al. (2018a) introduced
+DeepMimic, a data-driven RL-based motion imitation technique that utilizes reference motion data. The
+main novelty of SFV is that it combines components proposed in prior works. Specifically, it uses vision-based
+pose estimators Kanazawa et al. (2018); Wei et al. (2016) to produce reference motions that an RL-based
+motion imitation algorithm learns to reproduce with an animated character. Thus, rather than acquiring
+reference motions from motion capture, it is acquired from monocular video with Wei et al. (2016) and
+Kanazawa et al. (2018), 2D and 3D pose estimators respectively, which are consolidated to get a reference
+trajectory. Overall, SFV shows that vision algorithms designed to recover 3D information from monocular
+video allow for high-fidelity motion imitation for dynamic skills, such as cartwheels, flips, spins, and dances.
+See Figure 52 for a qualitative example of SFV results for backflips.
+
+14.3     Reconstructing 4D Human Actions
+Human videos provide crucial demonstrations for robot learning, but extracting 4D actions remains challenging.
+From a single frame, the vision model maps a 2D observation (x, y) to a 3D state (x, y, z). In video frames,
+this evolves to a 3D observation (x, y, t) mapping to a 4D representation (x, y, z, t) to capture dynamic actions
+over time. The concept is shown in Fig. 53. In the following sections, we illustrate how this fundamental
+computer vision problem has been addressed. The results of the following algorithms can be potentially
+useful for extracting information that can be used as input to visual imitation algorithms for robot learning.
+
+
+
+
+                  Figure 53: The concept of reconstructing 4D human actions from videos.
+
+
+
+14.4     Humans in 4D
+To achieve the goal of reconstructing a 4D (x, y, z, t) state from videos is not easy because of the unknown
+camera poses and the non-rigid human shapes. A top-down solution is that we can leverage the known human
+prototype to reduce the solution spaces of the human states. This idea is used in Kanazawa et al. (2018),
+which proposes to first leverage the human-generating SMPL model Loper et al. (2023) to generate a human
+prototype embedding and then regress the inverse parameters like the camera poses, human poses, and the
+shapes. In detail, SMPL is a differentiable model that generates a 3D mesh by shaping a template body
+based on specific parameters, adjusting joint positions through forward kinematics, and deforming the surface
+
+
+                                                       86
+with linear blend skinning. Then Kanazawa et al. (2018) uses 3D keypoints for measuring reprojection error
+and applies linear regression to get the final mesh vertices. Afterwards, it leverages an iterative regression
+strategy to get the camera poses, human poses, and the shapes, which mimics the traditional optimization
+paradigm to estimate the inverse-graphic parameters. A GAN is also employed to verify the reconstructed
+4D human, ensuring that the appearance is logical. Building on this work, Goel et al. (2023) advances 4D
+human reconstruction via better representation models such as VIT which inherit the human manifold and a
+larger dataset which benefits the model learning more general human representations. Both these two works
+highlight the importance of operating on the manifold of human shapes; otherwise, 3D distortion can occur if
+only 2D correspondence points are ensured. For example, in Fig. 54, the wrong reconstruction results can be
+solved if we inject the human manifold prototype into the models.
+
+
+
+
+             Figure 54: A typical failure example that does not leverage the human manifold.
+
+
+
+14.5    PHALP: Tracking People by Predicting 3D Appearance, Location & Pose
+Rajasegaran et al. (2022) propose Predicting Human Appearance, Location and Pose (PHALP) for tracking
+humans in 3D from monocular video. The two key insights from this work are that occlusion is hard to
+disambiguate in 2D, and 3D appearance is invariant to viewpoint and pose. Therefore, tracking is performed
+in 3D. Given the 2D bounding box for each person in the monocular frame, the person is lifted to a 3D
+representation that includes 3D appearance, pose, and location. Initially, the single frame 3D features are
+estimated with an HMAR model Rajasegaran et al. (2021). Then, a temporal model is formed to make
+tracklet predictions, where 3D appearance is aggregated using the canonical UV map of the SMPL model,
+pose is aggregated with a modified HMMR model Kanazawa et al. (2019), and 3D location is processed with
+linear regression. The similarities between the tracklets’ predicted states and the current frame observations
+are computed, since there is invariance built into this 3D representation. Finally, association is performed
+with the Hungarian matching algorithm. In addition to achieving state-of-the-art results with tracking metrics
+like Identity switch (IDs), Multi Object Tracking Accuracy (MOTA), ID F1 score (IDF1), and Higher Order
+Tracking Accuracy (HOTA), PHALP demonstrates strong qualitative results in scenarios where the humans
+are in unusual poses and there is crowding.
+
+
+
+
+               Figure 55: PHALP algorithm pipeline, courtesy of Rajasegaran et al. (2022).
+
+
+
+                                                     87
+14.6    Humanoid Locomotion as Next Token Prediction
+Radosavovic et al. (2024) cast real-world humanoid control as a next-token prediction problem using a
+causal transformer trained via autoregressive prediction. Specifically, humanoid robot action prediction is
+high-dimensional with multiple degrees of freedom. Drawing inspiration from large language models that
+take advantage of the self-supervised nature of next-token prediction which enables scaling laws, Radosavovic
+et al. (2024) model the joint data distribution of sensorimotor trajectories and transform them into token
+representations so that it can be modeled as next-token prediction. The method overview is shown in Fig. 56.
+Concisely, Radosavovic et al. (2024) build their own dataset that comprises trajectories from neural network
+policies, model-based controllers, motion capture data, and YouTube videos, allowing for leveraging vast and
+diverse sources. However, there are many incomplete trajectory data due to the data collection issues from
+vision data such as occlusion, early termination, or trajectory failure oscillation. The paradigm of next-token
+prediction can still make full use of this incomplete data. This approach enables a full-sized humanoid robot
+to perform zero-shot walking in real-world environments like San Francisco after training on only 27 hours of
+data and to generalize to new commands such as walking backward. These findings highlight a promising path
+toward learning complex real-world control tasks through generative modeling of sensorimotor trajectories.
+
+
+
+
+                         Figure 56: Humanoid locomotion as next token prediction.
+
+
+
+14.7    Learning Navigation Subroutines by Watching Videos
+Inspired by the Vauquois triangle for machine translation Vauquois (1968), Saurabh Gupta presents a control
+hierarchy shown in Figure 57. This triangle connects human actions, robot actions, and the observed world.
+Essentially, human actions are connected to the observed world through human behavior characterized with
+muscle tensions at the lowest level, followed by macro actions, skills, sub-goals, and goals in increasing order
+of abstraction. Analogous to human muscle tensions, robot actions are characterized by motor torques. Thus,
+using their perception of the world, robots must generate behaviors that are executed as low-level robot
+actions using task definitions, dense rewards, and subroutines and affordances.
+This idea has been successfully applied to navigation by Kumar et al. (2020). In this paper, the authors learn
+from egocentric human videos, which provide the agent’s perceptual input but lack action information. To
+compensate for the missing action labels, a self-supervised inverse model is trained on random interaction
+data and is run on the aforementioned egocentric videos to obtain pseudo-labeled actions between consecutive
+image pairs. Then, two models are learned for downstream navigation tasks. The video trajectories are
+divided into smaller sub-trajectories. These sub-trajectories are passed into an encoder that produces a
+latent which is predictive of the action to be taken, given every video frame in the sub-trajectory. Then, an
+affordance model is trained to predict which subroutines can be invoked for a given input image from the set
+of learned subroutines. Additionally, the subroutines and affordance model are fine-tuned with reward-based
+RL, which significantly improves sample complexity. Overall, the subroutine and affordance models are used
+
+
+                                                      88
+Figure 57: Control hierarchy relating human actions, the perceived world, and robot actions, as presented by
+Saurabh Gupta from UIUC.
+
+
+to compose a sequence of subroutines that complete both point navigation and area goal tasks.
+
+
+
+
+Figure 58: Algorithm pipeline for learning navigation subroutines and affordances from egocentric videos,
+courtesy of Kumar et al. (2020).
+
+
+
+
+                                                    89
+
+
+===== Lecture 8B | pages 90-93 =====
+
+15      Lecture8B
+CS294-277 Fall 2024                                                                     Lecturer: Jitendra Malik
+October 14, 2024                                               Scribe: Arthur Allshire, Himanshu Gaurav Singh
+
+                                     Lecture 8B: Visual Imitation
+                                                     Abstract
+           In this lecture, we explore visual imitation in the context of manipulation, which presents greater
+       challenges compared to locomotion and navigation. We examine recent advances in hand-object recon-
+       struction, including groundbreaking work in reconstructing interactions in unconstrained environments.
+       The lecture covers the challenges of transferring learned behaviors from human demonstrations to robotic
+       systems, the importance of affordances in manipulation, and the evolution of approaches to functional
+       grasping. We conclude by discussing current efforts to learn from demonstrations "in the wild" and the
+       remaining challenges in this field.
+
+
+15.1      Introduction
+Visual imitation in the context of manipulation presents significantly greater challenges than locomotion
+and navigation tasks. While the reconstruction of whole-body movements has largely been solved, the
+accurate reconstruction of hand-object interactions remains an active area of research. Current techniques
+predominantly rely on 2D approaches, as direct 3D reconstruction faces substantial challenges due to occlusions
+and the complexity of hand-object interactions.
+
+15.2      Hand-Object Reconstruction
+
+
+
+
+           Figure 59: The Hand Object Reconstruction Problem, as presented by Cao et al. (2021)
+
+Recent work by Cao et al. (2021) has demonstrated significant progress in reconstructing hand-object
+interactions in unconstrained environments. Their research showed how to simultaneously reconstruct both
+hands and objects in 3D from natural interactions, providing a foundation for understanding manipulation
+tasks. Building on this work, Pavlakos et al. (2024) presented advances in hand reconstruction using
+transformer-based approaches at CVPR, showing marked improvements in accuracy and robustness.
+The evaluation of hand-object reconstruction methods requires careful consideration of several factors. Systems
+must demonstrate the ability to handle a wide variety of poses, maintain robustness when objects are partially
+occluded during manipulation, and achieve accurate reconstruction even with limited visible information.
+These criteria are particularly challenging when dealing with complex object interactions in natural settings.
+Currently, hand-object reconstruction is estimated to be only about 50% solved. This limitation stems from
+several fundamental challenges. During manipulation, often only a small fraction of the object is visible,
+making reconstruction difficult. Additionally, there is typically insufficient variation in parallax or disparity in
+viewpoints to employ traditional reconstruction methods, such as structure-from-motion approaches. Even if
+the object is moving, successful reconstruction often requires substantial top-down knowledge and familiarity
+
+
+                                                         90
+with object categories to estimate object motion, making it particularly challenging for novel or unusual
+objects.
+
+15.3     Multiview Compressive Coding
+
+
+
+
+           Figure 60: One solution to hand-object reconstruction, presented by Wu et al. (2024)
+
+Wu et al. (2024) made significant contributions through their work on applying Multiview Compressive
+Coding (MCC) for 3D reconstruction. Their approach predicts the occupancy and color of query points to
+form the final 3D model. The reconstruction process follows a sequential approach, first constructing the 3D
+hand model and then reconstructing the object in the context of the hand. This method cleverly utilizes
+prior knowledge of human hand form factors to inform object dimensions and positioning.
+The integration of CAD models through Large Language Models (LLMs) represents an innovative approach to
+improving reconstruction accuracy. By leveraging existing 3D models and fitting them to observed interactions,
+the system can better handle cases where direct reconstruction from visual data alone would be challenging.
+
+15.4     Transfer Learning and Retargeting
+The transfer of learned behaviors from human demonstrations to robotic systems presents a complex challenge
+in the field of visual imitation. A significant portion of current work focuses on collecting human demonstrations
+within laboratory settings, but the field’s ultimate goal is to leverage internet-scale demonstration data. This
+approach would allow robots to learn from a much broader range of experiences and scenarios.
+When considering the transfer of human demonstrations to robotic systems, several levels of abstraction must
+be addressed. For instance, if we can successfully create 3D reconstructions of human-object interactions from
+large datasets like Ego-4D (Grauman et al. (2022)) and 100DOH (Shan et al. (2020)), we must then solve
+the retargeting problem to apply these interactions to robotic systems. One promising approach involves
+the use of reinforcement learning within physics simulators to adapt human hand movements to robotic
+configurations.
+
+15.5     Learning from Human Demonstrations
+Human demonstrations provide rich sources of information beyond mere physical movements. When observing
+a simple action, such as opening a cabinet, multiple levels of information can be extracted. The demonstration
+reveals common sense knowledge about typical cabinet contents, affordances of the cabinet door, and specific
+subroutines such as grasping patterns. Understanding these various levels of information is crucial for
+developing robust robotic manipulation capabilities.
+
+
+
+
+                                                       91
+                  Figure 61: Different levels of abstraction when imitating human actions.
+
+
+15.6     Affordances and Interaction Analysis
+The analysis of human hands during object interaction provides crucial insights for robotic manipulation.
+Hands serve to localize and stabilize active objects, indicate potential interaction points in scenes, and reveal
+information about object states and appropriate interaction methods. This understanding has led to the
+development of the affordances or "hotspot" concept in recent research, which focuses on identifying and
+characterizing common interaction points on objects.
+The field of robotic grasping has evolved significantly from traditional force closure approaches to more
+sophisticated functional grasping strategies. Multiple functional grasps often exist for a single object, and
+the appropriate grasp depends heavily on context. For instance, handling a clean mug for serving differs
+substantially from handling a dirty mug for washing, both in terms of grasp location and approach strategy.
+
+15.7     Learning from "In-the-Wild" Demonstrations
+
+
+
+
+Figure 62: Example of inpainting from Chang et al. (2024). Such inpainting can be useful for learning
+representations for how the environment needs to move in an embodiment-agnostic manner.
+
+Recent work, exemplified by the Chang et al. (2024), addresses the challenge of learning from unconstrained
+demonstrations. This approach tackles the fundamental problem of transferring human demonstrations to
+robotic systems by factoring out the human presence from the scene. The system separates the environment
+state from human presence through sophisticated segmentation and inpainting techniques, allowing robots to
+focus on the environmental transformations rather than trying to replicate human appearances.
+The system demonstrates impressive capabilities in generalizing to novel environments and objects beyond
+the training set. This ability to work "beyond lab workspaces" represents a crucial step toward developing
+robots that can function effectively in diverse real-world situations. However, significant challenges remain in
+achieving reliable zero-shot transfer to entirely novel scenarios.
+Bahl et al. (2023) leverages human videos to learn an affordance model : that predicts contact heatmaps and
+post-grasp trajectory waypoints for objects in the scene. During deployment, the robot grasps the object at
+the mode of the heatmap and follows the post-grasp trajectory to execute the task.
+
+
+                                                       92
+Figure 63: VRB (Bahl et al. (2023)) predicts contact heatmaps and post-grasp trajectory waypoint for the
+robot to follow at deployment
+
+
+15.8     Conclusion
+While significant progress has been made in visual imitation for manipulation tasks, several crucial challenges
+remain. The field continues to work toward more robust solutions for learning from human demonstrations
+"in the wild," with the ultimate goal of enabling robots to learn from unconstrained human demonstrations
+on platforms like YouTube. Future work must address the integration of physics-based approaches with
+learning methods, improve retargeting solutions, and enhance generalization capabilities beyond laboratory
+environments.
+
+
+
+
+                                                      93
+

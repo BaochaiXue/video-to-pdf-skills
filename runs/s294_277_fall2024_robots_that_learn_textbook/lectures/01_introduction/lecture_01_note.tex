@@ -1,0 +1,185 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS294-277 课程讲义：Introduction}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{CS294-277 Robots That Learn}
+\newcommand{\videopublishdate}{2024-09-09}
+\newcommand{\videoduration}{未提供}
+\newcommand{\videourl}{}
+\newcommand{\videocoverpath}{}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{course_notes_pages/page-01.png}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{课程导入：为什么这门课关心“具身智能”}
+本讲的起点不是 ChatGPT，而是 \emph{biological intelligence} 这一更古典、也更难的问题。课程把智能理解成一种和身体强绑定的能力：一条常见的视角是“\textbf{locomotion + perception = intelligence}”，另一条更宽一些的视角是“\textbf{locomotion + navigation + manipulation = intelligence}”。这两种说法都在强调同一件事：如果没有身体、没有环境交互、没有运动控制，所谓智能会非常残缺。
+
+\subsection{为什么机器人比人类小孩更难学会日常技能}
+讲义里用了几个很直接的对比来解释这个落差。自动驾驶汽车在封闭和半结构化场景中已相当强，但一个 16 岁青少年学会开车往往只需要不到 20 个小时。再往日常生活看，一个 12 岁孩子可以完成很多厨房任务，而今天的大多数机器人还做不到。这就是 \emph{Moravec's paradox}：人类觉得“简单”的感知、操作、协调往往对机器最难，而人类觉得“难”的抽象推理反而容易被模型化。
+
+\begin{importantbox}{本讲的核心判断}
+机器人学习的难点不在于“会不会分类”，而在于如何在开放世界里同时处理感知、控制、接触、扰动和长期规划。
+\end{importantbox}
+
+\subsection{Pattern Recognition vs Control Theory}
+课程把机器人任务拆成两个传统视角：
+\begin{itemize}
+    \item \textbf{Pattern recognition} 更关心从观测中识别语义、状态和对象。
+    \item \textbf{Control theory} 更关心系统如何在扰动下保持稳定，以及如何适应物理环境的变化。
+\end{itemize}
+这不是两个互斥分支，而是两个都必须面对的轴。机器人学习真正难的地方，是你既要看懂世界，又要让系统在世界里动起来。
+
+\subsection{视觉要解决什么，控制要解决什么}
+课程对视觉和控制分别给出了很朴素的目标：
+\begin{itemize}
+    \item 视觉强调 \textbf{generalization}，例如对姿态、光照、遮挡、类内差异保持鲁棒。
+    \item 控制强调 \textbf{robustness} 和 \textbf{adaptation}，即对外部扰动和物理条件变化仍能保持行为可用。
+\end{itemize}
+这也是为什么课程里会反复把视觉放进 locomotion loop：视觉不仅是“看”，而是能提前给运动决策提供方向与约束。
+
+\subsection{从婴儿学习看机器人学习}
+课程借婴儿学习来概括机器人学习应当具备的特性：
+\begin{enumerate}
+    \item 多模态（multimodal）：视觉和触觉是互补的。
+    \item 递进式（incremental）：学习不应从零开始、凭空跳到最终任务。
+    \item 物理交互（physical）：必须和真实世界接触。
+    \item 探索（explore）：不是只被动拟合数据。
+    \item 社会学习（social）：要能从他人示范中学习。
+    \item 语言（language）：语言可以成为组织知识和任务的高层接口。
+\end{enumerate}
+
+\subsection{课程里给出的三条学习路线}
+本讲把机器人技能获取分成三条主线：
+\begin{itemize}
+    \item \textbf{Learning by trial and error}，也就是 reinforcement learning（强化学习）。
+    \item \textbf{Learning by behavior cloning}，也就是从 teleoperation（遥操作）得到示范后做行为克隆。
+    \item \textbf{Learning by visual imitation}，也就是从视频中做视觉模仿。
+\end{itemize}
+课程同时提醒，这三条路线都需要数据，只是数据来源不同：模拟器、遥操作、公开视频。真实可用的系统往往是工程折中，而不是纯算法胜利。
+
+\begin{knowledgebox}{课程路线图}
+从 locomotion、navigation、manipulation 三个任务轴出发，课程会依次讨论：
+RL in simulation、teleoperation with behavior cloning、visual imitation。这个三分法后来会不断重复出现。
+\end{knowledgebox}
+
+\subsection{本章小结}
+这一讲的作用是立题，而不是展开技术细节。它先把机器人学习的对象限定为具身任务，再把困难拆成感知、控制、数据和物理交互四个层面。后续课程的所有方法，都可以看成是在三条技能获取路线和三个任务轴上做不同组合。
+
+\section{机器人怎样学技能}
+\subsection{模拟、遥操作与视觉模仿}
+课程强调，机器人技能并不只有一种数据入口。模拟训练通常便宜、可规模化，但必须面对 \emph{sim-to-real} gap，也就是模拟世界和真实物理世界不完全一致的问题，尤其是接触、摩擦和软硬物体交互。遥操作则更接近真实任务，但需要大量人工演示。视觉模仿最接近人类“看别人做”的学习方式，但它对几何、时序和物理一致性的要求更高。
+
+\subsection{课程里的若干例子}
+讲义举了几类代表性工作：
+\begin{itemize}
+    \item biped locomotion 的 sim-to-real 研究，说明大规模模型自由强化学习已经能把某些走路策略迁移到现实机器人。
+    \item in-hand manipulation，说明多模态输入在接触丰富的任务里很关键。
+    \item TRI 和 Mobile ALOHA，说明 teleoperation + behavior cloning 已经在很多任务上非常强。
+    \item SFV，以及“Humanoid Locomotion as Next Token Prediction”等视频驱动方法，说明 visual imitation 正在成为一个重要方向。
+\end{itemize}
+
+\subsection{视觉模仿为什么重要}
+课程明确指出，视觉模仿并不是单纯照搬行为克隆。人类看别人做任务时，不只是复制动作轨迹，而是在脑中建立更抽象的任务结构。对机器人来说，这意味着可以从公开视频里学到更广泛的先验，再把它们映射到物理模拟器或真实机器人上。
+
+\begin{warningbox}{关于数据的现实约束}
+无论是 RL、BC 还是 visual imitation，课程都没有把“数据够用”当成理所当然。相反，数据规模、分布覆盖和任务归纳偏差，都是能否让系统工作的关键。
+\end{warningbox}
+
+\subsection{本章小结}
+这一讲最后给出的结论很清楚：机器人学习要想变强，不能只靠一种输入源或一种训练范式。模拟、遥操作、视频模仿各有长短，真正的系统往往要在这三者之间做组合。
+
+\section{总结与延伸}
+Lecture 1A 的价值在于搭框架。它把机器人学习从“做一个聪明模型”拉回到“做一个能在物理世界里完成任务的系统”。后续如果继续往下看，就会发现 locomotion、navigation、manipulation 只是表面上的任务差异，底层其实都在解决同一组问题：如何感知环境、如何做闭环控制、如何用更少的人类监督学到可迁移技能。
+
+从本讲出发，最值得保留的三个判断是：第一，感知和控制必须一起考虑；第二，数据来源决定了学习范式；第三，robot learning 的关键不是让模型“会说”，而是让系统“会做”。
+
+\subsection{拓展阅读}
+如果希望把本讲的框架继续往下接，建议优先回看课程后续关于 reinforcement learning、behavior cloning 和 visual imitation 的讲次；它们会把今天的三条学习路线逐步展开成可实现的算法与系统。
+
+\end{document}

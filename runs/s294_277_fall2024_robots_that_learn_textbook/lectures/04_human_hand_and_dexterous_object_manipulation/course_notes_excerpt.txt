@@ -1,0 +1,277 @@
+===== Lecture 2B | pages 22-28 =====
+
+4     Lecture2B
+CS294-277 Fall 2024                                                                      Lecturer: Jitendra Malik
+September 16, 2024                                                        Scribe: Max (Letian) Fu and Justin Kerr
+
+        Lecture 2B: The Human Hand and Dexterous Object Manipulation
+                                                       Abstract
+          Resuming from the first half of the lecture, this part of the lecture first resumes the discussion on the
+      screw theory and then discusses the human hand and various atomic manual actions.
+
+
+4.1    Introduction to Screw Theory
+Screw theory is a powerful mathematical framework that provides a unified way to describe rigid body
+motions in 3D space. A fundamental result of screw theory states that any rigid body motion, which includes
+both rotation and translation, can be expressed as a screw motion. A screw motion consists of a simultaneous
+rotation about, and translation along, a specific axis in space, known as the screw axis. Importantly, this
+axis need not be centered on the object itself.
+    This concept was first explored by Giulio Mozzi in 1763 and later formalized and popularized by Michel
+Chasles 1830. Mozzi demonstrated that every Euclidean motion of a rigid body can be described by a
+rotation about a fixed axis combined with a translation along that axis. Chasles further expanded on this
+idea, formalizing what is now known as Chasles’ Theorem, which states that any general Euclidean motion in
+3D space can be represented as a screw motion.
+
+
+
+
+Figure 12: Visual depiction of a screw. Note however that the axis need not align with the object being
+described (need not pass through the literal screw as shown)
+
+
+
+4.2    Definition of a Screw
+A screw is formally defined by the following components:
+
+    • Screw axis: A line in space about which the body rotates and along which it translates.
+
+    • Pitch (h): The pitch of a screw is the ratio of translational displacement per unit of rotation (usually
+      measured in radians). Specifically, it is the distance the body translates along the screw axis for one
+      complete revolution (i.e., a 2π radian rotation).
+
+    • Rotation angle (θ): The amount of rotation about the screw axis.
+
+    • Translation (t): The amount of translation along the screw axis.
+
+
+                                                           22
+   In summary, a screw motion is parameterized by the axis of the screw, the rotation about this axis, and
+the pitch that defines the coupled translational motion. The screw’s pitch is analogous to the "thread" of
+a conventional mechanical screw, where a higher pitch corresponds to greater translation for each unit of
+rotation.
+
+4.3    Degrees of Freedom in Screw Theory
+The motion of a rigid body in 3D space is described by six degrees of freedom (DoF), encompassing both
+translation and rotation. Screw theory provides an intuitive decomposition of these degrees of freedom into
+components related to screw motion.
+
+4.4    Degrees of Freedom for a Line in 3D
+To understand how a screw can represent a rigid body motion, we first need to analyze the degrees of freedom
+of a line in 3D space, which serves as the screw axis.
+
+   • A line in 3D can be described by two components:
+
+        – Direction: The direction of the line can be specified by a unit vector v̂, which has two degrees of
+          freedom (DoF) since its orientation is constrained to lie on the surface of a unit sphere.
+        – Position: The position of the line can be specified by a point on the line, which is constrained
+          to a plane orthogonal to v̂. Thus, it requires two more degrees of freedom, as the point can be
+          translated in the orthogonal plane.
+
+   Therefore, a line in 3D space has a total of four degrees of freedom (DoF).
+
+4.5    Degrees of Freedom of a Screw
+To fully describe a screw motion, we need to account for both the screw axis and the motion along this axis:
+
+   • Pitch (1 DoF): The pitch of the screw determines the ratio of translation to rotation along the screw
+     axis. This introduces one degree of freedom.
+
+   • Line in Space (4 DoF): The screw axis, as previously discussed, has four degrees of freedom.
+
+   • Rotation about the Axis (1 DoF): The amount of rotation about the screw axis is characterized by
+     one additional degree of freedom.
+
+    Thus, a screw motion is defined by a total of six degrees of freedom (1 for pitch, 4 for the line, and 1
+for the rotation).
+
+4.6    Equivalence of 3D Rigid Body Motion and Screw Motion
+A rigid body in 3D can undergo any combination of rotation and translation. As previously noted, this can
+always be represented as a screw motion, which consists of a simultaneous rotation and translation along a
+screw axis.
+    We now provide a brief intuitive argument for why this equivalence holds:
+
+
+
+
+                                                     23
+4.7    Translation Decomposition
+Any translation of a rigid body can be decomposed into two components relative to the screw axis:
+
+   1. Translation parallel to the screw axis: This component can be directly represented by the
+      translational part of the screw motion.
+
+   2. Translation orthogonal to the screw axis: This component can be expressed as a shift of the screw
+      axis, accompanied by a rotation about the new axis. Hence, the screw axis can be adjusted accordingly
+      to capture the combined effect of translation and rotation.
+
+  Thus, every arbitrary translation and rotation of a rigid body can be transformed into an equivalent screw
+motion.
+
+4.8    2D Analog: Rotation and Translation
+In two dimensions (2D), we can similarly represent any combination of rotation and translation as a single
+equivalent rotation about a new point. This concept is closely related to the pole, which is the point that
+remains invariant during the motion.
+    Given a rotation matrix R and a translation vector t, the pole p is the point that satisfies the following
+condition:
+                                               Rp + t = p
+Solving for p, we find:
+                                                  p = (I − R)−1 t
+If there is no rotation (i.e., R = I), the pole is at infinity, corresponding to a pure translation. If there is only
+a rotation (with no translation), the pole corresponds to the center of rotation.
+
+4.9    Twists
+Any rigid body motion can be represented as a twist, which describes both the angular and spatial velocity of
+the object’s motion.                                                                    "         #
+                                                                                           R    0
+   To transform a twist from one frame to another, you use the adjoint matrix: [AdT ] =             ∈ R6×6 .
+                                                                                         [p]R R
+   The matrix representation of this is a skew-symmetric matrix in the top left for angular velocity and a
+3-vector column vector on the right for translational velocity.
+
+4.10     Wrenches
+The forceful analog to screws is called a wrench, which describes the 6-dimensional force and torque applied
+to a rigid body. This is because it mimics the properties a person might apply by moving a wrench in their
+hand to move or rotate a target. The dot product of a twist and a wrench is power, since this physically
+corresponds to doing work over time (intuitively in the translation-only case, think of multiplying a force by
+a velocity, the units are (force*distance/time), which is dimensionally (work/time) == power. One can also
+change the viewing coordinate frame of a wrench by multiplying by the adjoint matrix above.
+
+4.11     Universal Robot Description Format (URDF)
+The Universal Robot Description Format (URDF) is an XML file format used to describe the kinematics,
+inertial properties, and geometry of a tree-structured robot. It provides a standardized way to specify a
+robot’s kinematic chain, including joint types, link geometries, and inertial properties. URDF files are widely
+used in robotics software frameworks, especially in ROS (Robot Operating System), to enable simulation,
+
+
+                                                         24
+visualization, and control of robots. By encapsulating lots of relevant information about a robot’s physical
+structure in a single file, URDFs help share robot models across different software tools and applications.
+
+4.12     URDF Elements
+4.12.1   The Joint Element (Kinematics)
+The joint element describes the kinematic properties relating one link to another. For example, the relative
+offsets of origin frames, and the type (prismatic or revolute). Example below:
+
+<joint name="joint2" type="revolute">
+    <parent link="link1"/>
+    <child link="link2"/>
+    <origin rpy="0 1.5708 0" xyz="0 0.5 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.0" upper="3.0"/>
+</joint>
+
+4.12.2   The Link Element (Inertial Properties)
+The link element describes the inertial properties of a robot link such as moment of inertia and mass. For
+example:
+
+<link name="link2">
+    <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0.5"/>
+        <mass value="2.25"/>
+        <inertia ixx="1.0" ixy="0" ixz="0"
+                 iyy="2.0" iyz="0" izz="3.0"/>
+    </inertial>
+</link>
+
+   These XML elements define the structure and properties of each component in the robot’s kinematic
+chain.
+
+4.13     Hands and Manipulation in Robotics
+In this part of the lecture, we alternate between understanding both the engineering challenges of robot
+manipulation and the human use of hands. A key goal is to develop robotic hands capable of performing the
+wide range of tasks that human hands can perform. To illustrate human hand use, we begin by examining
+datasets such as 100 Days of Hands (Shan et al. (2020)) and Something-Something (Goyal et al. (2017)),
+which capture a variety of tool-based actions performed by humans using their hands.
+   Goal: The eventual aim is for robots to replicate this level of dexterous manipulation, performing tasks
+with the same agility and adaptability as human hands.
+   To understand how to achieve this in robotics, we first analyze the anatomy and functionality of human
+hands, which demonstrate unparalleled dexterity.
+
+4.14     Common Atomic Manual Actions
+To make robot hand dexterity tractable, we focus on atomic actions – actions that can be performed in
+roughly one second. These manual actions focus primarily on object manipulation, though human hands
+
+
+
+                                                    25
+Figure 13: Example hand interaction datasets. (Top) 100 Days of Hands. (Bottom) Ego-4D
+
+
+
+
+                                          26
+are also used for communication and gestures. The hypothesis is that a small set of actions can capture the
+majority of tasks performed by human hands.
+    Common examples of atomic manual actions include:
+
+Object Manipulation
+   • Pouring:
+
+        – Grasping the object.
+        – As the liquid pours, the weight of the object shifts, requiring tactile and haptic feedback.
+        – Vision may not be necessary to execute this task.
+
+   • Stirring:
+
+        – Can be performed without vision.
+
+   • Cutting with a Knife:
+
+        – Requires vision to properly guide the tool.
+        – Tool use in robotics is deficient, often requiring specialized grippers for different tasks.
+
+   • Inserting Objects:
+
+        – Position control to reach the correct location.
+        – Force control to ensure the object is inserted properly without damage.
+        – Feedback and precision are crucial.
+
+   • Screwing/Unscrewing:
+
+        – Vision is required to locate and estimate the size of screws.
+
+   • Writing:
+
+        – Can be done blind, though vision improves precision.
+        – From a control perspective, predictive control minimizes delays.
+
+   • Wiping and Painting:
+
+        – These tasks involve a combination of force and position control.
+
+   • Hammering/Drilling/Scissor Use/Rolling Pin/Peeling:
+
+        – Examples of tool use requiring complex coordination of forces and movements.
+
+4.15     Challenges in Tool Use and Manipulation
+In-hand Reorientation
+Some tools, such as scissors, require reorienting objects within the hand, a skill that is challenging for robots.
+
+Parallel Jaw Grippers vs Multi-finger Hands
+There is a debate about the use of parallel jaw grippers versus multi-finger hands. While parallel jaw grippers
+can accomplish certain tasks, multi-fingered hands with soft, compliant properties offer greater versatility in
+manipulation, mimicking the dexterity of human hands.
+
+
+                                                       27
+Throwing and Catching
+Complex tasks like throwing and catching require precise coordination of force, position, and vision. Predictive
+control is essential for handling the fast dynamics of these actions.
+
+4.16    Non-prehensile Movements
+Many human actions involve non-prehensile movements, meaning they do not involve grasping objects.
+Examples include:
+
+   • Pushing/Sliding: These tasks require generalization beyond tabletop manipulation, such as interacting
+     with objects on the floor.
+
+   • Full-body and Bimanual Manipulation: Some tasks require the use of both hands or even the
+     entire body to manipulate objects effectively.
+
+   Non-prehensile manipulation is as important as prehensile (grasping-based) tasks, and both need to be
+addressed for a robot to fully replicate human hand dexterity.
+
+
+
+
+                                                      28
+

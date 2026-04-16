@@ -1,0 +1,283 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS294-277 课程笔记：Lecture 11A 灵巧操作案例（上）}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-16}
+\newcommand{\videochannel}{CS294-277 / UC Berkeley}
+\newcommand{\videopublishdate}{2024-11-25}
+\newcommand{\videoduration}{未在本地元数据中提供}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=DtQ78SK8yC8}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{overview_cover.jpg}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{本讲定位与学习目标}
+
+本讲是《Robots That Learn》中关于灵巧操作（dexterous manipulation）的上半场。它的重点不是提出一个全新的控制理论，而是系统梳理当前机器人灵巧操作里最强势的一条主线：用监督学习（supervised learning）从遥操作（teleoperation）和人类示范中学习策略，再通过更好的硬件、更大的数据和更强的生成式策略，把任务复杂度逐步推高。
+
+\subsection{为什么这一讲以监督学习为中心}
+
+官方讲义把这一讲的主轴概括得非常直接：现在灵巧操作里最主流的范式仍然是监督学习，而不是纯强化学习（reinforcement learning, RL）。原因并不神秘。遥操作数据可以直接对齐“观察--动作”对，学习目标清晰，训练流程也更像标准的深度学习管线。
+
+但这并不意味着监督学习就是终点。课程强调的真正观点是：当前最有效的方法之所以有效，是因为它们在数据、硬件和模型三个层面同时进步了；而它们的局限也恰恰暴露出机器人学习和视觉语言模型之间的差异。
+
+\subsection{本讲要回答的三个问题}
+
+\begin{itemize}
+  \item 怎样把灵巧操作写成可学习的数据问题，即把人类演示变成策略学习数据？
+  \item 为什么 ALOHA 这样的低成本双臂平台会成为当前的代表性硬件路线？
+  \item 当任务越来越难时，监督学习路线到底卡在什么地方，未来要往哪里走？
+\end{itemize}
+
+\begin{importantbox}{本讲的核心判断}
+灵巧操作的现实进展，不是某一个模型结构单独带来的，而是“更好的演示数据 + 更合适的机器人硬件 + 更强的多模态策略”共同作用的结果。
+\end{importantbox}
+
+\subsection{本章小结}
+
+这一讲的主题是“监督学习如何成为机器人灵巧操作的主力路线”。理解这一点之后，后面讨论的 ACT、diffusion policy、ALOHA、\(\pi_0\) 才会有统一的背景。
+
+\section{从遥操作到策略学习}
+
+\subsection{遥操作数据管线}
+
+在机器人操控里，遥操作（teleoperation）指的是人通过手柄、外骨骼、主从系统或其他接口，直接控制机器人完成任务。系统记录下来的不是抽象规则，而是完整轨迹：观测、动作和任务上下文。
+
+这类数据最适合监督学习的原因很简单：每个时刻都可以形成一个监督信号。给定某个观测 \(o_t\)，模型学习输出动作 \(a_t\)；如果把一段任务打包起来，就得到一条轨迹 \(\tau = (o_1,a_1,\ldots,o_T,a_T)\)。
+
+\subsection{Action Chunking with Transformers}
+
+讲义中提到的 Action Chunking with Transformers（ACT）是 ALOHA 早期使用的关键方法之一。它的基本想法是把连续动作按 chunk 组织起来，再用 Transformer 去预测动作块，而不是只输出一个孤立动作。
+
+这样做的好处是：
+\begin{itemize}
+  \item 动作预测不再是单步局部回归，而是能表达短时间窗口内的结构；
+  \item Transformer 可以利用上下文信息，减轻纯局部预测的抖动；
+  \item 对长时序任务更友好，因为动作块本身就携带一点“短期计划”的含义。
+\end{itemize}
+
+\subsection{Diffusion Policy 的意义}
+
+另一条主线是扩散策略（diffusion policy）。它的关键优点，不是“更神秘”，而是更适合建模多模态动作分布（multimodal action distribution）。
+
+在灵巧操作中，同一个观测往往对应多个合理动作。比如为了绕过一个障碍物，你可以从左边绕，也可以从右边绕；如果把这两种轨迹简单平均，结果反而可能撞上障碍。扩散策略通过生成式建模，保留了动作分布的多峰结构，因此比纯回归更适合这类任务。
+
+\begin{knowledgebox}{多模态动作分布为什么重要}
+在机器人操作里，“平均动作”常常不是“安全动作”。真正需要的是保留多个可行动作模式，再由后续控制或规划模块挑选、筛掉或重采样。
+\end{knowledgebox}
+
+\subsection{本章小结}
+
+遥操作把“会做”变成了可学习的数据，ACT 和 diffusion policy 则分别从动作块建模和生成式建模两个方向，提升了监督学习在灵巧操作中的表达能力。
+
+\section{ALOHA：低成本双臂平台}
+
+\subsection{硬件结构与数据采集}
+
+ALOHA（RSS 2023）是这一讲最重要的硬件案例之一。它是一个双臂（bimanual）操控平台，总共有 14 个自由度（degrees of freedom, DOF），每条手臂 7 个自由度，包括平行夹爪。讲义特别强调它的高重复性，量级大约在 1 毫米左右，这对稳定采集示范数据很重要。
+
+在这样的系统里，遥操作有时也被形象地称为 puppeteering。原因是人类操作者并不是在“自动驾驶”机器人，而是在近似地用自己的动作“牵引”机器人完成动作。
+
+\subsection{为什么腕部相机很关键}
+
+ALOHA 的多摄像头配置里，最关键的往往是腕部相机（wrist camera）。原因在于灵巧操作里的关键视觉信息常常发生在接触附近：手抓住了什么、接触点在哪里、物体有没有滑动，很多时候只有靠近末端执行器的视角才看得清。
+
+这类平台通常还会配前视、顶视等多个视角。它们共同的作用不是“堆更多图像”，而是给策略提供更稳定的几何与接触信息。
+
+\subsection{ALOHA 不只是一个装置，而是一个数据协议}
+
+从课程的角度看，ALOHA 的价值不仅是机械结构本身，还在于它提供了一种很适合学习的工作流：
+\begin{itemize}
+  \item 人类通过遥操作产生高质量演示；
+  \item 多视角相机记录接触附近的状态；
+  \item 学习系统把观测映射到动作；
+  \item 重复采集后，数据逐渐覆盖更多 task variation。
+\end{itemize}
+
+讲义还提到，类似的近期平台包括 Shuran Song 团队的 UMI，以及 Toru Lin Lin 团队的 HATO。它们都说明同一件事：灵巧操作的上限，不只由算法决定，也由数据采集硬件决定。
+
+\subsection{本章小结}
+
+ALOHA 的重要性在于它把“灵巧操作数据集怎么来”这个问题工程化了。高重复性、双臂、多视角、腕部相机，这些条件共同构成了监督学习可持续扩展的前提。
+
+\section{ALOHA Unleashed：更难的任务与更强的模型}
+
+\subsection{任务从哪里开始变难}
+
+ALOHA Unleashed 把难度进一步推高。任务不再只是简单抓取或重复插接，而是包括 shirt hanging、robot finger replacement、gear insertion、shoelace tying、random kitchen stacking 等更复杂的桌面操作。
+
+这些任务的共同特点是：成功不只是“碰到目标”，而是要经历多个连续阶段，且每个阶段都容易受姿态、遮挡、接触和物体初始位置影响。
+
+\subsection{模型结构}
+
+讲义概括的架构也很清晰：系统采用 diffusion framework，同时使用基于 Transformer 的编码器和解码器；输入包含 wrist / top / front camera 的图像，以及 proprioceptive data（本体感觉数据）。
+
+这里的设计逻辑是典型的机器人学习逻辑：
+\begin{itemize}
+  \item 图像负责提供场景和接触信息；
+  \item 本体感觉负责提供机器人自身状态；
+  \item 生成式策略负责处理动作的多模态性和连续性。
+\end{itemize}
+
+\subsection{结果应该如何解读}
+
+课程摘录给出的数字大致落在 40\% 到 75\% 的成功率区间，使用的演示数据量约在千级。这个结果的意义不是“已经完美”，而是说明对于一类真实灵巧任务，监督学习已经足够强，甚至可以在复杂场景中表现出不错的任务泛化。
+
+但同样重要的是，讲义并没有把这些结果神化。它很快把讨论引向了 generalization、robustness 和 scaling laws，说明作者本人并不认为“只要堆更多示范”就能解决一切。
+
+\subsection{本章小结}
+
+ALOHA Unleashed 展示了监督学习路线的上限：当任务变复杂时，Transformer 和 diffusion policy 依然有效，但它们开始明显依赖数据多样性、任务设计和硬件可观测性。
+
+\section{三个关键问题：泛化、鲁棒性与 scaling laws}
+
+\subsection{Generalization：能否跨对象、跨视角、跨场景}
+
+泛化（generalization）是这一讲最直接的问题：系统能否跨尺寸、形状、外观、视角、遮挡和光照条件工作？更进一步，它能否直接迁移到全新的场景？
+
+对于灵巧操作来说，这个问题比分类任务更难。因为机器人不是识别一个静态标签，而是在和真实物体发生接触。只要物体位置、形状或相机角度变化，动作就可能失效。
+
+\subsection{Robustness：失败后能否恢复}
+
+鲁棒性（robustness）问的是另一件事：控制系统能不能从小失败中恢复？比如抓偏了一点、碰歪了一点、物体滑了一点，系统是否还能继续完成任务。
+
+这其实已经接近控制理论里的问题了。讲义强调，反馈控制（feedback control）对“稍微出错”的情况非常关键，而视觉模仿学习（visual imitation learning）可能是补强鲁棒性的一个方向。
+
+\subsection{Scaling laws：更多数据是否等于更强能力}
+
+缩放律（scaling laws）是第三个问题。课程不是简单地问“能不能变大”，而是问：在机器人里，scale 的含义到底是什么？它是更多数据、更多多样性，还是更多任务，或者更好的采集方式？
+
+讲义给出了三条主要的数据获取路线：
+\begin{itemize}
+  \item 遥操作（teleoperation）；
+  \item 仿真中的强化学习；
+  \item 视觉模仿（visual imitation），例如利用 YouTube 视频。
+\end{itemize}
+
+其中讲者还明确表达了一个判断：单纯依赖遥操作，可能在数据多样性上是最弱的一条路。原因不是示范不重要，而是它太容易受操作者和场景限制。
+
+\subsection{硬件的未来：多指手与触觉}
+
+讲义在这里给出了一个很明确的硬件判断：平行夹爪（parallel jaw grippers）当前依然实用，但未来真正需要的是多指手（multifingered hands）和触觉感知（tactile sensing）。
+
+这不是审美判断，而是信息量判断。任务越复杂，末端执行器越需要更细粒度的接触反馈；而触觉和多指结构，正是让灵巧操作摆脱“看起来能抓、实际上不稳”的关键。
+
+\subsection{本章小结}
+
+这部分把当前主流路线的瓶颈说得很清楚：问题不再是“模型能不能拟合示范”，而是“它能否跨场景泛化、出错后自恢复、并在更大更杂的数据上持续受益”。
+
+\section{Case Study：Physical Intelligence 的 \texorpdfstring{$\pi_0$}{pi0}}
+
+\subsection{第一代 generalist policy 的信号}
+
+课程摘录把 Physical Intelligence 的 \(\pi_0\) 当作一个重要案例。它的意义不是某一个单点指标，而是代表了工业界对“generalist policy（通用策略）”的持续推进。
+
+讲义提到的任务类型包括 laundry folding（叠衣服）和 box handling（箱体处理）等更广泛的灵巧操作场景。它们说明，监督学习已经不只服务于单一桌面任务，而是在向更具任务多样性的方向扩展。
+
+\subsection{它说明了什么}
+
+\(\pi_0\) 这个案例反映出一个趋势：机器人学习的竞争点，正在从“单任务成功率”转向“数据多样性、任务覆盖面和系统可扩展性”。换句话说，接下来真正困难的不是某个单独任务，而是如何稳定地处理一整族任务。
+
+\subsection{本章小结}
+
+\(\pi_0\) 提醒我们，灵巧操作的前沿已经开始从“学会做某一个动作”变成“学会在更广泛的真实任务里稳定工作”。这正是本讲后半部分所有讨论的归宿。
+
+\section{总结与延伸}
+
+这一讲的总体结论可以压缩成一句话：当前机器人灵巧操作最强的路线，是以监督学习为核心，借助遥操作、生成式策略和更适合接触任务的硬件，逐步把复杂操作推向可学习、可扩展的方向。
+
+如果继续往下读，最值得延伸的是三组问题：
+\begin{itemize}
+  \item \textbf{数据}：怎样让示范更丰富，而不是只更大？
+  \item \textbf{硬件}：怎样让机器人真的“看见并感觉到”接触？
+  \item \textbf{模型}：怎样把多模态动作分布和长时序任务一起学好？
+\end{itemize}
+
+对后续章节来说，这一讲最重要的遗产是一个判断标准：凡是能真正推动机器人灵巧操作前进的方法，都必须同时回答数据、硬件和模型三件事，而不能只在单一维度上做大。
+
+\subsection{本章小结}
+
+灵巧操作的主线已经很清晰：监督学习仍是当前主力，但它只有在高质量硬件和高多样性数据支撑下，才会真正接近“通用策略”。
+
+\end{document}

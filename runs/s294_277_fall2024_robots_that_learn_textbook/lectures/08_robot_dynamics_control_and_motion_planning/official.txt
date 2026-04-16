@@ -1,0 +1,321 @@
+Robot Dynamics, Control and
+         Motion Planning
+                     Lecture 5A
+                   Jitendra Malik
+Some slides sourced from Lynch and Park, Modern Robotics
+                    (credited on slide)
+
+Three topics
+• Robot Dynamics
+• Robot Control
+• Robot Motion Planning
+
+Important concepts, symbols, and equations
+
+Forward kinematics of a serial chain:
+
+    Given
+      • M = Tsb(0) ∈ SE(3), the configuration of
+        the end-effector frame {b} at the home
+        configuration 𝜃 = 0,
+      • the screw axes for each joint at 𝜃 = 0,
+        and
+      • the joint vector 𝜃,
+
+    find Tsb(𝜃) ∈ SE(3).
+
+                             Modern Robotics, Lynch and Park,
+                                                                3
+                               Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+• For screw axes S expressed in {s}, the product of exponentials (PoE) in the
+  space frame is
+
+• For screw axes B expressed in {b}, the PoE is
+
+                            Modern Robotics, Lynch and Park,
+                                                                           4
+                              Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+The Universal Robot Description Format (URDF) is an XML file describing the
+kinematics, inertial properties, and geometry of a tree-structured robot.
+                                              J5 L5
+                          J1        J2
+                     L0        L1        L2
+                                              J3 L3 J4 L4
+
+the joint element (kinematics)                             the link element (inertial properties)
+<joint name=“joint2” type=“revolute”>                <link name=“link2”>
+  <parent link=“link1”/>                               <inertial>
+  <child link=“link2”/>                                  <origin rpy=“0 0 0” xyz=”0 0 0.5”>
+  <origin rpy=“0 1.5708 0” xyz=“0 0.5 0”>                <mass value=“2.25”>
+  <axis xyz=“0 1 0”>                                     <inertia ixx=“1.0” ixy=“0” ixz=“0”
+  <limit lower=“-3.0” upper=“3.0”>                                iyy=“2.0” iyz=“0” izz=“3.0”/>
+</joint>                                               </inertial>
+                                                     </link>
+
+                                    Modern Robotics, Lynch and Park,
+                                                                                               5
+                                      Cambridge University Press
+
+Important concepts, symbols, and equations
+
+• forward dynamics (for simulation): 𝜃, 𝜃,ሶ τ → 𝜃ሷ
+
+• inverse dynamics (for control): 𝜃, 𝜃,ሶ 𝜃ሷ → τ
+
+• two equivalent approaches to computing the dynamics:
+
+   • Lagrangian (variational, based on energy)
+   • Newton-Euler (“f = ma” for the rigid bodies)
+
+                              Modern Robotics, Lynch and Park,
+                                                                 6
+                                Cambridge University Press
+
+RP in gravity
+
+                                                                    =            + ...
+
+                                                                    = L1 + ...
+
+                https://www.feynmanlectures.caltech.edu/II_19.html
+
+                                 Modern Robotics, Lynch and Park,
+                                                                                         7
+                                   Cambridge University Press
+
+RP in gravity
+
+                Modern Robotics, Lynch and Park,
+                                                   8
+                  Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+Standard forms of dynamic equations:
+
+                                                               +
+
+M(𝜃)             n×n symmetric positive definite mass matrix
+g(𝜃)             gravity (potential) terms
+c(𝜃,𝜃)ሶ          velocity-product terms
+(𝜃)             n×n×n tensor of Christoffel symbols (due to nonzero 𝜕M/𝜕𝜃)
+C(𝜃,𝜃)ሶ          Coriolis matrix
+
+                            Modern Robotics, Lynch and Park,
+                                                                         9
+                              Cambridge University Press
+
+Cruise controller
+Source: Feedback control of dynamic systems, Franklin et al
+
+Model
+
+1 deg change in throttle angle causes a speed change by 10 mph
+1% change in grade causes a speed change by 5 mph
+
+Open loop controller
+(also called Feedforward controller)
+
+Open loop controller
+       (also called Feedforward controller)
+
+y = 10 (u – 0.5 w)
+                         If the car is going up a 1% grade slope, its speed
+y = 10 (0.1 r – 0.5 w)
+                          will be 5 mph less than reference
+y= r–5w
+
+Closed Loop Controller
+Also called Feedback controller
+
+Closed Loop Controller
+        Also called Feedback controller
+
+u = 10 (r – y)                            y = 0.99 r – 0.05 w
+y = 10 (u – 0.5 w)
+y = 10 (10r – 10y – 0.5w)   The effect of the disturbance is reduced by 100x
+
+PID controller
+
+                 Modern Robotics, Lynch and Park,
+                                                    16
+                   Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+For motion control,
+
+         reference: 𝜃d(t)                                   b
+             actual: 𝜃(t)
+              error: 𝜃e(t) = 𝜃d(t) − 𝜃(t)                            overshoot = |a/b| × 100%
+
+Unit step error response:
+  𝜃e(t) starting from 𝜃e(0) = 1
+
+Steady-state error response: ess                        a
+
+Transient error response:
+overshoot, settling time
+
+                                  Modern Robotics, Lynch and Park,
+                                                                                            17
+                                    Cambridge University Press
+
+Back to robots…
+
+Control system block diagram:
+
+                            Modern Robotics, Lynch and Park,
+                                                               18
+                              Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+Simplified block diagram:
+
+Also assuming continuous-time (not discrete-time) control.
+
+                             Modern Robotics, Lynch and Park,
+                                                                19
+                               Cambridge University Press
+
+Important concepts, symbols, and equations
+
+Example control objectives:
+
+   •   motion control
+   •   force control
+   •   hybrid motion-force control
+   •   impedance control
+
+                              Modern Robotics, Lynch and Park,
+                                                                 20
+                                Cambridge University Press
+
+Types of control for the following tasks:
+
+   •   Shaking hands with a human
+   •   Erasing a whiteboard
+   •   Spray painting
+   •   Back massage
+   •   Pushing an object across the floor with a mobile robot
+   •   Opening a refrigerator door
+   •   Inserting a peg in a hole
+   •   Polishing with a polishing wheel
+   •   Folding laundry
+
+                             Modern Robotics, Lynch and Park,
+                                                                21
+                               Cambridge University Press
+
+Important concepts, symbols, and equations
+
+Proportional-Integral-Derivative (PID) control
+
+                            Modern Robotics, Lynch and Park,
+                                                               22
+                              Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+                                                                      𝜃d = 0
+
+                                                             𝜃(0) = −𝜋/2
+
+                          Modern Robotics, Lynch and Park,
+                                                                               23
+                            Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+Setpoint PID control, g ≠ 0
+
+                    dist
+
+                              Modern Robotics, Lynch and Park,
+                                                                 24
+                                Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+What about tracking general trajectories, not just setpoint control?
+
+                              Modern Robotics, Lynch and Park,
+                                                                       25
+                                Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+   Computed torque control (feedback linearization)
+
+for a single joint
+  or multi-joint
+     robots
+
+                             Modern Robotics, Lynch and Park,
+                                                                26
+                               Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+                          Modern Robotics, Lynch and Park,
+                                                             27
+                            Cambridge University Press
+
+Motion planning for robots
+
+• Usually we assume the geometry of the
+  environment is fully known.
+• We want to find a path from the START
+  position to the GOAL position while avoiding
+  collision with obstacles.
+• Solved by research in the 1980s and 1990s.
+  Sampling based methods proved practical.
+
+Represent the free configuration
+ Cfree space by a 1D roadmap R
+
+ Separately find paths from START to R and GOAL to R,
+ and link them via a path on R
+
+Next We need to go from paths to trajectories
+
+Trajectory: A specification of the configuration as a function of time.
+
+                              Modern Robotics, Lynch and Park,
+                                                                          35
+                                Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+Path: A specification of the configuration as a function of a path parameter.
+
+Time scaling: A mapping s(t): [0, T ] → [0, 1], from time to the path parameter.
+
+                              Modern Robotics, Lynch and Park,
+                                                                                   36
+                                Cambridge University Press
+
+Important concepts, symbols, and equations (cont.)
+
+straight line in joint space
+
+straight line in task space
+
+                               Modern Robotics, Lynch and Park,
+                                                                  37
+                                 Cambridge University Press
+
+An example of how to do the scaling in a smooth way.
+
+S-curve time scaling
+
+                          Modern Robotics, Lynch and Park,
+                                                             38
+                            Cambridge University Press

@@ -1,0 +1,315 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS294-277 课程讲义：Robot Kinematics and Dynamics}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{Jitendra Malik / UC Berkeley}
+\newcommand{\videopublishdate}{2024-09-16}
+\newcommand{\videoduration}{约 1 小时 48 分钟}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=_pBgzfzOT_8}
+\newcommand{\videocoverpath}{/Users/xinjiezhang/video-to-pdf-skills/runs/s294_277_fall2024_robots_that_learn_textbook/lectures/03_robot_kinematics_and_dynamics/cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{pdf_pages/page-01.png}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{Rigid Body Motion：从几何约束出发}
+这一讲的目标是把机器人运动的最基础语言讲清楚。核心对象不是单个关节，而是 \emph{rigid body motion}（刚体运动）：一个物体在运动过程中保持内部任意两点距离不变。课程里把它等价地称为 Euclidean transformation（欧几里得变换）或 isometry（等距变换）。
+
+\subsection{什么是 isometry}
+若一个变换 \(\psi\) 对任意两点 \(a,b\) 都满足
+\[
+\|\psi(a)-\psi(b)\| = \|a-b\|,
+\]
+就称它是 isometry。最简单的例子是平移：
+\[
+\psi(a)=a+t,
+\]
+因为平移并不会改变点与点之间的距离。
+
+\begin{importantbox}{刚体运动的本质}
+刚体运动只允许“整体移动”和“整体旋转”，不允许局部拉伸或压缩。也就是说，它保留距离。
+\end{importantbox}
+
+\subsection{旋转矩阵与 Special Orthogonal Group}
+课程先回顾 rotation matrix 的约束：每一列都要是单位向量，且任意两列互相正交。把这些约束写成矩阵条件就是
+\[
+R^\top R = I, \qquad \det(R)=1.
+\]
+满足这些条件的矩阵构成 special orthogonal group，记作 \(\mathrm{SO}(n)\)。在二维中，
+\[
+R(\theta)=
+\begin{bmatrix}
+\cos\theta & -\sin\theta\\
+\sin\theta & \cos\theta
+\end{bmatrix},
+\]
+在三维里也有类似的坐标轴旋转矩阵。课程的重点不是死记矩阵，而是理解：\(\mathrm{SO}(3)\) 只剩 3 个自由度，这和三维旋转的本质一致。
+
+\subsection{旋转的参数化}
+讲义提到几种常见表示法：
+\begin{itemize}
+    \item Euler angles（欧拉角）
+    \item axis-angle（轴角表示）
+    \item quaternions（四元数）
+\end{itemize}
+它们都是在解决同一个问题：如何用最紧凑、最稳定的方式表示 3D 旋转。课程随后转向 exponential coordinates（指数坐标），因为它更适合和微分方程、连续时间运动直接连接。
+
+\subsection{Skew-symmetric matrix 与旋转 ODE}
+若
+\[
+\hat{a}=
+\begin{bmatrix}
+0 & -a_3 & a_2\\
+a_3 & 0 & -a_1\\
+-a_2 & a_1 & 0
+\end{bmatrix},
+\]
+则 \(\hat a b = a \times b\)。这就是 skew-symmetric matrix（反对称矩阵）与叉乘的对应关系。
+
+课程用旋转体上的点 \(q(t)\) 的微分方程说明矩阵指数的角色：
+\[
+\dot q = \hat{\omega}\,q(t),
+\qquad
+q(t)=e^{\hat{\omega}t}q(0),
+\]
+其中
+\[
+e^A = I + A + \frac{A^2}{2!} + \frac{A^3}{3!} + \cdots.
+\]
+这个表达式的直觉是：指数映射把“无穷小旋转”累计成一个有限旋转。课程进一步强调，\(\hat\omega\) 的指数正是旋转矩阵，这就是 Rodrigues formula 背后的观点。
+
+\subsection{本章小结}
+这一部分把“刚体运动”翻译成了线性代数语言：距离不变对应 isometry，旋转对应 \(\mathrm{SO}(3)\)，连续旋转对应矩阵指数。后面所有机器人运动学，都会在这个几何基座上展开。
+
+\section{SE(3)、Homogeneous Coordinates 与 Frame}
+\subsection{刚体位姿与 SE(3)}
+课程给出 \(\mathrm{SE}(3)\) 作为 special Euclidean group（特殊欧氏群）：它是三维空间里刚体运动的矩阵群，也就是 homogeneous transformation matrices（齐次变换矩阵）的集合。标准写法是
+\[
+T=
+\begin{bmatrix}
+R & p\\
+0 & 1
+\end{bmatrix},
+\]
+其中 \(R \in \mathrm{SO}(3)\)，\(p \in \mathbb{R}^3\)。其逆变换是
+\[
+T^{-1}=
+\begin{bmatrix}
+R^\top & -R^\top p\\
+0 & 1
+\end{bmatrix}.
+\]
+
+\subsection{Homogeneous coordinates}
+为了把平移和旋转统一起来，课程引入 homogeneous coordinates（齐次坐标）：
+\[
+v=
+\begin{bmatrix}
+v_1\\v_2\\v_3\\1
+\end{bmatrix}.
+\]
+这样做的好处是，原本只能作用于 \( \mathbb{R}^3 \) 的位姿变换可以写成 \(4 \times 4\) 矩阵，从而把旋转和平移合并到同一个代数框架里。
+
+\subsection{Space frame 与 body frame}
+课程区分了两类参考系：
+\begin{itemize}
+    \item \textbf{space frame} \(\{s\}\)：固定在世界或环境中的参考系；
+    \item \textbf{body frame} \(\{b\}\)：固定在机器人或物体本体上的参考系。
+\end{itemize}
+两种 frame 都是瞬时静止的，但它们相对运动。对机器人来说，弄清楚“哪个量是在空间坐标下表达，哪个量是在机体坐标下表达”非常重要，因为同一个物理对象在不同 frame 下的坐标会不同。
+
+\subsection{刚体变换的组合}
+课程还强调了 composition of isometries（等距变换的复合仍是等距变换）。如果
+\[
+\psi_1(a)=A_1 a+t_1,\qquad \psi_2(a)=A_2 a+t_2,
+\]
+则
+\[
+\psi_1\circ \psi_2(a)=A_1A_2a+(A_1t_2+t_1).
+\]
+这就是为什么机器人里喜欢把变换写成矩阵乘法：组合变换会自动对应矩阵连乘。
+
+\subsection{本章小结}
+SE(3) 把旋转和平移统一成一个对象，齐次坐标则给这种统一提供了最方便的表示。后面讨论 twist、wrench 和 forward kinematics 时，所有东西都会在这个几何基座上自然地接上去。
+
+\section{Twist、Wrench 与指数坐标}
+\subsection{Twist：描述瞬时运动}
+课程定义 twist \(V_a=(\omega_a,v_a)\in\mathbb{R}^6\)，其中 \(\omega_a\) 是角速度，\(v_a\) 是参考系原点的线速度。课件里分别标了 spatial twist \(V_s\) 和 body twist \(V_b\)，说明同一个运动可以在不同 frame 中表达。
+
+\subsection{Adjoint representation}
+要把 twist 从一个 frame 转到另一个 frame，就会用到 adjoint representation（伴随表示）：
+\[
+V_a = \mathrm{Ad}_{T_{ab}}\,V_b.
+\]
+如果 \(T=(R,p)\)，那么标准的 adjoint 形式是
+\[
+\mathrm{Ad}_T=
+\begin{bmatrix}
+R & 0\\
+[p]_\times R & R
+\end{bmatrix}.
+\]
+这条公式的意义是：空间中的速度对象不能像标量那样随便换坐标，必须一起变换角速度和线速度部分。
+
+\subsection{Wrench 与功率}
+课程同时定义 wrench \(F=(m,f)\in\mathbb{R}^6\)，其中 \(f\) 是力，\(m=r\times f\) 是力矩。最重要的关系是：
+\[
+P = V^\top F,
+\]
+也就是 twist 和 wrench 的点积给出功率。这告诉我们，力和速度的配对关系必须和 frame 无关，否则物理量就没有一致性。
+
+\subsection{指数坐标与 screw axis}
+课程在这部分把 configuration 写成 exponential coordinates（指数坐标）：
+\[
+S\theta \in \mathbb{R}^6.
+\]
+这里 \(S\) 是 screw axis（螺旋轴），\(\theta\) 是沿该轴前进的距离或角度。讲义还指出，对于 \(S=(\omega,v)\)，常见的归一化有两类：
+\begin{itemize}
+    \item \(\|\omega\|=1\) 的旋转轴；
+    \item \(\omega=0,\ \|v\|=1\) 的纯平移轴。
+\end{itemize}
+matrix exponential 与 matrix log 在这里继续扮演“把局部运动积成整体位姿”的角色：指数把常量 twist 积分成位姿变化，log 则反过来从位姿变化恢复常量 twist。
+
+\begin{knowledgebox}{为什么指数坐标有用}
+指数坐标把“旋转 + 平移”的离散组合，变成了一个可以和微分方程直接对接的连续对象。这是机器人运动学里最有力量的组织方式之一。
+\end{knowledgebox}
+
+\subsection{本章小结}
+Twist 给了我们“速度”的语言，wrench 给了我们“力”的语言，指数坐标则把这些对象放进同一个几何框架。到这里，运动学和力学开始真正接上。
+
+\section{Forward Kinematics 与 Product of Exponentials}
+\subsection{前向运动学问题}
+课程把 serial chain 的 forward kinematics（前向运动学）表述为：
+\begin{quote}
+已知 home configuration \(M=T_{sb}(0)\)、各关节在 \(\theta=0\) 时的 screw axes、以及关节向量 \(\theta\)，求 \(T_{sb}(\theta)\in\mathrm{SE}(3)\)。
+\end{quote}
+这一定义本质上是在问：给定每个关节怎么转，末端执行器到底在哪里。
+
+\subsection{PoE 公式}
+课程的核心表达就是 product of exponentials（PoE，指数乘积）：
+\[
+T_{sb}(\theta)=e^{[\mathcal S_1]\theta_1}e^{[\mathcal S_2]\theta_2}\cdots e^{[\mathcal S_n]\theta_n}M,
+\]
+或者用 body frame 写成
+\[
+T_{sb}(\theta)=M\,e^{[\mathcal B_1]\theta_1}e^{[\mathcal B_2]\theta_2}\cdots e^{[\mathcal B_n]\theta_n}.
+\]
+这里的具体前后顺序由采用的是 space formulation 还是 body formulation 决定，但核心思想一致：把每个关节看成一个指数映射，再把它们按链式结构组合起来。
+
+\subsection{URDF：工程里的机器人描述}
+课程最后把理论落到 URDF（Universal Robot Description Format）上。URDF 是一个 XML 文件，用来描述树状机器人结构、几何、惯性和关节信息。它把 kinematics 的 joint element 和 inertial properties 的 link element 统一起来。
+
+\begin{lstlisting}[caption={URDF 中 joint 和 link 的简化示意}]
+<joint name="joint2" type="revolute">
+  <parent link="link1"/>
+  <child link="link2"/>
+  <origin rpy="0 1.5708 0" xyz="0 0.5 0"/>
+  <axis xyz="0 1 0"/>
+  <limit lower="-3.0" upper="3.0"/>
+</joint>
+
+<link name="link2">
+  <inertial>
+    <origin rpy="0 0 0" xyz="0 0 0.5"/>
+    <mass value="2.25"/>
+  </inertial>
+</link>
+\end{lstlisting}
+
+\subsection{本章小结}
+这一部分把抽象几何和工程实现连起来了：PoE 给出运动学的统一数学形式，URDF 给出机器人结构的可读描述。二者合在一起，才构成机器人系统的“几何骨架”。
+
+\section{总结与延伸}
+Lecture 2A 的中心任务，是建立机器人几何学的共同语言：刚体运动、\(\mathrm{SO}(3)\)、\(\mathrm{SE}(3)\)、齐次坐标、twist、wrench、指数坐标和 PoE。它们不是一串孤立定义，而是一条连续链条：从“距离保持”出发，经由旋转与平移，最终落到可计算的 forward kinematics 和 URDF。
+
+讲义末尾还提醒了一个很实用的观点：机器人学习并不只关心 large motions 或 prehensile grasping。人手也会做 keyboard tapping、piano playing、pushing 等 non-prehensile movements。也就是说，真正的 manipulation 需要同时重视抓握和非抓握动作，这一点会在后续关于 dexterous manipulation 的内容里继续出现。
+
+\subsection{拓展阅读}
+这一讲最直接的延伸材料是 Lynch \& Park 的 \emph{Modern Robotics}，以及课程页推荐的 Chapter 3 相关讲解。若希望把 PoE、twist、wrench 和 inverse kinematics 再往前推进，继续看后续的 L2B 会最有效。
+
+\end{document}

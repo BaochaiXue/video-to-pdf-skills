@@ -1,0 +1,296 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{课程笔记：机器人手、本体感觉与触觉}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{CS294-277 Fall 2024 / Jitendra Malik}
+\newcommand{\videopublishdate}{2024-09-23}
+\newcommand{\videoduration}{未提供}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=RvVLwi1bZ00}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 本讲未提供可用的独立封面图，故此处保留空白。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{人类手：抓握、感知与运动的统一体}
+
+\subsection{为什么人类手是最重要的参照系}
+这讲的起点不是某个具体机器人，而是人类手本身。原因很直接：如果我们想知道灵巧操作（dexterous manipulation）应该长什么样，就必须先理解手为什么能把力量、精度、感知和表达揉进同一个器官里。讲义把人类手视为一种“hardware”，不是为了机械化地贬低它，而是为了强调它的结构复杂度和任务泛化能力。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=4,width=0.78\textwidth]{slides.pdf}
+\caption{拇指对掌（opposability）使手可以形成稳定的对向受力，这是力量抓取和精密抓取的基础。}
+\end{figure}
+
+\subsection{Precision grip 与 power grip}
+讲义区分了人手的两类基本抓握：
+\begin{itemize}
+  \item precision grip：以拇指和指尖为主，强调位置控制和力的细腻调节；
+  \item power grip：强调更大的包覆面积和更强的抓持力，适合拎、握、推等动作。
+\end{itemize}
+这两类抓握并不是彼此独立的动作，而是一个连续谱。拇指能与其他手指形成“opposition”，使得手可以在较大空间范围内施加对向力；而手指本身的 dexterity 又决定了这种力能否稳定地落到目标物体上。
+
+\subsection{Manipulability ellipsoid 与局部灵巧性}
+讲义提醒我们：workspace 不是全貌。一个手指即使在“能伸到”的范围内，也可能在某些姿态下几乎没有可用方向。为此，讲义引入 manipulability ellipsoid 来描述局部姿态下的灵巧性。一个常见的线性化表达是
+\[
+\Delta x \approx J(q)\,\Delta q,
+\]
+其中：
+\begin{itemize}
+  \item $\Delta x$ 是末端位移；
+  \item $J(q)$ 是该姿态下的 Jacobian；
+  \item $\Delta q$ 是关节变化。
+\end{itemize}
+从直觉上说，椭球越大、越均匀，说明手指在该姿态下越“好用”；如果椭球严重扁瘪，则说明某些方向几乎动不了。
+
+\subsection{Sensorimotor continuum}
+讲义把手的功能写成一个连续体：
+\begin{itemize}
+  \item passive tactile sensing；
+  \item active haptic sensing；
+  \item prehensile movements，例如 pick and place；
+  \item non-prehensile movements，例如手势、打字、钢琴演奏。
+\end{itemize}
+这个连续体很重要，因为它告诉我们：手不是先“感知”再“动作”，而是一个持续耦合的感知-运动系统。机器人手如果只会抓，不会感知；只会感知，不会稳定施力，同样不够。
+
+\begin{importantbox}{本讲第一性原理}
+灵巧操作不是单纯的机械设计问题，也不是单纯的感知问题，而是抓握结构、关节设计、触觉反馈和任务目标共同决定的系统问题。
+\end{importantbox}
+
+\subsection{本章小结}
+人类手之所以值得作为标杆，不只是因为它“能抓住东西”，而是因为它同时具备对掌、局部灵巧性和感知-动作耦合三种能力。抓握类型与手指姿态共同决定任务能否成功。
+
+\section{机器人手的设计原则}
+
+\subsection{Kinematics 和 mechanics}
+讲义把 robot hand design 分成两个基本问题：
+\begin{itemize}
+  \item kinematics：关节配置怎样才最合适，才能同时保留足够自由度和可控性？
+  \item mechanics：硬件怎么做得可靠、耐用、可制造？
+\end{itemize}
+这两个问题经常互相拉扯。关节越多，灵巧性可能越高，但控制和装配难度也会上升；结构越简单，可靠性可能更高，但可表达动作就会变少。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=14,width=0.78\textwidth]{slides.pdf}
+\caption{Tendon-driven hands 是机器人灵巧手中最常见的设计路线之一：电机放在手外，通过腱索和滑轮把力传到手指。}
+\end{figure}
+
+\subsection{几类典型机构}
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.18\textwidth}p{0.22\textwidth}p{0.24\textwidth}p{0.28\textwidth}}
+\toprule
+机制 & 结构特征 & 优点 & 代价 \\
+\midrule
+Motors as joints & 电机、齿轮箱、编码器直接串成手本身 & 结构直接、控制直观、低成本原型容易做 & 电机笨重，手部会变厚，难逼近人手比例 \\
+Linkage joint & 以四连杆等机构转移驱动力 & 定位精确、重复性好 & 零件多、容易脆、顺应性弱 \\
+Tendon-driven & 电机放在前臂或更远端，靠腱索牵引指节 & 更像人手、手部更轻 & 腱索磨损、对侧向力敏感、维护复杂 \\
+Rolling joint & 允许除主驱动轴之外的部分滚动 & 更灵巧、能缓冲接触 & 制造复杂、摩擦和磨损问题更难处理 \\
+Flexure joint & 薄塑料/橡胶形成弯曲区 & 可 3D 打印、低摩擦、便宜 & 强度和寿命受限 \\
+Hydraulic & 高压流体驱动 & 力大、输出密度高 & 维护难、系统复杂 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{设计时最常见的矛盾}
+讲义反复强调一个工程事实：强电机通常很大，小电机通常不够强；如果把动力都塞进手里，手会变笨重；如果把动力外移，就会引入腱索、传动和维护问题。也就是说，机器人手的设计不是在“选一个最好的机构”，而是在多个坏处之间做最合理的权衡。
+
+\subsection{本章小结}
+robot hand 的结构路线大致分成 motor-in-hand、linkage、tendon-driven、rolling/flexure、hydraulic 等几类。它们没有绝对优劣，只有“更适合什么任务、什么控制范式、什么制造条件”的差别。
+
+\section{LEAP Hand：低成本、可学习、类人手}
+
+\subsection{LEAP 的目标}
+LEAP Hand 的定位非常明确：低成本、开源、便于 robot learning、并尽量保留类人的运动学结构。它不是在追求“最强机械性能”，而是在追求一种对学习系统友好的平衡：足够像人、足够便宜、足够容易仿真。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=20,width=0.76\textwidth]{slides.pdf}
+\caption{LEAP Hand 的设计被放在“robot learning friendly”这个语境里：它既要可制造，也要可在仿真中建模。}
+\end{figure}
+
+\subsection{MCP joint design 为什么重要}
+讲义指出，MCP joint design 会极大影响整只手的 dexterity。因为人手的掌指关节不是简单的单轴铰链，而是带有多方向耦合的复杂机构。传统机器人手常见的问题是：在 power grasp 时丢自由度，或者在 precision grasp 时丢自由度。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=23,width=0.78\textwidth]{slides.pdf}
+\caption{Universal MCP 机制试图避免在不同抓握模式下损失自由度，这是 LEAP 类设计的关键挑战之一。}
+\end{figure}
+
+\subsection{LEAP v2 的进化方向}
+讲义对 LEAP Hand v2 的描述集中在三个关键词：软硬结合、强度、可打印。
+\begin{itemize}
+  \item 软硬材料结合后，手可以 twist 和 bend 而不轻易断裂；
+  \item articulated palm 提升了拇指与余指的操作空间；
+  \item 3D 打印和标准件组合，使它更适合作为研究平台而不是一次性原型。
+\end{itemize}
+简言之，LEAP v2 不是单纯“更软”，而是通过材料与结构耦合，换取更接近人手的可用姿态集合。
+
+\subsection{机器学习应用场景}
+讲义还给出了 LEAP Hand 的几个 ML 应用方向：
+\begin{itemize}
+  \item in-hand manipulation；
+  \item teleoperation from uncalibrated human video；
+  \item behavior cloning with internet video priors。
+\end{itemize}
+这些应用共同说明：一只好手不仅要能“转动”，还要能作为学习算法的载体。手的结构如果太难建模，学习就会被硬件噪声拖垮；如果太简单，又学不出复杂策略。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=33,width=0.80\textwidth]{slides.pdf}
+\caption{LEAP Hand v2 将材料、结构和可学习性一起考虑，而不是只优化单个机械指标。}
+\end{figure}
+
+\subsection{本章小结}
+LEAP Hand 的关键意义不只是“开源手”本身，而是它把机器人手设计转成了一个可以服务于学习系统的问题：既要像人手，又要能仿真、能制造、能复现、能训练。
+
+\section{本体感觉与触觉}
+
+\subsection{Sensorimotor continuum 的感觉端}
+回到 3A/3B 的主题，讲义把手的感觉端拆成 proprioception 和 touch 两大块。proprioception 是对肢体位置与运动的内部感知，touch 则是通过皮肤与外界接触产生的局部感知。人类并不把这两者分得很死；它们共同支撑了对身体状态和对象状态的估计。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=42,width=0.78\textwidth]{slides.pdf}
+\caption{手的 sensorimotor continuum：从被动触摸到主动探索，再到预抓握与非抓握运动。}
+\end{figure}
+
+\subsection{Proprioception：为什么机器人也需要“肌肉感”}
+讲义把 proprioception 称为第六感。它主要来自肌肉、肌腱和关节中的传感器；如果把 vestibular system 也算进去，身体对姿态和运动的感知会更完整。对机器人来说，电机角度、编码器读数和关节速度估计就扮演了类似角色。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=43,width=0.78\textwidth]{slides.pdf}
+\caption{proprioception 的课程版定义：对身体各部分相对位置与运动的觉知。}
+\end{figure}
+
+\subsection{Touch：从印痕到机械感受器}
+触觉不是“摸到了”这么简单。皮肤受到外界刺激时会发生 indentation 或 stretch，机械形变会被 mechanoreceptors 检测到，进而编码接触位置、接触力和变化速度。讲义还区分了慢适应（slowly adapting）与快适应（rapidly adapting）感受器：前者适合持续压力，后者更敏感于动态变化。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=46,width=0.78\textwidth]{slides.pdf}
+\caption{触觉的物理入口是皮肤形变，而不是“神秘的触感”。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=56,width=0.78\textwidth]{slides.pdf}
+\caption{视觉系统中的 ventral stream 与 dorsal stream，分别更接近“是什么”与“怎么做”。对操作任务而言，后者与动作控制更直接相关。}
+\end{figure}
+
+\subsection{探索性触觉：Braille 与 exploratory procedures}
+讲义用 Braille 阅读速度说明触觉分辨率的惊人之处：熟练读者可以达到每分钟 200 词量级，这意味着字符识别可发生在几十毫秒尺度。与此同时，Lederman \& Klatzky 提出的 exploratory procedures 表明，触觉并不是被动接收，而是通过特定动作模式主动提取对象属性。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=60,width=0.78\textwidth]{slides.pdf}
+\caption{exploratory procedures 体现了“先动手，再理解对象”的主动触觉观。}
+\end{figure}
+
+\subsection{本章小结}
+本讲对 proprioception 和 touch 的处理非常明确：前者提供内部状态，后者提供外部接触，两者共同决定手能否稳定操作对象。对于机器人系统来说，缺少其中任何一项，都会让策略在真实世界里显得脆弱。
+
+\section{总结与延伸}
+
+\subsection{综合回看}
+这一讲的主线是“从手的结构走向手的功能”。先讨论人类手的抓握、对掌和局部灵巧性，再讨论机器人手该如何在 kinematics 与 mechanics 之间做权衡，接着把 LEAP Hand 当作可学习平台来理解，最后回到 proprioception 和 touch 这两个闭环的关键感知通道。
+
+\subsection{本讲的三个结论}
+\begin{itemize}
+  \item 灵巧手不是单纯追求 DoF 更多，而是要让姿态、受力和反馈共同可控。
+  \item 机器人手的设计要同时照顾可制造性、可仿真性和可学习性。
+  \item 感知不是控制的附属品，而是操作能力本身的一部分。
+\end{itemize}
+
+\subsection{拓展阅读}
+如果继续深入，推荐顺着讲义中的线索读 `Human Hand Function`、`Touch`、`A century of robotic hands`、`LEAP Hand` 与 `LEAP Hand v2` 相关资料；在更工程化的方向上，可以把 tendon-driven hands、MCP joint design 和 tactile sensing 作为三个独立专题进一步展开。
+
+\begin{warningbox}{来源说明}
+本讲义依据课程页中的 slides、transcript 与课程 notes 摘录重建；个别页码的重复内容在正文中做了合并，因此正文更偏“教材式重组”，而不是逐页复述。
+\end{warningbox}
+
+\end{document}

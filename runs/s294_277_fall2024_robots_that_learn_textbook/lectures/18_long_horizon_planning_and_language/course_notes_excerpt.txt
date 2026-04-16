@@ -1,0 +1,475 @@
+===== Lecture 12A | pages 118-128 =====
+
+21      Lecture12A
+booktabs tcolorbox
+CS294-277 Fall 2024                                                                   Lecturer: Jitendra Malik
+December 2, 2024                                                  Scribe: Mitsuhiko Nakamoto, Rodolfo Corona
+
+           Lecture 12A: Long Horizon Planning and the Role of Language
+                                                     Abstract
+          The lecture discusses how humans do long-horizon planning in steps and its implications for robotics
+       and AI. It highlights that human behaviors are hierarchical, with actions comprising both physical
+       movements and goal-oriented purposes, showing the importance of the roles of both high-level abstract
+       reasoning and low-level physical understanding. The lecture further covers the evolution of planning
+       approaches in robotics, from early systems like SHAKEY to modern language models, while also discussing
+       their limitations.
+
+
+21.1      Introduction
+Human behavior is hierarchical and has many levels – movements, goals, actions, and events (Barker and
+Wright, 1954). All human activities and tasks can be constructed by these hierarchies. For robots, they have
+to be the same.
+There is an important concept to understand the behaviors: ACTION = MOVEMENT + GOAL. For
+every action, there is a movement space that is governed by the laws of physics, and a space of goals that
+represents the purpose behind the movement. These two identities are equally important to study
+robotics. Consider comparing Harry Potter as a book versus a movie: the physical movements are more
+apparent in the movie, while the characters’ goals and intentions are clearer through the book’s language.
+Studying robotics requires both these aspects. The claim that “LLMs can do everything” overlooks this
+distinction – while language models are good at capturing abstract goals, they are not necessarily good at
+capturing the movement.
+
+21.2      Long Horizon Planning
+In this section, we discuss approaches that are used for long-horizon planning to solve these hierarchical tasks.
+
+21.3      SHAKEY
+SHAKEY (Nilsson, 1984), shown in Figure 88, is one of the earliest examples of planning in the field of
+robotics. To solve the planning problem, they designed logical operators as actions. For example, if the goal
+is to stack block cubes, the operators can be actions that the robot can take, like “pick up” or “put down”.
+Each operator consists of:
+
+  1. Pre-condition lists: The initial conditions that are required to execute an operator. For example, the
+     "pick up" operator can only be executed if the robot is near the object and has an unobstructed path.
+
+  2. Delete lists: The facts that are no longer true after the operator has been executed. For example,
+     after the “pick up” operator is executed, the fact that the object is on the table would be added to the
+     delete list.
+
+  3. Add lists: The facts that become true after an operator has been executed. For example, after the
+     “pick up” operator is executed, the fact that the robot is holding the object is added to the add list.
+
+
+
+
+                                                        118
+These components are all defined using logic, and, given a goal state, the planning involves determining the
+sequence of operators needed to transition from the initial state to the desired end state.
+
+
+
+
+Figure 88: SHAKEY: The first mobile robot with the ability to perceive and reason about its surroundings.
+Source: https://youtu.be/GmU7SimFkpU
+
+
+21.4    Planning Domain Definition Language (PDDL)
+PDDL is a formalism used to describe domains, along with plans and goals for within them McDermott
+(2000). The domain is specified through:
+
+  1. A set of object types
+
+  2. Predicates describing properties and relationships across objects.
+
+  3. Actions which may be taken by the agent in the environment. Actions are represented by parameters
+     (the objects involved), preconditions (predicates which must be true for the action to be possible to
+     take), and effects (resulting changes to environment from the action).
+
+States in the domain are represented by a set of objects and a set of predicates which are currently true.
+Problems are specified for planning by providing an initial state and a goal state.
+
+
+
+
+        Figure 89: An example “Logistics" domain specified in PDDL. Source: McDermott (2000)
+
+It is important to note that PDDL is an abstract formalism used for symbolic planning, and does not
+fundamentally consider how to physically execute actions in its plans.
+
+
+                                                    119
+21.5    Task And Motion Planning (TAMP)
+In contrast to PDDL, TAMP (Lozano-Pérez and Wesley, 1979; Garrett et al., 2021), combines high-level
+symbolic planning with low-level motion planning, such that an agent can plan desired actions to take in the
+world in tandem with how to physically execute them.
+Generally speaking, the high-level planner can be used to set motion goals and constraints for the low-level
+motion planner to follow when executing an action.
+
+
+
+
+Figure 90: An example of a TAMP kinematic tree. Notice how this representation considers not just the
+objects and physical relationships across them, but also the physical configuration of the robot relevant for
+movement in the environment. Source: Garrett et al. (2021)
+
+The motion planning component assumes full knowledge of the world, and is primarily concerned with
+satisfying the constraints of motion, such as collision avoidance.
+
+21.6    Language Models and Operators
+One of the main challenges stemming from classical approaches to motion planning stem from the necessity
+to fully specify the set of predicates and operators used to describe a domain. Large language models (LLMs)
+contain implicit common-sense knowledge about the world, and therefore may serve as useful tools for inferring
+predicates and operators, freeing the roboticist from having to manually and exhaustively specifying them.
+While modern LLMs still struggle with generating logically coherent plans, approaches using program synthesis
+show promise in this direction (Singh et al., 2023).
+
+21.7    What is Language Not Good For?
+21.8    Spatial Cognition
+Some prior work has argued that because of the common-sense knowledge that LLMs implicitly acquire, they
+may be capable of being applied to multimodal tasks – in other words, that “if you train a word model, you
+will get a world model for free."
+Recent work has shown, however, that LLMs and vision-language models (VLMs) struggle with spatial
+reasoning (Ramakrishnan et al., 2024; Kamath et al., 2023).
+Consider the spatial reasoning benchmark from Ramakrishnan et al. (2024) (Figure 91). This paper defines
+a suite of spatial reasoning evaluations (e.g. mental rotation, shape matching, line orientation judgments,
+etc.) and tests a set of modern VLMs on it, finding that all models perform below human performance (gray
+numbers in the figure).
+
+
+
+
+                                                     120
+Figure 91: (Source: Ramakrishnan et al. (2024). (Top) Spatial reasoning evaluation suite for VLMs. (Bottom)
+Performance on the benchmark across a variety of VLMs.
+
+
+
+
+                                                   121
+21.9    Precisely Specifying Low-level Movements
+Consider the task of learning how to climb a staircase. A language description of such an endeavor would
+likely require high-verbosity and specificity (e.g. see the description provided by Julio Cortazar: (Cortázar,
+1969)). Sequences of low-level movements like these do not lend themselves towards being efficiently described
+in language, and describing them using the motion itself (or video) for imitation provides a much more
+efficient mode of transmission.
+
+21.10     Conclusion
+In this lecture we considered the role of language in robotics, emphasizing its usefulness as a signal for com-
+municating high-level abstractions specifying plans, goals, and environment properties. Recent advancements
+in LLMs may also provide an avenue for automating the generation of these high-level abstractions for use in
+robotics settings. Although language can be greatly useful at these levels of abstraction, it is not an efficient
+mode of transmission for communicating fine-grained details of movements and actions.
+
+
+
+
+                                                      122
+References
+Agarwal, A., Kumar, A., Malik, J., and Pathak, D. (2023). Legged locomotion in challenging terrains using
+  egocentric vision. In Conference on robot learning, pages 403–415. PMLR.
+
+Akkaya, I., Andrychowicz, M., Chociej, M., Litwin, M., McGrew, B., Petron, A., Paino, A., Plappert, M.,
+ Powell, G., Ribas, R., et al. (2019). Solving rubik’s cube with a robot hand. arXiv preprint arXiv:1910.07113.
+
+Alghooneh, M. and Wu, C. Q. (2014). Single-support heel-off: a crucial gait event helps realizing agile and
+  energy-efficient bipedal walking. Robotica, 34:1335 – 1350.
+
+Andrychowicz, O. M., Baker, B., Chociej, M., Jozefowicz, R., McGrew, B., Pachocki, J., Petron, A., Plappert,
+ M., Powell, G., Ray, A., et al. (2020). Learning dexterous in-hand manipulation. The International Journal
+ of Robotics Research, 39(1):3–20.
+
+Bahl, S., Mendonca, R., Chen, L., Jain, U., and Pathak, D. (2023). Affordances from human videos as a
+ versatile representation for robotics. In Proceedings of the IEEE/CVF Conference on Computer Vision
+ and Pattern Recognition, pages 13778–13790.
+
+Barker, R. G. and Wright, H. F. (1954). Midwest and its children: The psychological ecology of an American
+ town. Row, Peterson and Company.
+
+Black, K., Brown, N., Driess, D., Esmail, A., Equi, M., Finn, C., Fusai, N., Groom, L., Hausman, K., Ichter,
+  B., Jakubczak, S., Jones, T., Ke, L., Levine, S., Li-Bell, A., Mothukuri, M., Nair, S., Pertsch, K., Shi,
+  L. X., Tanner, J., Vuong, Q., Walling, A., Wang, H., and Zhilinsky, U. (2024). π0 : A vision-language-action
+  flow model for general robot control.
+
+Blakemore, S.-J., Frith, C. D., and Wolpert, D. M. (1999). Spatio-temporal prediction modulates the
+  perception of self-produced stimuli. Journal of cognitive neuroscience, 11(5):551–559.
+
+Brockman, G., Cheung, V., Pettersson, L., Schneider, J., Schulman, J., Tang, J., and Zaremba, W. (2016).
+  Openai gym.
+
+Canny, J. F. (1988). The complexity of robot motion planning. MIT Press, Cambridge, MA, USA.
+
+Cao, Z., Radosavovic, I., Kanazawa, A., and Malik, J. (2021). Reconstructing hand-object interactions in the
+  wild. In Proceedings of the IEEE/CVF International Conference on Computer Vision, pages 12417–12426.
+
+Chang, M., Gervet, T., Khanna, M., Yenamandra, S., Shah, D., Min, S. Y., Shah, K., Paxton, C., Gupta, S.,
+  Batra, D., Mottaghi, R., Malik, J., and Chaplot, D. S. (2023). Goat: Go to any thing.
+
+Chang, M., Prakash, A., and Gupta, S. (2024). Look ma, no hands! agent-environment factorization of
+ egocentric videos. Advances in Neural Information Processing Systems, 36.
+
+Chaplot, D. S., Gandhi, D., Gupta, A., and Salakhutdinov, R. (2020). Object goal navigation using
+ goal-oriented semantic exploration.
+
+Chestnutt, J. E., Lau, M., Cheung, G. K. M., Kuffner, J. J., Hodgins, J. K., and Kanade, T. (2005). Footstep
+  planning for the honda asimo humanoid. Proceedings of the 2005 IEEE International Conference on
+ Robotics and Automation, pages 629–634.
+
+Chi, C., Xu, Z., Feng, S., Cousineau, E., Du, Y., Burchfiel, B., Tedrake, R., and Song, S. (2024a). Diffusion
+  policy: Visuomotor policy learning via action diffusion. The International Journal of Robotics Research.
+
+Chi, C., Xu, Z., Pan, C., Cousineau, E., Burchfiel, B., Feng, S., Tedrake, R., and Song, S. (2024b). Universal
+  manipulation interface: In-the-wild robot teaching without in-the-wild robots. In Proceedings of Robotics:
+ Science and Systems (RSS).
+
+
+                                                     123
+Cortázar, J. (1969). Instructions on how to climb a staircase. Cronopios and Famas, pages 21–22.
+
+Dalal, M., Liu, M., Talbott, W., Chen, C., Pathak, D., Zhang, J., and Salakhutdinov, R. (2024). Local
+ policies enable zero-shot long-horizon manipulation. arXiv preprint arXiv:2410.22332.
+
+Diaz, G., Cooper, J., Rothkopf, C., and Hayhoe, M. (2013). Saccades to future ball location reveal memory-
+  based prediction in a virtual-reality interception task. Journal of vision, 13(1):20–20.
+
+Ebert, F., Yang, Y., Schmeckpeper, K., Bucher, B., Georgakis, G., Daniilidis, K., Finn, C., and Levine, S.
+ (2021). Bridge data: Boosting generalization of robotic skills with cross-domain datasets. arXiv preprint
+ arXiv:2109.13396.
+
+Feng, S., Xinjilefu, X., Atkeson, C. G., and Kim, J. (2015). Optimization based controller design and
+  implementation for the atlas robot in the darpa robotics challenge finals. 2015 IEEE-RAS 15th International
+  Conference on Humanoid Robots (Humanoids), pages 1028–1035.
+
+Freeman, C. D., Frey, E., Raichuk, A., Girgin, S., Mordatch, I., and Bachem, O. (2021). Brax–a differentiable
+  physics engine for large scale rigid body simulation. arXiv preprint arXiv:2106.13281.
+
+Fu, Z., Kumar, A., Agarwal, A., Qi, H., Malik, J., and Pathak, D. (2022). Coupling vision and proprioception
+  for navigation of legged robots.
+
+Fu, Z., Kumar, A., Malik, J., and Pathak, D. (2021). Minimizing energy consumption leads to the emergence
+  of gaits in legged robots. In Conference on Robot Learning (CoRL).
+
+Fu, Z., Zhao, T. Z., and Finn, C. (2024). Mobile aloha: Learning bimanual mobile manipulation with low-cost
+  whole-body teleoperation. arXiv preprint arXiv:2401.02117.
+
+Garrett, C. R., Chitnis, R., Holladay, R., Kim, B., Silver, T., Kaelbling, L. P., and Lozano-Pérez, T.
+ (2021). Integrated task and motion planning. Annual review of control, robotics, and autonomous systems,
+ 4(1):265–293.
+
+Goel, S., Pavlakos, G., Rajasegaran, J., Kanazawa, A., and Malik, J. (2023). Humans in 4D: Reconstructing
+ and tracking humans with transformers. In ICCV.
+
+Goyal, R., Ebrahimi Kahou, S., Michalski, V., Materzynska, J., Westphal, S., Kim, H., Haenel, V., Fruend, I.,
+ Yianilos, P., Mueller-Freitag, M., et al. (2017). The" something something" video database for learning
+ and evaluating visual common sense. In Proceedings of the IEEE international conference on computer
+ vision, pages 5842–5850.
+
+Grauman, K., Westbury, A., Byrne, E., Chavis, Z., Furnari, A., Girdhar, R., Hamburger, J., Jiang, H., Liu,
+  M., Liu, X., et al. (2022). Ego4d: Around the world in 3,000 hours of egocentric video. In Proceedings of
+ the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pages 18995–19012.
+
+Haarnoja, T., Ha, S., Zhou, A., Tan, J., Tucker, G., and Levine, S. (2018). Learning to walk via deep
+ reinforcement learning. arXiv preprint arXiv:1812.11103.
+
+Hartley, R. I. and Zisserman, A. (2004). Multiple View Geometry in Computer Vision. Cambridge University
+  Press, ISBN: 0521540518, second edition.
+
+Higuchi, T., Nagami, T., Nakata, H., and Kanosue, K. (2018). Head-eye movement of collegiate baseball
+  batters during fastball hitting. PloS one, 13(7):e0200443.
+
+Hildebrand, M. (1965). Symmetrical gaits of horses. Science, 150(3697):701–708.
+
+Ho, J., Jain, A., and Abbeel, P. (2020). Denoising diffusion probabilistic models.
+
+
+                                                    124
+Ito, M. (1972). Neural design of the cerebellar motor control system. Brain Research, 40(1):81–84.
+
+Jiang, Y., Wang, C., Zhang, R., Wu, J., and Fei-Fei, L. (2024). Transic: Sim-to-real policy transfer by
+  learning from online correction. arXiv preprint arXiv:2405.10315.
+
+Jordan, M. I. and Rumelhart, D. E. (1992). Forward models: Supervised learning with a distal teacher.
+  Cognitive Science, 16(3):307–354.
+
+Kamakura, N. (1989). Patterns of Static Prehension in Normal Hands. University of Tokyo Press.
+
+Kamath, A., Hessel, J., and Chang, K.-W. (2023). What’s" up" with vision-language models? investigating
+ their struggle with spatial reasoning. arXiv preprint arXiv:2310.19785.
+
+Kanazawa, A., Black, M. J., Jacobs, D. W., and Malik, J. (2018). End-to-end recovery of human shape and
+ pose. In Proceedings of the IEEE conference on computer vision and pattern recognition, pages 7122–7131.
+
+Kanazawa, A., Zhang, J. Y., Felsen, P., and Malik, J. (2019). Learning 3d human dynamics from video. In
+ Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pages 5614–5623.
+
+Kandel, E. R., Schwartz, J. H., Jessell, T. M., Siegelbaum, S. A., and Hudspeth, A. J. (2013). Principles of
+ Neural Science. McGraw-Hill, 5 edition.
+
+Kavraki, L., Svestka, P., Latombe, J.-C., and Overmars, M. (1996a). Probabilistic roadmaps for path planning
+  in high-dimensional configuration spaces. IEEE Transactions on Robotics and Automation, 12(4):566–580.
+
+Kavraki, L., Svestka, P., Latombe, J.-C., and Overmars, M. (1996b). Probabilistic roadmaps for path planning
+  in high-dimensional configuration spaces. IEEE Transactions on Robotics and Automation, 12(4):566–580.
+
+Kawato, M. (1999). Internal models for motor control and trajectory planning. Current Opinion in
+ Neurobiology, 9(6):718–727.
+
+Khazatsky, A., Pertsch, K., Nair, S., Balakrishna, A., Dasari, S., Karamcheti, S., Nasiriany, S., Srirama,
+ M. K., Chen, L. Y., Ellis, K., et al. (2024). Droid: A large-scale in-the-wild robot manipulation dataset.
+ arXiv preprint arXiv:2403.12945.
+
+Kumar, A., Fu, Z., Pathak, D., and Malik, J. (2021). Rma: Rapid motor adaptation for legged robots.
+
+Kumar, A., Gupta, S., and Malik, J. (2020). Learning navigation subroutines from egocentric videos. In
+ Conference on Robot Learning, pages 617–626. PMLR.
+
+Land, Mennie, and Rusted (1999). Eye movements while making a cup of tea.
+
+Land, M. F. and McLeod, P. (2000). From eye movements to actions: how batsmen hit the ball. Nature
+  neuroscience, 3(12):1340–1345.
+
+Lederman, S. J. and Klatzky, R. L. (1987). Hand movements: A window into haptic object recognition.
+  Cognitive Psychology, 19(3):342–368.
+
+Levine, S., Finn, C., Darrell, T., and Abbeel, P. (2016). End-to-end training of deep visuomotor policies.
+
+Lin, T., Yin, Z.-H., Qi, H., Abbeel, P., and Malik, J. (2024a). Twisting lids off with two hands.
+
+Lin, T., Zhang, Y., Li, Q., Qi, H., Yi, B., Levine, S., and Malik, J. (2024b). Learning visuotactile skills with
+  two multifingered hands. arXiv:2404.16823.
+
+Lin, Y.-H., Shih, H. C., Shih, Y., and Shiang, T.-Y. (2011). The body centre of mass and electromyographic
+  analysis of the lower limb on different slopes during walking and running.
+
+
+                                                      125
+Loper, M., Mahmood, N., Romero, J., Pons-Moll, G., and Black, M. J. (2023). Smpl: A skinned multi-person
+  linear model. In Seminal Graphics Papers: Pushing the Boundaries, Volume 2, pages 851–866.
+
+Loquercio, A., Kaufmann, E., Ranftl, R., Müller, M., Koltun, V., and Scaramuzza, D. (2021). Learning
+  high-speed flight in the wild. Science Robotics, 6(59):eabg5810.
+
+Loquercio, A., Kumar, A., and Malik, J. (2023). Learning visual locomotion with cross-modal supervision. In
+  IEEE International Conference on Robotics and Automation (ICRA), pages 7295–7302. IEEE.
+
+Lozano-Pérez, T. and Wesley, M. A. (1979). An algorithm for planning collision-free paths among polyhedral
+  obstacles. Communications of the ACM, 22(10):560–570.
+
+Lynch, K. (2017). Modern Robotics. Cambridge University Press.
+
+Makoviychuk, V., Wawrzyniak, L., Guo, Y., Lu, M., Storey, K., Macklin, M., Hoeller, D., Rudin, N., Allshire,
+ A., Handa, A., et al. (2021). Isaac gym: High performance gpu-based physics simulation for robot learning.
+ arXiv preprint arXiv:2108.10470.
+
+Matthis, J. S., Yates, J. L., and Hayhoe, M. M. (2018). Gaze and the control of foot placement when walking
+ in natural terrain. Current Biology, 28(8):1224–1233.e5.
+
+McDermott, D. M. (2000). The 1998 ai planning systems competition. AI magazine, 21(2):35–35.
+
+Miao, Y., Wang, X., Wang, S., and Li, R. (2023). Adaptive switching control based on dynamic zero-moment
+ point for versatile hip exoskeleton under hybrid locomotion. IEEE Transactions on Industrial Electronics,
+ 70:11443–11452.
+
+Mnih, V., Kavukcuoglu, K., Silver, D., Graves, A., Antonoglou, I., Wierstra, D., and Riedmiller, M. (2013).
+ Playing atari with deep reinforcement learning.
+
+Napier, J. R. (1956). The prehensile movements of the human hand. The Journal of Bone and Joint Surgery,
+ 38-B(4):902–913.
+
+Nilsson, N. J. (1984). Shakey the robot.
+
+O’Neill, A., Rehman, A., Gupta, A., Maddukuri, A., Gupta, A., Padalkar, A., Lee, A., Pooley, A., Gupta,
+  A., Mandlekar, A., et al. (2023). Open x-embodiment: Robotic learning datasets and rt-x models. arXiv
+  preprint arXiv:2310.08864.
+
+Pavlakos, G., Shan, D., Radosavovic, I., Kanazawa, A., Fouhey, D., and Malik, J. (2024). Reconstructing
+  hands in 3d with transformers. In Proceedings of the IEEE/CVF Conference on Computer Vision and
+  Pattern Recognition, pages 9826–9836.
+
+Peng, X. B., Abbeel, P., Levine, S., and Van de Panne, M. (2018a). Deepmimic: Example-guided deep
+  reinforcement learning of physics-based character skills. ACM Transactions On Graphics (TOG), 37(4):1–14.
+
+Peng, X. B., Kanazawa, A., Malik, J., Abbeel, P., and Levine, S. (2018b). Sfv: Reinforcement learning of
+  physical skills from videos. ACM Transactions On Graphics (TOG), 37(6):1–14.
+
+Qi, H., Yi, B., Suresh, S., Lambeta, M., Ma, Y., Calandra, R., and Malik, J. (2023). General in-hand object
+  rotation with vision and touch.
+
+Radosavovic, I., Xiao, T., Zhang, B., Darrell, T., Malik, J., and Sreenath, K. (2023). Real-world humanoid
+  locomotion with reinforcement learning. Science Robotics, 9.
+
+Radosavovic, I., Zhang, B., Shi, B., Rajasegaran, J., Kamat, S., Darrell, T., Sreenath, K., and Malik, J.
+ (2024). Humanoid locomotion as next token prediction. arXiv preprint arXiv:2402.19469.
+
+
+                                                    126
+Raibert, M., B, B., Chepponis, M., Koechling, J., and Hodgins, J. (1989). Dynamically stable legged
+ locomotion. page 207.
+
+Rajasegaran, J., Pavlakos, G., Kanazawa, A., and Malik, J. (2021). Tracking people with 3d representations.
+ arXiv preprint arXiv:2111.07868.
+
+Rajasegaran, J., Pavlakos, G., Kanazawa, A., and Malik, J. (2022). Tracking people by predicting 3d
+ appearance, location and pose. In Proceedings of the IEEE/CVF Conference on Computer Vision and
+ Pattern Recognition, pages 2740–2749.
+
+Ramakrishnan, S. K., Wijmans, E., Kraehenbuehl, P., and Koltun, V. (2024). Does spatial cognition emerge
+  in frontier models? arXiv preprint arXiv:2410.06468.
+
+Ramrakhya, R., Undersander, E., Batra, D., and Das, A. (2022). Habitat-web: Learning embodied object-
+  search strategies from human demonstrations at scale.
+
+Ravichandar, H., Polydoros, A. S., Chernova, S., and Billard, A. (2020). Recent advances in robot learning from
+  demonstration. Annual Review of Control, Robotics, and Autonomous Systems, 3(Volume 3, 2020):297–330.
+
+Ren, T., Liu, S., Zeng, A., Lin, J., Li, K., Cao, H., Chen, J., Huang, X., Chen, Y., Yan, F., et al. (2024).
+  Grounded sam: Assembling open-world models for diverse visual tasks. arXiv preprint arXiv:2401.14159.
+
+Ross, S., Gordon, G., and Bagnell, D. (2011). A reduction of imitation learning and structured prediction to
+  no-regret online learning. In Proceedings of the fourteenth international conference on artificial intelligence
+ and statistics, pages 627–635. JMLR Workshop and Conference Proceedings.
+
+Schulman, J., Wolski, F., Dhariwal, P., Radford, A., and Klimov, O. (2017). Proximal policy optimization
+  algorithms. arXiv preprint arXiv:1707.06347.
+
+Shan, D., Geng, J., Shu, M., and Fouhey, D. F. (2020). Understanding human hands in contact at internet
+  scale. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pages
+  9869–9878.
+
+Shaw, K., Agarwal, A., and Pathak, D. (2023). Leap hand: Low-cost, efficient, and anthropomorphic hand
+  for robot learning. arXiv preprint arXiv:2309.06440.
+
+Shaw, K. and Pathak, D. (2024). Leap hand v2: Dexterous, low-cost anthropomorphic hybrid rigid soft hand
+  for robot learning. In 2nd Workshop on Dexterous Manipulation: Design, Perception and Control (RSS).
+
+Silver, D., Huang, A., Maddison, C., Guez, A., Sifre, L., Driessche, G., Schrittwieser, J., Antonoglou, I.,
+   Panneershelvam, V., Lanctot, M., Dieleman, S., Grewe, D., Nham, J., Kalchbrenner, N., Sutskever, I.,
+   Lillicrap, T., Leach, M., Kavukcuoglu, K., Graepel, T., and Hassabis, D. (2016). Mastering the game of go
+  with deep neural networks and tree search.
+
+Singh, I., Blukis, V., Mousavian, A., Goyal, A., Xu, D., Tremblay, J., Fox, D., Thomason, J., and Garg, A.
+  (2023). Progprompt: Generating situated robot task plans using large language models. In 2023 IEEE
+  International Conference on Robotics and Automation (ICRA), pages 11523–11530.
+
+Smith, L. and Gasser, M. (2005). The development of embodied cognition: Six lessons from babies. Artificial
+ Life, 11(1-2):13–29.
+
+Sohl-Dickstein, J., Weiss, E. A., Maheswaranathan, N., and Ganguli, S. (2015). Deep unsupervised learning
+  using nonequilibrium thermodynamics.
+
+Tang, B., Lin, M. A., Akinola, I., Handa, A., Sukhatme, G. S., Ramos, F., Fox, D., and Narang, Y.
+ (2023). Industreal: Transferring contact-rich assembly tasks from simulation to reality. arXiv preprint
+  arXiv:2305.17110.
+
+
+                                                      127
+Todorov, E., Erez, T., and Tassa, Y. (2012). Mujoco: A physics engine for model-based control. In 2012
+  IEEE/RSJ international conference on intelligent robots and systems, pages 5026–5033. IEEE.
+
+Vauquois, B. (1968). A survey of formal grammars and algorithms for recognition and transformation in
+  machine translation. In IFIP Congress-68, number 254-260.
+
+Wei, S.-E., Ramakrishna, V., Kanade, T., and Sheikh, Y. (2016). Convolutional pose machines. In Proceedings
+ of the IEEE conference on Computer Vision and Pattern Recognition, pages 4724–4732.
+
+Wu, J., Pavlakos, G., Gkioxari, G., and Malik, J. (2024). Reconstructing hand-held objects in 3d. arXiv
+ preprint arXiv:2404.06507.
+
+Zhao, T. Z., Kumar, V., Levine, S., and Finn, C. (2023). Learning Fine-Grained Bimanual Manipulation
+  with Low-Cost Hardware. In Proceedings of Robotics: Science and Systems, Daegu, Republic of Korea.
+
+Zhao, T. Z., Tompson, J., Driess, D., Florence, P., Ghasemipour, S. K. S., Finn, C., and Wahid, A. (2024).
+  ALOHA unleashed: A simple recipe for robot dexterity. In 8th Annual Conference on Robot Learning.
+
+
+
+
+                                                   128
+

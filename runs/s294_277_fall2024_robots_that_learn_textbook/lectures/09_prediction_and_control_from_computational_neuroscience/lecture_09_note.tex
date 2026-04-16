@@ -1,0 +1,187 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{Lecture 5B: 计算神经科学视角下的预测与控制}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{UC Berkeley CS294-277 / Jitendra Malik}
+\newcommand{\videopublishdate}{2024-10-07}
+\newcommand{\videoduration}{未记录}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=-L13vtGzWYA}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{overview_cover.jpg}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{从经典规划回到神经科学}
+这一讲的开场其实是对上一讲的延续。讲者先继续 motion planning 的讨论，再把话题切到计算神经科学（computational neuroscience）对 motor control 的解释。这个转折很重要：经典机器人学假设环境已知、感知可靠、规划和执行可以清晰分离；而神经科学视角更关心的是，在感知有延迟、身体有自由度、动作需要在线调整的情况下，控制系统如何组织。
+
+\begin{knowledgebox}{这一讲的中心问题}
+如果纯反馈控制（feedback control）太慢，那么人类和动物是如何快速、稳定地完成运动控制的？答案指向 two-stage 或 feedforward-feedback 结合的内部模型（internal model）框架。
+\end{knowledgebox}
+
+\section{Bernstein：自由度问题与渐进式控制}
+\subsection{自由度问题}
+Nikolai Bernstein 是这一讲最早出现的关键人物。讲者强调他既是实验学者也是理论学者，而且反对过于简化的 reflex model。Bernstein 观察到一个核心困难：人体和动物运动并不是少量关节的简单调节，而是在高维空间里协调大量自由度（degrees of freedom, DoF）。
+
+这就是所谓 DoF problem。它之所以难，不只是“变量多”，而是同一个任务可以由很多不同关节组合完成。比如写自己的名字，可以用手、脚、在不同表面上完成，但语义目标相同，控制轨迹却完全不同。对于 reinforcement learning 而言，这意味着状态空间和动作空间都可能指数式复杂。
+
+\begin{importantbox}{Bernstein 的策略}
+讲者转述 Bernstein 的解决思路时用了一个很关键的动词：freeze the degrees of freedom。也就是在学习早期先冻结一部分自由度，只用少量可控变量完成任务，然后再逐步解冻更多自由度。
+\end{importantbox}
+
+这其实是一种 curriculum 的思想。课程页把它和发展心理学中的渐进式成长联系起来：不是一次性学会全部协调，而是先会粗糙版本，再慢慢细化。这个观点对机器人学习也非常自然，因为低维问题通常更容易优化，也更容易给出稳定的探索路径。
+
+\subsection{从简单反射到高维协调}
+讲者还提到，简单 reflex models 可以被类比成一种过于朴素的 feedback controller。它们当然有意义，但不足以解释复杂的身体动作。真实运动往往需要在多个时间尺度上组织：短时尺度处理局部误差，长时尺度处理动作阶段和任务目标。自由度问题正是促使研究者放弃“一个统一反馈环就能搞定一切”的原因。
+
+\subsection{本章小结}
+Bernstein 的贡献不在于给出一个现成算法，而在于把控制问题重新定义为高维协调问题。对机器人学习来说，这意味着策略设计应该考虑阶段性、层级性和逐步扩展自由度，而不是一开始就试图让一个黑盒模型直接学会全部动作。
+
+\section{Kawato：内部模型与前馈-反馈结合}
+\subsection{内部模型假说}
+这一讲的第二个核心人物是 Mitsuo Kawato。课程页指出，internal model hypothesis 最早来自控制理论语境，后来被 Ito（1970）、Kawato et al.（1987）、Jordan \& Rumelhart（1992）等人引入生物运动控制研究。
+
+内部模型假说的直觉很直接：如果纯反馈控制太慢，那么系统就必须拥有一个能提前预测动作后果的内部表示。也就是说，控制不只是“看到误差再修正”，还包括“先模拟一下会发生什么”。
+
+\begin{knowledgebox}{前馈与反馈的分工}
+前馈控制（feedforward control）负责预测动作将产生什么结果；反馈控制（feedback control）负责利用实际感知结果做修正。Kawato 的核心观点是：真正有效的运动控制需要二者协同。
+\end{knowledgebox}
+
+\subsection{为什么纯反馈不够}
+讲者在这一部分强调了一个实践层面的事实：人类视觉反馈大约有 150 ms 量级的延迟，神经系统中的多突触传递也会引入额外延迟。若只依赖反馈，很多快速动作根本来不及完成。这个时间尺度上的差异，是内部模型假说成立的重要动机。
+
+因此，内部模型不是“更聪明的反馈器”，而是一个把动作后果提前编码的机制。你可以把它理解为两类模型：
+
+\begin{itemize}
+  \item forward model：给定动作和当前状态，预测下一时刻会发生什么；
+  \item inverse model：给定目标状态，反推出应当施加什么动作。
+\end{itemize}
+
+这两者共同构成了“预测与控制”的闭环。
+
+\subsection{感知签名与动作阶段}
+讲者还提出一个很重要的补充：动作往往不是连续无缝地被监督，而是可以被分成阶段。每一阶段的末尾都会留下 sensory signatures，也就是在视觉、听觉、触觉等模态上的可观测标记。内部模型的作用，就是在动作发生前预测这些签名；一旦预测和真实观测之间有偏差，就用快速反馈修正下一阶段。
+
+\[
+\text{动作阶段} \;\Rightarrow\; \text{预测 sensory signature} \;\Rightarrow\; \text{比较误差} \;\Rightarrow\; \text{修正下一阶段}
+\]
+
+这个结构和现代机器人系统其实非常接近：许多系统不是连续控制一切，而是把任务切成若干子阶段，再在阶段边界处进行检查和重规划。讲者的意思是，这个思路在人类运动中早就存在，只是机器人系统常常还没有真正学会。
+
+\subsection{本章小结}
+Kawato 提供的不是单纯“更快的控制器”，而是一种预测式控制框架：先在内部模型里生成动作后果，再把感知反馈当作修正信号。这种前馈-反馈组合几乎是本讲最重要的结论，也是后续把 neuroscience 和 robotics 连接起来的桥梁。
+
+\section{感知、规划与控制的统一视角}
+\subsection{运动规划的神经科学反思}
+虽然上一讲的 PRM 已经把 motion planning 讲得很清楚，但这一讲提醒我们：经典规划默认环境是完整已知的，而真实世界里感知并不完美。也就是说，规划并不是在一个静态地图上离线完成的，而是被感知和控制不断打断、更新和修正的过程。
+
+这也是为什么讲者会把 motion planning 和 neuroscience 放在同一讲里：前者提供“几何上怎么走”的答案，后者提供“在不确定世界里如何组织动作”的答案。
+
+\subsection{从 object manipulation 看控制策略}
+课程页引用了 Flanagan, Bowman and Johansson 的《Control Strategies in object manipulation tasks》。虽然本讲没有展开这篇文章的全部细节，但从标题和讲义语境可以合理推断，其意义在于说明：在真实的物体操作任务中，控制策略通常既包含预先设定的动作计划，也包含在线修正。也就是说，控制不是纯粹的前馈，也不是纯粹的反馈，而是在任务阶段上不断切换和融合。
+
+\begin{warningbox}{不要把内部模型误读成“替代反馈”}
+内部模型不是取消反馈，而是减少对慢反馈的依赖。最终系统仍然需要反馈来校正误差，只是它不再是唯一的控制来源。
+\end{warningbox}
+
+\subsection{对机器人系统的启发}
+把这些观点放到机器人里，最自然的系统设计就是把动作拆成三层：先做内部预测，再做短时反馈，再做阶段性重规划。对 manipulation 来说，这意味着抓取、接触、抬起、移动、放置都可以有自己的 local model；对 locomotion 来说，这意味着步态切换和地形适应不能只靠一个全局控制器硬扛。
+
+\subsection{本章小结}
+这一讲最终不是在讨论“神经科学比机器人更高级”，而是在说明：机器人学习如果忽略预测、阶段和感知延迟，就会重复经典控制的错误假设。Bernstein 让我们看到高维协调问题，Kawato 让我们看到内部模型如何把预测放进控制。二者合起来，就是课程对 prediction and control 的神经科学解释。
+
+\section{总结与延伸}
+这讲是整门课里最像“统一理论入口”的一讲。它把上一讲的 classical robotics 重新解释成一个更现实的版本：规划并不总是完美，控制也不总是实时准确，所以系统必须具备预测能力。换句话说，机器人并不是先规划再执行，而是在执行中不断预测、比较和修正。
+
+如果要继续往下读，最值得看的仍然是 Kawato 的 internal model 论文，以及课程页所列的 control strategies in object manipulation tasks。它们共同说明了一件事：真正鲁棒的运动控制，往往来自一个能够同时利用 model、feedback 和 task stage 的混合系统，而不是单一控制律。
+
+\end{document}

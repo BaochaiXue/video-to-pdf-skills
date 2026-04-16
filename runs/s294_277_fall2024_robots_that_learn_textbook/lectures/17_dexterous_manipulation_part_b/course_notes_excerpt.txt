@@ -1,0 +1,172 @@
+===== Lecture 11B | pages 114-117 =====
+
+20      Lecture11B
+CS294-277 Fall 2024                                                                         Lecturer: Jitendra Malik
+November 25, 2024                                                                    Scribe: Yichen Xie, Shuqi Zhao
+
+                   Lecture 11B: Case Studies in Dexterous Manipulation
+                                                      Abstract
+          This lecture gives a case study in dexterous manipulation. Most of the lecture goes through a
+       paper Dalal et al. (2024) where a single generalist agent performs zero-shot long-horizon manipulation
+       tasks in complex real scenes. Exploiting the modular idea of local policies, the proposed method has great
+       generalization across objects and robustness to a set of tasks.
+
+
+20.1      Introduction
+Manipulation tasks that humans solve during their daily life are challenging for generalist robots. The
+generalization is limited by the difficulty in scaling data collection where significant human efforts are required
+to collect data sets of the order of 100K-1M trajectories O’Neill et al. (2023); Khazatsky et al. (2024); Ebert
+et al. (2021). Instead, the simulation-to-reality (sim2real) transfer is blocked by 1) accurately simulating
+contact dynamics 2) generating all possible scene and task configurations and 3) acquiring long-horizon
+behaviors themselves. There already exist several promising strategies for the first block Tang et al. (2023);
+Jiang et al. (2024); Akkaya et al. (2019). In the paper of ManipGen Dalal et al. (2024), the key idea to solve
+2) and 3) lies in the locality of interaction. For many manipulation tasks, each skill can be simplified to two
+steps: reaching a pre-contact pose near a target object (e.g. door handle in Fig. 85a) and then performing
+the contact-rich interaction (e.g. turning the handle and pulling the door in Fig. 85b). In this case, the policy
+in the second step only observes and acts in a local region to the target object of interest.
+
+
+
+
+  (a) Stage-1: Hand reaches a pose near the handle.             (b) Stage-2: Hand turns the handle and pulls the door.
+
+                      Figure 85: A person opening door can be composed into two stages.
+
+
+
+20.2      Locality of Interaction
+ManipGen Dalal et al. (2024) leverages a new policy class for sim2real transfer: local policies. They are
+initialized close to the object of interest or interaction points, take observations just in the vicinity of the
+object or interaction points, and take local actions in the local region. Overall:
+                                                                                 
+                                    t     t                                  2
+                             πloc (aloc |Oloc ), sinit = s ||Xee − Xtarg,k || < ϵ                           (36)
+
+The local policies are invariant to
+
+   • Absolute pose: They only care about the relative position between the end-effector and object.
+
+   • Skill order: People can use motion planning to take care of the chaining problem.
+
+
+                                                          114
+Figure 86: ManipGen Method Overview. (left) RL experts training (middle) Distill single-task RL experts
+into generalist visuomotor policies via DAgger (right) Text-conditioned long-horizon manipulation.
+
+
+    • Scene configuration: The policies only care about local regions around the object, which simplifies
+      the data generation at large scale.
+
+Local policies enable ManipGen to scale learning in simulation and transfer it to the real world in a modular
+structure to solve a wide variety of tasks. This modular design philosophy improves the robustness to different
+scenes since the entire complex scenes do not matter for local policies. The modular skills compose together
+in a chain. The obstacle avoidance is achieved by other existing planning methods in the transition between
+modules. Based on the core idea of local policies, the methods of ManipGen include the following three parts
+(Fig. 86):
+
+    • Using RL to acquire local behaviors at scale.
+
+    • Distilling local experts into a visuomotor policy per skill.
+
+    • Zero-shot Deployment of these policies in challenging environments in a hierarchical way.
+
+
+20.3     Local Policy Skill Library
+When tasks are simple enough, reinforcement learning (RL) is a good approach due to its robustness and
+generalization, which does not rely on the diversity of human operators. As a result, the local behaviors are
+acquired by RL. The observation includes low-dimensional object shape, which is represented by keypoints
+(Fig. 86 top-left). The reward function is written as r = c1 ree + c2 robj + c3 ree,obj + c4 raction + c5 rsucc , where
+ree , robj , rsucc specifies the behavior of the skill and ree,obj , raction constrain the motion of policy for easy
+sim2real. The privileged observation and proprioceptive state information are passed into the policy which is
+trained using PPO Schulman et al. (2017).
+The authors include five skills in the local policy skill library (Fig. 87): pick, place, grasp handle, open, close.
+The locality allows simulation environments to be extremely simple. However, the skills can generalize to
+real-world complex scenarios since they only observe scenes locally invariant to global scene configuration.
+
+20.4     Learning Generalists via Distillation
+After building local policy skill library, next step is to distill single-object local policies into multi-object,
+generalist visuomotor policies. Here, ManipGen leverages online imitation learning with multitask DAgger Ross
+et al. (2011) for the distillation. The reason why it’s feasible is that RL policy can provide dense feedback at
+any state, which can be considered as the expert policy.
+Concretely, apart from the local proprioception, ManipGen mainly uses local wrist camera information
+as observation. First, ManipGen uses Grounded SAM Ren et al. (2024) to obtain semantic information
+
+
+                                                         115
+Figure 87: Local policy skill library. There are five local policies (from left to right) including picking, placing,
+handle grasping, opening and closing.
+
+
+that indicates targeted objects, thus only depth images are needed. For the observation design, current
+frame image is included to indicate current state. First frame depth image and first frame semantic image
+are also included so that task information can be expressed. Then, ManipGen leverages a combination of
+ResNet18-based structure and MLP to obtain actions. During the whole process, it’s worth noticing that
+instead of doing everything end-to-end, it’s natural and efficient to realize modularization and deal with
+sophisticated parts with computer vision methods, which can significantly improve the feasibility of training.
+
+20.5     Deployment: Text Conditioned Manipulation
+In aforementioned sections, ManipGen uses learning at scale to build generalists with specialized capabilities
+for each skill and then combine them to massively amplify the generalization. But when deploying ManipGen
+into real-world scenarios, the core challenge lies in moving from the specialist approach to a generalist
+approach for long-horizon manipulation tasks. Therefore, ManipGen performs a hierarchical decomposition
+to achieve the long-horizon manipulation task sequences. Specifically, as shown in Fig. 86 right, deployment
+can be divided into three modules:
+
+   • Plan through VLM: Since real-world tasks need agents to perceive the environment, VLM is used to
+     provide the high-level plan based on the scene given views and text prompts. It separates the whole
+     task into sub-tasks in terms of skill library, which provides sufficient information for reaching and
+     manipulating.
+
+   • Reach through neural motion planning: First, ManipGen performs pose estimation through
+     computer vision approaches. Then it leverages neural motion planning to perform real-time motion
+     planning to reach the goal position for the sub-tasks in an open-loop manner.
+
+   • Manipulate through local policies: After reaching approximately initial poses, local policies generate
+     manipulation actions based on local information. Reaching stage and manipulating stage are repeated
+     iteratively until the ultimate goal is achieved.
+
+Across all tasks (Tab. 2), ManipGen outperforms all methods, achieving 76% zero-shot success rate overall.
+From aforementioned description, we can see that hierarchical decomposition is important to solve large-scale
+robotics problems for it can efficiently train specialist policies on challenging manipulation tasks. In this case,
+as opposed to end-to-end methods, ManipGen uses language to capture goals and sub-steps of plans and uses
+computer vision approaches for each sub-steps before motor polices actually runs, which highly eliminates the
+training effort. Also, we can see the vital role that language model plays in such problems. While language
+model may not make sense in providing low-level actions, it surely can be applied into high-level planning
+due to their strong reasoning ability from large-scale pretraining.
+
+
+
+
+                                                        116
+                        Cook           Replace        CabinetStore        DrawerStore            Tidy              Avg
+ Stages                   2                4                  4                  6                 8               4.8
+ OpenVLA              0% (0.1)          0 (0.0)          0% (0.0)             0 (0.0)           0 (0.0)         0% (.02)
+ SayCan              80% (1.7)        10% (1.3)          70% (3.5)          20% (3.6)         20% (4.8)        40% (3.0)
+ LLMTrajGen          70% (1.5)        0% (0.6)            0% (0.6)           0% (1.0)          0% (2.6)        14% (1.3)
+ VoxPoser            70% (1.4)         0% (0.8)           0% (0.8)          0% (0.9)          10% (4.4)        16% (1.7)
+ Ours               90% (1.9)        80% (3.7)          90% (3.9)          60% (4.7)         60% (7.2)        76% (4.3)
+
+Table 2: Zero-shot long horizon manipulation. We report task success rate and average number of stages
+completed per real world task. ManipGenoutperforms all methods on each task, achieving 76% with 4.28/4.8
+stages completed on average.
+
+
+20.6      Similar case in assembly: AutoMate
+In this section, AutoMate2 is introduced becauses the similar strategy (reinforcement learning followed by
+imitation learning) in ManipGen can be applied into such insertion tasks. It is clear that RL works better with
+narrow space and known privilege information, so distilling them into a general policy is a reasonable strategy.
+There are also several interesting topics mentioned in this work. For example, we can run dis-assembly
+reversely to get assembly actions because dis-assembly is much easier than assembly, which is similar with the
+idea of diffusion models. Also, human demonstrations can be used to initialize RL and we can use dynamic
+time wrapping to align trajectories between humans and robots so that robots can mimic human motions.
+
+
+
+
+  2 https://developer.nvidia.com/blog/training-sim-to-real-transferable-robotic-assembly-skills-over-diverse-geometries/
+
+
+
+
+                                                            117
+

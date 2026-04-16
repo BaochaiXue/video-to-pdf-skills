@@ -1,0 +1,321 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\graphicspath{{.}{../}}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{课程笔记：Lecture 7 行为克隆（Behavior Cloning）}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{Robots That Learn / UC Berkeley CS 294-277}
+\newcommand{\videopublishdate}{课程讲次日期：2024-10-21}
+\newcommand{\videoduration}{44:19}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=UC-hdat5YqU}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{overview_cover.jpg}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{课程定位与本讲学习目标}
+
+这一讲从行为克隆（Behavior Cloning, BC）和学习示范（Learning from Demonstration, LfD）出发，逐步走到 diffusion policies。讲者的基本判断是：很多机器人任务并不适合先写奖励再做优化，而更适合直接从专家示范中学习行为。
+
+\subsection{为什么这一讲不是“纯监督学习”那么简单}
+
+行为克隆表面上很像监督学习：给定观测输入，学习输出动作。但机器人里的 imitation learning 不只是拟合标签，还牵涉到示范怎么来、状态怎么覆盖、策略在部署时如何面对偏离训练分布的状态，以及为什么某些任务需要更强的生成式策略表示。
+
+\begin{importantbox}{这讲的中心线索}
+示范数据可以替代手写 reward，但示范学习并不自动消除机器人控制里的复杂性。真正难的是把“会模仿”变成“在真实环境里稳定模仿”。
+\end{importantbox}
+
+\subsection{本章小结}
+
+本讲先回答“为什么要做 LfD”，再回答“示范可以怎么采集”，最后引出 diffusion policies 作为一个兼具表达力和稳定性的现代方案。
+
+\section{从 Learning from Demonstration 到 Behavior Cloning}
+
+\subsection{LfD 的基本定义}
+
+课程摘录引用了 Ravichandar et al. 的表述：在 robotics 和 automation 里，LfD 指的是机器人通过模仿专家来学习新技能。它适合那些既难以用传统编程明确写出、也难以直接写成优化问题，但又可以通过演示来描述的任务。
+
+这一定义很重要，因为它说明 LfD 不是“退而求其次”，而是一种适合复杂任务的建模方式。当任务目标难以精确量化时，专家演示本身就成了监督信号。
+
+\subsection{三种教学方式}
+
+课程把示范采集方式分成三类：
+\begin{itemize}
+  \item kinesthetic teaching（示教/手把手示教）：直接把机器人拖到目标轨迹上并记录关节运动；
+  \item teleoperation（遥操作）：通过控制器远程操纵机器人；
+  \item passive observation（被动观察）：机器人只观察示范，不直接被人拉着做。
+\end{itemize}
+
+这三种方式的区别不只是“采集姿势”不同，而是示范数据的成本、可扩展性和安全性不同。示教最直观，但需要人工接触机器人；遥操作更安全，也更适合大型或危险任务；被动观察最接近互联网视频数据的设想，但对感知和对齐要求更高。
+
+\subsection{本章小结}
+
+LfD 的关键不在于把动作复制出来，而在于把专家行为转化成机器人可以学习的数据。示范采集方式越不同，后续训练能利用的信息和约束就越不同。
+
+\section{行为克隆的核心难点：分布、泛化与鲁棒性}
+
+\subsection{为什么只拟合示范并不总是够用}
+
+从形式上讲，behavior cloning 就是用监督学习拟合示范轨迹中的动作。但机器人策略一旦偏离演示分布，就可能进入训练中没见过的状态，随后误差会累积。这也是 imitation learning 里最常见的现实问题：看起来模型在离线数据上拟合得不错，真正上机器人后却开始跑偏。
+
+\begin{warningbox}{行为克隆的现实风险}
+如果训练时的数据只覆盖“专家状态附近”，而部署时策略稍有偏差就会进入没见过的区域，那么误差会逐步放大。这个问题在机器人任务里比在静态分类任务里更严重。
+\end{warningbox}
+
+\subsection{为什么 diffusion policies 进入这个舞台}
+
+讲者接着把注意力引向 diffusion policies：如果动作分布本身是多峰的、复杂的，或者输出维度很高，那么直接回归一个单点动作往往会把多种合理方案平均掉。Diffusion policy 的思路是把动作生成变成逐步去噪的过程，从而保留复杂分布的结构。
+
+\subsection{本章小结}
+
+行为克隆的本质难题不是“有没有标签”，而是示范分布和部署分布之间是否一致，以及策略能否在复杂动作空间里保住多样性与稳定性。
+
+\section{Diffusion Policies：把动作生成做成去噪过程}
+
+\subsection{Diffusion policy 的基本直觉}
+
+课程把 diffusion policy 描述为一种把机器人策略表示成条件去噪扩散过程的方法。它通常把图像或其他传感输入作为条件，输出动作序列或轨迹。和直接回归一个动作相比，这种做法有几个明显好处：
+\begin{itemize}
+  \item 可以表达 multimodal action distributions（多模态动作分布）；
+  \item 可以处理高维动作输出，而不是只预测下一步单动作；
+  \item 训练通常更稳定，因为优化目标更接近去噪而不是直接生成高复杂度样本。
+\end{itemize}
+
+\begin{knowledgebox}{为什么多模态在机器人里很重要}
+机器人任务里经常存在多条都可行的路径或多组都合理的操作方式。单点回归容易把这些模式平均成一个“谁都不太对”的动作，而 diffusion policy 可以保留这些模式。
+\end{knowledgebox}
+
+\subsection{与传统生成式建模的关系}
+
+课程把 diffusion policies 放进更大的 deep generative learning 图景里：normalizing flows、autoregressive models、variational autoencoders（VAE）、denoising diffusion models 和 energy-based models 都属于这一谱系。Diffusion policy 之所以受到重视，是因为它把生成式建模的稳定性和动作学习的条件性结合起来了。
+
+\subsection{本章小结}
+
+Diffusion policy 的关键不是“把动作直接预测出来”，而是“在条件输入下逐步把噪声变成动作”。这给了机器人任务一个可以表达复杂动作分布的生成式接口。
+
+\section{Denoising Diffusion Models：从噪声到数据}
+
+\subsection{前向扩散过程}
+
+讲者先回顾 diffusion model 的两个过程：forward diffusion 和 reverse denoising。前向过程可以写成马尔可夫链：
+\[
+q(x_t\mid x_{t-1})=\mathcal{N}\!\bigl(x_t;\sqrt{1-\beta_t}\,x_{t-1},\beta_t I\bigr),
+\]
+因此整条链满足
+\[
+q(x_{1:T}\mid x_0)=\prod_{t=1}^{T} q(x_t\mid x_{t-1}).
+\]
+
+其中：
+\begin{itemize}
+  \item \(x_0\) 是原始数据；
+  \item \(x_t\) 是第 \(t\) 步加噪后的样本；
+  \item \(\beta_t\in(0,1)\) 是每一步的噪声日程（noise schedule）；
+  \item \(I\) 是单位矩阵。
+\end{itemize}
+
+课程进一步给出直接从 \(x_0\) 到 \(x_t\) 的写法。定义
+\[
+\bar\alpha_t=\prod_{s=1}^{t}(1-\beta_s),
+\]
+则
+\[
+q(x_t\mid x_0)=\mathcal{N}\!\bigl(x_t;\sqrt{\bar\alpha_t}\,x_0,(1-\bar\alpha_t)I\bigr).
+\]
+
+这个式子的意义是：随着 \(t\) 增大，数据逐渐被噪声淹没；当 \(T\) 足够大时，\(x_T\) 近似标准高斯分布。
+
+\subsection{反向去噪过程}
+
+反向过程要做的是从噪声中生成数据，形式上写成
+\[
+p_\theta(x_{t-1}\mid x_t)=\mathcal{N}\!\bigl(x_{t-1};\mu_\theta(x_t,t),\sigma_t^2 I\bigr).
+\]
+
+也就是说，模型学习的是：给定当前带噪样本 \(x_t\) 和时间步 \(t\)，如何预测前一步的分布参数。训练时，目标是让这个反向过程尽量逼近前向过程对应的真实后验。
+
+\subsection{变分上界与训练目标}
+
+课程把训练写成对负对数似然的变分上界：
+\[
+\mathbb{E}_{q(x_0)}[-\log p_\theta(x_0)]
+\leq
+\mathbb{E}_{q(x_0)q(x_{1:T}\mid x_0)}
+\left[-\log \frac{p_\theta(x_{0:T})}{q(x_{1:T}\mid x_0)}\right]
+ =: \mathcal{L}.
+\]
+
+进一步展开后可以得到
+\[
+\mathcal{L}
+\approx
+\mathbb{E}_q\!\left[
+\mathrm{D}_{\mathrm{KL}}\!\bigl(q(x_T\mid x_0)\,\|\,p(x_T)\bigr)
++\sum_{t>1}\mathrm{D}_{\mathrm{KL}}\!\bigl(q(x_{t-1}\mid x_t,x_0)\,\|\,p_\theta(x_{t-1}\mid x_t)\bigr)
+-\log p_\theta(x_0\mid x_1)
+\right].
+\]
+
+其中 \(q(x_{t-1}\mid x_t,x_0)\) 是可计算的后验分布，课程写成
+\[
+q(x_{t-1}\mid x_t,x_0)=\mathcal{N}\!\bigl(x_{t-1};\tilde\mu_t(x_t,x_0),\tilde\beta_t I\bigr),
+\]
+并给出
+\[
+\tilde\mu_t(x_t,x_0)=
+\frac{\sqrt{\bar\alpha_{t-1}}\beta_t}{1-\bar\alpha_t}x_0
+\frac{\sqrt{1-\beta_t}(1-\bar\alpha_{t-1})}{1-\bar\alpha_t}x_t,
+\qquad
+\tilde\beta_t=\frac{1-\bar\alpha_{t-1}}{1-\bar\alpha_t}\beta_t.
+\]
+
+这些公式的作用不是为了“背下来”，而是说明 diffusion 的训练本质上是在让学到的反向分布逼近真实去噪过程。
+
+\subsection{训练时真正优化的是什么}
+
+课程在算法视角上还强调：训练通常等价于让网络预测噪声 \(\epsilon\) 与 \(\epsilon_\theta\) 之间的平方误差。也就是说，模型学会的不是直接输出成品图像，而是学会在各个时间步把噪声往回推。
+
+\begin{importantbox}{diffusion 的一个关键现象}
+去噪生成通常先恢复低频结构，再逐渐恢复高频细节。因此不同时间步的损失权重并不只是技术细节，而会影响内容与细节之间的平衡。
+\end{importantbox}
+
+\subsection{本章小结}
+
+Diffusion model 的核心是一个前向加噪、反向去噪的马尔可夫过程。训练通过变分上界和噪声预测目标完成，而稳定性和高质量生成正是这种逐步建模带来的优势。
+
+\section{模型设计、条件生成与 VAEs 的关系}
+
+\subsection{模型结构：U-Net、ResNet 与 self-attention}
+
+讲者指出，diffusion models 常用 U-Net 结构，并配合 ResNet blocks 和 self-attention layers。最近 transformer 也成为更流行的选择。这里的关键不是某个架构名词，而是模型必须在多尺度上处理“当前带噪样本 + 时间步 + 条件输入”的组合信息。
+
+\subsection{与 VAE 的关系}
+
+课程把 diffusion models 看成 hierarchical VAE 的一种特殊形式，但两者仍有重要差别：
+\begin{itemize}
+  \item diffusion 的 forward process 是固定的，不是学习出来的 encoder；
+  \item diffusion 没有传统 VAE 那种单一步的潜变量瓶颈，而是一个逐步演化的链式表示；
+  \item 因为是逐步去噪，diffusion 往往更容易兼顾稳定训练和高质量生成。
+\end{itemize}
+
+\subsection{条件扩散模型}
+
+在条件生成里，条件可以通过额外输入进入 reverse process。课程列举的典型例子包括：
+\begin{itemize}
+  \item text-to-image generation；
+  \item super-resolution；
+  \item colorization；
+  \item panorama generation。
+\end{itemize}
+
+对于机器人来说，这个机制非常自然：图像、状态或传感器输入可以作为条件，动作序列作为生成目标。于是 diffusion policy 就把“给定观测生成动作”变成了一个条件生成问题。
+
+\subsection{本章小结}
+
+Diffusion models 之所以重要，不只是因为它能生成图像，更因为它提供了一种稳定、可条件化、可扩展的生成方式。Diffusion policy 正是把这套机制迁移到了机器人动作生成上。
+
+\section{总结与延伸}
+
+这一讲的主线可以概括为：行为克隆之所以值得做，不只是因为它简单，而是因为很多机器人任务更适合从示范中学习；diffusion policy 之所以值得关注，是因为它用逐步去噪的生成方式解决了多模态、高维动作和训练稳定性这些难点。
+
+\subsection{本讲的三个结论}
+
+\begin{itemize}
+  \item 示范学习（LfD）适合那些难以显式写 reward 的机器人任务；
+  \item 纯粹的单点行为克隆可能会把多种可行动作平均掉；
+  \item diffusion policies 把动作生成变成条件去噪问题，从而更适合复杂机器人动作分布。
+\end{itemize}
+
+\subsection{拓展阅读}
+
+\begin{itemize}
+  \item \emph{Diffusion Policy}
+  \item \emph{Denoising Diffusion-based Generative Modeling: Foundations and Applications}
+  \item \emph{Recent Advances in Robot Learning from Demonstration}
+\end{itemize}
+
+\subsection{结束语}
+
+如果只记住一个结论，那就是：行为克隆不是“把专家动作抄下来”这么简单；在机器人里，它更像是在学习一个能覆盖多种合理行为、还能在噪声和偏差下持续生成动作的策略分布。Diffusion policy 就是这一思路的现代版本。
+
+\end{document}

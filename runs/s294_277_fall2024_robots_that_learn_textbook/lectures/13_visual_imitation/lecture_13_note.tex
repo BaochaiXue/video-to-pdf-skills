@@ -1,0 +1,206 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{Lecture 8: Visual Imitation}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-16}
+\newcommand{\videochannel}{Toru}
+\newcommand{\videopublishdate}{2024-10-28}
+\newcommand{\videoduration}{1:39:11}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=TmQJe2npA34}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{视觉模仿的定位：从行为克隆到社会学习}
+\subsection{课程主线}
+这讲的起点不是“如何把像素直接映射成动作”，而是“人类是怎样从观察别人学会运动技能的”。这也是 \textbf{视觉模仿（visual imitation）} 的基本定义：从视频里提取人的动作线索、身体结构和交互关系，再把这些中间表示转化成机器人可执行的技能。
+
+课程里先把它放在更大的机器人学习版图中：\textbf{行为克隆（behavior cloning）} 虽然直观，但过度依赖配对的机器人演示数据；\textbf{强化学习（reinforcement learning, RL）} 能发现新策略，却依赖奖励设计和大量试错。视觉模仿试图走第三条路，用高保真视觉算法把人类视频变成可迁移的监督信号。
+
+\begin{knowledgebox}{这一讲的核心判断}
+视觉模仿并不是“跳过中间表示的端到端魔法”，恰恰相反，它高度依赖中间结构，例如人体姿态、三维形状、手部可供性（affordance）和交互状态。没有这些结构，单靠像素通常不够稳。
+\end{knowledgebox}
+
+\subsection{婴儿学习的启发}
+课上引用了 Smith and Gasser (2005) 对婴儿学习的六条经验：multi-modal、incremental、physical、explore、social、language。这里最重要的是 \textbf{social learning（社会学习）}。视觉模仿借用这一点，强调机器人可以通过观察他人，而不是直接执行同样的控制过程，来学习动作技能。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth,page=3]{slides.pdf}
+\caption{“婴儿的六条经验”给视觉模仿提供了课程层面的出发点。}
+\end{figure}
+
+\subsection{本章小结}
+视觉模仿的任务不是复刻人的身体，而是从人的视频中抽取对机器人有用的中间知识。它既不同于纯行为克隆，也不同于纯强化学习；更准确地说，它把“看见人怎么做”变成了“知道机器人应该学什么”的监督来源。
+
+\section{从视频到动作：SFV、DeepMimic 与 HMR}
+\subsection{SFV 的基本管线}
+课程先讲了 Peng et al. (2018b) 的 \textbf{SFV（Skills from Videos）}。这个方法继承了 DeepMimic 的思路：在模拟器里用 RL 学动作模仿，但把 reference motion 的来源从 mocap（motion capture）替换成公开视频。替换之后，输入不再是高质量关节轨迹，而是要先从 monocular video 里恢复人的姿态。
+
+这里的关键桥梁是 \textbf{Human Mesh Recovery (HMR)}。HMR 一类方法从单目图像估计人体的 3D pose 和 shape，再经过时间平滑得到可供模仿的参考轨迹。于是，原本“视频 -> 3D 人体 -> 参考动作 -> RL policy”的链条就成立了。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth,page=7]{slides.pdf}
+\caption{DeepMimic 依赖 mocap，而 SFV 用 HMR 把公开视频转换成参考动作。}
+\end{figure}
+
+\subsection{为什么这条链条有意义}
+它的意义不在于“视频更酷”，而在于视频的可获得性远高于 mocap。公开视频可以覆盖 cartwheel、frontflip、spin、dance 等难以直接采集的技能，而且能够容纳不同环境和不同身体条件下的动作风格。课上展示的例子说明，经过视觉重建和 simulation retargeting，动画角色可以从视频里学到高动态技能。
+
+\begin{importantbox}{从 mocap 到 video 的转折}
+DeepMimic 证明了 RL 可以做高质量动作模仿，但它仍然依赖 mocap。SFV 的转折点在于：只要视觉系统足够强，就可以把“传感器成本”从专门采集动作数据，转移到大规模公开视频和视觉重建模型上。
+\end{importantbox}
+
+\subsection{本章小结}
+SFV 的价值是把动作学习的监督从 mocap 扩展到公开视频。它保留了 DeepMimic 的物理一致性和 RL 优势，同时把最昂贵的输入数据换成了现实世界中最常见的视频数据。
+
+\section{重建 4D 人体动作：从姿态估计到跟踪}
+\subsection{为什么是 4D}
+课上用一个非常清晰的比喻说明了目标：单帧图像对应二维观察 \((x,y)\)，重建出三维状态 \((x,y,z)\)；而视频可以看成把时间也纳入表示，因此要恢复的是 \((x,y,z,t)\) 这样的 4D 结构。也就是说，视觉模仿并不是只看“这一帧的姿势”，而是要理解动作如何随时间变化。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth,page=18]{slides.pdf}
+\caption{从二维观测到三维状态，再到四维时空动作，是这一讲的结构性目标。}
+\end{figure}
+
+\subsection{HMR 1.0、SMPL 与 top-down prior}
+HMR 1.0 的核心是 \textbf{top-down prior（自上而下先验）}：先假设人体可以由一个参数化模型描述，再反推相机姿态、人体姿态和身体形状。课程里提到的 SMPL 是一个可微的人体模型，它把模板身体、关节位置和表面变形联系起来。这样的先验之所以重要，是因为单目视频里的人体是 \textbf{non-rigid（非刚体）}，且相机位姿往往未知，问题本身是不充分约束的。
+
+从讲义和字幕的叙述来看，HMR 之所以成立，不是因为它“凭空猜”出了 3D，而是因为它把视觉问题改写成一个带人体结构先验的优化与回归问题。后续的 Humans in 4D、PHALP 等工作继续沿着这个方向推进：更好的特征、更强的 transformer、更强的跟踪与关联。
+
+\subsection{局限与现实难点}
+这部分尤其强调了单目视频的局限：遮挡、相机抖动、形体变化、视角变化和时间噪声都会让几何重建变得脆弱。换句话说，4D 重建能提供强信号，但它不是“无代价”的真值来源。把它拿去给机器人做模仿时，必须接受它是一个近似，而不是完美标注。
+
+\subsection{本章小结}
+4D 重建的关键不只是“从视频里恢复人”，而是“恢复一个足够稳定、足够结构化、足够可迁移的人体表示”。HMR 及其后续方法提供了这个桥梁，也为后面的手部理解和操作学习打下基础。
+
+\section{手、可供性与机器人操作}
+\subsection{为什么要看手}
+讲义后半段明显把视角从全身转向手部。原因很直接：在操作任务里，手既是动作执行器，也是 \textbf{interaction signal（交互信号）}。课程用“Human Hands as Probes for Interactive Object Understanding”说明，手部区域可以帮助我们回答三个问题：
+
+\begin{itemize}
+  \item 哪些位置可以交互？
+  \item 应该用什么方式交互？
+  \item 交互之后对象状态会怎样变化？
+\end{itemize}
+
+这比单纯看物体类别更细，因为机器人真正要学的是 \textbf{affordance（可供性）}，即“这个物体允许哪些动作、这些动作会带来什么后果”。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth,page=64]{slides.pdf}
+\caption{把人的手当作“探针”，可以从交互中读出可供性与对象状态。}
+\end{figure}
+
+\subsection{HaMeR、HInt 与数据规模}
+课程里还提到 \textbf{HaMeR（Reconstructing Hands in 3D with Transformers）}、HInt 数据集以及多个大规模手部视频数据源。这里的共同点不是某个单一结构，而是一个经验结论：\textbf{数据规模和模型规模一起起作用}。当手部重建模型从较小数据集扩展到 New Days of Hands、Epic Kitchens、Ego4D 这样的更大数据时，性能会显著变化。
+
+这说明，视觉模仿并不只是在“把动作拷贝出来”，而是在学习一个更强的视觉前端，前端足够强，后续机器人策略才有可能把这些信号用起来。
+
+\subsection{从 affordance 到机器人策略}
+讲义进一步讲到两条很重要的下游路径。第一条是 \textbf{Affordance from Context Prediction (ACP)}：通过遮挡上下文、分割损失和 grasp loss 学习物体可供性。第二条是 \textbf{reward functions learned from video data}：先把人的视频做 agent-environment factorization，再用 learned reward 去训练机器人。
+
+课程在这里给出的直觉非常清楚：如果我们能从视频里提炼出“什么动作是可能的”以及“动作之后世界如何变化”，那么机器人学习就不必总是从零开始。它可以先学会读视频，再用这些视频里抽取出的结构做 downstream fine-tuning。
+
+\begin{warningbox}{需要保守理解的地方}
+这些方法并没有消除现实中的难点。遮挡、姿态估计误差、手眼不同步、对象接触点模糊，都会污染 affordance 学习结果。因此，这一类工作更像“把问题前移到视觉结构学习”，而不是“完全解决 manipulation”。
+\end{warningbox}
+
+\subsection{本章小结}
+手部理解把视觉模仿推到了更接近机器人操作的地方。它告诉我们：在复杂任务里，真正有价值的不是整个人的像素轨迹，而是手、对象和环境之间的交互结构。
+
+\section{总结与延伸}
+这一讲可以归结为一句话：\textbf{视觉模仿的关键，不是直接模仿像素，而是从视频中恢复结构化的中间世界。} 对全身动作，这个中间世界是姿态、形状和 4D 运动；对操作任务，这个中间世界是手、对象、可供性和交互后的状态变化。
+
+这也解释了为什么本讲连续出现 HMR、SMPL、PHALP、HaMeR、ACP、VIDM 这类方法。它们看起来分散，但其实都在解决同一类问题：让机器先“看懂人怎么和世界发生关系”，再决定自己该如何学习。
+
+如果把这讲放到整门课里看，它连接了前面的 locomotion 和后面的 manipulation/navigation：人类动作的视频既能提供运动轨迹，也能提供环境语义；而机器人真正要继承的，往往不是动作本身，而是动作背后的结构知识。
+
+\end{document}

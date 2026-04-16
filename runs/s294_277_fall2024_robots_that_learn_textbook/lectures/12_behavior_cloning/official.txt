@@ -1,0 +1,355 @@
+Behavior Cloning:
+ Diffusion Policies
+With tutorial material on VAEs and diffusion models
+                  Jitendra Malik
+
+In the context of robotics and automation, learning from demonstration (LfD) is the
+paradigm in which robots acquire new skills by learning to imitate an expert. The
+choice of LfD over other robot learning methods is compelling when ideal behavior
+can be neither easily scripted (as is done in traditional robot programming) nor easily
+defined as an optimization problem, but can be demonstrated.
+
+RSS 2023, IJRR 2024
+
+Denoising Diffusion-based Generative
+         Modeling: Foundations and
+         Applications
+   Karsten Kreis   Ruiqi Gao   Arash Vahdat
+
+                                              1
+
+Deep Generative Learning
+                               Learning to generate data
+
+                                           Train
+
+Samples from a Data Distribution                           Neural Network
+
+                                           Sample
+
+                                                                            2
+
+The Landscape of Deep Generative Learning
+
+                                                           Normalizing
+                                         Autoregressive       Flows
+                                            Models
+
+ Variational
+ Autoencoders
+
+                                                              Denoising
+Generative               Energy-based
+                                                          Diffusion Models
+Adversarial Networks        Models
+
+                                                                             7
+
+Denoising Diffusion Models
+                Emerging as powerful generative models, outperforming GANs
+
+“Diffusion Models Beat GANs on Image Synthesis”      “Cascaded Diffusion Models for High Fidelity Image Generation”
+Dhariwal & Nichol, OpenAI, 2021                      Ho et al., Google, 2021
+                                                                                                                      8
+
+Text-to-Image Generation
+                       DALL·E 2                                                                  Imagen
+                                                                     A group of teddy bears in suit in a corporate office
+    “a teddy bear on a skateboard in times square”
+                                                                     celebrating the birthday of their friend. There is a pizza cake
+                                                                     on the desk.
+
+“Hierarchical Text-Conditional Image Generation with CLIP Latents”         “Photorealistic Text-to-Image Diffusion Models with Deep
+Ramesh et al., 2022                                                        Language Understanding”, Saharia et al., 2022
+                                                                                                                                      11
+
+Denoising Diffusion Models
+                                                           Learning to generate by denoising
+
+   Denoising diffusion models consist of two processes:
+
+   • Forward diffusion process that gradually adds noise to input
+
+   • Reverse denoising process that learns to generate data by denoising
+
+                                                                  Forward diffusion process (fixed)
+
+             Data                                                                                     Noise
+
+                                                           Reverse denoising process (generative)
+
+Sohl-Dickstein et al., Deep Unsupervised Learning using Nonequilibrium Thermodynamics, ICML 2015
+Ho et al., Denoising Diffusion Probabilistic Models, NeurIPS 2020
+Song et al., Score-Based Generative Modeling through Stochastic Differential Equations, ICLR 2021             18
+
+Forward Diffusion Process
+
+The formal definition of the forward process in T steps:
+
+                                              Forward diffusion process (fixed)
+
+        Data                                                                                    Noise
+
+                        x0           x1           x2          x3           x4     …   xT
+
+                                                                                      (joint)
+
+                                                                                                   19
+
+Diffusion Kernel
+
+                                      Forward diffusion process (fixed)
+
+Data                                                                                           Noise
+
+                x0           x1           x2           x3           x4    …         xT
+
+       Define                                                                   (Diffusion Kernel)
+
+       For sampling:                                        where
+
+       values schedule (i.e., the noise schedule) is designed such that   and
+
+                                                                                                     20
+
+What happens to a distribution in the forward diffusion?
+
+So far, we discussed the diffusion kernel                but what about          ?
+
+                                                                                              Diffused Data Distributions
+                                                                          Data                                                          Noise
+
+                                                                  xt
+Diffused        Joint             Input      Diffusion
+data dist.      dist.           data dist.    kernel
+
+       The diffusion kernel is Gaussian convolution.                   q(x0 )        q(x1 )      q(x2 )       q(x3 )       …        q(x T )
+
+We can sample               by first sampling                  and then sampling                          (i.e., ancestral sampling).
+
+                                                                                                                                    21
+
+Generative Learning by Denoising
+
+Recall, that the diffusion parameters are designed such that
+
+                                                                                                 Diffused Data Distributions
+
+Generation:
+
+Sample
+                                                                  xt
+Iteratively sample
+
+                         True Denoising Dist.
+
+                                                                       q(x0 )           q(x1 )            q(x2 )        q(x3 )             …             q(x T )
+
+                                                                           q(x0 |x1 )       q(x 1 |x2 )        q(x2 |x3 )    q(x 3 |x4 )       q(x T-1 |x T )
+In general,                                     is intractable.
+
+Can we approximate               ? Yes, we can use a Normal distribution if              is small in each forward diffusion step.
+                                                                                                                                                        22
+
+Reverse Denoising Process
+
+Formal definition of forward and reverse processes in T steps:
+
+                                          Reverse denoising process (generative)
+
+       Data                                                                                 Noise
+
+                        x0           x1            x2            x3        x4      …   xT
+
+                                          Trainable network
+                                    (U-net, Denoising Autoencoder)                              23
+
+Learning Denoising Model
+                                               Variational upper bound
+
+For training, we can form variational upper bound that is commonly used for training variational autoencoders:
+
+Sohl-Dickstein et al. ICML 2015 and Ho et al. NeurIPS 2020 show that:
+
+where                 is the tractable posterior distribution:
+
+                                                                                                                 24
+
+Parameterizing the Denoising Model
+
+Since both                   and          are Normal distributions, the KL divergence has a simple form:
+
+Recall that                               . Ho et al. NeurIPS 2020 observe that:
+
+They propose to represent the mean of the denoising model using a noise-prediction network:
+
+With this parameterization
+
+                                                                                                           25
+
+Training Objective Weighting
+                                     Trading likelihood for perceptual quality
+
+The time dependent      ensures that the training objective is weighted properly for the maximum data likelihood training.
+
+However, this weight is often very large for small t’s.
+
+Ho et al. NeurIPS 2020 observe that simply setting        improves sample quality. So, they propose to use:
+
+For more advanced weighting see Choi et al., Perception Prioritized Training of Diffusion Models, CVPR 2022.
+
+                                                                                                                      26
+
+Summary
+Training and Sample Generation
+
+                                 27
+
+Implementation Considerations
+                                                 Network Architectures
+
+Diffusion models often use U-Net architectures with ResNet blocks and self-attention layers to represent
+
+             Time Representation
+                                   Fully-connected
+                                        Layers
+
+Time representation: sinusoidal positional
+embeddings or random Fourier features.
+
+Time features are fed to the residual blocks using either simple spatial addition or using adaptive group normalization 28
+layers. (see Dharivwal and Nichol NeurIPS 2021)
+
+Diffusion Parameters
+                                                    Noise Schedule
+
+         Data                                                                                                   Noise
+
+Above,     and    control the variance of the forward diffusion and reverse denoising processes respectively.
+
+Often a linear schedule is used for   , and   is set equal to   .
+
+Kingma et al. NeurIPS 2022 introduce a new parameterization of diffusion models using signal-to-noise ratio (SNR), and
+show how to learn the noise schedule by minimizing the variance of the training objective.
+
+We can also train    while training the diffusion model by minimizing the variational bound (Improved DPM by Nichol and
+Dhariwal ICML 2021) or after training the diffusion model (Analytic-DPM by Bao et al. ICLR 2022).
+                                                                                                                     29
+
+What happens to an image in the forward diffusion
+ process?
+Recall that sampling from            is done using                            where
+
+                                                                            Small t
+
+                                                                                       Freq.
+
+                      Fourier Transform
+
+                                                                   Freq.
+
+                                                                             Large t
+
+In the forward diffusion, the high frequency content is perturbed faster.
+                                                                                       Freq.
+
+                                                                                         30
+
+Content-Detail Tradeoff
+
+                           Reverse denoising process (generative)
+
+Data                                                                                         Noise
+
+       x0             x1            x2          x3          x4           …           xT
+
+          The denoising model is                                The denoising model is
+       specialized for generating the                       specialized for generating the
+       high-frequency content (i.e.,                         low-frequency content (i.e.,
+             low-level details)                                    coarse content)
+
+            The weighting of the training objective for different timesteps is important!
+                                                                                                 31
+
+Connection to VAEs
+
+    Diffusion models can be considered as a special form of hierarchical VAEs.
+
+    However, in diffusion models:
+
+    • The encoder is fixed
+
+    • The latent variables have the same dimension as the data
+
+    • The denoising model is shared across different timestep
+
+    • The model is trained with some reweighting of the variational bound.
+
+Vahdat and Kautz, NVAE: A Deep Hierarchical Variational Autoencoder, NeurIPS 2020
+Sønderby, et al.. Ladder variational autoencoders, NeurIPS 2016.                    32
+
+Summary
+                                     Denoising Diffusion Probabilistic Models
+
+In this part, we reviewed denoising diffusion probabilistic models.
+
+The model is trained by sampling from the forward diffusion process and training a denoising model to predict the noise.
+
+We discussed how the forward process perturbs the data distribution or data samples.
+
+The devil is in the details:
+
+• Network architectures
+
+• Objective weighting
+
+• Diffusion parameters (i.e., noise schedule)
+
+See “Elucidating the Design Space of Diffusion-Based Generative Models” by Karras et al. for important design decisions.
+
+                                                                                                                     33
+
+Impressive conditional diffusion models
+                                                          Text-to-image generation
+                                    DALL·E 2                                                                    IMAGEN
+           “a propaganda poster depicting a cat dressed as french                    “A photo of a raccoon wearing an astronaut
+                emperor napoleon holding a piece of cheese”                                 helmet, looking out of the window at
+                                                                                            night.”
+
+Ramesh et al., “Hierarchical Text-Conditional Image Generation with CLIP Latents”, arXiv 2022.
+                                                                                                                                   106
+Saharia et al., “Photorealistic Text-to-Image Diffusion Models with Deep Language Understanding”, arXiv 2022.
+
+Impressive conditional diffusion models
+                                                     Super-resolution & colorization
+
+                              Super-resolution                                         Colorization
+
+Saharia et al., “Palette: Image-to-Image Diffusion Models”, arXiv 2021.                               107
+
+Impressive conditional diffusion
+                                        Panorama generation
+                            models
+                                                     ← Generated          Generated
+                                                     Input                →
+
+Saharia et al., “Palette: Image-to-Image Diffusion Models”, arXiv 2021.               108
+
+Conditional diffusion models
+                              Include condition as input to reverse process
+
+Reverse process:
+
+Variational
+upper bound:
+
+                                          Incorporate conditions into U-Net
+
+         • Scalar conditioning: encode scalar as a vector embedding, simple spatial addition or adaptive
+           group normalization layers.
+
+         • Image conditioning: channel-wise concatenation of the conditional image.
+
+         • Text conditioning: single vector embedding – spatial addition or adaptive group norm / a seq of
+           vector embeddings - cross-attention.
+                                                                                                             109

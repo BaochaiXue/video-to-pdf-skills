@@ -1,0 +1,772 @@
+Learning to Walk for Quadrupeds
+
+           Jitendra Malik
+            UC Berkeley
+
+Recovery from leg obstruction
+
+Rocky area next to river bed
+
+Stairs on a hiking path
+
+Unstable and constantly deforming ground
+
+Loose Mud Pile at Construction Site
+
+Vegetation on uneven surface
+
+Bouncing (Gallop) Gait @ 1.5 m/s
+
+                                   bounce on carpet
+
+Navigation in Cluttered Indoor Setting
+
+Version 1: Walking in simulation
+
+Version 2: Walking in the real world via
+           rapid motor adaptation
+
+Version 3: Walking at different linear and
+           angular velocities in the real world
+
+Version 4: Navigating to a point goal with
+           vision and proprioception
+
+Rapid Motor Adaptation for
+         Legged Robots
+
+Ashish Kumar   Zipeng Fu     Deepak Pathak      Jitendra Malik
+UC Berkeley      CMU             CMU           UC Berkeley/FAIR
+
+                           Robotics: Science and Systems 2021
+
+Version 1: Walking in simulation
+
+Animal Gaits
+
+               -Stephen Cunnane
+
+Computational Gaits
+
+            Hildebrand (1965)
+
+Computational Gaits — Central Pattern Generators
+
+                                    Matsuoka, Kiyotoshi.
+                                    "Mechanisms of
+                                    frequency and
+                                    pattern control in the
+                                    neural rhythm
+                                    generators." Biologic
+                                    al cybernetics (1987)
+
+Computational Gaits —Raibert Controller
+
+Raibert, Marc H., et al. Dynamically Stable Legged Locomotion. MIT ARTIFICIAL INTELLIGENCE LAB, 1983.
+
+Recent work on locomotion
+
+MIT Mini Cheetah         Anymal - ETH Zurich      Stanford Doggo
+
+RHex — Kod*Lab           Spot — Boston Dynamics   CMU — Little Dog
+
+Human movement in the real world
+
+Human movement in the real world
+
+                          Cole, Whitney G., Scott R.
+                          Robinson, and Karen E.
+                          Adolph. "Bouts of steps:
+                          The organization of infant
+                          exploration." Development
+
+Natural locomotion
+ as bouts of steps
+
+                     Lee, Cole, Golenia, & Adolph (2018) Dev Sci
+
+Natural locomotion
+  as bouts of steps
+
+         SSFFFBBB
+
+1/2 normal speed      Lee, Cole, Golenia, & Adolph (2018) Dev Sci
+
+No preprogrammed gaits
+
+Learn to Walk in Simulation
+
+                      x(t), a(t-1)
+    Mass
+    COM                                   Base
+                 Environmental
+   Friction      Factor Encoder
+                                          Policy      𝑎𝑡
+                                     𝑧𝑡
+Terrain Height
+Motor Strength
+                                                           Physics Simulation
+
+                                                   Extrinsics
+
+Learn to Walk in Simulation
+
+                         x(t), a(t-1)
+       Mass
+       COM                                   Base
+                    Environmental                     𝑎𝑡
+
+      Friction                               Policy
+                    Factor Encoder      𝑧𝑡
+   Terrain Height
+   Motor Strength
+                                                           Physics Simulation
+• Important: Reward function minimizes
+  work and ground impact (Biomechanics
+  and Energetics)
+
+Version 1: Walking in simulation
+
+Version 2: Walking in the real world via
+           rapid motor adaptation
+
+Version 3: Walking at different linear and
+           angular velocities in the real world
+
+Version 4: Navigating to a point goal with
+           vision and proprioception
+
+Version 2: Walking in the real world via
+           rapid motor adaptation
+
+How can we deploy it?
+
+                        x(t), a(t-1)
+    Mass
+    COM           Environmental             Base Policy   𝑎𝑡
+   Friction       Factor Encoder       𝑧𝑡
+Terrain Height
+Motor Strength
+
+                             Unknown Extrinsics                During Deployment
+
+                 Unavailable
+
+Key Insight — Extrinsics from Observation History
+
+                               x(t), a(t-1)
+     x(t-50), a(t-50)
+             .
+             .
+                                                   Base Policy   𝑎𝑡
+                        Adaptation Module
+             .                                𝑧𝑡
+      x(t-1), a(t-1)
+
+                                                                      During Deployment
+                                                   Estimate Online
+• Discrepancy b/w expected movement and actual measured movement
+• Continuously estimate these extrinsics online
+
+Training Summary
+Phase 1
+                             x(t), a(t-1)
+      Mass
+      COM             Environmental              Base Policy
+     Friction         Factor Encoder        𝑧𝑡
+  Terrain Height
+  Motor Strength
+
+                                     Regress                   𝑎𝑡
+Phase 2
+                             x(t), a(t-1)
+   x(t-50), a(t-50)                                                   Physics Simulation
+              .                                  Base Policy
+              .
+              .
+                      Adaptation Module     𝑧𝑡
+     x(t-1), a(t-1)
+
+                                                                    *Trainable Modules in Red
+
+Test Time
+
+                          x(t), a(t-1)
+x(t-50), a(t-50)                              Base Policy
+        .
+        .          Adaptation Module            100 Hz      𝑎𝑡
+        .                10Hz            𝑧𝑡
+ x(t-1), a(t-1)
+
+                                                                 During Deployment
+
+One Policy to Walk them All
+
+Analysis of Adaptation Module
+
+Oily surface and plastic wrapped feet
+
+Slow
+
+Oily surface and plastic wrapped feet
+
+5kg payload throw
+
+SLOW
+
+5kg payload throw
+
+Comparison to RMA w/o Adaptation
+
+RMA            8kg payload
+
+RMA w/o Adaptation
+
+RMA
+
+RMA w/o Adaptation
+
+Comparison to A1’s built in
+       controller
+
+A1 Controller
+
+   RMA
+
+A1 Controller
+
+   RMA
+
+A1 Controller
+
+   RMA
+
+Indoor Results
+
+Planks - uneven footholds and moving surfaces
+
+Mattress — Deformable surface (incorrect force
+                 feedback)
+
+Existing Attempts at Learning General Policies
+
+With priv info
+
+   • Domain Randomization (Robust)
+   • System Identification
+   • Fine tuning at test time in the real world
+
+Version 1: Walking in simulation
+
+Version 2: Walking in the real world via
+           rapid motor adaptation
+
+Version 3: Walking at different linear and
+           angular velocities in the real world
+
+Version 4: Navigating to a point goal with
+           vision and proprioception
+
+Version 3: Walking at different linear and
+           angular velocities in the real world
+
+Simply retrain the policy to track
+        different speeds
+
+Why did we get different gaits at the
+        different speeds?
+
+Minimizing Energy Consumption Leads
+                              to the
+Emergence of Gaits in Legged Robots
+
+   Zipeng Fu   Ashish Kumar     Jitendra Malik   Deepak Pathak
+     CMU        UC Berkeley      UC Berkeley         CMU
+
+                                Conference on Robot Learning 2021
+
+Learn to Walk in Simulation
+
+                         x(t), a(t-1)
+       Mass
+       COM                                   Base
+                    Environmental                     𝑎𝑡
+
+      Friction                               Policy
+                    Factor Encoder      𝑧𝑡
+   Terrain Height
+   Motor Strength
+                                                           Physics Simulation
+• Important: Reward function minimizes
+  work and ground impact (Biomechanics
+  and Energetics)
+
+Energy hypothesis for animal gaits
+
+                             Hoyt, Donald F., and C.
+                             Richard Taylor. "Gait and the
+                             energetics of locomotion in
+                             horses." Nature (1981)
+
+Similar Energy Consumption Trend
+  between Our Robot and Horses
+
+More results
+
+Trot through a Grass Trench
+
+Bounce (Gallop): robust to abrupt human pulls
+
+Bounce (Gallop): robust to abrupt human pulls
+
+                       \
+
+                            pulls
+                            lifted to
+                                   bychange
+                                      human direction
+                                            operator
+
+slow-mo
+
+Version 1: Walking in simulation
+
+Version 2: Walking in the real world via
+           rapid motor adaptation
+
+Version 3: Walking at different linear and
+           angular velocities in the real world
+
+Version 4: Navigating to a point goal with
+           vision and proprioception
+
+Version 4: Navigating to a point goal with
+           vision and proprioception
+
+Whats Missing?
+
+1. Navigation should be coordinated with locomotion
+
+2. Vision should be coordinated with proprioception
+
+Coupling Vision and Proprioception for
+    Navigation of Legged Robots
+ 1Zipeng Fu*, 2Ashish Kumar*, 1Ananye Agarwal, 2Haozhi Qi,
+              2Jitendra Malik, 1Deepak Pathak
+
+                  1CMU     2UC Berkeley
+
+                 To appear at CVPR 2022
+
+Linear and Angular Velocity
+                                  𝑥𝑡−1 , 𝑎𝑡−2
+                                   ̂ 𝑦𝑎𝑤 ̂            Base
+                                  𝜔𝑡 , 𝑣𝑡            Policy
+                              Adaptation            (100 Hz)
+                             Module (75 Hz)
+
+                                                Walking Policy
+                                                                 𝑎𝑡
+              𝑥𝑡−20 , 𝑎
+                 . 𝑡−21
+                 .
+                 .
+               𝑥𝑡−1 , 𝑎𝑡−2
+
+Visual Path Planner
+Occupancy Map                Cost Map
+                                                                              𝑥𝑡−1 , 𝑎𝑡−2
+                                                Velocity
+                                               Command                         ̂ 𝑦𝑎𝑤 ̂            Base
+                                               Generator                      𝜔𝑡 , 𝑣𝑡            Policy
+                                                (10Hz)                    Adaptation            (100 Hz)
+                                  10Hz                                   Module (75 Hz)
+          5Hz
+Visual Planner   FMM Distance + Obstacle SDF
+                                                                                            Walking Policy
+                                                                                                             𝑎𝑡
+                                                       𝑥𝑡−20 , 𝑎
+                                                          . 𝑡−21
+                                                             .
+                                                             .
+                                                           𝑥𝑡−1 , 𝑎𝑡−2
+
+                                                       Depth (30Hz)
+                                                     Tracking (200 Hz)
+
+Navigation in Cluttered Indoor Setting
+
+Whats Missing?
+
+1. Navigation should be coordinated with locomotion
+
+2. Vision should be coordinated with proprioception
+
+Navigation coordinated with locomotion
+
+    Fall
+
+ Probability
+
+  Linear Speed
+
+      (m/s)
+
+Vision coordinated with proprioception
+
+Only Vision              Vision + Proprioception
+
+Coupled Navigation and Locomotion
+Occupancy Map                   Cost Map
+                                                                                 𝑥𝑡−1 , 𝑎𝑡−2
+                                                   Velocity
+                                                  Command                         ̂ 𝑦𝑎𝑤 ̂            Base
+                                                  Generator                      𝜔𝑡 , 𝑣𝑡            Policy
+                                                   (10Hz)                    Adaptation            (100 Hz)
+                                     10Hz                                   Module (75 Hz)
+           5Hz
+                    FMM Distance + Obstacle SDF
+Visual Planner                                  Speed                                          Walking Policy
+                                              Constraints
+                                                                                                                𝑎𝑡
+                            Fall Predictor                   𝑥𝑡−20 , 𝑎
+                                                                . 𝑡−21
+                                                                .
+                                                                .
+                       Collision Detector                     𝑥𝑡−1 , 𝑎𝑡−2
+  Local Occupancy
+        Map         Safety Advisor (10 Hz)
+                                                              Depth (30Hz)
+                                                            Tracking (200 Hz)
+
+Comparison of
+
+Vision + Proprioception   Only Vision
+
+Vision + Proprioception
+
+Only Vision
+
+Vision + Proprioception
+
+Only Vision
+
+More Deployment Videos
+
+Feet      Collision
+Contacts   Detector
+
+                       x0.5 slow
+
+                                   Collision Detector
+
+Navigation in Cluttered Indoor Setting
+
+                          Invisible Obstacle Detected
+
+Navigation in the Wild
+
+invisible obstacles
+
+ Simulation
+Comparisons
+              rough, slip, payload randomization
+
+Real world comparisons
+
+Version 1: Walking in simulation
+
+Version 2: Walking in the real world via
+           rapid motor adaptation
+
+Version 3: Walking at different linear and
+           angular velocities in the real world
+
+Version 4: Navigating to a point goal with
+           vision and proprioception
+
+Epilogue
+ Layered Sensorimotor Architectures meet Deep RL
+
+                                                Brooks, Rodney. "A robust layered control system for a
+Braitenberg, Valentino. Vehicles: Experiments
+                                                mobile robot." IEEE journal on robotics and automation 2.1
+in synthetic psychology. MIT press, 1984
+                                                (1986)
+
+                                  Rapid Motor Adaptation
+
+Legged Locomotion in Challenging
+     Terrains using Egocentric Vision
+
+Ananye Agarwal*   Ashish Kumar*   Jitendra Malik †   Deepak Pathak†
+
+     CMU          UC Berkeley      UC Berkeley         CMU
+
+Robots can walk on challenging terrain
+                         These robots are blind!
+
+                          Lee, Joonho, et al. "Learning quadrupedal       Siekmann, Jonah, et al. "Blind bipedal stair
+                          locomotion over challenging terrain." Science   traversal via sim-to-real reinforcement
+                          robotics 5.47 (2020)                            learning." RSS (2021)
+Kumar, Ashish, et al.    Siekmann, Jonah, et al. "Blind                   Lee, Joonho, et al. "Learning
+"Rma: Rapid motor        bipedal stair traversal via sim-to-              quadrupedal locomotion over
+adaptation for legged    real reinforcement                               challenging terrain." Science
+robots." RSS (2021).     learning." RSS (2021)                            robotics 5.47 (2020)
+
+Why do we need vision?
+
+Typical approach: build terrain maps from vision
+
+Miki, T., Lee, J., Hwangbo, J., Wellhausen, L., Koltun, V., &   Kim, Donghyun, et al. "Vision aided dynamic exploration of
+Hutter, M. (2022). Learning robust perceptive locomotion for    unstructured terrain with a small-scale quadruped
+quadrupedal robots in the wild. Science Robotics                robot." ICRA 2020.
+
+Real world maps accumulate noise
+
+Miki, Takahiro, et al. "Learning robust perceptive locomotion
+for quadrupedal robots in the wild." Science Robotics (2022)
+
+Do we really need terrain maps?
+
+We directly go from vision to control
+
+Phase 1: Learning to Walk with Privileged
+             Terrain Information
+
+  𝑜𝑡
+  𝑚𝑡   RNN      𝛾𝑡    𝜋1
+                      MLP      𝑎𝑡
+       RNN      𝑧𝑡                      Scandots ( 𝑚 )
+  𝑒𝑡                                                 𝑡
+
+• Simulation: IsaacGym
+• Trained with PPO with smoothness+task rewards
+• ~10 Billion Samples simulated in 3 days on a single GPU
+
+Training Terrains
+
+Phase 1 Policy
+
+How do we deploy it?
+
+    scan dots   𝑜𝑡
+                𝑚𝑡   RNN   𝛾𝑡   𝜋1
+                                MLP
+[friction,
+                     RNN   𝑧𝑡          Scandots ( 𝑚 )
+payload…..]     𝑒𝑡                                  𝑡
+
+Phase 2: Learning to Walk with Egocentric Depth
+
+    scan dots       𝑜𝑡
+                    𝑚𝑡   RNN         𝛾𝑡           𝜋1
+                                                  MLP
+[friction,
+                         RNN         𝑧𝑡
+payload…..]         𝑒𝑡
+                                                   Copy and
+                               Regress
+                                                    Freeze
+ Egocentric Depth                                             𝑎𝑡
+                    𝑜𝑡                                             Scandots ( 𝑚 )
+                                                                                𝑡
+                    𝑑𝑡   RNN             𝛾𝑡
+                                              ̂   𝜋1
+                                                  MLP
+                         RNN              ̂
+                    𝑜𝑡                   𝑧𝑡
+
+Deployment Policy
+
+Egocentric Depth
+
+                   𝑜𝑡
+                   𝑑𝑡   RNN   𝛾𝑡
+                                   ̂   𝜋1
+                                       MLP
+                        RNN    ̂
+                   𝑜𝑡         𝑧𝑡
+
+Emergent footstep planning
+
+Gait heuristics fail on a small robot
+
+Size Comparison               Challenges Due to Size
+
+Emergent Hip Abduction
+
+Map Free, Gait Free
+
+Performance is better without maps
+                             Average Distance
+
+                     Blind        Noisy         Ours
+
+     Slopes          34.72        36.14         43.98
+
+ Stepping Stones     1.02         1.09          18.83
+
+      Stairs         16.64        6.74          31.24
+
+Discrete Obstacles   32.41        29.08         40.13
+
+Limitations
+
+Front Camera Failure (unable to see a dip)   Implicit planning failure
+
+Thank You
+
+Quadropeds vs Humanoids
+
+Honda Asimo
+
+Zero-Moment Point (ZMP)
+
+Model-Predictive Control (MPC)
+
+Real-World Humanoid Locomotion
+                       with Reinforcement Learning
+                                          Science Robotics
+
+Ilija Radosavovic*   Tete Xiao*     Bike Zhang*   Trevor Darrell+ Jitendra Malik+ Koushil Sreenath+
+
+                                  University of California, Berkeley
+
+End-to-End Control
+
+Massively Parallel Training in Simulation
+
+Zero-Shot Transfer to the Real World
+
+Omnidirectional Walking
+
+Emergent Arm Swing
+
+Dynamic Arm Swinging in Humans
+
+  Dynamic Arm Swinging in Human Walking, Collins et al, Proceedings of the Royal Society B: Biological Sciences 2009
+
+In-Context Adaptation
+
+Karen Adolph | CMBC Lecture
+
+Gait Adaptation in Infants
+
+           Learning in the development of infant locomotion, Adolph, Monogr. Soc. Res. Child. Dev. 1997
+
+Emergent Terrain Representations
+     A
+
+     B         C         D
+
+Foot-trapping Recovery
+
+Takeaways
+1. A fully learning-based approach
+
+2. In-context adaptation with Transformers
+
+3. Humanoid locomotion in real-world environments
+
+                    Paper & videos:
+        learning-humanoid-locomotion.github.io
+
+A natural question: can we extend the same
+      method to challenging terrains?
+
+In principle, yes.
+
+In practice, there are challenges.
+
+Humanoid Locomotion as Next Token Prediction
+
+Ilija Radosavovic Bike Zhang   Baifeng Shi   Jathushan Rajasegaran   Sarthak Kamat
+                 Trevor Darrell   Koushil Sreenath. Jitendra Malik
+
+                       University of California, Berkeley
+
+Humanoid Control as Next Token Prediction
+
+A Dataset of Walking Trajectories
+
+Neural Net Controller   Model based Controller   MoCap   Internet Videos
+
+Kinematic Retargeting
+
+Training with Missing Data
+
+Better Gait Quality
+
+Prediction Error Correlates with Walking
+
+Generalization to Unseen Commands
+
+Takeaways
+1. Cast real-world humanoid control as next token prediction
+
+2. A general framework for training with missing data
+
+3. A humanoid that walks in San Francisco
+
+                  Paper & videos:
+       humanoid-next-token-prediction.github.io
+
+Compared to reinforcement learning:
+
+• Far more sample efficient and stable
+
+• Limited to skills present in the data
+
+Learning Humanoid Locomotion
+             over Challenging Terrain
+
+Ilija Radosavovic    Sarthak Kamat        Trevor Darrell   Jitendra Malik
+
+                    University of California, Berkeley
+
+Pre-training with Sequence Modeling
+
+Fine-tuning with Reinforcement Learning
+
+Berkeley Hikes
+• 5 real hikes
+• 4 miles
+
+San Francisco Streets
+
+Kinematic Adaptation to Terrain Slope
+
+    A                           B
+
+    C                           D
+
+           contact   air-time
+
+Trained on Rigid Terrains
+
+    Flat         Smooth Slope   Discrete Obstacles
+
+   Rough         Rough Slope          Hills
+
+Dynamic Adaptation to Terrain Type
+
+External Disturbances
+
+Emergent Terrain Representations
+
+More Efficient than Training from Scratch
+
+     A   Uneven terrain   B   External perturbation   C   Velocity tracking
+
+Fine-tuning Leads to Considerable Gains
+
+Takeaways
+1. Humanoid locomotion over challenging terrain
+
+2. Pre-trained with sequence modeling
+
+3. Fine-tuned with reinforcement learning
+
+                  Paper & videos:
+        humanoid-challenging-terrain.github.io

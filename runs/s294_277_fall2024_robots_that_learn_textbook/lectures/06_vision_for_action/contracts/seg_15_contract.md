@@ -1,0 +1,159 @@
+# seg_15 Contract
+
+Source range:
+- transcript: 00:49:48,230 -- 00:52:56,920
+- segment hint: Segment 15
+
+Must cover unit ids:
+- sub_2101
+- sub_2102
+- sub_2103
+- sub_2104
+- sub_2105
+- sub_2106
+- sub_2107
+- sub_2108
+- sub_2109
+- sub_2110
+- sub_2111
+- sub_2112
+- sub_2113
+- sub_2114
+- sub_2115
+- sub_2116
+- sub_2117
+- sub_2118
+- sub_2119
+- sub_2120
+- sub_2121
+- sub_2122
+- sub_2123
+- sub_2124
+- sub_2125
+- sub_2126
+- sub_2127
+- sub_2128
+- sub_2129
+- sub_2130
+- sub_2131
+- sub_2132
+- sub_2133
+- sub_2134
+- sub_2135
+- sub_2136
+- sub_2137
+- sub_2138
+- sub_2139
+- sub_2140
+- sub_2141
+- sub_2142
+- sub_2143
+- sub_2144
+- sub_2145
+- sub_2146
+- sub_2147
+- sub_2148
+- sub_2149
+- sub_2150
+- sub_2151
+- sub_2152
+- sub_2153
+- sub_2154
+- sub_2155
+- sub_2156
+- sub_2157
+- sub_2158
+- sub_2159
+- sub_2160
+- sub_2161
+- sub_2162
+- sub_2163
+- sub_2164
+- sub_2165
+- sub_2166
+- sub_2167
+- sub_2168
+- sub_2169
+- sub_2170
+- sub_2171
+- sub_2172
+- sub_2173
+- sub_2174
+- sub_2175
+- sub_2176
+- sub_2177
+- sub_2178
+- sub_2179
+- sub_2180
+- sub_2181
+- sub_2182
+- sub_2183
+- sub_2184
+- sub_2185
+- sub_2186
+- sub_2187
+- sub_2188
+- sub_2189
+- sub_2190
+- sub_2191
+- sub_2192
+- sub_2193
+- sub_2194
+- sub_2195
+- sub_2196
+- sub_2197
+- sub_2198
+- sub_2199
+- sub_2200
+- sub_2201
+- sub_2202
+- sub_2203
+- sub_2204
+- sub_2205
+- sub_2206
+- sub_2207
+- sub_2208
+- sub_2209
+- sub_2210
+- sub_2211
+- sub_2212
+- sub_2213
+- sub_2214
+- sub_2215
+- sub_2216
+- sub_2217
+- sub_2218
+- sub_2219
+- sub_2220
+- sub_2221
+- sub_2222
+- sub_2223
+- sub_2224
+- sub_2225
+- sub_2226
+- sub_2227
+- sub_2228
+- sub_2229
+- sub_2230
+- sub_2231
+- sub_2232
+- sub_2233
+- sub_2234
+- sub_2235
+- sub_2236
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

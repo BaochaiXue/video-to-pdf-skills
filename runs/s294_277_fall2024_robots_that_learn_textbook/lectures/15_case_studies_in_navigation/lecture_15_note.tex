@@ -1,0 +1,187 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{Lecture 10: Case Studies in Navigation}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-16}
+\newcommand{\videochannel}{Toru}
+\newcommand{\videopublishdate}{2024-11-18}
+\newcommand{\videoduration}{45:06}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=HgK-86Hr1Wo}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{导航问题与三类方法}
+\subsection{导航任务到底在做什么}
+这讲把导航定义得非常务实：给机器人一个第一人称相机，让它进入一个 \textbf{novel environment（新环境）}，并给出一个 goal。这个 goal 可以是几何的，例如走到某个 \((x,y)\) 位置；也可以是语义的，例如“去厨房”“找一把椅子”“找到一棵植物”。课程特别强调，真实问题里最常见的其实是 \textbf{semantic goals（语义目标）}。
+
+\subsection{三类主流路线}
+讲义把 navigation 划成三大类：\textbf{classical}、\textbf{end-to-end} 和 \textbf{modular}。这是整讲最重要的组织框架，因为后面 GOAT 的讨论其实就是对 modular 方法的一个具体实例。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth,page=14]{slides.pdf}
+\caption{课程给出的导航方法分类：classical、end-to-end、modular。}
+\end{figure}
+
+\begin{knowledgebox}{导航中的核心分工}
+如果把导航看成一个系统问题，那么前端负责 perception / mapping，后端负责 goal-directed exploration 和 collision-free control。三类方法的区别，主要就是这两个阶段到底谁来做、怎么分工、是否显式建图。
+\end{knowledgebox}
+
+\subsection{本章小结}
+导航不是单纯的“往前开”问题，而是一个把感知、地图、目标和控制连接起来的系统问题。课程把它拆成三类方法，为后面的比较埋下了主线。
+
+\section{经典方法与端到端方法}
+\subsection{经典导航：建图再规划}
+经典方法的思路最直白：先用 mapping 或 SLAM 构建几何地图，再在地图上做 classical planning。如果目标点已经在地图里，就直接规划路径；如果目标还没有出现，就先做 frontier exploration 或启发式搜索。
+
+这种方法的优点是几何和运动学约束很清晰，适合结构化环境。缺点也同样明显：它 \textbf{做得太多}，试图重建整个世界；同时又 \textbf{做得太少}，因为它几乎不理解语义。比如“去厨房”“找植物”这种目标，经典方法并没有自然的方式把常识知识注入系统。
+
+\subsection{端到端学习：从图像到动作}
+另一端是 \textbf{end-to-end learning（端到端学习）}。这类方法把导航直接写成 images-to-actions 的神经网络，可以是 recurrent model，也可以是 transformer。训练方式既可以是 imitation learning，也可以是 RL。
+
+课程提醒了一个经常被忽略的问题：如果 expert 用的是 ground-truth world knowledge，而学习者只能看到部分观测，那么 expert 的问题实际上更像 MDP，而学习者面对的是 POMDP。这个差异会让 imitation 的数据分布过于理想化，最终导致探索行为学不出来。
+
+\begin{importantbox}{端到端方法的真实代价}
+端到端并不是“更现代就更好”。它最大的成本通常是数据量和 sim-to-real gap。视觉 RGB 的 domain gap 尤其大，导致在 simulation 里看起来有效的策略，到了真实世界常常突然崩掉。
+\end{importantbox}
+
+\subsection{本章小结}
+经典方法强在可解释与几何稳定，端到端方法强在潜在表达能力，但二者都各有硬伤。课程由此引出第三类方法：把导航拆成语义地图和 goal-oriented policy 的 modular pipeline。
+
+\section{模块化导航与 GOAT}
+\subsection{为什么 modular 更稳}
+模块化方法（modular approaches）把任务拆成两个责任清晰的模块。第一步是从视觉和语义信息构建 \textbf{semantic map（语义地图）}；第二步是在语义地图上执行 goal-oriented exploration。这样做的好处是， perception stack 可以使用真实世界上训练好的检测器、分割器和深度模型，而不必完全依赖仿真里学出来的视觉前端。
+
+这也是课程里最关键的判断之一：\textbf{perception 不一定要在 simulation 里学，policy 却常常可以在 simulation 里学。} 这让 modular 方法比纯 end-to-end 更容易跨域。
+
+\subsection{GOAT：Go to Any Thing}
+讲义用 \textbf{GOAT} 作为 modular 的案例。它不仅记录对象类别，还记录对象实例和 viewpoint，因此可以从“找一只熊”提升到“找那只红色毛绒熊”。这意味着导航目标不再局限于 closed-set category，而可以是更精细的 instance description，甚至是 language + image 的组合。
+
+GOAT 的两个有趣能力尤其值得注意：
+
+\begin{itemize}
+  \item \textbf{Lifelong semantic memory}：机器人可以不断积累曾经见过的实例，之后直接导航到旧目标；
+  \item \textbf{Incremental map update}：如果对象移动了，系统也可以通过新视角继续识别同一实例。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth,page=38]{slides.pdf}
+\caption{GOAT 的模块化架构：语义地图、实例记忆、高层目标生成和低层局部导航。}
+\end{figure}
+
+\subsection{比较与结论}
+课程给出的比较结果很清楚：在 simulation 里三类方法可能差别没那么夸张，但到 real world 时，只有 classical 和 modular 相对稳，end-to-end 因为 RGB sim-to-real gap 很容易崩。这里并不是说 classical 永远优于 learning，而是说 \textbf{如果 perception 很难稳定迁移，模块化设计就比一体化端到端更现实}。
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}p{2.6cm}p{4.3cm}p{4.3cm}@{}}
+\toprule
+方法 & 优点 & 主要风险 \\
+\midrule
+Classical & 几何清晰、可解释、易做规划 & 语义弱、难注入统计先验 \\
+End-to-End & 表达能力强、端到端优化简单 & 数据需求大、sim-to-real gap 严重 \\
+Modular & 视觉与策略可分开训练，最容易利用现成感知模型 & 系统设计更复杂，模块接口需要精心定义 \\
+\bottomrule
+\end{tabular}
+\caption{课程对三类导航方法的概括。}
+\end{table}
+
+\subsection{本章小结}
+GOAT 说明 modular 方法并不是“折中方案”，而是一种有明确工程优势的体系结构：让感知、地图和控制各做自己最擅长的事。对复杂导航来说，这种分工往往比单一网络更稳。
+
+\section{总结与延伸}
+这讲的核心信息是：导航问题的难点不只是“到达目标”，而是“在部分可观测、地形复杂、语义丰富的世界里，到达正确的目标”。classical、end-to-end 和 modular 分别代表了三种不同的系统观。
+
+如果只看短期实验，end-to-end 往往最吸引人；但如果把部署落到真实世界，课程明显更看好 modular 的路线，因为它允许视觉和控制各自利用最合适的数据来源。GOAT 把这一点推进到实例级导航：不仅知道“那里有熊”，还知道“那只熊在哪里”。
+
+从更高层看，这一讲与前面的 locomotion 和 visual imitation 形成了一个闭环：locomotion 处理“怎么动”，visual imitation 处理“看人怎么动”，navigation 处理“动到哪里去”。整门课实际上是在教我们如何把这些能力拆开、再重新组合成一个可以在真实世界运行的机器人系统。
+
+\end{document}

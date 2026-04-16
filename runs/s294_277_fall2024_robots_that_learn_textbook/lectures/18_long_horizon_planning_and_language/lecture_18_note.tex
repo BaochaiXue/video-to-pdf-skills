@@ -1,0 +1,222 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS294-277 课程笔记：Lecture 12 长程规划与语言}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{2026-04-16}
+\newcommand{\videochannel}{CS294-277 / UC Berkeley}
+\newcommand{\videopublishdate}{2024-12-02}
+\newcommand{\videoduration}{未在本地元数据中提供}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=Ty_XNoXlQ5c}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{overview_cover.jpg}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{本讲定位与核心观点}
+
+这是课程最后一讲，也是在整门课里最明确讨论“长程规划（long-horizon planning）”和“语言（language）”关系的一讲。讲者一开始就把观点说得很直接：人类行为本来就是层级式的，机器人如果想真正处理复杂任务，就不能只看动作本身，还必须把动作背后的目标、计划和语义纳入进来。
+
+\subsection{ACTION = MOVEMENT + GOAL}
+
+\begin{importantbox}{本讲最重要的公式}
+\[
+\text{ACTION} = \text{MOVEMENT} + \text{GOAL}
+\]
+动作（action）既是物理运动（movement），也是目标和意图（goal）的组合。只学其中一半，都会丢掉另一半的信息。
+\end{importantbox}
+
+讲者用 Harry Potter 的例子说明这个差异：书更擅长传达角色目标和意图，电影更擅长展示物理动作和可见运动。机器人学习需要同时理解这两层信息。
+
+\subsection{为什么这与 LLM 相关}
+
+大语言模型（large language models, LLMs）擅长抽象目标、常识和高层语义，但这并不意味着它们天然擅长低层运动控制。课程的态度很明确：语言模型很重要，但它不是“自动得到世界模型”的万能钥匙。
+
+\subsection{本章小结}
+
+本讲的起点是一个层级式世界观：语言、计划、目标、动作和物理运动并不是同一种东西。机器人系统必须同时处理这些层次。
+
+\section{SHAKEY 与符号规划}
+
+\subsection{早期规划系统}
+
+SHAKEY（Nilsson, 1984）是机器人规划史上的经典早期系统之一。课程把它作为一个非常直观的起点：如果目标是堆叠方块，那么机器人可以先把“拿起”“放下”等动作形式化成逻辑算子（logical operators）。
+
+\subsection{算子由什么构成}
+
+每个算子（operator）都可以看成由三部分组成：
+\begin{itemize}
+  \item pre-condition list：执行动作前必须满足的条件；
+  \item delete list：动作执行后不再成立的事实；
+  \item add list：动作执行后新成立的事实。
+\end{itemize}
+
+这套表示法的好处在于，规划问题可以直接变成逻辑推理：从初始状态出发，找出一串算子，使得状态最终到达目标状态。
+
+\subsection{本章小结}
+
+SHAKEY 的历史意义在于，它把“规划”正式变成了一个可以用逻辑和算子讨论的问题。但它也非常依赖人工定义的动作和条件。
+
+\section{PDDL：把规划写成正式语言}
+
+\subsection{PDDL 是什么}
+
+规划域定义语言（Planning Domain Definition Language, PDDL）是一种用来描述规划域、计划和目标的正式形式。讲义把它拆成四个关键部分：
+\begin{enumerate}
+  \item object types：对象类型；
+  \item predicates：描述对象属性和关系的谓词；
+  \item actions：动作本身；
+  \item parameters / preconditions / effects：动作参数、前提和效果。
+\end{enumerate}
+
+\subsection{PDDL 的边界}
+
+PDDL 很适合做符号规划（symbolic planning），但它是抽象层的语言，并不直接考虑动作如何在物理世界里执行。换句话说，PDDL 描述“应该做什么”，但不负责回答“如何在真实世界把它做出来”。
+
+\subsection{本章小结}
+
+PDDL 是经典规划理论的重要工具，但它的抽象程度很高。只靠 PDDL，还不能直接解决机器人在真实世界里的接触、碰撞和控制问题。
+
+\section{TAMP：任务与运动规划}
+
+\subsection{为什么需要 TAMP}
+
+任务与运动规划（Task And Motion Planning, TAMP）试图把高层符号规划和低层运动规划结合起来。高层规划决定做什么，低层规划决定怎么做，二者联合起来才可能在真实机器人系统里工作。
+
+\subsection{TAMP 与 PDDL 的区别}
+
+PDDL 主要关心符号层的状态和动作，而 TAMP 进一步把机器人自身的物理构型、运动约束和碰撞避免也纳入规划过程。讲义里的核心意思是：高层规划可以给低层运动规划提供目标和约束，但低层是否能安全到达，仍然要由物理运动规划来保证。
+
+\subsection{本章小结}
+
+TAMP 是从“纯符号”走向“符号 + 物理执行”的关键一步。它说明真正的机器人规划不能只在逻辑层发生。
+
+\section{语言模型与算子}
+
+\subsection{LLM 可以帮什么忙}
+
+讲义指出，现代 LLM 往往隐含了大量常识知识，因此可以用来帮助推断谓词和算子，减轻机器人研究者手工穷举 domain 的负担。换句话说，LLM 可能帮助我们更快地定义“做什么”和“什么时候能做”。
+
+\subsection{但它仍然有局限}
+
+课程同时提醒，LLM 仍然很难稳定地产生逻辑一致的计划。为了缓解这一点，一些工作开始结合程序合成（program synthesis）或其他结构化方法。这里的核心判断不是“语言模型没用”，而是“语言模型更像高层规划助手，而不是完整控制器”。
+
+\subsection{本章小结}
+
+LLM 最适合帮助机器人系统处理高层抽象：目标、约束、谓词和任务结构。它们并不自动等价于可靠的执行器。
+
+\section{语言不擅长什么}
+
+\subsection{空间认知（spatial cognition）}
+
+课程后半部分转入一个很重要的反例：语言模型和 VLMs 在空间推理上并不强。
+讲义引用了多个 benchmark 研究，指出现代模型在空间认知任务上普遍低于人类。
+
+这类 benchmark 包括 mental rotation、shape matching、line orientation judgments 等。这些任务本质上要求模型精确地处理几何关系，而不是只给出高层语义解释。
+
+\subsection{为什么低层动作不适合用语言承载}
+
+讲义用“爬楼梯”的例子说明：如果真的想精确描述一串低层动作，语言会变得非常冗长，而且效率很低。相比之下，视频或模仿学习更适合传递动作级别的信息。
+
+\subsection{本章小结}
+
+语言并不是无所不能的表示形式。它适合高层抽象，不适合高精度空间关系，也不适合细粒度动作序列的直接传输。
+
+\section{总结与延伸}
+
+这一讲最后收束得很清楚：语言在机器人里很有价值，但它的价值在于表达抽象目标、环境属性和计划结构，而不是代替运动控制。
+
+如果把整门课串起来看，可以得到一个非常稳定的系统观：
+\begin{itemize}
+  \item 监督学习擅长从示范里学局部动作；
+  \item 局部策略擅长处理接触丰富的操作；
+  \item 语言和符号规划擅长组织高层结构；
+  \item 运动规划和控制负责把计划落到物理世界。
+\end{itemize}
+
+这也意味着，真正有希望的机器人系统，往往不是“一个模型统治全部”，而是层级化、模块化、互相协作的系统。
+
+\subsection{本章小结}
+
+本讲的终点不是“语言能解决机器人问题”，而是“语言能解决机器人问题中的高层部分；低层部分仍然需要几何、控制和动作学习”。
+
+\end{document}

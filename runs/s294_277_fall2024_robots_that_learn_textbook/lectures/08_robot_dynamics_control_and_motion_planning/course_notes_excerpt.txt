@@ -1,0 +1,248 @@
+===== Lecture 5A | pages 56-62 =====
+
+9     Lecture5A
+CS294-277 Fall 2024                                                                       Lecturer: Jitendra Malik
+October 7, 2024                                                                   Scribe: Kush Hari and Justin Yu
+
+                      Robot Dynamics, Control, and Motion Planning
+                                                       Abstract
+         This lecture covers key classical robotics approaches including kinematics, dynamics, control, and
+      motion planning, including forward and inverse kinematics/dynamics, control system design (PID,
+      feedforward, feedback), and sampling-based motion planning methods like Probabilistic Roadmaps
+      (PRMs).
+
+
+9.1    Robot Dynamics
+9.2    Forward Kinematics
+Forward kinematics is the process of calculating the position and orientation of the robot’s end-effector, given
+the geometry of each link and the joint angles. Mathematically, this is done by multiplying the exponential
+map of each screw (which represents a joint movement) to obtain the final configuration of the end-effector.
+
+                                             T = eξ1 θ1 eξ2 θ2 · · · eξn θn T0
+where T0 is the initial configuration, ξi represents the screw axis of each joint, and θi the joint angle. This is
+also known as the **product of exponentials formula**.
+
+9.3    URDF (Unified Robot Description Format)
+URDF is an XML format used to describe a robot’s kinematics, link inertial properties, and geometry in a
+tree-structured manner. For each joint and link in the robot model:
+
+    • Joint element: Describes the kinematics of the robot (i.e., the type of joint, its axis of rotation, and
+      the limits).
+
+    • Link element: Describes inertial properties such as mass and inertia matrix.
+
+An example of URDF syntax for a revolute joint is shown below:
+
+<joint name="joint1" type="revolute">
+  <parent link="link1"/>
+  <child link="link2"/>
+  <origin rpy="0 1.5708 0" xyz="0 0.5 0"/>
+  <axis xyz="0 1 0"/>
+  <limit lower="-3.0" upper="3.0"/>
+</joint>
+
+9.4    Forward and Inverse Dynamics
+Forward dynamics is the process of determining the acceleration of each link, given the torques τ applied
+at the joints:
+                                           q̈ = f (τ, q, q̇)
+Here, q̈ is the joint acceleration, q is the joint position, and q̇ is the joint velocity.
+
+
+
+                                                            56
+Inverse dynamics solves the opposite problem, determining the torques required to achieve a desired
+movement (joint accelerations):
+                                   τ = M (q)q̈ + C(q, q̇)q̇ + g(q)
+Where M (q) is the mass matrix, C(q, q̇) represents Coriolis and centrifugal forces, and g(q) is the gravitational
+term.
+Solution Methods: There are two common methods to solve dynamics:
+   • Lagrangian dynamics: Based on energy principles, this method derives equations of motion by
+     minimizing the system’s action, providing an elegant way to model the dynamics especially when under
+     constraints.
+   • Newton-Euler dynamics: Based on rigid body force equations (f = ma). This is an efficient recursive
+     method for computing inverse dynamics, breaking down the problem into individual link forces and
+     torques.
+
+9.5     Control
+9.6     Cruise Control Example
+
+
+
+
+Consider a car with cruise control enabled. - The control objective is to maintain a constant speed despite
+changes in road conditions.
+
+9.6.1   Open Loop Controller (Feedforward)
+In this case, we press the accelerator based on how much speed we want, assuming a perfect environment.
+
+
+                                              y = 10(u − 0.5w)
+                                              y = 10(0.1r − 0.5w)
+                                              y = r − 5w
+
+
+                                                       57
+Here, r is the reference input, and w represents environmental disturbances (e.g., road slope for a car’s cruise
+control). If one degree of change in the throttle causes a speed change of 5 mph, but the road slope is not
+accounted for, our speed may vary unexpectedly.
+
+9.6.2   Closed Loop Controller (Feedback)
+
+
+
+
+                                                      58
+                                           u = 10(r − y)
+                                           y = 10(u − 0.5w)
+                                           y = 10(10r − 10y − 0.5w)
+                                           y = 0.99r − 0.05w
+
+Here, the system continuously measures the actual speed and adjusts the throttle to minimize the error
+between the desired and actual speeds. This type of controller does not require detailed knowledge of the
+environment but adjusts based on the observed error.
+
+9.7    PID Controller
+The Proportional-Integral-Derivative (PID) control law is one of the most widely used control algorithms
+in robotics and automation due to its simplicity and effectiveness. It helps in tracking and error minimization
+by adjusting the control input based on the error between the desired and actual output. The control law is
+defined as:                                           Z t
+                                                                        de(t)
+                                 u(t) = Kp e(t) + Ki      e(τ )dτ + Kd
+                                                        0                 dt
+Where: - Kp is the proportional gain, which produces an output proportional to the current error. It corrects
+the magnitude of the error but cannot eliminate steady-state error alone. - Ki is the integral gain, which
+integrates the error over time. This helps in eliminating steady-state errors by considering the accumulated
+past errors. - Kd is the derivative gain, which predicts future errors based on the rate of change of the error.
+It helps in improving the stability and responsiveness of the system by damping oscillations.
+The PID controller adjusts the control input in real-time to bring the system closer to the desired output,
+balancing speed, stability, and accuracy. Tuning the gains allows fine control of performance parameters like
+overshoot, settling time, and steady-state error.
+
+9.8    Movement Control
+Movement control is concerned with ensuring that a robot’s end-effector follows a desired trajectory in
+space, typically expressed as a sequence of positions and orientations. For example, if we are writing on a
+whiteboard with a marker, the tip of the marker must follow a specific path (trajectory) to form letters or
+shapes accurately.
+Movement control can be achieved using different control strategies such as position control (ensuring the
+end-effector reaches specific points) or velocity control (controlling the rate of motion along the path). The
+desired trajectory is often specified in task space, where Cartesian coordinates define the end-effector’s
+position and orientation relative to a fixed reference frame. In some cases, the trajectory is specified in joint
+space, which defines the angles of the robot’s joints at each point in time.
+Challenges in movement control include: - Accuracy: Ensuring the end-effector follows the desired path
+closely. - Smoothness: Achieving smooth motion, often through time scaling functions like S-curves to avoid
+abrupt changes in velocity or acceleration. - Real-time adjustments: Modifying the trajectory in response
+to dynamic changes in the environment, obstacles, or forces.
+
+9.9    Force Control
+Force control ensures that a robot exerts a specific force when interacting with its environment. Unlike
+movement control, where the objective is to reach a specific position or trajectory, force control is about
+regulating the force applied by the robot, especially when performing tasks that require physical interaction,
+such as: - Writing on a whiteboard (applying a consistent force to maintain contact with the surface), -
+
+
+                                                       59
+Assembling parts (where excessive force may damage components), - Grasping objects (ensuring a firm but
+not damaging grip).
+Force control is often necessary when the robot interacts with objects that may deform, move, or exert
+counterforces. There are two main approaches to force control: - Direct force control: Involves measuring
+the force exerted by the robot and adjusting the control input to maintain the desired force. - Impedance
+control: Adjusts the robot’s response (position and velocity) based on the forces it experiences, offering a
+more flexible and adaptive approach that can accommodate varying environmental conditions.
+
+9.10     Hybrid Control
+In many tasks, robots must simultaneously control both position and force. This combination is known as
+hybrid control. For example, when a robot writes on a whiteboard, it must: - Follow a specific trajectory
+(movement control) to ensure the writing is legible. - Apply a certain amount of force (force control) to
+ensure that the marker makes proper contact with the surface.
+Hybrid control systems manage both movement and force using a combination of movement and force sensors.
+The robot can prioritize one type of control based on the task phase or environmental conditions. For instance:
+- During free movement (where contact with objects is minimal), the robot prioritizes movement control. -
+During contact tasks (like writing or assembly), force control becomes crucial.
+Hybrid control is challenging because it requires switching between control modes based on real-time sensory
+feedback and maintaining stability in both movement and force.
+
+9.11     Impedance Control
+Impedance control focuses on regulating the mechanical impedance of the robot, which defines how it
+reacts to external forces. Impedance refers to the relationship between applied force and resulting motion,
+and it encompasses: - Stiffness: How much the robot resists displacement when force is applied (e.g., a stiff
+robot resists motion). - Damping: How much the robot resists changes in velocity (e.g., damped systems
+prevent oscillations). - Inertia: How the robot resists changes in acceleration.
+In impedance control, the robot is designed to respond to external forces in a compliant manner, rather
+than trying to maintain a rigid control over its movement. This is useful for tasks where the environment is
+uncertain or variable. For example, if the robot is polishing a surface, impedance control allows the robot to
+adjust its movements based on the shape and resistance of the surface, ensuring smooth operation without
+damaging the object.
+
+9.12     Motion Planning
+Motion planning involves generating a feasible trajectory for a robot to move from an initial to a desired
+configuration while avoiding obstacles. The planning process typically occurs in the robot’s configuration
+space (C-space), which represents all possible positions and orientations of the robot. The goal is to compute
+a path from the start to the goal in this space, avoiding any regions representing obstacles.
+Motion planning can be classified into: - Discrete methods: These methods discretize the configuration
+space and search for a valid path, but may suffer from computational complexity as the number of dimensions
+increases. - Sampling-based methods: These include algorithms like the Probabilistic Roadmap (PRM)
+and Rapidly-exploring Random Trees (RRT), which avoid exhaustive search by sampling points in the
+configuration space and connecting them with feasible paths.
+
+9.13     C-Space
+Configuration Space (C-Space) represents the set of all possible configurations of a robot, including both
+positions and orientations. For a robot with n degrees of freedom (DoF), the C-space is an n-dimensional
+
+
+                                                      60
+space, where each point corresponds to a specific configuration of the robot.
+The C-space can be divided into: - Free space (Cfree ): The set of configurations where the robot does not
+collide with any obstacles. - Obstacle space (Cobs ): The set of configurations where the robot collides with
+obstacles.
+By planning a path in Cfree , we can ensure that the robot avoids obstacles while moving towards its goal. In
+higher dimensions, sampling-based methods like PRM and RRT are commonly used due to the computational
+complexity of searching the entire C-space.
+
+
+
+
+9.14     Probabilistic Roadmaps (PRM)
+With C-Space setup, we can plot the start and goal and solve motion planning by connecting the two without
+intersecting any obstacles. One such solution algorithm is Probabilistic Roadmaps (PRM).
+
+Algorithm 1 PRM roadmap construction algorithm (undirected graph)
+ 0: for i = 1, . . . , N do
+ 0:   qi ← sample from Cf ree
+ 0:   add qi to R
+ 0: end for
+ 0: for i = 1, . . . , N do
+ 0:   N (qi ) ← k closest neighbors of qi
+ 0:   for each q ∈ N (qi ) do
+ 0:      if there is a collision-free local path from q to qi and there is not already an edge from q to qi then
+ 0:         add an edge from q to qi to the roadmap R
+ 0:      end if
+ 0:   end for
+ 0: end for
+ 0: return R =0
+
+
+
+
+9.15     Trajectory Planning
+Once a path is planned, it is important to generate a time-based trajectory, i.e., specifying the configuration
+of the robot as a function of time. Time scaling is used to smoothly map time to the path parameter.
+
+
+
+                                                      61
+9.16    Time Scaling
+
+
+
+
+In trajectory planning, once a path is found, it must be converted into a time-parameterized trajectory. Time
+scaling ensures smooth transitions between motion segments. A common time scaling function is the S-curve,
+which gradually increases and decreases the robot’s velocity to ensure smoothness.
+This time-scaling function ensures that the acceleration and deceleration are smooth, reducing the likelihood
+of jerky motions.
+
+
+
+
+                                                     62
+

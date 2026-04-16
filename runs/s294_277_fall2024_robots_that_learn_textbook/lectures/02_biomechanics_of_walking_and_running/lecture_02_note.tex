@@ -1,0 +1,198 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS294-277 课程讲义：Biomechanics of Walking and Running}
+\newcommand{\noteauthors}{Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{CS294-277 Robots That Learn}
+\newcommand{\videopublishdate}{2024-09-09}
+\newcommand{\videoduration}{未提供}
+\newcommand{\videourl}{}
+\newcommand{\videocoverpath}{}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{pdf_pages/page-01.png}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{Walking：把步态看成一个受约束的动力学过程}
+本讲基于 Uchida 和 Delp 的 \emph{Biomechanics of Movement}，讨论 walking 与 running 的基本力学结构。课程的关键不是背术语，而是看清楚步态为何能被几条简洁的规律抓住：\textbf{步长、步频、质心运动、势能/动能交换、以及重力和接触力的约束}。
+
+\subsection{Gait cycle 和基本定义}
+walking 的 \emph{gait cycle}（步态周期）通常分成两个主阶段：\textbf{stance phase}（支撑相）和 \textbf{swing phase}（摆动相）。支撑相内部可以进一步细分为 foot contact、foot flat、heel off、toe off；摆动相则包含峰值膝屈曲（peak knee flexion）并最终回到 foot contact。
+
+一个最基本的判断是：\textbf{walking 至少有一只脚始终着地}。这也是 walking 和 running 的分界线之一。running 在奥运定义里则允许双脚同时离地，即出现 flight phase（腾空相）。
+
+\subsection{步长、步频与速度}
+讲义中给出两个等价的速度写法：
+\[
+v = \text{stride length} \times \text{stride frequency}
+   = \text{step length} \times \text{cadence}.
+\]
+这里：
+\begin{itemize}
+    \item \textbf{stride length} 是同一只脚两次连续落地之间的距离；
+    \item \textbf{step length} 更接近单步长度；
+    \item \textbf{cadence} 是步频；
+    \item 成年人的正常 stride length 大致在 1.2--1.4 m；
+    \item 常见 walking speed 大约是 4.5 km/h，也就是 3 mph。
+\end{itemize}
+
+\begin{importantbox}{速度不是单一变量}
+从机器人角度看，速度并不只是“走快一点”这么简单。它同时改变了步态周期、地面接触方式、质心轨迹和能量交换方式。
+\end{importantbox}
+
+\subsection{动力学、质心与能量}
+课程把 walking 的外力和质心加速度联系起来：
+\[
+F_{\text{external}} - mg = m a_{\text{COM}}.
+\]
+这句话的意思是：质心的运动由外部接触力和重力共同决定。相应地，质心的动能和势能可写成
+\[
+E_k = \frac{1}{2} m v_{\text{COM}}^2,
+ \qquad
+E_p = mg\,r_{\text{COM},v},
+\]
+其中 \(r_{\text{COM},v}\) 表示质心的竖直高度项。讲义强调，walking 里质心会上下振荡，因此动能和势能呈现近似的反相变化，这一点和摆一样。
+
+\subsection{Kinematics vs Dynamics}
+在 walking 研究里，\textbf{kinematics} 关心的是关节角度和几何关系，\textbf{dynamics} 关心的是力、力矩和系统如何响应这些力。课程还特别提到 force plates（测力台）是观察 gait 的重要工具，因为它可以直接给出地面反力。
+
+\subsection{摆模型：inverted pendulum 和 double pendulum}
+为了理解步态，课程用两种摆模型做抽象：
+\begin{itemize}
+    \item 支撑腿可近似为 \textbf{inverted pendulum}（倒立摆）；
+    \item 摆动腿可近似为 \textbf{double pendulum}（双摆）。
+\end{itemize}
+这两个模型帮助我们理解：walking 并不是“僵硬地拖着身体前进”，而是在合理地转换重力势能与动能。
+
+\subsection{Froude number：为什么月球上走路像在跳}
+课程给出圆周运动的向心力写法：
+\[
+F = \frac{mv^2}{\ell},
+\]
+并引入最大速度和 Froude number：
+\[
+v_{\max} = \sqrt{g\ell}, \qquad
+\mathrm{Fr} = \frac{v^2}{g\ell}.
+\]
+这一定义的关键在于比较不同尺度、不同重力环境下的 gait。因为 \(\mathrm{Fr}\) 把速度、腿长和重力统一起来，所以在月球上 \(g\) 变小后，同样的步行会更接近跳跃。课程用“月球上的袋鼠”作为直观图像，说明重力环境改变时 gait 也会随之改变。
+
+\begin{knowledgebox}{Froude number 的直觉}
+当 \(\mathrm{Fr}\) 变大，步态会更像“跳”；当 \(\mathrm{Fr}\) 变小，步态会更像“滚动式的摆动”。这就是为什么同一套机器人不一定在不同重力条件下保持同样 gait。
+\end{knowledgebox}
+
+\subsection{Passive dynamic walker}
+讲义介绍了 \emph{passive dynamic walker}：一种只靠重力就能在斜坡上连续行走的机械装置。它的重要性不在于“它很强”，而在于它展示了人类 walking 的效率特征可以被纯机械结构逼近。这是 legged robotics 里很强的启发：好的结构本身就能减少控制负担。
+
+\subsection{能量消耗与最优速度}
+课程还提到，walking 的 energy consumption 可以用氧气面罩等方式测量，而 \emph{cost of transport} 反映了单位质量、单位距离所需能量。实验上会观察到一个大致的最优 walking speed，课程给出的数量级约为 1.3--1.4 m/s，这里能量代价最小。
+
+\subsection{人体解剖与关节角度}
+理解 gait 还需要基本的人体解剖学。课程点到了 abduction（外展）、adduction（内收）、flexion（屈曲）、extension（伸展）这些概念，并强调髋、膝、踝在 gait cycle 中呈现有规律的角度变化。对机器人来说，这些人类步态模式既是参考，也是一个提醒：生物系统并不是随便摆动，而是在约束下形成了稳定模式。
+
+\subsection{Running：从步行到飞行相}
+running 与 walking 的第一大区别是 flight phase 的出现，也就是双脚短暂同时离地。课程指出，running 的峰值力量通常比 walking 更高，能达到体重的两倍左右；同时 running 中势能和动能更接近同相变化，不再像 walking 那样明显反相。
+
+\subsection{Spring-mass model}
+running 常被建模为带弹簧的倒立摆，或者更一般地说是 \textbf{spring-mass model}。这里弹簧表达的是腿部的储能和释能能力。对机器人而言，这个模型非常重要，因为它解释了为什么机器人可以通过物理弹性和再生制动（regenerative braking）获得能量优势。
+
+\subsection{动物步态与 RL 中涌现的 gait}
+课程最后把视角从人类扩展到四足动物。人类主要研究 walking 和 running，但 quadrupeds 有更多 gait，例如 walking、ambling、pacing、trotting、cantering、galloping 等。不同 gait 在不同速度区间和能耗区间上可能最优。
+
+这里最值得注意的是：课程指出这些 gait 也会在 reinforcement learning 里“涌现”出来。只要 reward 中的速度需求不同，策略就会学出不同 gait。这说明 gait 不是纯粹写死的动作模板，而是动力学、奖励和结构共同作用的结果。
+
+\subsection{本章小结}
+这讲把 walking / running 从“生物学现象”压缩成一套机器人也能用的力学语言：步态周期、步长步频、质心能量、倒立摆、Froude number 和 spring-mass model。对 robot learning 来说，最关键的结论是：要想学会 legged locomotion，必须同时看几何、力学和能量，而不能只看关节轨迹。
+
+\section{总结与延伸}
+Lecture 1B 的主线是“结构决定步态，步态反映能量”。walking 之所以稳定，是因为质心运动和支撑相机制天然组织出了能量交换；running 之所以更激烈，是因为飞行相和弹性储能把系统推向了另一种动力学区间。对机器人来说，这意味着 legged locomotion 的设计目标不仅是“走得动”，还包括“走得省”。
+
+如果继续往后看，最重要的延伸方向有两个：第一，把这些生物力学概念变成 legged robot 的控制目标；第二，用 RL、模仿学习或系统辨识去找到与这些规律相匹配的策略。
+
+\subsection{拓展阅读}
+与本讲直接相关的延伸材料包括课程里点到的 Uchida \& Delp 的书，以及讲义中提到的 \emph{The neuromechanics of animal locomotion: From biology to robotics and back}。它们分别提供了人类步态的系统总结和更广义的神经机械视角。
+
+\end{document}

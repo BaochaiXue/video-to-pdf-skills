@@ -1,0 +1,199 @@
+===== Lecture 6B | pages 74-77 =====
+
+12      Lecture6B
+CS294-277 Fall 2024                                                                             Lecturer: Haozhi Qi
+October 14, 2024                                                                   Scribe: Ruiqi Zhang, Carlo Bosio
+
+                                Lecture 6B: Reinforcement Learning
+                                                       Abstract
+           Reinforcement Learning (RL) has influenced in many ways the field of Robotics. These methods
+       enabled the achievemnt of complex tasks without needing explicit, physics-based models. Instead, they
+       offer methods to approximate optimal control policies through interaction with the environment. In this
+       lecture, we focus on the practical aspects of RL. In particular, we discuss the need for fast, high-quality
+       simulation environments, and approaches to tackle the ubiquitous Sim2Real gap. We also some examples
+       of successful real-world RL applications.
+
+
+12.1      Introduction
+The lecture focused on the challenges of sim-to-real transfer in robotics, listing some advanced simulators and
+highlighting how discrepancies between simulated environments and the real world can hinder the performance
+of policies trained via reinforcement learning. It discussed key strategies to bridge this gap, including the
+use of parallel simulation for high-speed data generation and domain randomization techniques—specifically
+dynamics and visual randomization—to enhance model generalization. Real-world successes were presented,
+such as OpenAI’s dexterous in-hand manipulation and high-speed quadrotor flight, demonstrating how
+these methods enable effective transfer of simulation-trained policies to physical robots. Overall, the lecture
+emphasized the importance of accounting for real-world variabilities to improve the robustness and adaptability
+of robotic systems in practical applications.
+
+12.2      Simulation environments
+Although there are some examples of successful application of RL directly in the real world, such as Haarnoja
+et al. (2018), this is often impractical due to safety, cost and time constraints. Simulation is a valuable
+resource to overcome these limitations. A lot of work has gone into developing fast, efficient simulators. The
+main options are:
+
+   • MuJoCo Todorov et al. (2012) (Multi-Joint dynamics with Contact). This is an open-source physics
+     engine from Google DeepMind, developed for efficient multibody interactions, including contacts. It is
+     used to simulate deformable objects as well, with some degree of control on the elasticity and damping
+     coefficients of bodies and contact interactions. The backend is fully in C++. Recently, a new version
+     called MuJoCo XLA (MJX) was released for parallel simulation using GPUs (or TPUs).
+
+   • Raisim. This is a CPU-based multi-body physics engine for Robotics and AI. It is specialized in rigid-
+     body simulations and can be used through its C++ library. It is full closed-source. More information
+     can be found on the website.
+
+   • Brax Freeman et al. (2021). This is a differentiable physics-based engine from Google Research, written
+     in JAX for use on acceleration hardware. It is efficient for single-device simulation, and also scalable to
+     parallel simulation on multiple devices. The package includes a suite of tasks for benchmarking.
+
+   • Isaac Gym Makoviychuk et al. (2021). This is a widely used simulator for robot learning from NVIDIA.
+     When it was released, the novelty was GPU-based simulation for parallelization. It naturally supports
+     NVIDIA GPUs.
+
+
+
+
+                                                           74
+The options highlighted do not cover the whole spectrum of possible simulator choices, but are the ones
+mainly used in academic contexts. Each one of them offers its unique benefits and features. A comment that
+is worth making is that speed is not always the most valuable aspect of a simulator. For example, some
+applications require higher precision, and therefore need the simulation to run on CPU rather than GPU
+(which is designed for 32-bit floating point precision). Pick the simulator that is right for your application!
+
+12.3     Sim2Real
+The sim-to-real transfer is a critical challenge in robotics, where policies or models trained in simulation are
+deployed in real-world environments. The discrepancies between simulated and real-world conditions, known
+as the sim-to-real gap, often lead to a significant drop in performance when transferring from simulation to
+reality. This lecture led us to explore the key methodologies used to bridge this gap. In the following, we
+present the key Components in sim-to-real transfer.
+
+12.4     Parallel Simulation
+Leveraging parallel simulation allows the generation of vast amounts of data . This is crucial for training
+complex models, especially in reinforcement learning, where extensive exploration is necessary, and it enables
+the use of computational resources effectively to simulate multiple scenarios simultaneously.
+
+12.5     Domain Randomization
+Domain randomization is a widely-used technique where various aspects of the simulation are altered during
+training. This includes physical properties, environmental conditions, and sensory inputs.The goal is to
+expose the model to a wide range of variations so that it learns to generalize beyond the exact parameters of
+the simulation. Specifically, when we train the RL policy, we can take the following terms into consideration.
+
+   • Dynamics Randomization. This approach focuses on altering the physical parameters of the
+     simulation’s dynamic model for each training rollout. Parameters such as mass, friction coefficients,
+     and external force perturbations are varied systematically. For instance, the mass of objects or robotic
+     components might be adjusted to account for manufacturing tolerances or payload changes. Friction
+     coefficients between contact surfaces are modified to simulate different materials or wear conditions.
+     Additionally, random external forces, like wind or minor collisions, are introduced to mimic unexpected
+     disturbances. By exposing the model to a wide range of physical scenarios, it learns policies that are not
+     overly specialized to a narrow set of dynamics, enhancing its adaptability and robustness in real-world
+     applications.
+
+   • Visual Randomization. In this method, visual elements of the simulation are varied extensively.
+     Textures of objects and environments are randomized to prevent the model from relying on specific
+     visual cues that may not be present in the real world. Lighting conditions are altered, including changes
+     in brightness, shadows, and reflections, to simulate different times of day or varying weather conditions.
+     Camera parameters such as angles, positions, resolutions, and lens distortions are modified to represent
+     different viewpoints and sensor imperfections. Moreover, noise and visual artifacts like motion blur are
+     added to simulate real sensor noise. This extensive variability in visual inputs helps the model become
+     more robust to changes in visual conditions, ensuring that it can recognize objects and scenes under
+     varied and unforeseen circumstances.
+
+
+
+
+                                                      75
+       (a) OpenAI Dexterous Hand Manipulation               (b) High-speed Quadcopter Flight in Wild
+
+
+Figure 38: Two cases where the policy learned in the simulation can work in the real world. (a) Case 1:
+OpenAI dexterous in-hand manipulation. (b) Case 2: Learning for high-speed quadcopter flight in the wild.
+
+
+12.6     Real World RL Successes
+12.7     OpenAI dexterous in-hand manipulation
+The manipulation with dexterous hand Andrychowicz et al. (2020) explores sim-to-real transfer, where policies
+are trained entirely in simulation and then deployed on real-world robots. Due to the complexity of dexterous
+in-hand manipulation, this transfer presents a significant challenge, often referred to as the "reality gap."
+The simulation environment used in this research differs substantially from the real-world scenario, and
+thus policies trained in simulation often fail when deployed directly on physical robots due to differences in
+physical parameters, contact dynamics, and sensor noise.
+To address the reality gap, the paper employs domain randomization, a technique that involves randomizing
+various aspects of the simulated environment to make the learned policies robust to differences between
+simulation and the real world. The key elements of domain randomization in this paper include:
+
+   • Observation Noise: Gaussian noise is added to the simulated observations to mimic the kind of noise
+     the sensors might experience in reality. Both correlated (constant over an episode) and uncorrelated
+     noise are added to policy observations, such as fingertip positions and object orientation. Additionally,
+     simulated marker placement is slightly altered to introduce further uncertainty.
+
+   • Physics Randomizations: Physical parameters in the simulation are randomized to reflect the variability
+     and uncertainties of real-world physics, At the start of each episode, key physical parameters such
+     as masses, friction coefficients, and joint damping are sampled from distributions centered around
+     calibrated values obtained from the real robot. These parameters remain fixed during the episode to
+     maintain consistency while still exposing the policy to a range of possible physical conditions.
+
+   • Timing Noise:The timing of environment steps is varied by simulating each environment step as multiple
+     physics simulator steps (e.g., 10 MuJoCo steps). This introduces variability in the simulation’s temporal
+     dynamics, helping the policy adapt to different execution speeds and timing irregularities that may
+     occur in real systems.
+
+   • Unmodeled Effects: Effects that are not directly modeled in the simulation but exist in the real world
+     are simulated by randomizing certain aspects. For instance, The physical robot hand uses tendon
+     actuation, which introduces backlash—a slackness or lost motion when changing direction—that is not
+     present in direct joint actuation models like MuJoCo’s default. To simulate this, a backlash model is
+     incorporated. Each joint has two parameters δ−1 and δ+1 , representing the amount of backlash in the
+     positive and negative directions, respectively. These parameters are obtained through calibration and
+
+
+                                                     76
+       sampled from Gaussian distributions centered around the calibrated values with a specified standard
+       deviation . A time-varying variable s tracks the current state of slack in the joint. Actions are modified
+       based on these parameters and the current slack state before being applied in the simulator, effectively
+       simulating the effect of backlash on the robot’s movements.
+
+   • Visual Appearance Randomizations: To generalize the vision model to real-world scenarios, aspects such
+     as lighting, camera positions, object textures, and material properties are randomized during training.
+     This allows the vision-based pose estimation system to be robust to changes in visual conditions when
+     deployed on physical robots.
+
+12.8     Case: Outdoor high-speed flight
+The paper successfully used a combination of privileged learning, domain randomization (particularly
+involving realistic sensor noise and depth representation), lightweight network design, and multimodal
+trajectory prediction to enable effective sim-to-real transfer for high-speed quadrotor flightLoquercio et al.
+(2021). These techniques helped minimize the reality gap, allowing the quadrotor to perform challenging
+navigation tasks without requiring fine-tuning in real environments. Specifically, the author proposed to do
+the following things to make it work in the real world.
+
+   • Depth Representation as Input: The authors chose depth images as the primary input representation
+     rather than RGB images. Depth images are more robust to variations in visual texture, lighting, and
+     color differences that typically cause discrepancies between simulated and real-world environments.
+     Since the depth modality is relatively consistent across simulation and reality, this choice helps mitigate
+     sim-to-real issues, allowing for better generalization from simulated training environments to real-world
+     settings.
+
+   • Lightweight Neural Network Architecture: The network architecture was designed to be lightweight,
+     which is essential for enabling real-time inference on the limited computational resources available
+     onboard the quadrotor. The low computational demand not only facilitates practical deployment but
+     also ensures the latency between perception and action is minimized, which is crucial for maintaining
+     performance when transitioning to real-world flight..
+
+   • Multimodal Training and Robustness to Perception Failures: The neural network outputs a set of
+     possible trajectories along with associated collision costs. This multimodal approach ensures that
+     the network can provide multiple solutions that might be applicable to different scenarios, effectively
+     handling the unpredictable nature of real environments. The network was trained using a multihypothesis
+     winner-takes-all loss, which helps avoid committing to a single trajectory when multiple viable paths
+     exist. This enables the system to adapt to complex real-world environments even in the presence of
+     noisy or partial observations.
+
+   • Zero-Shot Generalization: After training in simulation, the policy was directly deployed in real-world
+     environments without any fine-tuning, which is termed "zero-shot" transfer. The environments tested
+     were diverse and included both natural (e.g., forests, snow-covered terrains) and human-made (e.g.,
+     collapsed buildings) environments, showcasing the generalization capability achieved by the domain
+     randomization and the depth-based input representation. The experiments demonstrated that the
+     policy could navigate complex and unseen environments successfully at high speeds, emphasizing the
+     robustness of the sim-to-real transfer strategy.
+
+
+
+
+                                                       77
+

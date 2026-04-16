@@ -1,0 +1,193 @@
+===== Lecture 11A | pages 108-113 =====
+
+19      Lecture11A
+booktabs tcolorbox
+CS294-277 Fall 2024                                                                     Lecturer: Jitendra Malik
+November 25, 2024                                                          Scribe: Simeon Adebola, Haoran Geng
+
+ Lecture 11A: Case Studies in Dexterous Manipulation - Supervised Learning
+                                                      Abstract
+           This lecture focuses on the latest developments in learning manipulation. The key themes include
+       supervised learning and reinforcement learning. The dominant paradigm currently is supervised learning,
+       as seen in various efforts by companies like Google and Physical Intelligence, and various research labs.
+       However, Prof. Malik believes that multiple approaches are necessary; supervised learning is not the
+       final answer to all robotic manipulation challenges. The lecture emphasizes interactive discussion, with
+       references to state-of-the-art papers from 2024.
+
+
+19.1      Introduction: Learning Manipulation Approaches
+In the field of robotic manipulation today, there are two primary approaches for training robots to perform
+tasks:
+
+   1. Supervised Learning
+
+   2. Reinforcement Learning (RL)
+
+The current leading approach in learning manipulation is supervised learning. Typically, the methodology
+involves:
+
+   1. Collecting teleoperated demonstration data.
+
+   2. Training policies using Action Conditioned Transformers (ACT) or diffusion models.
+
+19.2      Teleoperation and Policies Training
+One of the first steps in the supervised learning pipeline involves teleoperation, where humans control robots
+to perform tasks. The data collected is then used to train policies.
+Diffusion policies, which are probabilistic models that can generate actions from observations, have also
+shown promising results. Recently, diffusion policies have gained popularity and are becoming a standard.
+This is because the goal is a generative model and a multimodal policy— multimodal not in the sense of
+multi-sensory, but modes as in statistics. For example, if you are moving towards a goal and there’s an
+obstacle in the middle, you can go on the left or right, but if you average these, you might fail. Diffusion
+policies help in modeling such multimodal action distributions.
+
+19.3      Hardware Solutions
+Several hardware solutions have been developed to facilitate data collection for advanced robotic manipulation.
+
+19.4      Case Study 1: ALOHA
+ALOHA (RSS 2023)Zhao et al. (2023) consists of a bimanual setup with a total of 14 degrees of freedom
+(7 DOF for each arm including the parallel jaw gripper) and high repeatability (on the order of ~1mm).
+Sometimes teleoperation using a setup like this is referred to as ’puppeteering’. The most important camera
+in this setup is the one on the wrist.
+
+
+                                                         108
+Figure 79: Examples of Task Demonstrations from ALOHA setup (Zhao et al. (2023))
+
+
+
+
+                                      109
+ALOHA shows a series of teleoperated skills. See Figure 79 for real-world examples of tasks shown. Additionally,
+the setup is relatively inexpensive. These platforms are designed for bimanual manipulation, allowing one
+person to manipulate objects using parallel grippers. They are equipped with multiple cameras, including
+front, top, and wrist cameras, to capture diverse perspectives. See Figure 80 for the setup. ALOHA is not the
+only recent teleoperation setup. Other notable options include the UMI robot developed by Shuran Song’s
+lab Chi et al. (2024b) and HATO from Toru Lin Lin et al. (2024b), which offer different capabilities and
+configurations.
+
+
+
+
+              Figure 80: ALOHA setup (Zhao et al. (2023)) with Multiple Cameras
+
+
+
+19.5    Data Collection and Policy Training
+In line with supervised learning, humans perform tasks to collect trajectories, which are then used to train
+policies. This is analogous to computer vision where you label objects in an image. Given a certain observation,
+you are trying to predict an action (e.g., joint angles or changes in joint angles). Trajectories collected are
+usually on the order of thousands of demonstrations.
+
+19.6    Action Chunking with Transformers (ACT)
+The Action-Conditioned Transformer (ACT) was used in ALOHA (Zhao et al. (2023)) to learn from the
+demonstrations collected. It leverages transformer architectures to map observations to actions. See Figure
+81 for the architecture.
+
+19.7    Diffusion Policies
+Diffusion policies are another approach where a diffusion process is used to model the distribution of actions
+conditioned on observations. Recently, diffusion policies have gained popularity because they can model
+complex, multimodal action distributions and generate smooth and feasible action sequences.
+
+19.8    Case Study 2: ALOHA Unleashed
+ALOHA Unleashed (Zhao et al. (2024)) is a project from Google presented at the 2024 Conference on Robot
+Learning. It involves multiple challenging tasks at different levels of complexity.
+
+   • Tasks include shirt hanging, robot finger replacement, gear insertion, shoelace tying, and random kitchen
+     stacking.
+
+   • Key architectural elements:
+
+
+                                                      110
+Figure 81: Action Chunking with Transformers Architecture Used in ALOHA(Zhao et al. (2023))
+
+
+        – Diffusion framework
+        – Transformer-based encoders and decoders.
+        – Inputs include images (from wrist, top, and front cameras) and proprioceptive data.
+
+   • Results indicate moderate success rates, e.g., 75% (Shirt Easy), 70% (Shirt Messy), 70% (Lace Easy),
+     75% (SFinger Replace), for general tasks, but lower for complex sequences like messy shoelace tying
+     (40%). See Figure 82 for the results.
+
+
+
+
+         Figure 82: Performance Results from ALOHA Unleashed (Zhao et al. (2024))
+
+The system uses the diffusion policy and consists of a ResNet50, a transformer encoder and a transformer
+decoder. This approach helps in modeling complex action distributions. See Figure 83 for the policy
+architecture. With around a thousand demonstrations, the system achieves success rates ranging from
+
+
+                                                  111
+approximately 40% to 75% across different tasks. The system also demonstrates strong generalization
+capabilities across different tasks.
+
+
+
+
+     Figure 83: Transformer Architecture Used in ALOHA Unleashed (Zhao et al. (2024))
+
+
+
+19.9    Discussion
+Critical questions arise from these developments:
+
+19.10     Generalization
+Generalization: Can the system generalize across variations in size, shape, appearance, view- point, objects,
+lighting, occlusion, and camera perspectives? Will the trained policies generalize to entirely new scenes?
+Methods should generalize across different objects of different sizes, shapes, and appearances.
+
+19.11     Robustness
+Robustness: How robust is the control system? Can it recover from failures? What are the scaling laws
+concerning diverse data? Handling when things go wrong or errors occur is essentially a control problem.
+Feedback control handles when things go slightly wrong. Visual imitation learning could address robustness
+issues. Datasets like Ego4D, which collect very diverse data, emphasize the importance of diversity for scaling
+and improving performance.
+
+19.12     Scaling Laws
+A main question here is about scaling behavior:
+
+  1. What are the scaling laws?
+
+
+                                                     112
+   2. Are scaling laws applicable to robotics tasks as they are in vision and language?
+   3. Is scaling the answer to everything?
+The hidden presumption of scaling laws is that getting more data is getting more diverse data.
+There are three main approaches to getting data:
+   • Teleoperation (Professor Malik thinks this may be the weakest in terms of diversity).
+   • Reinforcement learning through simulation
+   • Visual imitation e.g. videos from Youtube.
+
+19.13     More Takeaways
+   1. Parallel jaw grippers work for now but we should go towards multifingered hands with tactile sensing.
+   2. The future of learning manipulation needs to include scaling diverse datasets through innovative
+      collection methods.
+
+19.14     Case Study 3: Physical Intelligence π0
+This paper (Black et al. (2024)) is from the company Physical Intelligence. It is of their first generalist policy:
+Pi Zero (π0 ). See Figure 84 for the policy pipeline.
+   • Focus on expanding range of diverse tasks like laundry folding and box handling.
+   • Highlights the need for broader diversity in data collection for scalability.
+
+
+
+
+                                    Figure 84: Figure of π0 policy setup
+
+
+
+19.15     Conclusion
+Despite current limitations, the supervised learning paradigm has achieved significant milestones in task
+diversity and performance. Advancements in supervised learning approaches, particularly with methods like
+ACT and diffusion policies, have shown that robots can perform a wide range of challenging tasks. However,
+generalization and robustness remain open questions. Addressing these challenges requires:
+   • Scaling diverse datasets through innovative collection methods.
+   • Advancing multi-modal policies with multi-fingered hands and tactile sensing.
+   • Developing models that can adapt to new and unforeseen situations.
+
+
+                                                       113
+

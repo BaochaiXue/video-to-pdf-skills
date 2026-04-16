@@ -1,0 +1,172 @@
+# seg_18 Contract
+
+Source range:
+- transcript: 01:03:23,150 -- 01:07:04,430
+- segment hint: Segment 18
+
+Must cover unit ids:
+- sub_2517
+- sub_2518
+- sub_2519
+- sub_2520
+- sub_2521
+- sub_2522
+- sub_2523
+- sub_2524
+- sub_2525
+- sub_2526
+- sub_2527
+- sub_2528
+- sub_2529
+- sub_2530
+- sub_2531
+- sub_2532
+- sub_2533
+- sub_2534
+- sub_2535
+- sub_2536
+- sub_2537
+- sub_2538
+- sub_2539
+- sub_2540
+- sub_2541
+- sub_2542
+- sub_2543
+- sub_2544
+- sub_2545
+- sub_2546
+- sub_2547
+- sub_2548
+- sub_2549
+- sub_2550
+- sub_2551
+- sub_2552
+- sub_2553
+- sub_2554
+- sub_2555
+- sub_2556
+- sub_2557
+- sub_2558
+- sub_2559
+- sub_2560
+- sub_2561
+- sub_2562
+- sub_2563
+- sub_2564
+- sub_2565
+- sub_2566
+- sub_2567
+- sub_2568
+- sub_2569
+- sub_2570
+- sub_2571
+- sub_2572
+- sub_2573
+- sub_2574
+- sub_2575
+- sub_2576
+- sub_2577
+- sub_2578
+- sub_2579
+- sub_2580
+- sub_2581
+- sub_2582
+- sub_2583
+- sub_2584
+- sub_2585
+- sub_2586
+- sub_2587
+- sub_2588
+- sub_2589
+- sub_2590
+- sub_2591
+- sub_2592
+- sub_2593
+- sub_2594
+- sub_2595
+- sub_2596
+- sub_2597
+- sub_2598
+- sub_2599
+- sub_2600
+- sub_2601
+- sub_2602
+- sub_2603
+- sub_2604
+- sub_2605
+- sub_2606
+- sub_2607
+- sub_2608
+- sub_2609
+- sub_2610
+- sub_2611
+- sub_2612
+- sub_2613
+- sub_2614
+- sub_2615
+- sub_2616
+- sub_2617
+- sub_2618
+- sub_2619
+- sub_2620
+- sub_2621
+- sub_2622
+- sub_2623
+- sub_2624
+- sub_2625
+- sub_2626
+- sub_2627
+- sub_2628
+- sub_2629
+- sub_2630
+- sub_2631
+- sub_2632
+- sub_2633
+- sub_2634
+- sub_2635
+- sub_2636
+- sub_2637
+- sub_2638
+- sub_2639
+- sub_2640
+- sub_2641
+- sub_2642
+- sub_2643
+- sub_2644
+- sub_2645
+- sub_2646
+- sub_2647
+- sub_2648
+- sub_2649
+- sub_2650
+- sub_2651
+- sub_2652
+- sub_2653
+- sub_2654
+- sub_2655
+- sub_2656
+- sub_2657
+- sub_2658
+- sub_2659
+- sub_2660
+- sub_2661
+- sub_2662
+- sub_2663
+- sub_2664
+- slide_0023
+
+Required formulas:
+- slide_0023
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

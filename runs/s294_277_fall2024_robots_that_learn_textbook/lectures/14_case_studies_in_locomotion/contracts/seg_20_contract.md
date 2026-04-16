@@ -1,0 +1,177 @@
+# seg_20 Contract
+
+Source range:
+- transcript: 01:10:36,910 -- 01:13:34,110
+- segment hint: Segment 20
+
+Must cover unit ids:
+- sub_2775
+- sub_2776
+- sub_2777
+- sub_2778
+- sub_2779
+- sub_2780
+- sub_2781
+- sub_2782
+- sub_2783
+- sub_2784
+- sub_2785
+- sub_2786
+- sub_2787
+- sub_2788
+- sub_2789
+- sub_2790
+- sub_2791
+- sub_2792
+- sub_2793
+- sub_2794
+- sub_2795
+- sub_2796
+- sub_2797
+- sub_2798
+- sub_2799
+- sub_2800
+- sub_2801
+- sub_2802
+- sub_2803
+- sub_2804
+- sub_2805
+- sub_2806
+- sub_2807
+- sub_2808
+- sub_2809
+- sub_2810
+- sub_2811
+- sub_2812
+- sub_2813
+- sub_2814
+- sub_2815
+- sub_2816
+- sub_2817
+- sub_2818
+- sub_2819
+- sub_2820
+- sub_2821
+- sub_2822
+- sub_2823
+- sub_2824
+- sub_2825
+- sub_2826
+- sub_2827
+- sub_2828
+- sub_2829
+- sub_2830
+- sub_2831
+- sub_2832
+- sub_2833
+- sub_2834
+- sub_2835
+- sub_2836
+- sub_2837
+- sub_2838
+- sub_2839
+- sub_2840
+- sub_2841
+- sub_2842
+- sub_2843
+- sub_2844
+- sub_2845
+- sub_2846
+- sub_2847
+- sub_2848
+- sub_2849
+- sub_2850
+- sub_2851
+- sub_2852
+- sub_2853
+- sub_2854
+- sub_2855
+- sub_2856
+- sub_2857
+- sub_2858
+- sub_2859
+- sub_2860
+- sub_2861
+- sub_2862
+- sub_2863
+- sub_2864
+- sub_2865
+- sub_2866
+- sub_2867
+- sub_2868
+- sub_2869
+- sub_2870
+- sub_2871
+- sub_2872
+- sub_2873
+- sub_2874
+- sub_2875
+- sub_2876
+- sub_2877
+- sub_2878
+- sub_2879
+- sub_2880
+- sub_2881
+- sub_2882
+- sub_2883
+- sub_2884
+- sub_2885
+- sub_2886
+- sub_2887
+- sub_2888
+- sub_2889
+- sub_2890
+- sub_2891
+- sub_2892
+- sub_2893
+- sub_2894
+- sub_2895
+- sub_2896
+- sub_2897
+- sub_2898
+- sub_2899
+- sub_2900
+- sub_2901
+- sub_2902
+- sub_2903
+- sub_2904
+- sub_2905
+- sub_2906
+- sub_2907
+- sub_2908
+- sub_2909
+- sub_2910
+- sub_2911
+- sub_2912
+- sub_2913
+- sub_2914
+- sub_2915
+- sub_2916
+- sub_2917
+- sub_2918
+- sub_2919
+- sub_2920
+- slide_0128
+- slide_0129
+- slide_0130
+- slide_0131
+- slide_0132
+- slide_0133
+
+Required formulas:
+- sub_2814
+- sub_2815
+- sub_2816
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

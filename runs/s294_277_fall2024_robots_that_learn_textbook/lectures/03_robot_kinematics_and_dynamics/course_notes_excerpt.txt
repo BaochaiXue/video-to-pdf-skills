@@ -1,0 +1,232 @@
+===== Lecture 2A | pages 17-21 =====
+
+3     Lecture2A
+CS294-277 Fall 2024                                                                 Lecturer: Jitendra Malik
+September 16, 2024                                                                     Scribe: Qiayuan Liao
+
+                            Robot Kinematics and Dynamics (L2A)
+                                                    Abstract
+         Intro to basic concepts for rigid body motion.
+
+
+3.1     Introduction
+3.2     Overview
+Let’s consider a forward kinematic problem shown in Fig. 11, which is formulated as follows:
+Given:
+
+    • M = Tsb (0) ∈ SE(3), the configuration of the end-effector frame b at the home configuration θ = 0,
+
+    • the screw axes for each joint at θ = 0, and
+
+    • the joint vector θ.
+
+Find:
+
+    • Tsb (θ) ∈ SE(3).
+
+
+
+
+                         Figure 11: Symbol and visualization of a kinematics problem.
+
+We will introduce the definition and some properties of the above symbol to help understand what’s going on
+in forward/inverse kinemics/dynamics. Some definitions have been added to make the note self-contained.
+    Note that this scribe note is only a part of the lecture. The screw axes and wrench will be covered in the
+L2B scribe note. For details, students should refer to Lynch (2017).
+
+3.3     Conventions
+Vectors are bold, upright, and lowercase a, matrices are bold, upright, and uppercase A, and scalars are
+lowercase and italicized a1 .
+
+
+
+
+                                                          17
+3.4    Basic Definition of Rigid Body Motion
+3.5    Euclidean transformations
+In robotics, we often work on multi-rigid body systems. The key feature of these systems is choosing two
+parts in a rigid body, their distance will not change.
+
+Definition 1. Euclidean transformations (isometrics1 ) are transformations that preserve distances
+between pairs of points:
+                                 ∥ψ(a) − ψ(b)∥ = ∥a − b∥.                                      (1)
+
+Example 1. Translations ψ(a) = a + b are isometrics, since:
+
+                                   ∥ψ(a) − ψ(b)∥ = ∥a + t − (b + t)∥ = ∥a − b∥.                          (2)
+
+3.6    Parameterizing Rotations
+Recall that rotation matrices have the property that each column vector has length 1 and the dot product of
+any 2 different columns is 0. These 6 constraints leave only 3 degrees of freedom. Here are some alternative
+notations used to represent orthogonal matrices in 3-D:
+
+   • Euler angles which specify rotations about 3 axes
+
+   • Axis plus the amount of rotation
+
+   • Quaternions which generalize complex numbers from 2-D to 3-D. (Note, a complex number can represent
+     a rotation in 2-D)
+
+3.7    Special Orthogonal Group
+Definition 2. An orthogonal matrix is a real square matrix whose columns and rows are orthonormal
+vectors. that is:
+                                           AT A = I                                            (3)
+
+Definition 3. A special orthogonal group SO(n) is the set of all n×n real matrices R that satisfy (i)
+AT A = I and (ii) det(A) = 1.
+
+Example 2. Consider a 2D orthogonal matrices in SO(2) represent rotation by angle θ:
+                                      "                 #
+                                        cos(θ) − sin(θ)
+                                                          .                                              (4)
+                                        sin(θ) cos(θ)
+
+A 3D orthogonal matrices in SO(3) represent rotation about the z-axis by θ:
+                                                              
+                                         cos(θ) − sin(θ) 0
+                                         sin(θ) cos(θ) 0                                               (5)
+                                                              
+                                             0        0      1
+
+and about the x-axis by θ                                          
+                                                 1      0      0
+                                                0   cos(θ) − sin(θ) .                                  (6)
+                                                                   
+                                                 0   sin(θ) cos(θ)
+  1“iso” means “equal”; “metric” means “distance”.
+
+
+
+
+                                                          18
+3.8    Rigid Body Motion Representation
+Theorem 1. Any rigid body motion can be expressed as an orthogonal transformation followed by a translation:
+
+                                               ψ(a) = Aa + t.                                            (7)
+
+Theorem 2. The composition of two isometries is an isometric.
+Proof. Given any two isometries ψ1 (a) = A1 a + t1 , ψ2 (a) = A2 a + t2 , we have
+
+                                    ψ1 ◦ ψ2 (a) = A1 (A2 a + t2 ) + t1
+                                               = A1 A2 a + A1 t2 + t1
+                                               = (A1 A2 )a + (A1 t2 + t1 )
+                                               = A3 a + t3                                             (8a)
+
+where A3 = A1 A2 and t3 = A1 t2 + t1 .
+
+3.9    Exponential Coordinate Representation of Rotation
+3.10    Skew-symmetric Matrix
+Definition 4. A skew-symmetric matrix is a square matrix whose transpose equals its negative, that is
+
+                                                    AT = −A                                              (9)
+
+   Skew symmetric matrices can be used to represent “cross” products or vector products, recalls
+                                                               
+                                     a1      b1       a2 b3 − a3 b2
+                                   a2  ∧ b2  = a3 b1 − a1 b3                                     (10)
+                                                               
+                                     a3      b3       a1 b2 − a2 b1
+
+Definition 5. Given a ∈ R3 , define
+                                                                       
+                                                  0      −a3        a2
+                                          â :=  a3      0         −a1  .                            (11)
+                                                                       
+                                                 −a2      a1         0
+
+   Thus, multiplying â by any vector gives:
+                                                            
+                                        b1      −a3 b2 + a2 b3
+                                    â b2  =  a3 b1 − a1 b3  = a ∧ b.                              (12)
+                                                            
+                                        b3      −a2 b1 + a1 b2
+
+3.11    ODE of Rotation
+Consider the equation of motion of a point q on a rotating body:
+
+                                                    q̇ = ω̂q(t),                                       (13)
+
+which is an ordinary differential equation, its solution should be:
+
+                                                   q = eω̂t q(0),                                      (14)
+
+where q(0) is the initial position and the matrix exponential is defined by:
+
+                                                          A2   A3
+                                        eA := I + A +        +    + ...                                (15)
+                                                          2!   3!
+
+                                                        19
+  Collecting the odd and even terms in the above equation, we get to Rodrigues Formula for a rotation
+matrix R:
+                                 R = eϕŝ = I + sin ϕ ŝ + (1 − cos ϕ)ŝ2                        (16)
+Here s is a unit vector along ω and ϕ = ∥ω∥t is the total amount of rotation. Given an axis of rotation, s,
+and amount of rotation ϕ, we can construct ŝ and plug it in.
+
+3.12    Exponential Coordinate Representation of Rigid-Body Motions
+To fully represent the rigid-body motions including translation and rotation, we need to use screw theory,
+which will be covered in the next scribe note.
+
+3.13    Homogeneous Transformation
+3.14    Homogeneous Coordinates
+To represent the rigid body motion, instead of using n coordinates for n-dimensional space, we use n+1
+coordinates.
+
+3.15    Special Euclidean Group
+Definition 6. The special Euclidean group SE(3), also known as the group of rigid-body motions or
+homogeneous transformation matrices in R3 , is the set of all 4 × 4 real matrices T of the form
+                                                                       
+                                     "       #      r11 r12 r13 p1
+                                      R p         r      r22 r23 p2 
+                                                                       
+                                T=              =  21                  ,                      (17)
+                                       0 1        r31 r32 r33 p3 
+                                                     0     0     0    1
+
+where R ∈ SO(3) and p ∈ R3 .
+   The inverse of T ∈ SE(3) is
+                                          "       #−1 "              #
+                                         R      p       RT     −RT p
+                                   T−1 =             =                 .                              (18)
+                                         0      1        0      1
+
+3.16    Uses of Homogeneous Transformation Matrices
+There are three of Homogeneous Transformation Matrices:
+
+  1. Represent a configuration. Tab represents frames b relative to a.
+
+  2. Change the reference frame of a vector or frame (note that vshouldbewrittenhomogeneouscoordinates:
+
+                                            Tab Tbc = Tab Tbc = Tac                                   (19)
+                                              Tab vb = Tab vb = Ta                                    (20)
+
+  3. Displace a vector or frame (as an operator).
+
+
+
+
+                                                    20
+3.17    Spacical Velicty (Twist)
+We often define a fixed space frame s and a body frame b attached to somebody of interest. All frames are
+instantaneously stationary.
+
+Definition 7. We define Spatial velocity in the body frame, or simply the body twist to be
+                                                " #
+                                                 ω
+                                          v b = b ∈ R6                                               (21)
+                                                 vb
+
+   We should use an adjoint representation instead of a Homogeneous Transformation matrix to transform a
+twist from one frame to another.
+
+Definition 8. Give T = (R, p) ∈ SE(3), its adjoint representation [AdT ] is
+                                            "         #
+                                               R    0
+                                   [AdT ] =             ∈ R6×6 .                                     (22)
+                                             [p]R R
+
+
+
+
+                                                   21
+

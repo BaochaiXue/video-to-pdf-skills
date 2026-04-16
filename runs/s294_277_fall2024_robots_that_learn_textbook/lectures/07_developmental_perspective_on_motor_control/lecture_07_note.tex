@@ -1,0 +1,189 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{Lecture 4B: 从儿童发展理解运动控制}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{UC Berkeley CS294-277 / Jitendra Malik}
+\newcommand{\videopublishdate}{2024-09-30}
+\newcommand{\videoduration}{未记录}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=g86ewFu8uXQ}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{pdf_pages/page-01.png}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{课程主旨：为什么要从儿童发展看机器人学习}
+这讲的核心命题很直接：如果儿童在没有明确“标签式监督”的条件下，仍然能够逐步形成感知、动作和语言的协调能力，那么机器人学习是否也能借鉴这种发展路径。讲者把这个问题拆成三个层次：第一，智能并不是抽象地悬空增长，而是嵌入在身体结构、环境交互和感知通道中的；第二，发展不是一次性学会，而是分阶段、渐进式地扩展能力；第三，视觉、触觉、本体感觉和语言并不是彼此隔离的模块，而是相互塑形的信号源。
+
+\begin{knowledgebox}{关键术语}
+具身认知（embodied cognition）强调智能依赖身体与环境的耦合；跨模态监督（cross-modal supervision）则是用一个模态去监督另一个模态的学习过程，例如用本体感觉帮助视觉模块学习几何结构。
+\end{knowledgebox}
+
+课程页和视频都把这一讲定为“developmental perspective on motor control”。这意味着它不是单讲某个算法，而是用儿童发展、动物步态和多模态机器人案例，给后续的 imitation learning、locomotion、navigation 和 long-horizon planning 提供一个更宽的概念框架。
+
+\subsection{智能的进化脉络与身体的作用}
+讲者先回到智能的“系统发育”（phylogeny of intelligence）。寒武纪大爆发（Cambrian Explosion）之所以被放在开头，不是为了做生物学综述，而是为了强调两个事实：其一，能看、能动的生命形式出现之后，环境中的空间结构才真正变成智能必须处理的问题；其二，人类智能并不是凭空出现的，它是在更长时间尺度的感知-运动耦合中演化出来的。
+
+这里引用了两句常被课程反复提起的话。Anaxagoras 认为“人之所以更聪明，是因为有手”；Gibson 则强调“我们看是为了行动，我们行动也是为了看”。这两句话在机器人学习里很重要，因为它们把感知和控制从“前端/后端”关系变成了闭环关系。视觉不是纯粹的认知输入，手也不是纯粹的执行器；二者共同构成了可学习的世界模型。
+
+\begin{importantbox}{一个教学上的转折}
+如果只把智能理解成对静态图像的分类，很多发展现象都解释不了。课程在这里刻意把“看”和“动”绑在一起，是为了把后面的 RotateIt、CMS 和 humanoid learning 都放进同一个框架里。
+\end{importantbox}
+
+\subsection{Babies 的六条经验法则}
+课程页用 Smith 和 Gasser 的文章《The Development of Embodied Cognition: Six Lessons from Babies》总结了六条经验法则，这部分是整讲的理论支点：
+
+\begin{itemize}
+  \item 多模态（multi-modal）：婴儿通过把视觉、听觉、触觉和动作时序对齐来学习。
+  \item 渐进式（incremental）：能力不是跳跃式获得，而是按阶段扩展。
+  \item 物理性（physical）：身体本身是认知的一部分，会把问题变简单。
+  \item 探索（explore）：非目标导向的自发探索是学习的重要来源。
+  \item 社会性（social）：照护者提供脚手架，帮助学习发生。
+  \item 语言（language）：语言把感知经验组织成符号结构，推动更高层次的抽象。
+\end{itemize}
+
+这六条不是抽象口号，而是后续机器人系统设计的约束条件。比如“多模态”对应 vision + touch + proprioception 的融合；“渐进式”对应 curriculum learning 或 staged training；“社会性”则可以在 imitation learning 或 human-in-the-loop 数据收集中体现出来。
+
+\subsection{动物步态与机器人机体设计}
+讲义在这一部分转向动物步态（animal gaits）。这不是为了研究生物力学本身，而是为了给机器人机构设计提供启发。课程页提到，不同步态在不同速度下具有不同的能量效率；同时，婴儿的步行片段中常出现非单一方向的步法，这说明“看似混乱的运动”并不必然低效，反而可能是适应环境约束的一种结果。
+
+对机器人来说，这里至少有两层启发。第一，机构设计和控制算法不能完全分开考虑，因为身体结构本身会改变可行的步态集合。第二，评估 locomotion 时不能只盯着平地上的平均速度，还要关注能耗、稳定性和在不同地形上的可迁移性。
+
+\subsection{RotateIt：视觉与触觉驱动的在手旋转}
+从理论讨论转到系统例子，课程首先介绍了 RotateIt: General In-Hand Object Rotation with Vision and Touch。它的任务不是简单抓取，而是在手内沿指定轴旋转物体，并且要对不同几何形状保持泛化。讲者强调的重点是：如果要把 sim-to-real gap 缩小到足够小，光靠视觉不够，光靠触觉也不够，需要把 vision、touch 和 proprioception 放到同一个 policy 里。
+
+这里可以把训练过程理解为两阶段。第一阶段在仿真中训练 oracle policy，oracle 可以访问 privileged information，例如物体点云、质量、摩擦系数和质心位置。第二阶段把这些不可见信息收缩成可部署的 visuotactile policy，让策略只依赖真实系统可获得的视觉深度、触觉和动作历史。
+
+\begin{knowledgebox}{经验到算法的映射}
+RotateIt 的直觉不是“多塞几个传感器就一定更好”，而是“哪种信息最容易被仿真、又最能减少 sim2real gap，就优先保留哪种信息”。这是一种典型的发展式学习思路：先用更可控的信号学会结构，再逐步逼近真实世界。
+\end{knowledgebox}
+
+官方课程页摘录中给出了一个很关键的结构化表达。对视觉-触觉策略而言，视觉模块要从 object depth 中提炼出形状信息；策略再融合本体感觉、视觉和触觉来决定旋转动作。讲者并没有把它描述成一个神秘的“端到端魔法模型”，而是明确指出它在做的是多模态信息整合。
+
+\subsection{跨模态监督：用本体感觉监督视觉}
+课程页后半部分介绍 Cross-Modal Supervision（CMS），这是这一讲里最像“机器人学习方法论”的例子。它的核心做法是：先训练一个 blind policy，只使用本体感觉和地形相关变量来完成任务；然后用时间错位的本体感觉去监督视觉模块，让视觉预测未来地形几何。
+
+课程摘录里给出了几个关键变量：
+
+\[
+x_t = [q_t, \dot q_t, a_{t-1}, z_t, \gamma_t]^\top
+\]
+
+其中，\(q_t\) 是当前关节位置，\(\dot q_t\) 是关节速度，\(a_{t-1}\) 是上一时刻动作，\(z_t\) 是环境嵌入，\(\gamma_t\) 是当前地形几何。
+
+\[
+z_t = \mu(e_t), \qquad \gamma_t = \delta(h_t), \qquad \gamma_{t+\Delta t} = \delta(h_{t+\Delta t})
+\]
+
+这里 \(\mu\) 和 \(\delta\) 都是 MLP（multi-layer perceptron），分别把环境输入和地形特征压缩成可学习表示。对应的策略形式是
+
+\[
+a_t = \pi_{\text{blind}}(x_t, z_t, \gamma_t), \qquad
+a_t = \pi(x_t, z_t, \gamma_t, \gamma_{t+\Delta t})
+\]
+
+前者是只依赖当前地形的 blind policy，后者在此基础上引入未来 15 cm 处的地形预测。这里最值得注意的是“监督信号来自另一模态的时间延迟版本”，这正是课程开头强调的“多模态”和“渐进式”的具体实现。
+
+\subsection{从视觉行走到更大范围的行为学习}
+讲者还把这个思路扩展到更广泛的 robot learning 任务。课程页后半列出的例子包括：Learning to act from 4D reconstructions、Humanoid Locomotion as Next Token Prediction、Humanoid Control as Next Token Prediction，以及 MCC-HO 的重建结果比较。这些内容在本讲里更多是作为“发展式机器人学习”的后续方向出现，而不是逐个展开算法细节。
+
+它们共同表达的是：如果任务涉及时序、遮挡、接触和长期依赖，仅靠静态监督很难学到稳定策略；更好的方向往往是把动作、重建、预测和模仿放进同一个发展框架中，让系统从可观察的中间变量逐步逼近最终行为。
+
+\subsection{本章小结}
+这一讲的主线不是“儿童发展等于机器人学习”，而是“儿童发展提供了一套更可靠的学习原则”。这些原则可以概括成四句话：智能是具身的，学习是渐进的，控制是多模态的，环境交互不是副作用而是学习本身的一部分。RotateIt 和 CMS 说明，这些原则不仅能写成哲学表述，也能落实为训练目标、特征设计和策略结构。
+
+\section{总结与延伸}
+如果把这一讲和后面的 locomotion、navigation、long-horizon planning 放在一起看，就会发现课程一直在推动同一个观点：机器人学习不能只追求单个任务的拟合误差，更要关注身体结构、感知模态、任务阶段和时间尺度之间的耦合。儿童发展文献之所以重要，是因为它给出了一个“如何逐步长出能力”的范式，而不是一个固定网络结构。
+
+延伸阅读上，最值得回看的仍然是《The Development of Embodied Cognition: Six Lessons from Babies》和课程页中列出的 RotateIt、cross-modal supervision、4D reconstruction 和 humanoid token prediction 这些案例。它们共同回答了一个问题：当数据、身体和环境都不完美时，机器人怎样才能仍然学习到可泛化的行为。
+
+\end{document}

@@ -1,0 +1,173 @@
+# seg_08 Contract
+
+Source range:
+- transcript: 00:24:16,549 -- 00:27:39,230
+- segment hint: Segment 8
+
+Must cover unit ids:
+- sub_1037
+- sub_1038
+- sub_1039
+- sub_1040
+- sub_1041
+- sub_1042
+- sub_1043
+- sub_1044
+- sub_1045
+- sub_1046
+- sub_1047
+- sub_1048
+- sub_1049
+- sub_1050
+- sub_1051
+- sub_1052
+- sub_1053
+- sub_1054
+- sub_1055
+- sub_1056
+- sub_1057
+- sub_1058
+- sub_1059
+- sub_1060
+- sub_1061
+- sub_1062
+- sub_1063
+- sub_1064
+- sub_1065
+- sub_1066
+- sub_1067
+- sub_1068
+- sub_1069
+- sub_1070
+- sub_1071
+- sub_1072
+- sub_1073
+- sub_1074
+- sub_1075
+- sub_1076
+- sub_1077
+- sub_1078
+- sub_1079
+- sub_1080
+- sub_1081
+- sub_1082
+- sub_1083
+- sub_1084
+- sub_1085
+- sub_1086
+- sub_1087
+- sub_1088
+- sub_1089
+- sub_1090
+- sub_1091
+- sub_1092
+- sub_1093
+- sub_1094
+- sub_1095
+- sub_1096
+- sub_1097
+- sub_1098
+- sub_1099
+- sub_1100
+- sub_1101
+- sub_1102
+- sub_1103
+- sub_1104
+- sub_1105
+- sub_1106
+- sub_1107
+- sub_1108
+- sub_1109
+- sub_1110
+- sub_1111
+- sub_1112
+- sub_1113
+- sub_1114
+- sub_1115
+- sub_1116
+- sub_1117
+- sub_1118
+- sub_1119
+- sub_1120
+- sub_1121
+- sub_1122
+- sub_1123
+- sub_1124
+- sub_1125
+- sub_1126
+- sub_1127
+- sub_1128
+- sub_1129
+- sub_1130
+- sub_1131
+- sub_1132
+- sub_1133
+- sub_1134
+- sub_1135
+- sub_1136
+- sub_1137
+- sub_1138
+- sub_1139
+- sub_1140
+- sub_1141
+- sub_1142
+- sub_1143
+- sub_1144
+- sub_1145
+- sub_1146
+- sub_1147
+- sub_1148
+- sub_1149
+- sub_1150
+- sub_1151
+- sub_1152
+- sub_1153
+- sub_1154
+- sub_1155
+- sub_1156
+- sub_1157
+- sub_1158
+- sub_1159
+- sub_1160
+- sub_1161
+- sub_1162
+- sub_1163
+- sub_1164
+- sub_1165
+- sub_1166
+- sub_1167
+- sub_1168
+- sub_1169
+- sub_1170
+- sub_1171
+- sub_1172
+- sub_1173
+- sub_1174
+- sub_1175
+- sub_1176
+- sub_1177
+- sub_1178
+- sub_1179
+- sub_1180
+- sub_1181
+- sub_1182
+- sub_1183
+- sub_1184
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- sub_1050
+- sub_1051
+- sub_1052
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

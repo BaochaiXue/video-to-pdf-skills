@@ -1,0 +1,271 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{课程笔记：人类手部与灵巧物体操作}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{CS294-277 Fall 2024 / Jitendra Malik}
+\newcommand{\videopublishdate}{2024-09-16}
+\newcommand{\videoduration}{未提供}
+\newcommand{\videourl}{}
+\newcommand{\videocoverpath}{}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 本讲未提供可用的独立封面图，故此处保留空白。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{course_notes_pages/page-01.png}
+\caption{课程官方材料中的代表性页面，用于帮助读者在进入本讲正文前建立整体上下文。}
+\end{figure}
+\section{从 Screw Theory 到刚体运动的统一描述}
+
+\subsection{为什么要从 screw theory 讲起}
+本讲先回到上半讲留下的核心框架：如何把三维刚体运动写成一个统一、可计算、可插入机器人建模管线的数学对象。这里的关键工具是螺旋理论（screw theory）。它的价值不在于“给运动重新命名”，而在于把旋转和平移耦合起来处理，从而为后续的 twists、wrenches 和 URDF 提供共同语言。
+
+\begin{knowledgebox}{核心直觉}
+任何三维刚体运动都可以看成绕某条空间轴的旋转，并伴随沿该轴的平移。这个轴不一定穿过物体本身，也不一定是我们直觉里看到的“螺丝杆”。
+\end{knowledgebox}
+
+\subsection{Screw motion 的定义}
+一个 screw motion 由四个要素刻画：
+\begin{itemize}
+  \item 螺旋轴（screw axis）：空间中的一条线，运动围绕它转动并沿它平移。
+  \item 螺距（pitch, $h$）：单位转角对应的平移量。
+  \item 转角（rotation angle, $\theta$）：绕轴旋转的角度。
+  \item 平移量（translation, $t$）：沿轴方向的位移。
+\end{itemize}
+如果把一整圈旋转定义为 $2\pi$，那么 pitch 就对应“每转一圈前进多少”。这与机械螺丝的线程密度非常像，因此这个类比不仅形象，而且有利于记忆。
+
+\subsection{自由度与线的几何}
+刚体在三维空间中有 6 个自由度：3 个平移自由度加 3 个旋转自由度。螺旋理论之所以能完整表达它，是因为一条空间直线本身就有 4 个自由度：
+\begin{itemize}
+  \item 方向：单位向量 $\hat{v}$ 在球面上选取，带来 2 个自由度。
+  \item 位置：线上的一个点可以在垂直于 $\hat{v}$ 的平面中移动，带来另外 2 个自由度。
+\end{itemize}
+再加上 pitch 的 1 个自由度和轴上转角的 1 个自由度，总计仍是 6 个自由度。这个计数说明 screw motion 不是“压缩信息”，而是换了一种几何上更自然的坐标系。
+
+\subsection{2D 类比：pole 与纯平移}
+二维里最容易理解的对应物是 pole。若一个二维刚体满足
+\[
+Rp + t = p,
+\]
+则点 $p$ 在该运动下保持不动。整理后可得
+\[
+p = (I - R)^{-1} t.
+\]
+这里：
+\begin{itemize}
+  \item $R$ 是旋转矩阵；
+  \item $t$ 是平移向量；
+  \item $I$ 是单位矩阵；
+  \item $p$ 是固定点，也就是 pole。
+\end{itemize}
+如果没有旋转，则 $R = I$，pole 被推到无穷远，恰好对应纯平移；如果只有旋转而没有平移，则 pole 就是旋转中心。二维例子帮助我们理解：平移和旋转并不是两类互不相干的动作，它们可以被统一看成“绕某个点或某条轴的运动”。
+
+\subsection{本章小结}
+螺旋理论的作用，是把三维刚体运动重写为“轴、转角、螺距、平移”的统一对象。它的最大收益有两个：一是概念上把旋转和平移合并，二是工程上为 twist、wrench 和 URDF 打下数学基础。
+
+\section{Twist、Wrench 与 URDF}
+
+\subsection{Twist：运动的速度版本}
+如果 screw motion 是“位移版”的统一描述，那么 twist（扭量）就是它的速度版本。twist 同时编码角速度和线速度，因此可以看作刚体瞬时运动的 6 维表达。
+
+\begin{importantbox}{从位形到速度}
+在机器人学里，位形描述“物体在哪里”，twist 描述“物体怎么动”。前者适合建模，后者适合控制与动力学。
+\end{importantbox}
+
+当我们把 twist 从一个坐标系变到另一个坐标系时，需要使用伴随矩阵（adjoint matrix）：
+\[
+\mathrm{Ad}_T =
+\begin{bmatrix}
+R & 0 \\
+[\mathbf{p}]_\times R & R
+\end{bmatrix}
+\in \mathbb{R}^{6\times 6}.
+\]
+这里：
+\begin{itemize}
+  \item $R$ 是旋转矩阵；
+  \item $\mathbf{p}$ 是坐标原点的平移向量；
+  \item $[\mathbf{p}]_\times$ 是把向量写成反对称矩阵的叉乘矩阵；
+  \item $\mathrm{Ad}_T$ 把 twist 从一个 frame 映射到另一个 frame。
+\end{itemize}
+这一点很重要，因为机器人系统中的所有局部量都必须在统一坐标系下比较，否则运动学和控制就会失配。
+
+\subsection{Wrench：力和力矩的 6 维表达}
+wrench 是 twist 的力学对应物，描述作用在刚体上的 6 维力与力矩。它的工程意义在于：当 twist 与 wrench 做点积时，得到的是功率（power）。
+
+\[
+\text{power} = \text{twist} \cdot \text{wrench}.
+\]
+
+\begin{knowledgebox}{物理意义}
+如果把力和速度做点积，就得到“每单位时间做了多少功”。这也是为什么 twist 与 wrench 是一对天然的对偶对象。
+\end{knowledgebox}
+
+\subsection{URDF：把运动学写进文件}
+URDF（Universal Robot Description Format）是描述树状机器人结构的 XML 格式。它的核心用途有三个：
+\begin{itemize}
+  \item 描述 kinematics：关节类型、连接方式、几何关系；
+  \item 描述 inertia：质量、转动惯量、质心位置；
+  \item 支持 simulation / visualization / control 的一致建模。
+\end{itemize}
+
+\paragraph{Joint 元素}
+joint 元素描述两个 link 之间的相对运动关系。
+\begin{lstlisting}[caption={URDF 的 joint 元素示例}]
+<joint name="joint2" type="revolute">
+    <parent link="link1"/>
+    <child link="link2"/>
+    <origin rpy="0 1.5708 0" xyz="0 0.5 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.0" upper="3.0"/>
+</joint>
+\end{lstlisting}
+
+\paragraph{Link 元素}
+link 元素描述单个连杆的惯性属性。
+\begin{lstlisting}[caption={URDF 的 link 元素示例}]
+<link name="link2">
+    <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0.5"/>
+        <mass value="2.25"/>
+        <inertia ixx="1.0" ixy="0" ixz="0"
+                 iyy="2.0" iyz="0" izz="3.0"/>
+    </inertial>
+</link>
+\end{lstlisting}
+
+\subsection{本章小结}
+twist 和 wrench 把“运动”和“受力”都提升到 6 维统一空间；URDF 则把这套理论落地成可交换、可仿真、可控制的机器人描述文件。对后续机器人手和操作学习来说，这一步不是细节，而是整个系统能否被复用的前提。
+
+\section{人类手与灵巧操作}
+
+\subsection{为什么人类手是机器人学习的参照系}
+本讲后半部分把理论视角转向人类手。原因很直接：如果我们要设计能够执行复杂操作的机器人手，就必须先理解人类手为什么如此强大。人类手不是单纯的“抓取工具”，而是一个既能施力、又能感知、还能进行通信与文化表达的精密器官。
+
+课程摘录特别强调了两个现实目标：
+\begin{itemize}
+  \item 研究人类手如何完成工具使用、精细操作与非预抓握动作；
+  \item 反推机器人手的结构和任务抽象，使其能在学习系统中承担类似功能。
+\end{itemize}
+
+\subsection{从数据集看手的用途}
+讲义中提到的 `100 Days of Hands`、`Something-Something`、`Ego-4D` 等数据集，提示我们一个重要事实：手部动作不是少数离散动作的集合，而是高度情境化、与物体属性和任务目标耦合的连续行为流。为了让机器人学习可行，讲义把问题简化为 atomic manual actions，即大约一秒量级的原子动作。
+
+\begin{importantbox}{为什么要抽象成 atomic actions}
+如果直接从整段任务学习“做饭”“打字”“切菜”，数据会太稀疏、状态空间太大。把动作拆成原子级别，才有机会把感知、抓取、操控和反馈连接到同一学习框架里。
+\end{importantbox}
+
+\subsection{常见原子动作}
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.24\textwidth}p{0.63\textwidth}}
+\toprule
+动作类型 & 讲义中的典型例子与要点 \\
+\midrule
+倒液体（pouring） & 先抓握容器，再根据液体重量变化与触觉反馈调整姿态；很多时候不需要持续视觉。 \\
+搅拌（stirring） & 主要依赖局部接触与运动记忆，视觉不是唯一通道。 \\
+切割（cutting） & 通常需要视觉来引导刀具和对象的相对位置；对工具和夹爪设计要求高。 \\
+抓取与搬运 & 可以是精细抓，也可以是更粗的搬运抓，关键是稳定接触与目标导向。 \\
+手势、打字、演奏 & 属于非 prehensile skilled movements，说明手不仅仅用于拿东西。 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{本章小结}
+这部分的核心结论是：手部动作的难点不在“是否能抓住”，而在“能否在不同感官与不同任务约束下稳定地完成多样动作”。因此，机器人手的设计和学习问题必须同时考虑任务抽象和感知闭环。
+
+\section{总结与延伸}
+
+\subsection{综合回看}
+本讲把三条线缠在一起：螺旋理论提供统一的刚体运动语言，twist/wrench/URDF 提供工程可实现的表示，而人类手与原子动作则告诉我们机器人手究竟要面对什么任务。对后续章节而言，这三条线会不断回到同一个问题上：如何让机器人在有限硬件和有限数据下，仍能形成足够丰富的操作能力。
+
+\subsection{拓展阅读}
+如果希望进一步补强本讲的数学和机器人建模基础，可以回看 screw theory、twist/wrench 的标准机器人学教材，以及 URDF / ROS 的官方文档。若希望继续沿着“人类手作为 benchmark”向前走，则可以阅读关于 human hand function、grasp taxonomy 和 dexterous manipulation 的综述论文。
+
+\begin{warningbox}{来源说明}
+本讲义主要依据课程页中的课件摘录与官方课件文本重建；由于该讲的可用字幕与结构化 transcript 为空，个别叙述采用了保守的教材式重排，而不是对未见原始视频内容做额外扩展。
+\end{warningbox}
+
+\end{document}

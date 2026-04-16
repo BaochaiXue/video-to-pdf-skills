@@ -1,0 +1,189 @@
+===== Lecture 10A | pages 103-107 =====
+
+18      Lecture10A
+booktabs tcolorbox
+CS294-277 Fall 2024                                                                       Lecturer: Jitendra Malik
+September 9, 2024                                                          Scribe: Kyle Stachowicz, Yarden Goraly
+
+                         Lecture 10A: Learning Policies for Navigation
+                                                       Abstract
+           This lecture will summarize methods for robot navigation, starting from how this problem has been
+       solved using classical methods, and then discussing various learning approaches. Visual navigation involves
+       mapping an environment as well as performing collision-free navigation to find some goal, usually specified
+       either geometrically (location), visually (as an image of the target location), or semantically (through
+       language or object categories).
+
+
+18.1      Introduction and Problem Statement
+A common problem in robotics is navigation: deploying a robot equipped with a first-person camera into
+a novel environment and assigning it a navigation-based goal. These goals can be specified in two ways:
+geometrically, such as directing the robot to a specific (x, y) coordinate, or semantically, like instructing it to
+“go to the kitchen”. For example, a robot might be placed in an unfamiliar AirBnB and tasked with locating
+a plant. In this case, the robot would have to explore the environment without colliding with obstacles until
+it finds something that looks like a plant, then navigate towards the detected object. In many cases, it may
+also be possible to make use of semantic priors about the world - for example, exploiting knowledge of which
+rooms of a house might be most likely to contain a plant.
+
+18.2      General Approaches to Navigation
+There are three (main) approaches to tackling the navigation problem: classical approaches, end-to-end
+learning, and modular systems incorporating both learned and classical components in a pipeline with
+well-defined responsibilities and boundaries.
+
+18.3      Classical
+The classical approach breaks the navigation problem down into two stages:
+
+   • Stage 1: Perception and Mapping. Build a geometric map (either offline or online) using mapping
+     or SLAM based on visual or geometric observations. Example: Hartley and Zisserman (2004).
+
+   • Stage 2: Goal-directed exploration. If the destination is a known location in the map, we can just
+     use classical planning methods to plan a path to the goal. If the destination is not already available in
+     the map, we can use some sort of heuristic exploration until we find the target. Example: Kavraki et al.
+     (1996b).
+
+Classical approaches take advantage of strong priors (geometry), but do not have the benefit of learning from
+data. As a result, semantic knowledge and reasoning (which objects are likely to be in which areas) is difficult
+to inject into classical methods in a scalable way.
+Takeaway: Classical approaches both do too much (model and reconstruct the entire world!!) and too little
+(no semantic understanding of the world). They are unable to understand context clues, so if the goal is
+specified semantically the best they can do is randomly explore. If we want to capture statistical relationships,
+we need to use statistical techniques!
+
+
+
+
+                                                          103
+Figure 75: Approaches to robot learning (for navigation, but also in general) can be broken down into three
+categories: classical, end-to-end, and modular.
+
+
+18.4     End-to-End Learning
+End-to-end approaches model the robot’s actions entirely via a single images-to-actions neural network Levine
+et al. (2016). Typical approaches might model the policy as a single recurrent model or as a transformer,
+which can be trained either via RL or with imitation.
+
+Imitation learning trains the model to directly imitate some expert. In simulation, this strategy can be
+appealing at surface level since we often have some privileged world knowledge (like a perfect planner) that
+can be used to get expert trajectories. However, care must be taken to make sure the expert policy’s actions
+have the same level of world knowledge as the model (ground-truth knowledge turns the problem from a
+POMDP into an easier MDP, which means you’ll never get exploration behavior!).
+
+Reinforcement learning essentially trains the policy to reach goals through trial and error. Because
+the initial policy is random and useful behavior must be built up from scratch by exploring and correctly
+performing credit assignment to high-value actions, this approach can require a huge amount of episodes to
+work successfully. This typically necessitates learning in simulation, where data is plentiful, meaning that the
+sim-to-real gap must be overcome.
+
+Both of these approaches tend to require large amounts of data (e.g. 200 million frames of reinforce-
+ment learning Ramrakhya et al. (2022)), which typically has to be collected via sim-to-real as real-world data
+is prohibitively expensive. However, sim-to-real transfer of visual (RGB) observations suffers from a large
+domain gap, and so real-world performance is typically poor.
+
+Editor’s note: some more recent work has achieved much more successful end-to-end policies trained in
+simulation and deployed in the real world: https: // poliformer. allen. ai/ .
+
+18.5     Modular
+Modular approaches for navigation assign tasks into two separate modules Chaplot et al. (2020):
+
+  1. Build up a semantic map based on previous experience and semantic information (e.g., semantic
+     segmentation). This part can use different underlying models or systmes during training and at
+     inference (for example, ground-truth semantic segmentation labels during training and outputs from an
+     off-the-shelf segmentation model during inference).
+
+  2. Perform goal-oriented exploration based on the semantic map. This part is typically learned via RL in
+
+
+                                                      104
+Figure 76: Simulators commonly used for robotic navigation tend to have high sim-to-real gap, especially in
+terms of their visual RGB observations.
+
+
+       simulation, consuming the outputs of the semantic mapping module.
+
+Modular approaches avoid the need to learn a perception stack in simulation, taking advantage of off-the-shelf
+object detection and segmentation models trained entirely from real-world data. They are able to achieve
+high performance if the simulation environment is semantically similar (but not necessarily perfectly visually
+similar) to downstream testing environments.
+
+18.6     Comparisons
+   • While all methods perform similarly in simulation environments, only modular and classical approaches
+     transfer effectively to the real world. End-to-end approaches fail due to the large sim-to-real gap.
+
+   • Sim-to-real: Able to transfer some things well, but perception is not one of them! The sim-to-real gap
+     in RGB observations is extremely large.
+
+   • Classical methods perform mostly frontier exploration, where the next unexplored region on the
+     map is explored. This does not require (nor benefit from) learning.
+
+   • Learning-based approaches (both end-to-end and modular) can benefit from semantic exploration,
+     involving knowledge from pretraining, such as:
+
+           “The couch will likely be in the living room and is unlikely to be found in the bathroom.”
+
+
+                        Method                         Sim                Real
+                                                 Success     SPL    Success      SPL
+                        Modular Learning           0.81      0.64     0.90       0.64
+                        Classical                  0.78      0.42     0.80       0.42
+                        End-to-End Learning        0.77      0.39     0.23       0.39
+
+Table 1: Comparing classical, end-to-end, and modular approaches to navigation. End-to-end approaches
+trained in simulation experience catastrophic collapse in performance when transfered to the real world due
+to large domain gap between simulated RGB images and real images.
+
+
+
+
+                                                     105
+Figure 77: GOAT architecture. GOAT uses a modular pipeline where a set of standard off-the-shelf image
+processing models (segmentation, depth, etc.) are used to build a geometric semantic map of the world and
+semantic information about objects contained in it. These modules also record object instances, which can
+then be used by a high-level policy to generate high-level goals for navigation towards a particular object
+instance specified by language or image descriptions. Finally, a local policy interprets the high-level goal and
+performs collision-free local navigation.
+
+
+18.7     Takeaways
+[colback=gray!10, colframe=gray!80, title=Takeaway] Vision systems should be trained on real-world
+data. At least with current simulators, visual fidelity is not yet high enough to get direct sim-to-real transfer
+of RGB images. [colback=gray!10, colframe=gray!80, title=Takeaway] The policy itself (when trained
+on modular outputs of the vision system) can be trained in simulation. Use of large-scale simulation
+is crucial to get enough data to effectively train a neural network policy to perform history-conditioned
+navigation.
+
+18.8     Case Study: GOAT (GO to Any Thing)
+Paper: Chang et al. (2023)
+Recipe: Follow the modular pattern. In addition to semantic category information (projected into a geometric
+map by constructing a semantic point cloud ), also keep track of viewpoints of potential target objects to
+allow differentiation between instances. This means that we can distinguish between specific instances of
+objects (rather than just broad closed-world object categories), which enables:
+
+   • Specifying goals via granular language descriptions (e.g., “the red fuzzy bear”) rather than just specifying
+     via a coarse category (“bear”).
+
+   • Lifelong semantic memory allows building up the map continually over time, meaning you can navigate
+     to any previously seen instance without additional exploration, even if that instance was not the original
+     target present during exploration. This has the effect of allowing the robot to continually adapt to a
+     downstream environment as it stores additional semantic world knowledge in its memory (Fig.78).
+
+   • Updating the semantic map incrementally when an object moves (as object instances can now be
+     uniquely identified by alternative viewpoints of the same object). As a special case, this enables social
+     navigation by treating humans as dynamic obstacles.
+
+
+                                                      106
+Figure 78: Performance of GOAT navigation model increases with multiple new goals specified sequentially
+in a (previously unseen) environment.
+
+
+18.9    Conclusion
+This lecture discussed the current state-of-the-art for learned robot navigation policies. We discussed three
+high-level approaches to the navigation problem: classical, end-to-end, and modular pipelines composed
+of learned components, and explored the pros and cons of each. We also took a deeper dive with GOAT,
+a particular instantiation of the modular approach that is able to track fine-grained object instances and
+successfully navigate to arbitrarily specific instance descriptions using langauge or instance images.
+
+
+
+
+                                                    107
+

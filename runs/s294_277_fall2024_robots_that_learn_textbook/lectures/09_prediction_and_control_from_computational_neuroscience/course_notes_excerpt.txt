@@ -1,0 +1,191 @@
+===== Lecture 5B | pages 63-68 =====
+
+10      Lecture5B
+CS294-277 Fall 2024                                                                     Lecturer: Jitendra Malik
+October 7, 2024                                                                Scribe: Renhao Wang, Dasheng Bi
+
+Lecture 5B: Computational neuroscience perspective on prediction and control
+                                                     Abstract
+          We begin by continuing the previous lecture with a discussion on motion planning for robots. We
+       describe classical methods (both analytic and probabilistic) for constructing roadmaps. We observe the
+       limitations of these classical approaches, which assume that the environment is perfectly described. We
+       then describe theories from neuroscience of motor control that abandon this assumption (internal inverse
+       model, feedforward-feedback).
+
+
+10.1      Motion Planning
+The problem of motion planning in robotics is as follows: given a robot with some embodiment in a known
+environment in some start configuration, find a path to reach a desired goal position, that avoids collisions
+with obstacles in the environment. Below are a few examples of this problem.
+
+   • Consider a mobile robot moving around on the floor, avoiding collisions with tables and chairs.
+
+   • Consider an arm moving in space (e.g., to pick up a cup). No part of the arm (both the end effector
+     and its joints) should collide with objects in the environment.
+
+We will first define a few key terms, building up to the idea of a “roadmap” and show that they solve the
+motion planning problem. Then, we describe probabilistic implementations that solve motion planning when
+analytic solutions are intractable or undesirable.
+
+10.2      Definitions
+
+
+
+
+                                 Figure 30: Basic definitions in motion planning.
+
+As seen in Figure 30 (left), we begin by examining a simple two-link robot, parameterized by joint θ1 and
+joint θ2 . Suppose we have a set of obstacles A, B and C, as in Figure 30 (middle), and a given initial position
+for the two links. From this start position, one can imagine that in order to reach the specified end position,
+
+
+                                                         63
+the arm needs to retract, before moving upwards. How can we formalize this problem so that such a motion
+trajectory can be parameterized?
+We define a configuration space, or C-space, for the robot, which are feasible joint angles in the set θ1 xθ2 ,
+as visualized in Figure 30 (right). Then, obstacles can be translated into C-space by describing the set of
+joint angles that result in collisions with them. Then obstacle avoidance is reduced to finding a path in this
+space that avoids any of the shaded regions represented.
+
+
+
+
+                 Figure 31: Growing C-space to practically deal with robot morphologies.
+
+One detail is that robots are not point masses; the circular mobile robot described in Figure 31 above has
+some diameter. The two-link robot arm also has a width. To deal with this practical consideration, we could
+simply “expand” the robot such that every point along its body is now a disk with some radius r. More
+commonly, a complementary approach is taken: we can “grow” each obstacle in the environment by some r
+that is appropriate to the size of the robot, so that any position outside the expanded obstacles is considered
+free space. This reduces the problem to the point mass robot case. In particular, in Figure 31 above, we note
+that the two obstacles intersect after being expanded appropriately—this corresponds to the gap between the
+two objects not being wide enough for the robot to pass.
+
+10.3    Roadmaps and Motion Planning
+Given some C-space, we can describe the free space Cfree with a 1D roadmap R. In particular, consider the
+following two criteria:
+
+   • Reachability: ∀q ∈ Cfree , ∃q ′ ∈ R such that a trivial free path (i.e., a straight line) exists between q
+     and q ′ .
+
+   • Connectivity: For each connected component in Cfree , there is one connected component in R.
+
+Then, motion planning can be reduced to finding a roadmap, paths from start and goal positions to R, and a
+path on R that connects the corresponding positions. An analytical theory of roadmaps was described by
+Canny (1988) in his PhD thesis. This is a hard problem in general, though, and requires “semialgebraic sets”
+and the theory of algebraic geometry to solve (and is not in the scope of this class).
+
+
+
+
+                                                      64
+                                      Figure 32: Probabilistic roadmap.
+
+
+10.4     Probabilistic Roadmaps
+An alternative technique developed by Kavraki et al. (1996a) provides an efficient (approximate) algorithm
+based on probabilistic sampling. Specifically, can construct a probabilistic roadmap (PRM) by the following
+steps (see Figure 32:
+   • Sample points randomly from Cfree , adding them to R.
+   • For each point in R, consider its k nearest neighbors in R, and add corresponding edges if there exists
+     straight line paths between the point and its neighbors.
+We observe that (approximate) motion planning is reduced to a graph traversal problem on the PRM (namely,
+finding the shortest path between the closest nodes on the PRM to the start and end points). Moreover, the
+PRM graph can be precomputed, and at inference time we only need to find nearest nodes to our start and
+end points, and traverse the graph (e.g., with Dijkstra’s), which makes this approach have good amortized
+runtime. Note that other efficient algorithms (e.g., rapidly-exploring random trees) have been developed for
+use cases where do not need to reuse the roadmap.
+
+10.5     Paths vs. Trajectories
+Finally, we comment on the difference between paths and trajectories. Succinctly:
+   • Path: The sequence of positions on a curve θ(s), where s is the arc length. This is the configuration as
+     a function of space only.
+   • Trajectory: The sequence of points in a path over time, θ(t).
+   • Time scaling: The arc length as a function of time, s(t).
+Trajectories contain more information: often, we not only want to know the (x, y) positions, but we also want
+to correspond each (x, y) position to some specific time t. This allows us to fully describe a planned motion.
+It is also important to perform the time scaling in a sufficiently “smooth” manner, since we wish to accelerate
+and decelerate smoothly. Suppose that one wants to reach and pick up an object. One starts from stationarity,
+smoothly accelerates to some desired velocity towards the object, before deaccelerating to some specified
+grasp pose and lifting the object. This process is visualized in the time-scaled s(t) curve depicted in Figure 33.
+
+
+                                                       65
+                          Figure 33: Time-scaling example yielding an “S-curve.”
+
+
+10.6    Critiques from Vision
+While classical motion planning is a largely solved problem, the formulations (from the 1980s and 1990s)
+largely rest on a critical assumption: that the environment is perfectly characterized; in particular, we have
+global knowledge of the obstacles. However, in reality, knowledge about such obstacles needs to be derived
+from some (noisy) perception system, especially for environments we have no a priori knowledge about, and
+real perception and action are often decoupled. In practice, we often must resort to local algorithms and
+perception combined with backtracking to find solutions.
+
+10.7    Introduction - Neuroscience and Motor Control
+In this section, we provide a brief overview of important ideas from computational neuroscience for motor
+control. We look at the work of Nikolai Bernstein on degrees of freedom, and also the work of Mitsuo Kawato
+on the internal model hypothesis.
+
+10.8    Nikolai Bernstein and the DoF Problem
+Early work in developmental perspectives on control was dominated by more simplistic reflex models (e.g.,
+Pavlov). We can view such work as a simple feedback control to reinforcement learning (e.g., a P-controller).
+Bernstein argued against such models. In particular, he recognized and formulated the DoF problem, which
+essentially is the observation that reinforcement learning is hard when the dimensionality of the system is
+high, since there is an exponentially large state space. In particular, Bernstein observed that human motion
+is composed by simultaneous control of many joints, which results in a C-space with high DoF. This is
+exemplified by the fact that we can realize the same trajectory with vastly different joint movements. For
+example, one can sign one’s name with a pen and paper, on a large whiteboard, or in the sand with one’s
+toes. These motions require completely different control mechanisms for completely different sets of joints,
+yet are all semantically similar and should contain similar representations somewhere in the brain.
+This begs the question of what the representations that enable such an approach to control are. How can we
+learn systems that capture this approach? Bernstein argued for a gradual approach to the learning problem,
+where initially certain DoFs are freezer, and more and more joints are used over time as learning progresses.
+We note that this is also present in the vision literature, as a coarse-to-fine hierarchy.
+
+10.9    Mitsuo Kawato and the Internal Model Hypothesis
+The internal model hypothesis, which essentially suggests that we use a forward simulation for planning,
+originated in the control theory literature. It was proposed in biological contexts by Ito (1972), Kawato
+(1999), and Jordan and Rumelhart (1992).
+
+
+
+                                                     66
+Figure 34: Kawato’s internal model hypothesis (bottom) vs. simple feedback control (above).”
+
+
+
+
+                 Figure 35: Sensory signatures characterizing motor events.
+
+
+
+
+                                            67
+The popularity of the internal model hypothesis stems from a crucial observation: that a feedback controller
+(e.g., a PID controller) is simply too slow a model for human motor control (c.f. Figure 34 (top)). Notably, a
+feedback system involving vision would be even slower, with a 150 ms delay. This is because feedback in
+the human brain needs multiple synapses to realize. Therefore, what is a more reasonable model of human
+computation when it comes to motor planning and control?
+Kawato (1999) provides one such answer via the internal model hypothesis. The idea is that human control is
+a combination of both feedforward and feedback systems. In particular, a good (and fast) feedforward model
+means that we have a good sense of what effects our actions will have on us in relation to the environment,
+and that we can quickly predict what will happen using an efferent copy of the motor command that is
+generated (cf. Figure 35 (top)). Complementing this is a good feedback, or inverse model, that allows us to
+generate a sensible plan and corresponding motor signals (cf. Figure 35 (bottom)), which then only needs
+to be modified on-the-fly with small adjustments. These adjustments can be facilitated easily by the faster
+feedforward system (c.f. Figure 34 (right)).
+Finally, we consider an important consequence of this hypothesis, where actions can be characterized by
+different stages. Note that it is not feasible to have continuous feedback control during each of the stages due
+to the high latency. However, each stage’s end is represented by events that contain “signatures” as sensory
+observations in various modalities (auditory, vision, tactile). Crucially, an internal feedforward model allows
+us to predict these signatures, and an easily implemented comparison mechanism between the predictions
+and the actual sensory observations could provide rapid feedback for actions in the next stage. Indeed, this
+theory seems like common sense, but consider how many of our current robot systems use this idea. This is
+the problem that we have to solve.
+
+
+
+
+                                                      68
+

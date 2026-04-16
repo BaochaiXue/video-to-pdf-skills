@@ -1,0 +1,294 @@
+===== Lecture 9A | pages 94-97 =====
+
+16      Lecture9A
+CS294-277 Fall 2024                                                                      Lecturer: Jitendra Malik
+November 4, 2024                                                         Scribe: Kaushik Kunal Singh, Haoru Xue
+                             Lecture 9A: Locomotion for Quadrupeds
+                                                      Abstract
+          This lecture covered quadruped locomotion, a challenging area in robotics that involves enabling
+       four-legged robots to walk, adapt, and navigate in various environments. Inspired by biological principles
+       and recent advances in RL, quadruped locomotion leverages simulations, pattern generators, and adaptive
+       controllers to achieve robust and efficient movement. The following sections outline key approaches to
+       quadruped locomotion and highlight recent advances that allow for natural, adaptive gaits and navigation
+       using sensor inputs.
+
+
+16.1      Introduction
+
+
+
+
+                             Figure 64: Prominent Examples of Quadruped Robots
+
+Quadruped locomotion in robotics requires precise control, adaptability to different terrains, and effective
+navigation in dynamic environments. Leveraging insights from biology and recent advances in reinforcement
+learning (RL), researchers have developed techniques that allow four-legged robots such as Boston Dynamics’
+Spot and MIT’s Mini Cheetah (Figure 64) to learn versatile, adaptive gaits. From simulated training to
+real-world adaptation with sensor data, these robots gain stability and agility through learned, natural
+movement patterns. This section explores the advancements in quadruped locomotion, including adaptive
+gaits, Rapid Motor Adaptation (RMA), and vision-based navigation.
+
+16.2      Pattern Generators for Gait Control
+Early quadruped locomotion systems used preprogrammed Pattern Generators for basic gait control. These
+generators provided fixed, repetitive gait patterns, mimicking simple biological circuits for energy-efficient
+locomotion:
+
+   • Fixed Gait Generators (1980s): Hildebrand (1965) analyzed different gain patterns on horses and came
+     up with numerical expressions for them. The interest for biological motor control increased in the 1980s.
+     The first successful legged walking machine was produced from from CMU. In Raibert et al. (1989),
+     these preprogrammed circuits control repeated motion patterns and enable efficient movement over
+     predictable surfaces. However, they lack adaptability to changes in the terrain. It is also important to
+     realize that the limited compute power dictated these research progress back then.
+
+
+                                                          94
+   • Environment-Specific Controllers: Different controllers were required for various environments, limiting
+     the robot’s versatility in dynamic or unfamiliar settings.
+
+
+
+
+                                      Figure 65: Versatile gaits on dogs.
+
+
+
+16.3    Reinforcement Learning for Natural Gait Adaptation
+Modern approaches seek to learn gaits “naturally” using RL, allowing robots to adaptively choose efficient
+gaits based on environmental feedback. This approach aims to replicate how babies learn to walk through
+trial and error. To avoid the high cost and time required for physical trials, this RL process is conducted in
+simulation, where training can run faster than real time and in parallel, making it significantly more efficient
+and cost-effective.
+
+   • Reward Mechanisms: The robot’s reward is based on minimizing energy use and ground impact
+     forces, encouraging efficient and stable movements. Fu et al. (2021) found that doing this, along with
+     tracking different target speeds, resulted in the emergence of different gaits that we observe in nature in
+     four-legged animals, such as walking, trotting and galloping (as seen in Figure 65).
+
+   • Single Policy Across Terrains: By learning a generalized policy, the robot can adapt its gait across a
+     range of terrains without requiring specific gait generators for each one. The robot receives ground truth
+     hints about the environment, such as the friction and terrain height in Figure 66. Note the difference
+     from older approaches discussed in the previous section, where different controllers were used depending
+     on the environment.
+
+
+16.4    Simulation-to-Real Transfer and Rapid Motor Adaptation
+Transitioning from simulation to the real world presents unique challenges as the robot no longer has access
+to the simulated environment’s “ground truth.” Kumar et al. (2021) introduce an adaptation module that
+helps to bridge this gap by estimating environmental factors in real time. In this process of policy training,
+three models are trained for effective adaptation:
+
+   • Base Policy (RL): Governs basic locomotion learned in simulation.
+
+   • Environmental Factor Encoder (Supervised): Encodes features of the current terrain.
+
+
+                                                      95
+                                   Figure 66: Learn to Walk in Simulation.
+
+
+   • Adaptation Module (Supervised): Adjusts the robot’s policy based on the estimated environmental
+     factors, allowing the robot to adapt to unknown and variable terrain.
+
+The integration of these three models can be seen in Figure 67.
+
+
+
+
+                          Figure 67: Moving from the Simulator to the Real World
+
+
+
+16.5    Speed-Adaptive Gaits for Efficient Locomotion
+Quadruped robots can achieve different gaits, such as walking, trotting, or running, by training policies that
+target specific speeds. Speed variation is achieved through adjustments in the reward structure:
+
+   • Variable Reward Terms: By changing reward terms to prioritize different speeds, the robot can learn
+     distinct movement patterns for various velocities.
+
+   • Policy Distillation: Policies for different speeds can be distilled into a single general policy, which allows
+     the robot to seamlessly transition between gaits based on its desired speed and energy efficiency.
+
+16.6    Navigation Using Vision and Proprioception
+So far, the discussion of quadruped locomotion has missed a vital component, perception, which allows
+robots to handle complex terrains more effectively. Although animals-and even robots-can navigate diverse
+
+
+                                                       96
+environments using proprioception alone, incorporating vision significantly enhances navigation capabilities.
+Agarwal et al. (2023) present an end-to-end system that enables a quadruped robot to traverse stairs, curbs,
+and varied terrain using a single, front-facing depth camera, with learned gait patterns tailored to the robot’s
+size and setup. This system leverages egocentric vision to maintain a memory of the terrain under the robot’s
+hind feet, demonstrating robust performance in both simulated and real-world environments.
+In a complementary approach, Fu et al. (2022) developed VP-Nav, a navigation system that combines vision
+and proprioception to enhance safety and adaptability. Using onboard cameras for occupancy mapping
+and proprioceptive feedback to detect unexpected obstacles (e.g., glass walls, slippery surfaces), VP-Nav
+generates dynamic path plans suited to the terrain. The system’s layered control, integrating high-level
+path planning with low-level locomotion, outperforms wheeled robots and demonstrates strong real-world
+navigation capabilities on a quadruped platform.
+
+   • Hierarchical Controller: This setup includes high-level planning based on target locations and low-level
+     control for adjusting gait and speed.
+
+   • Vision-Based Mapping: While maps as seen in Figure 68 are commonly used for navigation, real-world
+     conditions (e.g., camera shake) often limit their reliability.
+
+   • Learning Environmental Parameters: Instead of traditional mapping, robots learn environmental and
+     geometric properties through sensor fusion of visual and proprioceptive data. This enables the robot to
+     adapt its movements based on real-time observations, facilitating robust and adaptable navigation.
+
+
+
+
+                                   Figure 68: Building a Map with Vision
+
+
+
+
+                                                      97
+
+
+===== Lecture 9B | pages 98-102 =====
+
+17      Lecture9B
+CS294-277 Fall 2024                                                                     Lecturer: Jitendra Malik
+November 4, 2024                                                                            Scribe: Dvij Kalaria
+                             Lecture 9B: Locomotion for humanoids
+                                                    Abstract
+           In this lecture, we will explore locomotion but more tailored towards bipeds like humanoids. Most
+       of the lecture emphasizes on how locomotion is more difficult for biped robots like humanoids than
+       quadruped robots.
+
+
+17.1      Introduction
+Locomotion in the context of bipeds presents significantly greater challenges than for quadrupeds. This is
+because quadrupeds have 4 legs which makes it easier to balance than with 2 legs. This is challenging also
+because with 2 legs the system is in an unstable equilibrium as compared to with 4 legs that can provide
+contact force in 4 directions to balance the torque in all directions.
+
+17.2      Some initial works
+Some initial works on humanoid locomotion are dated back as early as 1990s. One of the most notable robot
+that came up was that honda asimo Chestnutt et al. (2005) which could perform hard-coded stable gait for
+biped walking. These robots notably used zero-moment point (ZMP) Miao et al. (2023) which aims at trying
+to maintain zero torque at the axis passing through COM. For walking, they have one leg always on the
+ground and move the hip to correct for some rotation. Some of the earlier boston dynamics robots ATLAS
+Feng et al. (2015) also notably uses model predictive control (MPC) assuming known dynamic model and
+has been able to perform highly dynamic tasks such as jumping over obstacles, parkour, back flip etc. It is
+important to note that these approaches are really good only in structured environment. This is because for
+structured environments, it is easier to forward simulate how robot will react given a sequence of control
+commands and thus use it to develop a MPC controller. However, it is difficult to make these approaches
+work in general environments without assuming any structure of the environment. For robust operation of
+humanoids on unstructured general environments, we need to use learning based techniques which we shall
+discuss in the next section
+
+17.3      Learning based techniques
+Recent work by Radosavovic et al. (2023) has demonstrated significant progress in developing end-to-end
+neural net controller trained with reinforcement learning that can walk slowly in wide range of terrains. The
+underlying structure of the controller is that it takes a history of joint angles and velocities as proprioception,
+and uses a causal transformer to predict the action in terms of the residual on joint angles. This end-to-end
+transformer is trained with reinforcement learning in simulation with a wide range of settings in terms of
+differences in terrain, friction etc. as domain adaptation. The reason behind domain adaptation in simulation
+is that the controller becomes robust to all of these changes in the terrain and that the real world could be
+treated as yet another simulation within the training distribution.
+One interesting skill that emerges with diverse training is the arm swings that were not explicitly instructed in
+the reward design. The reward design is only based on energy conservation. This phenomenon is well studied
+in literature Alghooneh and Wu (2014) and has been shown that swinging hands is the most energy-efficient
+technique to walk for humans
+Another interesting behavior observed is adaptation of walking style based on surface. During experimentation,
+the robot walked with more frequent steps with less height when on a slope. This behavior is not pre-
+programmed but is entirely emergent. This could be possible only because of in-context adaptation enabled by
+
+
+                                                        98
+              (a) Honda asimo robot                                          (b) Boston dynamics ATLAS robot
+
+
+including history of proprioception as an observation which it could have used to estimate surface parameters.
+This phenomenon is common and has been observed for humans as well Lin et al. (2011). This adaptation
+can be explained through neuron activations as seen in Figure 70. It is also able to achieve foot recovery
+behavior when climbing on a step.
+
+17.4    Humanoid Locomotion as Next Token Prediction
+The recent work Radosavovic et al. (2024) attempts into using the human walking videos to train a transformer
+in a fashion similar to the next token prediction unsupervised learning scheme prevalent in language modeling.
+This work includes 3 phases. The first phase is using internet videos of humans walking as well as motion
+capture pieces. The humans have a different morphology that the humanoid, hence the motion needs to
+be re-targeted to cater to a humanoid. The key takeaway with this decision of using noisy and re-targeted
+motion from internet videos is that we only need to mimic the style of walking from the data so it is still fine
+that the data is noisy as we prefer large noisy data over small perfect clean data. This data is then used
+in an unsupervised fashion to train transformer (same structure as described in previous section) with task
+to recreate some missing frames that are intentionally dropped in the sequence. One interesting conclusion
+from this work is that the Gait learned from mimicking humans is very similar to the one trained with RL
+and perhaps more smooth and better. One more interesting emergent behavior observed was that if the
+model is trained only on data with forward walking, it was still able to recreate pieces of backward walking if
+prompted that way. In conclusion, this approach turns out to be far more sample efficient than reinforcement
+learning. However, an obvious drawback is that it can only learn skills present in the data.
+
+17.5    Combining the benefits
+An extension of the work described above that can work on challenging terrains is studied in Radosavovic
+et al. (2023). This work combines the benefits of both reinforcement learning and human mimicking through
+next token prediction. This work includes 2 steps. The first step involves using human mimicking to initialize
+the policy which is later fine-tuned with RL in simulation on more challenging terrain as the second step.
+The intuition behind this is that a robot that can walk on a flat terrain is far more capable of walking on a
+challenging terrain than a robot that is not able to walk as all. This can be witnessed from Figure 72 where
+it clearly shows how good initialization helps in not only getting a head start for the RL environment but in
+
+
+                                                      99
+Figure 70: Gait changes based on terrain type. (A) Robot is commanded to move forward over a course
+consisting of three sections: flat, downward slope, and flat again. The controller adapts its behavior based
+on terrain, changing the gait from natural walking on flat terrain, to small steps on downward slope, to
+natural walking on flat terrain again. This type of adaptation based on context is emergent and has not
+been prespecified during training. (B) The hidden state of the last layer of our neural network controller is
+analyzed. Certain neuron responses correlate with the gait patterns observed over different terrain sections.
+(C) In addition, some of the neuron responses correlate changes in the terrain and are high for flat sections
+and low for the slope section. (D) To analyze the neural responses in aggregate, the 192-dimensional hidden
+states is projected to two dimensions using PCA and t-SNE. Each data point corresponds to one timestep
+and is color-coded by the terrain section.
+
+
+
+
+Figure 71: Humanoid locomotion as next token prediction. Model is trained on large internet extracted
+videos and motion capture sequences of humand walking
+
+
+
+                                                    100
+Figure 72: Comparison in rewards between models initialized from scratch vs with human demonstrations
+
+
+
+
+             Figure 73: Comparison in gait patterns when walking on different sloped terrains
+
+
+also converging to higher success rate. With this training scheme it is able to make the robot walk in wide
+range of environments including challenging long hikes and man made environments like highly steeped roads
+as high as 31 %. What is interesting is that the robot exhibits different gaits when traversing different sloped
+terrains as shown in Figure 73. It also exhibits different gaits when walking on sand as shown in Figure
+74. The robot also exhibits recovery behaviors when pushed or disturbed. The PCA based clustering of the
+actions gave significant differences for different kinds of terrains as shown in Figure 74.
+
+17.6    Conclusion
+In this lecture, we learned where the current progress stands for humanoid locomotion. We saw how we could
+use reinforcement learning to train a humanoid to walk in simulation and then deploy the same in real world.
+
+
+
+
+Figure 74: Terrain representations. The representations of model cluster based on the terrain the robot is
+walking on. These representations emerge as a byproduct of learning to walk. The authors did not design,
+supervise, or impose any constraints on the representations.
+
+
+                                                      101
+The hand swinging behavior emerges from training. Also, we saw given the structure of the humanoid, we
+can imitate human walking by re-targeting the human mesh to a humanoid. We then saw how we could
+combine the benefits of both human imitation and RL to train a superior policy capable of operating in
+challenging terrains and be additionally robust
+
+
+
+
+                                                 102
+

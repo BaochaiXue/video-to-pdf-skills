@@ -1,0 +1,258 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{课程笔记：视觉如何指导动作}
+\newcommand{\noteauthors}{五道口纳什 \& Codex}
+\newcommand{\notedate}{\today}
+\newcommand{\videochannel}{CS294-277 Fall 2024 / Jitendra Malik}
+\newcommand{\videopublishdate}{2024-09-30}
+\newcommand{\videoduration}{未提供}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=iUB0vRmTPVE}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 本讲未提供可用的独立封面图，故此处保留空白。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{为什么是 Vision for Action}
+
+\subsection{这门课里的 vision 不是“看见”，而是“指导动作”}
+这讲的关键词不是 perception 本身，而是 vision 如何进入 action loop。讲义一开始就把 action 拆成两类：manipulation 和 navigation。也就是说，这里的视觉不是为了做“纯识别”，而是为了让身体在世界里正确地动。
+
+\begin{importantbox}{核心判断}
+vision 对动作很重要，但它通常不是执行过程中最靠前、最快、最稳定的那一层。快速动作更多依赖 proprioception；vision 更像是用于规划和出错修正的慢通道。
+\end{importantbox}
+
+\subsection{进化视角与速度差异}
+课程把行动和感知放到一个演化叙事里：先是 perception for guiding movement，再到 perception for guiding manipulation，最后才是 language 的复杂化。这个顺序的意思并不是“语言更高级所以更晚出现”，而是提醒我们：感知-动作耦合先于抽象符号系统成为智能的底座。
+
+vision 之所以常常显得“慢”，原因很简单：视觉处理的链条长、涉及的信息量大。相对地，本体感觉的传递链路更短，因此能在控制环里提供更快的反馈。
+
+\subsection{本章小结}
+在本讲里，vision 的角色不是单独完成任务，而是和 proprioception、触觉、内部模型共同构成动作控制系统。理解这一点后，后面的 gaze、locomotion、prediction 才会连成一条线。
+
+\section{眼动、注视与近未来信息}
+
+\subsection{做一杯茶的眼动研究}
+讲义引用了 Land, Mennie and Rusted (1999) 的经典研究：让被试完成泡茶任务，同时记录头戴相机和 gaze pattern。这类 ego-exo video 的价值，在于它把“看什么”和“怎么做”同时放进一个自然任务里。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=3,width=0.78\textwidth]{slides.pdf}
+\caption{做一杯茶时的眼动研究：视线并不是随机扫过场景，而是提前落到未来会用到的信息上。}
+\end{figure}
+
+\subsection{为什么眼睛总是提前看}
+讲义强调了一个朴素但关键的结论：eyes are directed towards where information that will be useful in the near future is likely to be found。换句话说，眼睛不是被动接收器，而是任务调度器。人在做茶、走路、弹琴、看画时都会提前把 gaze 转向下一个需要的信息源。
+
+这也解释了 fovea 的意义。整张视野并不是等分的高分辨率地图；高分辨率只集中在视网膜中央，因此视觉系统必须主动安排注视点，才能把最重要的信息送进高分辨率通道。
+
+\subsection{Gaze precedes movement}
+讲义还给出一个很实用的动作原则：gaze often precedes and guides arm or leg movement。眼睛先扫到目标或下一步的信息，身体再跟上。这个现象在自然任务里几乎无处不在：泡茶、走路、看画、演奏、运动都如此。
+
+\begin{knowledgebox}{行动中的视觉}
+视觉在这里不是“边走边看”的连续监控，而更像“先规划、后执行、必要时纠错”。这就是为什么闭眼走向纸张仍然能停到差不多正确位置：主要规划已经在前面完成了。
+\end{knowledgebox}
+
+\subsection{本章小结}
+眼动不是动作的附属现象，而是动作准备的一部分。视觉会提前把未来几步所需的信息放到 fovea 附近，这让身体能够在执行阶段更多依赖本体感觉和局部反馈。
+
+\section{Vision for locomotion}
+
+\subsection{从步态到导航}
+讲义把 locomotion 和 navigation 一起看待。对动物和机器人来说，视觉的作用不只是“看见前面有障碍”，而是构建一个可用于决策的环境表征：地形、障碍、坡度、落脚点、目标位置，最后都要进入运动规划。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=13,width=0.80\textwidth]{slides.pdf}
+\caption{Egocentric vision 让腿足机器人在复杂地形上行走：视觉提供前瞻信息，而控制策略则把它转成稳定步态。}
+\end{figure}
+
+\subsection{以 egocentric depth 驱动复杂地形行走}
+讲义引用了 challenging terrains using egocentric vision 的工作。其关键点有三个：
+\begin{itemize}
+  \item 机器人只用前向 depth camera 就能处理台阶、路沿、石块和空隙；
+  \item 训练通常在 simulation 中完成，先用 cheap-to-compute 的深度表征训练一个策略，再把它 distill 到最终策略；
+  \item 由于相机是 egocentric 的，策略必须记住过去的信息，才能推断后腿即将踩到的地形。
+\end{itemize}
+
+\subsection{视觉在 locomotion 里的真实角色}
+这部分最重要的不是某个特定算法，而是一个控制观念：视觉往往提供较慢但较全局的前瞻信息，而腿部控制本身则依赖更快的本体感觉反馈和局部闭环。换句话说，视觉负责“先看远处怎么走”，本体感觉负责“当前一步落得稳不稳”。
+
+\subsection{本章小结}
+在导航和步行里，视觉的最大作用不是实时纠正每一次足端接触，而是建立前瞻性的地形理解。真正的稳定行走，通常是“视觉规划 + 本体感觉执行 + 必要时视觉修正”的组合。
+
+\section{预测、注视与动作准备}
+
+\subsection{Goal-directed action 里的预测}
+讲义引用 Fiehler et al. 的框架，把预测拆成三层：
+\begin{itemize}
+  \item 预测外部世界的感知变化；
+  \item 预测自己动作的后果；
+  \item 把眼、手、物体的运动预测整合起来。
+\end{itemize}
+这三层预测共同让动作从“被动反应”变成“前馈准备”。机器人如果没有这类内部预测，就只能等误差发生以后再修正。
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.28\textwidth}p{0.58\textwidth}}
+\toprule
+预测类型 & 作用 \\
+\midrule
+世界状态预测 & 帮助规划下一步会看到什么、碰到什么。 \\
+动作后果预测 & 让系统在动作执行前就知道可能产生什么感觉变化。 \\
+多模态联合预测 & 把眼动、手动和对象运动统一在同一时序里。 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{体育中的预测：cricket 和 baseball}
+讲义用 cricket batting 和 baseball hitting 说明“提前量”有多重要。高手不是等球撞上来再反应，而是根据早期轨迹、身体姿态和经验模型推断未来的位置，然后把 gaze 和身体动作提前布置到合适位置。这里的技能差距，部分就来自预测能力差距。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=16,width=0.78\textwidth]{slides.pdf}
+\caption{goal-directed action 里的预测：知道事件何时、何地发生，动作就能提前准备。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=19,width=0.78\textwidth]{slides.pdf}
+\caption{efference copy 试图解释：当眼睛自己在动时，视网膜上的运动信息并不必然意味着外界在动。}
+\end{figure}
+
+\subsection{Efference copy：把“我自己造成的变化”扣掉}
+Von Holst 和 Mittelstaedt 提出的 efference copy 是本讲最关键的预测概念之一。它的直觉很简单：当大脑发出眼动命令时，同时把一份 copy 送给视觉系统，用来预测自己即将看到什么。这样，系统就能区分“是对象动了”还是“是我自己在看它”。
+
+这个机制之所以重要，是因为 perception 从来不是纯被动的。若没有对自我动作的预测，视觉系统会把大量自造成的变化误判为外部世界变化。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=20,width=0.78\textwidth]{slides.pdf}
+\caption{predictive signals 会改变 perception；“自己挠自己不痒”是最经典的例子。}
+\end{figure}
+
+\subsection{Mental models}
+讲义最后把话题收束到 Craik (1943) 的 internal model 观点：如果系统在头脑里携带一份外部世界和自身动作的小模型，它就能先试错、再决策、再执行。讲义的结论非常直接：common sense 不是一堆事实，而是一组 model。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=21,width=0.78\textwidth]{slides.pdf}
+\caption{AI 系统为什么需要 mental models：它们让系统可以在行动前模拟结果。}
+\end{figure}
+
+\subsection{本章小结}
+预测不是装饰性能力，而是视觉指导动作的核心。眼动、动作准备、自我动作消除和内部模型，实际上是同一条控制链上的不同环节。
+
+\section{从发展角度理解深度线索}
+
+\subsection{深度信息并不是一开始就齐全}
+讲义最后借用婴儿发展研究提醒我们：对 depth information 的敏感性是逐步发展的。kinetic depth、binocular depth 和 pictorial depth 的敏感顺序并不完全一样，这说明视觉系统并不是一开始就拥有完整的几何理解，而是在发育过程中逐步搭建起来的。
+
+\begin{figure}[H]
+\centering
+\includegraphics[page=23,width=0.78\textwidth]{slides.pdf}
+\caption{婴儿对不同深度线索的敏感性发展并不同步，这为“视觉如何逐渐服务于动作”提供了发育学证据。}
+\end{figure}
+
+\subsection{本章小结}
+这一页把讲义前面的哲学收束到一个现实结论：视觉用于动作，不是天生全能，而是随着感知、运动和经验逐步耦合出来的能力。
+
+\section{总结与延伸}
+
+\subsection{综合回看}
+这讲的结构可以浓缩成一句话：vision 提供慢而广的前瞻信息，proprioception 提供快而稳的执行反馈，prediction 则把二者连接到同一个动作控制系统里。无论是泡茶、走路、接球，还是机器人走复杂地形，真正有效的系统都不会只靠“看见”。
+
+\subsection{本讲的三个结论}
+\begin{itemize}
+  \item 视觉更多用于规划和修正，而不是持续替代本体感觉。
+  \item gaze 不是旁观动作，而是动作准备的一部分。
+  \item internal model / mental model 是从感觉到动作的中间层，没有它就很难做出稳定的 goal-directed action。
+\end{itemize}
+
+\subsection{拓展阅读}
+如果要继续深入，推荐从 Land et al. (1999) 的茶水任务、Matthis et al. 的 terrain walking、Fiehler et al. 的 goal-directed prediction、Von Holst \& Mittelstaedt 的 efference copy，以及 Craik 的 internal model 观点继续往外扩展。它们共同构成了“视觉不是为了看，而是为了行动”的理论骨架。
+
+\begin{warningbox}{来源说明}
+本讲义主要依据课程页上的 slides、transcript 与课程 notes 摘录重建；正文中对若干跨页主题做了教材式重排，因此不严格沿用原始幻灯片顺序。
+\end{warningbox}
+
+\end{document}
