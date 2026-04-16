@@ -54,6 +54,14 @@ def latest_eval_status(lecture: dict) -> str:
         return "unknown"
 
 
+def lecture_source_mode(lecture: dict) -> str:
+    if lecture.get("kind", "lecture") == "supplement":
+        return "supplement_non_video"
+    if lecture.get("video_url"):
+        return "video_grounded"
+    return "non_video_reconstruction"
+
+
 def main() -> None:
     manifest = json.loads((BUILD_DIR / "course_manifest.json").read_text())
     tex_path = BUILD_DIR / "s294_277_complete_textbook.tex"
@@ -170,6 +178,7 @@ def main() -> None:
     deliverable_pdf = DELIVERABLE_DIR / tex_path.with_suffix(".pdf").name
     deliverable_manifest = DELIVERABLE_DIR / "course_manifest.json"
     deliverable_status = DELIVERABLE_DIR / "BOOK_STATUS.md"
+    deliverable_provenance = DELIVERABLE_DIR / "SOURCE_PROVENANCE.md"
     shutil.copy2(tex_path, deliverable_tex)
     shutil.copy2(tex_path.with_suffix(".pdf"), deliverable_pdf)
     shutil.copy2(BUILD_DIR / "course_manifest.json", deliverable_manifest)
@@ -180,6 +189,7 @@ def main() -> None:
         f"- `{deliverable_tex.name}`",
         f"- `{deliverable_pdf.name}`",
         f"- `{deliverable_manifest.name}`",
+        f"- `{deliverable_provenance.name}`",
         f"- main lectures: {len(main_lectures)}",
         f"- supplement appendices: {len(supplement_lectures)}",
         "",
@@ -206,6 +216,50 @@ def main() -> None:
         ]
     )
     deliverable_status.write_text("\n".join(status_lines))
+
+    provenance_lines = [
+        "# Source Provenance",
+        "",
+        "This file states whether the textbook chapters are primarily grounded in official course videos or reconstructed from other official materials.",
+        "",
+        "## Summary",
+        "",
+        "- The main Fall 2024 spine is mostly grounded in the official public YouTube playlist.",
+        "- A small number of Fall 2024 chapters have no corresponding public YouTube video in the official playlist and were reconstructed from official slides, course notes, and course-page readings.",
+        "- The Spring 2026 and MIT Underactuated Spring 2024 additions are explicit supplement appendices. They are source-grounded, but they are not presented as Fall 2024 lecture-video transcriptions.",
+        "",
+        "## Per-Chapter Status",
+        "",
+        "| ID | Kind | Title | Provenance |",
+        "|---|---|---|---|",
+    ]
+    for lecture in lectures:
+        mode = lecture_source_mode(lecture)
+        if mode == "video_grounded":
+            provenance = "Primary source includes official course video, plus official slides/notes when available."
+        elif mode == "non_video_reconstruction":
+            provenance = "No public course video in the current official playlist; reconstructed from official slides, course notes, and course-page readings."
+        else:
+            provenance = "Supplement appendix based on official course pages, official notes, readings, and linked playlists; not a Fall 2024 lecture-video transcript."
+        provenance_lines.append(
+            f"| {lecture['lecture_id']} | {lecture.get('kind', 'lecture')} | {lecture['title'].replace('|', '/')} | {provenance} |"
+        )
+    provenance_lines.extend(
+        [
+            "",
+            "## Official Video Anchors",
+            "",
+            f"- Fall 2024 official YouTube channel: {OFFICIAL_CHANNEL_URL}",
+            f"- Fall 2024 official playlist: {OFFICIAL_PLAYLIST_URL}",
+            "",
+            "## Direct Answer",
+            "",
+            "If you ask whether the current book is strictly 'according to the course videos', the accurate answer is: mostly yes for the Fall 2024 public-video spine, but not universally.",
+            "The final book deliberately includes non-video reconstructions for missing public Fall 2024 lectures and explicit supplement appendices from Spring 2026 and MIT Underactuated Spring 2024.",
+            "",
+        ]
+    )
+    deliverable_provenance.write_text("\n".join(provenance_lines))
     print(deliverable_pdf)
 
 

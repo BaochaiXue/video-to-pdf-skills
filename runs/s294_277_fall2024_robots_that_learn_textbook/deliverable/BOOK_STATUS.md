@@ -4,6 +4,7 @@ Current deliverable assets:
 - `s294_277_complete_textbook.tex`
 - `s294_277_complete_textbook.pdf`
 - `course_manifest.json`
+- `SOURCE_PROVENANCE.md`
 - main lectures: 18
 - supplement appendices: 4
 
