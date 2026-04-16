@@ -1,0 +1,196 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+
+\geometry{margin=2.4cm}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newcommand{\notetitle}{CS294/194-196 第 1 讲：课程导论与 Agentic AI 全景}
+\newcommand{\noteauthors}{Codex 基于 UCB Agentic AI Fall 2025 官方 slides、课程页与公开 syllabus 重写}
+\newcommand{\notedate}{2026-04-16}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程讲义\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{课程}：UCB CS294/194-196: Agentic AI（Fall 2025）\par
+\textbf{讲次}：导论（Introduction）\par
+\textbf{主讲}：Dawn Song\par
+\textbf{来源}：官方课程页与导论 slides\par
+\textbf{说明}：本讲官方课程页未提供公开视频，因此本章依据官方课件与课程页信息做 best effort 教材化重建。
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{为什么要单独开一门 Agentic AI 课程}
+这份导论没有从某个单点技术出发，而是先确立整门课的范围与判断：\textbf{Agentic AI 已经不再只是“给 LLM 加几个工具调用”的工程技巧，而是在 2025 年被视为一类足以重塑 AI 应用与系统栈的主线范式。} 课程页与导论 slides 明确把它放在 LLM foundations、reasoning、planning、tool use、memory、robotics、web automation、scientific discovery、safety \& security 这些主题的交叉点上。
+
+第 1 讲的教学目标因此不是立刻展开公式推导，而是回答三个更根本的问题：
+\begin{enumerate}[leftmargin=1.5em]
+\item 什么叫 agentic AI，它与传统 chatbot 或单轮 LLM 调用究竟差在哪？
+\item 为什么 2025 年会被课程直接称作“Year of Agents”？
+\item 如果这门课要做教材级学习，后面 12 次课分别在整条技术链上承担什么角色？
+\end{enumerate}
+
+\begin{importantbox}{导论章的定位}
+本章承担的是“定义战场”的任务。后面各讲会进入 reasoning、evaluation、multi-agent、scientific discovery、robotics 和 safety 等细节，但如果没有这一讲先给出统一的 agent 框架，整门课很容易被误读成若干 guest lecture 的拼盘。
+\end{importantbox}
+
+\subsection{本章小结}
+导论首先把 Agentic AI 从一个模糊流行词收束成课程对象：它关心的是 LLM 如何在记忆、工具、反馈、规划和环境交互中形成更完整的任务执行闭环，而不是只生成一段高质量文本。
+
+\section{Agentic AI 的最小框架：工具、记忆、规划与环境交互}
+导论 slides 给出的核心结构图非常简练，但已经足以作为整门课的统一坐标系：LLM 位于中心，外圈围绕着 \textbf{tool use}、\textbf{retrieval}、\textbf{memory}、\textbf{reasoning \& planning}、\textbf{feedback} 和 \textbf{environment}。这张图的价值在于，它把 agent 定义成一个闭环系统，而不是一个只在静态 prompt 上做条件生成的模型。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-06.png}
+\caption{LLM agent 的基本闭环：memory、tool use、retrieval、reasoning \& planning、action 与 environment feedback 共同构成智能体。}
+\end{figure}
+
+如果把它写成更适合教材阅读的语言，可以把 Agentic AI 的最小工作流概括成：
+\begin{enumerate}[leftmargin=1.5em]
+\item 接收任务与环境状态；
+\item 通过内部推理与规划形成若干候选步骤；
+\item 调用工具、检索知识或访问外部接口；
+\item 根据环境反馈修正记忆与后续动作；
+\item 迭代直到完成任务或触发停止条件。
+\end{enumerate}
+
+这一定义有两个含义。第一，agent 的能力并不只来自 base model 的参数规模，也来自外部结构化接口。第二，真实世界任务通常不是“一次性算出来”，而是要经历试错、回退、重规划与跨步骤记忆维护。也正因为如此，课程会把 planning、memory、tool use、evaluation 和 safety 全部并入主线。
+
+\begin{knowledgebox}{为什么课程图里 LLM 不再是终点}
+在普通 chatbot 视角下，LLM 的输出就是系统终点；在 agent 视角下，LLM 的输出更像一个中间决策节点。真正闭环的是“模型输出动作，再从环境拿回反馈，再继续做下一步决策”。
+\end{knowledgebox}
+
+\subsection{为什么课程把 Retrieval 也放进 agent 框架}
+导论图里单独画出了 retrieval，这说明课程不把检索当作附属技巧。它的作用至少有三层：一是为 agent 提供超出 parametric memory 的外部知识；二是降低纯内部推理的幻觉风险；三是让系统能够在长任务里不断补充任务相关上下文。换句话说，retrieval 在这里不是 RAG 的老问题重提，而是 agent 扩展工作记忆和外部知识边界的关键接口。
+
+\subsection{本章小结}
+从这张框架图出发，整门课的后续结构就都变得自然了：reasoning 与 planning 解决“怎么想”，tool use 与 retrieval 解决“怎么做”，memory 解决“怎么跨步骤保持状态”，feedback 与 environment 解决“怎样形成闭环”。
+
+\section{为什么 2025 被课程直接称作“Year of Agents”}
+导论 slides 很明确地做了一个时间判断：Fall 2024 开 Berkeley LLM Agents MOOC 时，业界对 agents 的集中讨论还远没有这么热；而到 2025 年，课程直接把这一年标记为“Year of Agents”。这并不是一句宣传口号，而是在给学生一个观察框架：\textbf{某种技术从实验室概念变成产业与研究共同追逐的主线时，会同时在应用层、系统层和 benchmark 层出现密集信号。}
+
+导论给出的这些信号主要体现在两个方面。第一，agent 已经快速渗透到多类应用：code generation、computer use、personal assistants、robotics，以及教育、法律、金融、医疗、网络安全等垂直场景。第二，frontier AI 的进展开始越来越频繁地以“自主完成复杂任务”的形式被展示，而不只是静态文本生成质量。
+
+\subsection{从 competitive math / coding 到真实环境任务}
+课件里把 competitive math 和 coding 的突破单独拿出来，是因为这两类任务天然检验多步推理、搜索、验证与错误修正能力。它们的信号价值在于：模型不再只是“看起来像会做题”，而是在更严格的任务标准上逼近甚至达到高水平人类表现。导论并没有因此声称“agent 已经成熟”，相反，它是在说明为什么 reasoning 和 evaluation 会在后续课程里占据核心位置。
+
+\subsection{应用扩张与系统复杂度同时上升}
+一旦 agent 落到 code generation、computer use、robotics 和 scientific discovery 这些场景，系统要求就会比普通聊天更严苛。因为这些任务不仅要求正确回答，还要求：
+\begin{itemize}
+\item 维护长时间尺度上的状态一致性；
+\item 与外部工具、浏览器、代码仓库、仿真器或机器人接口对接；
+\item 在失败时能回滚、重试或重新规划；
+\item 有可评估、可复现、可审计的任务结果。
+\end{itemize}
+
+这也解释了为什么课程后面不仅有 reasoning / planning，也有 infrastructure、evaluation，以及 safety \& security。导论实际上已经提前告诉读者：\textbf{Agentic AI 从一开始就是系统问题，不只是模型问题。}
+
+\subsection{本章小结}
+“Year of Agents” 在这门课里的真实含义，是 agent 已经从一个外围话题变成组织前沿 AI 能力的主线视角。后续课程因此不会只讲单个模型技巧，而会围绕任务闭环、系统栈和真实应用来展开。
+
+\section{这门课到底覆盖什么：从 reasoning 到 robotics 的完整技术栈}
+导论 slides 直接给出了一组代表性主题：\textbf{fundamental reasoning techniques}、\textbf{tool using in agents}、\textbf{agents for software engineering}、\textbf{agents stack \& infrastructure}、\textbf{agentic workflows / real-world applications}、\textbf{safety and security}。如果只把这些主题列出来，它们像课程广告；但把它们按教材逻辑重新组织后，会发现其实是四层结构。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-10.png}
+\caption{导论 slides 直接给出的课程主题分布：从 reasoning、tool use 到 software engineering、infrastructure 与 safety。}
+\end{figure}
+
+\subsection{第一层：基础认知与任务推理}
+第一层是 reasoning、planning、verification、evaluation。这一层解决的是 agent 如何在多步任务里做出更可靠的中间决策，以及我们怎么判断这种决策是否真的有效。没有这一层，agent 就只剩“会调用工具”的表面形式。
+
+\subsection{第二层：能力扩展接口}
+第二层是 tool use、retrieval、memory 和 external feedback。它们回答的是 agent 如何突破单模型静态上下文的限制，获得更强的任务执行能力。课程把这些内容纳入主线，说明它关心的是完整执行系统，而不是只谈 base model。
+
+\subsection{第三层：系统化场景}
+第三层是 software engineering、computer use、scientific discovery、robotics 等高价值场景。导论里点名这些例子，等于是提前告诉学生：后续讲次不会停留在抽象讨论，而会不断把 agent 放回真实应用工作流。
+
+\subsection{第四层：治理与可靠性}
+最后一层是 evaluation、safety \& security。它们不是课程的尾声附录，而是与前面几层并列的核心问题。原因非常直接：agent 的能力越接近真实任务执行，其失误和滥用的代价就越高，因此安全性与可评估性必须从框架层一起设计。
+
+\begin{warningbox}{为什么这门课不能只讲“更强的 agent”}
+如果只追求更强任务完成率，而不讲 evaluation 与 safety，那么课的结尾就会失真。因为现实中的 agent 不是 benchmark 上的抽象智能体，而是会接入工具、执行代码、操纵浏览器甚至作用于物理世界的系统。
+\end{warningbox}
+
+\subsection{本章小结}
+导论给出的主题列表，本质上是一张分层地图：底层是 reasoning/planning，中层是 memory/tool/retrieval，上层是 code/robotics/science 等应用，再往外一圈是 evaluation 与 safety。后面逐讲展开时，都可以在这张地图上找到位置。
+
+\section{课程组织与学习要求：为什么这是“做项目”的课，而不只是“听 guest talk”的课}
+导论后半段专门讲课程安排、quiz、semester-long project 和推荐背景。这部分对教材读者同样重要，因为它说明授课团队希望学生获得的不只是概念理解，而是能真正做出 agentic AI 系统。
+
+\subsection{每次 lecture 后的 quiz 有什么作用}
+课件明确写了 quizzes after each lecture，并规定截止时间。这并不只是课程管理问题，而是在强化一种节奏：每讲都需要立即完成概念巩固，不能把整门课当作“看过就算”。对自学读者来说，这意味着每章都应该当作可独立复盘的模块，而不是等到最后再总复习。
+
+\subsection{Semester-long project 是这门课的核心训练方式}
+导论明确给出了两条 project track：\textbf{Agent Track} 与 \textbf{Research Track}。这说明课程既接纳做系统和产品原型的学生，也接纳做研究探索的学生，但无论哪种路径，最终都要求学生把课程内容转化成某种可以实现、比较或论证的产物。
+
+\begin{importantbox}{为什么 project 设计很关键}
+一门真正关于 Agentic AI 的课程，如果没有 project，学生很容易只记住案例和 buzzwords。project 的作用，是逼你把 reasoning、tool use、evaluation、safety 这些概念放到一个统一系统里。
+\end{importantbox}
+
+\subsection{对自学者的等价要求}
+如果你不是 Berkeley 选课学生，无法真的交 quiz 或做课内 project，那么最合理的等价要求是：
+\begin{enumerate}[leftmargin=1.5em]
+\item 每读完一章，自己总结关键定义、任务形式和未解决问题；
+\item 选至少一个课程应用方向，尝试复现或设计一个 agent 系统草案；
+\item 用课程中的 evaluation / safety 视角重新审查自己的设计。
+\end{enumerate}
+
+这份教材后续也会按这种方式来组织：不仅给概念，还要尽量保留足够多的实验、系统和任务细节，支撑真正的复现与批判性学习。
+
+\subsection{本章小结}
+课程组织本身已经反映出教学目标：这是一门训练系统搭建与研究判断力的课，而不是一门只靠听讲就能完成的 survey 课。对教材读者来说，这意味着后续章节必须保留足够的工程深度，不能被压缩成提纲。
+
+\section{总结与延伸}
+第 1 讲虽然没有公开视频，但从官方 slides 与课程页已经能相当完整地重建其教学意图。最核心的结论可以压缩为四点。
+
+第一，\textbf{Agentic AI 的核心不在于“更会聊天”，而在于把 LLM 放进一个带有记忆、工具、规划、反馈和环境交互的闭环里。}
+
+第二，\textbf{2025 被课程直接称作“Year of Agents”，说明 agent 已经从边缘研究对象上升为组织前沿 AI 进展的一条主轴。}
+
+第三，\textbf{这门课覆盖的不是单点模型技巧，而是一整条从 reasoning、planning 到 code、robotics、scientific discovery，再到 safety \& security 的技术栈。}
+
+第四，\textbf{课程用 quiz 与 semester-long project 明确表态：学习 Agentic AI 的目标不是知道术语，而是具备设计、实现、评估和审查 agent 系统的能力。}
+
+\begin{warningbox}{关于本章来源的说明}
+本章没有官方公开视频，因此属于基于官方 slides 与课程页的 best effort 教材化重建。后续若 Berkeley 补发正式录播，本章应再对照视频口述做一次修订。
+\end{warningbox}
+
+\end{document}

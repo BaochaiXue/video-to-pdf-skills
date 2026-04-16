@@ -1,0 +1,165 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[fontset=fandol]{ctex}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,longtable,array}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{caption}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\graphicspath{{./}{./pdf_pages/}}
+
+\title{UCB CS294/194-196 Agentic AI Fall 2025\\第07讲：Multi-Agent AI}
+\author{基于公开视频、slides、字幕与课程页整理}
+\date{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{课程定位：为什么这一讲要从 Self-Play 讲起}
+Noam Brown 这一讲的核心不是“多放几个 agent 就更强”，而是把多智能体系统放回到一个更严格的理论与系统背景中：当问题本身具有对抗性、合作性或者混合动机时，智能体之间的交互关系本身就构成了学习信号。课程先用 AlphaGo 的类比说明一条更普遍的路径：先在高质量人类数据上预训练，再在推理阶段投入更多计算，最后借助递归式自我改进（recursive self-improvement）或自我对弈（self-play）把系统推向更强的策略。
+
+这一讲的重要价值在于，它并不把 multi-agent AI 只理解成“多个聊天机器人互相商量”。相反，它把多智能体学习分成三层：
+\begin{itemize}[leftmargin=1.4em]
+  \item 在零和或近似零和环境中，如何通过 self-play 学到接近 minimax equilibrium 的稳定策略。
+  \item 在存在隐藏信息、联盟、承诺和信任成本的环境中，为什么单纯的单智能体 RL 视角会失效。
+  \item 在 LLM 时代，如何用多 agent scaffold 把多样性、延迟和 handoff 设计成系统特性，而不是后处理补丁。
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{pdf_pages/page-03.png}
+  \caption{课程用 AlphaGo 类比说明 multi-agent AI 的递进路径：预训练、高推理计算与递归式自我改进。}
+\end{figure}
+
+\section{从自我对弈到均衡：零和博弈里的基本理论}
+在有限两人零和博弈中，self-play 之所以值得研究，是因为它提供了一个可以收敛到稳定解的学习范式。对任意策略 $\pi$ 与对手策略 $\pi'$，设收益函数为 $U(\pi,\pi')$，则理想目标是寻找 minimax equilibrium：
+\[
+\pi^\star \in \arg\max_{\pi}\min_{\pi'} U(\pi,\pi').
+\]
+如果博弈满足零和结构且双方都有足够的记忆与计算，sound self-play algorithm 可以通过反复自我博弈逼近这一均衡。这里的关键不是“打赢当前自己”，而是让策略在面对任意对手时都具有稳定的最坏情形保证。
+
+课程用 poker 和 rock-paper-scissors 来强调这一点：在这些环境里，单次胜率不等于策略质量，真正重要的是是否进入了没有明显 exploitable weakness 的区域。也正因为如此，fictitious play、regret matching 和 hedge 这类方法成为后续分析的主线。
+
+\subsection{Fictitious Play、Regret Matching 与 Hedge}
+Fictitious play 的直觉是：把对手过去的行为当作经验分布，然后对这个经验分布做 best response。它简单，但在复杂环境中往往收敛慢，且对最后一次迭代不够友好。
+
+Regret matching 则更接近“后悔最小化”的语言。若在第 $t$ 轮采取动作 $a_t$，动作 $a$ 的累计外部后悔可写作
+\[
+R_t(a)=\sum_{\tau=1}^{t-1}\bigl(u_\tau(a)-u_\tau(a_\tau)\bigr).
+\]
+更新时只保留正后悔并进行归一化：
+\[
+\pi_t(a)=\frac{\max(R_t(a),0)}{\sum_{a'}\max(R_t(a'),0)}.
+\]
+其含义很直接：如果某个动作长期比当前选择更好，那么它在下一轮应获得更高概率；如果它并没有带来正向收益，则不应被放大。Hedge 则把这个思想写成指数加权形式：
+\[
+\pi_{t+1}(a)\propto \pi_t(a)\exp(\eta \hat r_t(a)),
+\]
+其中 $\hat r_t(a)$ 是当前轮的估计回报，$\eta$ 是学习率。Hedge 的优点是平滑、可分析，缺点是需要更小心地处理步长与方差。
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.18\linewidth}p{0.28\linewidth}p{0.23\linewidth}p{0.22\linewidth}}
+\toprule
+方法 & 核心思想 & 优点 & 局限 \\
+\midrule
+Fictitious play & 对手经验分布上的 best response & 直观、理论简单 & 收敛慢，最后一次迭代弱 \\
+Regret matching & 按正后悔分配下一步概率 & 与博弈论联系紧密 & 需要处理噪声与方差 \\
+Hedge & 指数加权多臂更新 & 稳定、平滑 & 对步长敏感 \\
+\bottomrule
+\end{tabular}
+\caption{课程中出现的三类典型多智能体学习更新。}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-09.png}
+  \caption{Minimax equilibrium 的直观解释：在零和环境里，理想策略不是“偶尔赢很多”，而是“面对任意对手都不容易被剥削”。}
+\end{figure}
+
+\section{为什么不完全信息博弈更难}
+课程明确指出，不完全信息游戏会让很多在 fully observed setting 中成立的直觉失效。扑克、Diplomacy 以及许多现实交互任务都包含隐藏信息、承诺、联盟与误导，因此学习者不能只看“动作是否最优”，还必须建模 belief、communication 和 opponent modeling。
+
+这里的关键困难有三个：
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{信息缺失}：策略需要在不完全观测下行动，而不是依赖全局状态。
+  \item \textbf{互相适应}：对手并不是静态环境，而是在持续学习。
+  \item \textbf{最后一次迭代问题}：许多算法平均策略表现好，但最后一轮策略仍可能脆弱。
+\end{itemize}
+
+这也是为什么 Brown 特别强调“sound self-play algorithm”与“new last-iterate algorithms”。在复杂对抗环境中，策略不是只要均值收敛就够了，系统还要能在单次部署中表现稳定。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-18.png}
+  \caption{PPO 在 Rock-Paper-Scissors 中的示意，说明在简单对抗环境里也可以看到策略学习与均衡行为的关系。}
+\end{figure}
+
+\section{从博弈到真实系统：Diplomacy、DORA 与人类环境}
+课程中一个重要转折是：多智能体 AI 不应只被局限在“两个 agent 对打”。在 Diplomacy 这类任务中，support 是关键，联盟和承诺比纯粹的局部动作更重要。No-press Diplomacy 的研究表明，如果智能体可以在无语言协议下学习合作与竞争，它们可能会发现人类未必显式设计出的策略结构。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-35.png}
+  \caption{DORA 从 scratch 学习 no-press Diplomacy 的方式，体现出多智能体学习不仅是博弈算法问题，也是策略与协作结构设计问题。}
+\end{figure}
+
+这里有一个对 Agentic AI 特别重要的观点：有些任务中，人类并不是外部评测器，而是环境的一部分。换言之，agent 需要把人类的偏好、交互节奏、沟通习惯和信任机制纳入策略空间。CICERO 在 Diplomacy 和 Hanabi 中的结果说明，若要让系统和人类协作，策略空间必须同时包含语言、承诺与合作。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-40.png}
+  \caption{CICERO 的人机协作场景说明，LLM agent 的能力不只在于决策，也在于与人类共同维持协作秩序。}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-41.png}
+  \caption{Hanabi 的结果强调：在部分可观测、强协作的任务中，communication 和共同信念往往比单步最优动作更重要。}
+\end{figure}
+
+\section{LLM 多智能体协作：延迟、丰富性与 handoff}
+当课程转向 LLM 时，Brown 的重点变成了：如何把多智能体思想变成系统设计原则，而不是只停留在博弈论。OpenAI 的 o1 到 o3 路线被用来说明，强化推理、更多采样与 consensus 可能带来性能提升，但代价是延迟和计算开销。多智能体系统因此必须在三个维度之间取舍：
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Latency}：答案要快，还是可以慢一点换更稳的结果。
+  \item \textbf{Diversity}：多个 agent 的不同视角是否真的能减少盲点。
+  \item \textbf{Scaffold}：什么时候让一个 agent 把任务 hand off 给另一个 agent，比继续单线程推理更有价值。
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-47.png}
+  \caption{多智能体系统里的 latency 约束：系统质量常常提升，但推理时延也会上升。}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-49.png}
+  \caption{多样性是 multi-agent AI 的核心资产之一：不同采样轨迹、不同角色和不同上下文，可能带来更强的整体决策。}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-50.png}
+  \caption{今日的多智能体协作 scaffold：手动分工、角色化交流与任务 handoff 已经成为工程上最现实的落点。}
+\end{figure}
+
+Brown 的最终判断并不夸张：field 仍然很早，但多智能体 AI 已经从“可以讨论的概念”变成“可以用于构建系统的工程范式”。真正有潜力的路线，不是把一个强模型无限放大，而是让多个模型在合适的通信结构里互补。
+
+\subsection{本章小结}
+本讲给出的核心信息可以压缩成三句话。第一，self-play 的价值不在于“自我循环”本身，而在于它提供了一个可分析、可收敛的均衡学习框架。第二，一旦任务从零和走向不完全信息、合作与人机交互，单智能体 RL 的直觉就不够了，必须显式建模 communication、belief 和 support。第三，在 LLM 时代，多智能体协作更像系统设计问题：延迟、diversity 和 handoff 的权衡，决定了它到底只是一个 demo 还是一个可部署框架。
+
+\section{总结与延伸}
+这讲最值得延伸的方向有两个。其一是把博弈论中的 regret minimization 和现代 LLM 推理中的 self-consistency、best-of-N、debate 连接起来，研究它们是否可以共享同一套理论语言。其二是把 Diplomacy、Hanabi、协作写作和工具使用统一到“人机共生环境”里：在这类任务中，agent 不再只优化单步 reward，而是在长期交互中维护关系、可信度和分工结构。
+
+如果把这一讲放回 Agentic AI 课程的大图景里，它其实是在回答一个很实用的问题：什么时候一个系统应该独立决策，什么时候应该找别的 agent，什么时候应该把人类放回回路中。这个问题在后续的编排、评测和科学发现章节里会反复出现。
+
+\end{document}

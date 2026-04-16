@@ -1,0 +1,1161 @@
+[00:00:00,000 --> 00:00:01,220] ORIOL VINYALS: Amazing.
+[00:00:01,220 --> 00:00:01,720] Great.
+[00:00:01,720 --> 00:00:03,680] So it's great to be back at Berkeley.
+[00:00:03,680 --> 00:00:06,240] There was a probabilistic trip, which
+[00:00:06,240 --> 00:00:09,860] would have helped me to be in the US today.
+[00:00:09,860 --> 00:00:12,340] But sadly, I took it very short last week.
+[00:00:12,340 --> 00:00:14,160] So I was in the Bay last week but not this
+[00:00:14,160 --> 00:00:18,760] week, so we'll have to do this online.
+[00:00:18,760 --> 00:00:21,320] But yeah, it's great to be virtually back.
+[00:00:21,320 --> 00:00:25,320] I have deep roots in Berkeley, as you might know,
+[00:00:25,320 --> 00:00:27,400] if you have known me for a while.
+[00:00:27,400 --> 00:00:32,120] And today, I mean, this lecture really will have two parts.
+[00:00:32,120 --> 00:00:35,220] And it's a [? medal, ?] actually, in a way.
+[00:00:35,220 --> 00:00:37,460] And it's also kind of, selfishly, I'm
+[00:00:37,460 --> 00:00:43,260] doing this also to remind, I mean, first and foremost,
+[00:00:43,260 --> 00:00:47,680] people in the field that lots of ideas recirculate.
+[00:00:47,680 --> 00:00:53,380] And so, in a way, I put together this slide deck,
+[00:00:53,380 --> 00:00:56,040] or I recovered the slide deck, from the AlphaStar project,
+[00:00:56,040 --> 00:01:00,340] which is six or so years old, and realized
+[00:01:00,340 --> 00:01:06,500] that many of the current issues but also solutions that we're
+[00:01:06,500 --> 00:01:13,080] using in modern LLMs trace back further before.
+[00:01:13,080 --> 00:01:17,540] But I mean, we did encounter many of these issues
+[00:01:17,540 --> 00:01:20,580] ourselves when we work on a fairly, probably
+[00:01:20,580 --> 00:01:25,220] our most advanced, even today, especially on video games, agent
+[00:01:25,220 --> 00:01:27,360] that DeepMind had built at the time.
+[00:01:27,360 --> 00:01:30,420] And I'll get into details now in a second.
+[00:01:30,420 --> 00:01:34,890] But it's useful to revisit these ideas to see them
+[00:01:34,890 --> 00:01:36,850] with perspective and also realize
+[00:01:36,850 --> 00:01:41,130] what are the things that we did back then that, currently, we
+[00:01:41,130 --> 00:01:45,650] can't do, or we're not quite doing at the same level in LLM.
+[00:01:45,650 --> 00:01:49,650] So this lecture will be a bit of a mixture between AlphaStar
+[00:01:49,650 --> 00:01:54,130] and also Gemini and other LLM agents
+[00:01:54,130 --> 00:01:58,370] but with the kind of hindsight, foresight lens, which hopefully,
+[00:01:58,370 --> 00:02:00,890] you will find entertaining.
+[00:02:00,890 --> 00:02:03,410] So let's go through a bit of basics.
+[00:02:03,410 --> 00:02:06,470] Now of course, I'm sure you've covered many of these topics.
+[00:02:06,470 --> 00:02:08,130] And you probably know them because they
+[00:02:08,130 --> 00:02:09,670] become quite mainstream.
+[00:02:09,670 --> 00:02:13,410] But indulge me into giving you my own perspective
+[00:02:13,410 --> 00:02:15,410] and point of view.
+[00:02:15,410 --> 00:02:20,130] So this is the OG slide of DeepMind, actually.
+[00:02:20,130 --> 00:02:22,650] The pitch slide deck had a version
+[00:02:22,650 --> 00:02:24,310] of this that did not have StarCraft,
+[00:02:24,310 --> 00:02:27,890] but it had agent environment, agent with goals, observations,
+[00:02:27,890 --> 00:02:28,550] and actions.
+[00:02:28,550 --> 00:02:31,550] That was, at the time, not that mainstream.
+[00:02:31,550 --> 00:02:34,510] Reinforcement learning wasn't mainstream
+[00:02:34,510 --> 00:02:37,550] when DeepMind was eventually acquired.
+[00:02:37,550 --> 00:02:40,190] And also, it serves a little bit to try
+[00:02:40,190 --> 00:02:43,710] to put our heads on what is an agent since this class is
+[00:02:43,710 --> 00:02:44,830] about agents.
+[00:02:44,830 --> 00:02:50,530] And I think today if you ask people, like, is this an agent,
+[00:02:50,530 --> 00:02:52,750] is this an agentic behavior, you probably
+[00:02:52,750 --> 00:02:55,509] get quite a few different answers.
+[00:02:55,509 --> 00:02:58,790] Back then, things were a bit simpler, though.
+[00:02:58,790 --> 00:03:01,910] We were mostly connecting to single environments
+[00:03:01,910 --> 00:03:05,150] with, well, [? spect ?] and defined observations
+[00:03:05,150 --> 00:03:06,010] and actions.
+[00:03:06,010 --> 00:03:10,550] And the agent had just, maximize reward as a goal.
+[00:03:10,550 --> 00:03:13,390] Of course, in games, many times, the reward
+[00:03:13,390 --> 00:03:16,830] was fully specified and fairly simple to compute.
+[00:03:16,830 --> 00:03:21,010] And then this was the loop that agents lived in forever.
+[00:03:21,010 --> 00:03:23,710] And their goal was to optimize reward.
+[00:03:23,710 --> 00:03:29,940] Now today, things are a bit different.
+[00:03:29,940 --> 00:03:33,960] Besides, I guess, having agents in the traditional sense,
+[00:03:33,960 --> 00:03:36,700] we have assistants that assist users.
+[00:03:36,700 --> 00:03:39,980] So then, what is the environment, what
+[00:03:39,980 --> 00:03:42,840] are the actions, start to be a bit more diffuse.
+[00:03:42,840 --> 00:03:45,860] And I think embracing that is fine.
+[00:03:45,860 --> 00:03:48,900] This is probably the most accurate,
+[00:03:48,900 --> 00:03:51,740] at least from our side, perspective
+[00:03:51,740 --> 00:03:53,920] of what we mean by agents.
+[00:03:53,920 --> 00:04:00,820] So you might be a user of a chatbot or advanced system.
+[00:04:00,820 --> 00:04:03,780] And you're going to interact with something, this object.
+[00:04:03,780 --> 00:04:05,820] We can call this the agent.
+[00:04:05,820 --> 00:04:10,800] And as a user, you'll ask questions, maybe give feedback,
+[00:04:10,800 --> 00:04:12,000] et cetera, et cetera.
+[00:04:12,000 --> 00:04:15,060] And then this agent now actually is more complex.
+[00:04:15,060 --> 00:04:17,420] In a new way, I think it's more useful to think
+[00:04:17,420 --> 00:04:21,800] about the environment being part of the whole package.
+[00:04:21,800 --> 00:04:25,420] So you'll get an agent harness that's
+[00:04:25,420 --> 00:04:30,880] controlling how you call the LLMs to issue an action
+[00:04:30,880 --> 00:04:34,640] or issue a search or issue a terminal command, et cetera,
+[00:04:34,640 --> 00:04:36,160] to this very rich environment that
+[00:04:36,160 --> 00:04:40,545] could be a digital computer, a network of computers.
+[00:04:40,545 --> 00:04:41,420] It could be anything.
+[00:04:41,420 --> 00:04:44,680] It could be a game, of course, as well, very general.
+[00:04:44,680 --> 00:04:47,980] And then that's how we orchestrate the whole thing.
+[00:04:47,980 --> 00:04:53,240] So it doesn't quite fit the paradigm as neatly.
+[00:04:53,240 --> 00:04:56,920] But that actually things-- makes it more exciting.
+[00:04:56,920 --> 00:04:59,880] So sometimes when I'm presenting some of the results
+[00:04:59,880 --> 00:05:02,740] and observations, especially from AlphaStar,
+[00:05:02,740 --> 00:05:06,200] it's going to come from a more simplistic world, where
+[00:05:06,200 --> 00:05:10,120] single environment, clearly defined, and no user, so
+[00:05:10,120 --> 00:05:10,660] to speak.
+[00:05:10,660 --> 00:05:11,900] So the world has changed.
+[00:05:11,900 --> 00:05:13,760] And these will keep evolving, especially
+[00:05:13,760 --> 00:05:16,658] as we get to an exciting topic that, I think,
+[00:05:16,658 --> 00:05:18,200] is the one I want to leave you, maybe
+[00:05:18,200 --> 00:05:21,080] with some thought-provoking ideas
+[00:05:21,080 --> 00:05:23,620] and observations on multi-agent systems,
+[00:05:23,620 --> 00:05:25,460] and what does that even mean here.
+[00:05:25,460 --> 00:05:28,950] So a bit of history.
+[00:05:28,950 --> 00:05:31,550] The DeepMind, at the time of acquisition,
+[00:05:31,550 --> 00:05:33,490] had just mastered Atari.
+[00:05:33,490 --> 00:05:36,950] I remember fondly the NeurIPS in which
+[00:05:36,950 --> 00:05:38,970] Vlad presented the results.
+[00:05:38,970 --> 00:05:41,230] And they felt really refreshing.
+[00:05:41,230 --> 00:05:44,810] I believe that was the sequence-to-sequence in NeurIPS.
+[00:05:44,810 --> 00:05:46,270] Maybe it was the year before.
+[00:05:46,270 --> 00:05:47,450] I can't remember.
+[00:05:47,450 --> 00:05:48,950] It was a while ago.
+[00:05:48,950 --> 00:05:52,330] And then in the internal program for DeepMind,
+[00:05:52,330 --> 00:05:55,270] there was sort of a curriculum of difficulty of games
+[00:05:55,270 --> 00:05:57,470] that we were going to tackle.
+[00:05:57,470 --> 00:06:02,770] And famously, Go came a few years after Atari.
+[00:06:02,770 --> 00:06:05,110] And then I would say, maybe StarCraft
+[00:06:05,110 --> 00:06:09,170] graduated as to just master all due to its complexity.
+[00:06:09,170 --> 00:06:11,590] Although, of course, there's many interesting games
+[00:06:11,590 --> 00:06:13,690] that have slightly different complexities.
+[00:06:13,690 --> 00:06:18,510] But StarCraft, clearly for AI, felt like a good kind
+[00:06:18,510 --> 00:06:19,450] of ending note.
+[00:06:19,450 --> 00:06:22,850] Although even today, we are working on games still,
+[00:06:22,850 --> 00:06:26,930] as you might have seen with things like WOT models.
+[00:06:26,930 --> 00:06:30,730] And SEMA 2.0 was just released that can play 3D games
+[00:06:30,730 --> 00:06:31,230] and so on.
+[00:06:31,230 --> 00:06:34,210] But the approach is quite different.
+[00:06:34,210 --> 00:06:36,510] Now, blast from the past as well.
+[00:06:36,510 --> 00:06:40,770] So 2011, ages ago, I used to be a grad student.
+[00:06:40,770 --> 00:06:44,290] And very exciting from Dan Kline's group
+[00:06:44,290 --> 00:06:49,890] was this project that tried to tackle solving StarCraft
+[00:06:49,890 --> 00:06:51,150] with machine learning.
+[00:06:51,150 --> 00:06:54,590] And there was a whole class set for testing,
+[00:06:54,590 --> 00:06:59,010] kind of maybe somewhat good, old-style-fashion AI,
+[00:06:59,010 --> 00:07:02,330] although some machine learning as well,
+[00:07:02,330 --> 00:07:04,730] interleave with just trying to play the game
+[00:07:04,730 --> 00:07:07,930] or play different aspects of the game.
+[00:07:07,930 --> 00:07:10,190] So it was recognized, of course, as a domain.
+[00:07:10,190 --> 00:07:12,810] And personally, of course, this resonated very much
+[00:07:12,810 --> 00:07:15,130] when I saw DeepMind for the first time applying
+[00:07:15,130 --> 00:07:17,750] ML, which I love, to video games, which I love--
+[00:07:17,750 --> 00:07:19,610] I used to play StarCraft--
+[00:07:19,610 --> 00:07:24,920] to eventually become the lead of the AlphaStar project.
+[00:07:24,920 --> 00:07:27,340] So very, very interesting domain at the time.
+[00:07:27,340 --> 00:07:30,840] In 2011, really, it seemed quite impossible
+[00:07:30,840 --> 00:07:33,240] that a single neural net could play the game.
+[00:07:33,240 --> 00:07:36,000] But that's basically what we did.
+[00:07:36,000 --> 00:07:38,500] And for those of you who do not know StarCraft,
+[00:07:38,500 --> 00:07:42,160] I mean, it's very hard to give you a two-minute overview.
+[00:07:42,160 --> 00:07:45,640] But it's essentially a chess in which you don't
+[00:07:45,640 --> 00:07:47,020] see the board all the time.
+[00:07:47,020 --> 00:07:50,520] And things are fairly continuous, like actions.
+[00:07:50,520 --> 00:07:53,440] It's a real-time strategy game.
+[00:07:53,440 --> 00:07:56,480] So there's lots of hiding information from the enemy
+[00:07:56,480 --> 00:07:58,800] because it's partial, observable.
+[00:07:58,800 --> 00:08:01,640] And generally, the action space is quite complex
+[00:08:01,640 --> 00:08:04,240] because you have to control not only the strategy
+[00:08:04,240 --> 00:08:06,880] at the high level but also the microstrategy
+[00:08:06,880 --> 00:08:09,580] about how to move your units about the map.
+[00:08:09,580 --> 00:08:11,260] So here you have a map.
+[00:08:11,260 --> 00:08:12,720] It has resources.
+[00:08:12,720 --> 00:08:14,180] You gather resources.
+[00:08:14,180 --> 00:08:14,900] You get money.
+[00:08:14,900 --> 00:08:15,860] You build buildings.
+[00:08:15,860 --> 00:08:16,780] You build units.
+[00:08:16,780 --> 00:08:18,480] You engage the enemy.
+[00:08:18,480 --> 00:08:20,460] And if you destroy all the enemy buildings,
+[00:08:20,460 --> 00:08:22,860] that's the winning or losing condition.
+[00:08:22,860 --> 00:08:25,060] So it's kind of a fun game.
+[00:08:25,060 --> 00:08:28,400] It's been quite heavily played over the years,
+[00:08:28,400 --> 00:08:29,480] different versions of it.
+[00:08:29,480 --> 00:08:34,200] And it brought esports to life in South Korea, certainly very,
+[00:08:34,200 --> 00:08:37,400] very early days, in the late 1990s even.
+[00:08:37,400 --> 00:08:40,900] So this kind of pioneered, in a way also,
+[00:08:40,900 --> 00:08:43,620] certain aspects of video gaming.
+[00:08:43,620 --> 00:08:45,740] Different points of view, this is the one
+[00:08:45,740 --> 00:08:49,380] you might have actually seen that's rendered directly
+[00:08:49,380 --> 00:08:50,120] from the game.
+[00:08:50,120 --> 00:08:52,560] This is your UI.
+[00:08:52,560 --> 00:08:56,060] you only see on the bottom left here, part of the map.
+[00:08:56,060 --> 00:08:59,180] You need to move the camera, send the units around, build
+[00:08:59,180 --> 00:09:01,300] buildings, issue commands.
+[00:09:01,300 --> 00:09:02,980] It's fairly fast-paced.
+[00:09:02,980 --> 00:09:06,060] So there's lots of cool subproblems
+[00:09:06,060 --> 00:09:09,500] that you could tackle as an AI domain.
+[00:09:09,500 --> 00:09:12,020] But as I was saying, what we actually end up doing--
+[00:09:12,020 --> 00:09:14,860] and I'll describe bits and pieces but not in full--
+[00:09:14,860 --> 00:09:16,820] we trained a single neural network, basically,
+[00:09:16,820 --> 00:09:19,380] that was issuing all these commands and how
+[00:09:19,380 --> 00:09:23,390] and it matters to LLM or current trends that we're seeing.
+[00:09:23,390 --> 00:09:25,870] I'll describe in the second part of the talk.
+[00:09:25,870 --> 00:09:29,290] And then in the third part, we'll cover multi-agent.
+[00:09:29,290 --> 00:09:32,950] So achievement wise, I mean, it was fun.
+[00:09:32,950 --> 00:09:36,130] And I remember fondly when our agent
+[00:09:36,130 --> 00:09:38,010] achieved grandmaster status, which
+[00:09:38,010 --> 00:09:43,090] is given only to the top 100 players in any given region.
+[00:09:43,090 --> 00:09:45,310] So we were playing online, literally in our office.
+[00:09:45,310 --> 00:09:47,690] So imagine playing video games at work.
+[00:09:47,690 --> 00:09:49,170] That was pretty fun.
+[00:09:49,170 --> 00:09:52,770] And we were all sitting around, playing games against people
+[00:09:52,770 --> 00:09:55,670] that didn't know they were playing against AlphaStar,
+[00:09:55,670 --> 00:09:57,270] although many could guess.
+[00:09:57,270 --> 00:09:59,290] And there was lots of speculation
+[00:09:59,290 --> 00:10:02,690] because you had to opt in to play against possibly advanced
+[00:10:02,690 --> 00:10:03,330] AIs.
+[00:10:03,330 --> 00:10:05,970] But eventually, we reached the grandmaster milestone.
+[00:10:05,970 --> 00:10:09,250] And then later, we also went sort of in the wild
+[00:10:09,250 --> 00:10:13,090] in BlizzCon, which is a NeurIPS for StarCraft, so to speak,
+[00:10:13,090 --> 00:10:15,810] where we played many, many folks who
+[00:10:15,810 --> 00:10:19,250] just were mesmerized by playing against an AI at the time.
+[00:10:19,250 --> 00:10:22,190] This was, I believe, our first AI system
+[00:10:22,190 --> 00:10:25,310] in the wild from DeepMind, actually.
+[00:10:25,310 --> 00:10:28,250] So it was quite nice to just interact with people,
+[00:10:28,250 --> 00:10:30,730] see how they felt about the game, AI, et cetera.
+[00:10:30,730 --> 00:10:34,350] This was 2019, right before the pandemic hit.
+[00:10:34,350 --> 00:10:38,350] And so we visited this wonderful, very different style,
+[00:10:38,350 --> 00:10:40,010] conference, I would say than NeurIPS,
+[00:10:40,010 --> 00:10:43,070] although I think NeurIPS is becoming a bit like this as well
+[00:10:43,070 --> 00:10:44,630] lately.
+[00:10:44,630 --> 00:10:45,610] And it was fun.
+[00:10:45,610 --> 00:10:48,470] We played a bunch of people, including
+[00:10:48,470 --> 00:10:50,850] Serral, who was one of the legends of the game.
+[00:10:50,850 --> 00:10:55,470] If you want to see the games, the five games we played,
+[00:10:55,470 --> 00:10:58,530] I believe YouTube links are here at your disposal.
+[00:10:58,530 --> 00:11:01,310] You can see here, me, a bit tense
+[00:11:01,310 --> 00:11:05,570] to see what the agent would do under such strong opponent.
+[00:11:05,570 --> 00:11:06,750] But it was all fun.
+[00:11:06,750 --> 00:11:09,990] And I think probably the most profound realization
+[00:11:09,990 --> 00:11:14,190] was a couple of weeks after, you see,
+[00:11:14,190 --> 00:11:18,340] November 24, Serral mentioned that he actually
+[00:11:18,340 --> 00:11:21,540] copied StarCraft or AlphaStar, one of the [INAUDIBLE]
+[00:11:21,540 --> 00:11:23,540] that he had played against.
+[00:11:23,540 --> 00:11:29,100] And of course, an obvious comment that, again, in a way,
+[00:11:29,100 --> 00:11:33,620] concluded this epoch we had at DeepMind on mastering games
+[00:11:33,620 --> 00:11:38,820] in one-on-one setting, was that we got a player learning
+[00:11:38,820 --> 00:11:39,760] from AlphaStar.
+[00:11:39,760 --> 00:11:42,240] But of course, AlphaStar had learned from several,
+[00:11:42,240 --> 00:11:43,800] as you will see in a second.
+[00:11:43,800 --> 00:11:46,140] So that was pretty fun.
+[00:11:46,140 --> 00:11:49,900] So let's start to see, maybe some obvious, some less obvious,
+[00:11:49,900 --> 00:11:51,780] connections.
+[00:11:51,780 --> 00:11:57,920] And then yeah, basically, why does it all make sense?
+[00:11:57,920 --> 00:12:02,820] Even when we talk to reporters at the time, very early days,
+[00:12:02,820 --> 00:12:04,780] they didn't understand the impact
+[00:12:04,780 --> 00:12:07,706] of playing games in real world.
+[00:12:07,706 --> 00:12:11,685] So here I try to map, fairly imperfectly,
+[00:12:11,685 --> 00:12:16,000] the timeline of certain major projects, Alpha asterisk
+[00:12:16,000 --> 00:12:20,360] projects, if you will, that kind of, in a way,
+[00:12:20,360 --> 00:12:24,480] took inspiration, either algorithmically or learnings
+[00:12:24,480 --> 00:12:28,440] or whatnot, from the previous projects that
+[00:12:28,440 --> 00:12:33,560] had come in because games were such a good sandbox
+[00:12:33,560 --> 00:12:37,240] to try some ideas to scale up neural networks.
+[00:12:37,240 --> 00:12:40,240] And I mean, at the time, it was a bit hard to convey this
+[00:12:40,240 --> 00:12:42,560] to, maybe, general public.
+[00:12:42,560 --> 00:12:46,600] But it's great to see that this kind of plan for, really,
+[00:12:46,600 --> 00:12:50,240] the whole company was set about, is taking shape.
+[00:12:50,240 --> 00:12:52,860] And games still have a role to play, by the way,
+[00:12:52,860 --> 00:12:57,440] into building, pursuing AGI in the context of LLMs.
+[00:12:57,440 --> 00:13:00,140] But here, there's a few projects.
+[00:13:00,140 --> 00:13:01,300] I didn't put all of them.
+[00:13:01,300 --> 00:13:03,960] Certainly, there's no Atari, for example.
+[00:13:03,960 --> 00:13:06,060] But certainly, as I mentioned, after Go,
+[00:13:06,060 --> 00:13:07,920] we decided to tackle StarCraft.
+[00:13:07,920 --> 00:13:09,340] And then there's no other games.
+[00:13:09,340 --> 00:13:12,240] But after that, we had huge inspiration
+[00:13:12,240 --> 00:13:16,630] to start working on coding early days on our first LLMs--
+[00:13:16,630 --> 00:13:17,570] Chinchilla.
+[00:13:17,570 --> 00:13:21,790] Visual language models Flamingo or Gato.
+[00:13:21,790 --> 00:13:24,650] And AlphaFold also took inspiration of, I mean,
+[00:13:24,650 --> 00:13:28,310] certain aspects of transformers, distillation of data, et cetera.
+[00:13:28,310 --> 00:13:31,790] And today, as you probably can guess,
+[00:13:31,790 --> 00:13:37,030] a lot of the research and resources are now heavily
+[00:13:37,030 --> 00:13:39,378] invested into a single project, almost,
+[00:13:39,378 --> 00:13:41,170] although it's very large-- so there's many,
+[00:13:41,170 --> 00:13:42,910] many different components--
+[00:13:42,910 --> 00:13:46,070] called Gemini, which I'm co-tech leading, together
+[00:13:46,070 --> 00:13:47,750] with Jeff and Noah.
+[00:13:47,750 --> 00:13:49,630] And of course, in there, we're just
+[00:13:49,630 --> 00:13:52,690] trying to build the most general system we can.
+[00:13:52,690 --> 00:13:55,430] So a game or playing a single game
+[00:13:55,430 --> 00:13:58,990] might be one of the many, many things, the incredible things
+[00:13:58,990 --> 00:14:01,150] that these models can do today.
+[00:14:01,150 --> 00:14:04,630] But it's nice to also look back and attribute a bit of ideas
+[00:14:04,630 --> 00:14:07,270] or where things come from.
+[00:14:07,270 --> 00:14:12,540] So more specifically, let's dive into some technical details.
+[00:14:12,540 --> 00:14:16,160] And some have striking closeness, I would say,
+[00:14:16,160 --> 00:14:20,780] with how today we're creating some of these amazing LLMs.
+[00:14:20,780 --> 00:14:24,740] So this is from the Nature paper that was eventually published.
+[00:14:24,740 --> 00:14:27,280] And we'll discuss the three aspects.
+[00:14:27,280 --> 00:14:30,780] But in sequence, we did, basically,
+[00:14:30,780 --> 00:14:33,480] three things to create this single neural network.
+[00:14:33,480 --> 00:14:35,980] We had, first, supervised learning,
+[00:14:35,980 --> 00:14:40,360] as we called it in this figure, learning from human data.
+[00:14:40,360 --> 00:14:43,420] Then we had a step of reinforcement learning.
+[00:14:43,420 --> 00:14:46,120] And this reinforcement learning didn't happen in a vacuum.
+[00:14:46,120 --> 00:14:48,620] It happened in a massive multi-agent system,
+[00:14:48,620 --> 00:14:51,780] like as follows.
+[00:14:51,780 --> 00:14:57,260] So mapping to today's projects or work,
+[00:14:57,260 --> 00:14:59,840] this is what we commonly now call pre-training.
+[00:14:59,840 --> 00:15:01,500] This is post-training.
+[00:15:01,500 --> 00:15:03,393] And I don't think there's a massive amount
+[00:15:03,393 --> 00:15:05,060] of [? motivation ?] work, although there
+[00:15:05,060 --> 00:15:08,500] is more and more, of course, as we get more mature
+[00:15:08,500 --> 00:15:11,240] in the technology for LLMs.
+[00:15:11,240 --> 00:15:14,320] But even at the highest level of how
+[00:15:14,320 --> 00:15:17,040] the different steps of creating this agent,
+[00:15:17,040 --> 00:15:19,120] we already could see, or we already
+[00:15:19,120 --> 00:15:22,560] can see that many of the problems
+[00:15:22,560 --> 00:15:26,980] we faced back then apply today.
+[00:15:26,980 --> 00:15:29,120] And you will see why in more detail now
+[00:15:29,120 --> 00:15:32,040] for each of these stages.
+[00:15:32,040 --> 00:15:36,040] So let's start with actually something that at the time
+[00:15:36,040 --> 00:15:39,640] felt kind of complicated and also, in a way,
+[00:15:39,640 --> 00:15:43,000] obvious in hindsight, having worked on sequence models, which
+[00:15:43,000 --> 00:15:45,559] is, how to deal with actions, the actions
+[00:15:45,559 --> 00:15:48,040] that you needed to issue to activate
+[00:15:48,040 --> 00:15:51,200] or to operate StarCraft.
+[00:15:51,200 --> 00:15:53,900] So the actions were fixed.
+[00:15:53,900 --> 00:15:55,200] There was an API.
+[00:15:55,200 --> 00:16:00,520] And as an API, you basically had all sorts of different functions
+[00:16:00,520 --> 00:16:01,359] that you could call.
+[00:16:01,359 --> 00:16:05,000] And different functions required different arguments.
+[00:16:05,000 --> 00:16:08,150] So this is basically an API that Blizzard
+[00:16:08,150 --> 00:16:11,350] has and had before we started working with them already
+[00:16:11,350 --> 00:16:15,030] to interact or to send network messages, actually,
+[00:16:15,030 --> 00:16:16,870] between players in StarCraft.
+[00:16:16,870 --> 00:16:19,630] And we just used it as is.
+[00:16:19,630 --> 00:16:22,130] So you could imagine in this instance,
+[00:16:22,130 --> 00:16:24,670] there's this thing here that blocks this ramp.
+[00:16:24,670 --> 00:16:26,770] So there's an action called forcefield,
+[00:16:26,770 --> 00:16:28,950] which is the name of this thing.
+[00:16:28,950 --> 00:16:32,770] And you issue this action to this set of units.
+[00:16:32,770 --> 00:16:34,950] So you're saying, hey, set of units,
+[00:16:34,950 --> 00:16:41,030] try to issue a forcefield in these coordinates, 6, 82.
+[00:16:41,030 --> 00:16:44,830] And then you also say, delay from current.
+[00:16:44,830 --> 00:16:48,270] You can wait 10 steps, which is kind of half a second
+[00:16:48,270 --> 00:16:49,310] or something.
+[00:16:49,310 --> 00:16:51,770] And only repeat this action once.
+[00:16:51,770 --> 00:16:55,990] So that's how you do everything in the game.
+[00:16:55,990 --> 00:16:59,230] And it was a bit tricky to how would we be
+[00:16:59,230 --> 00:17:01,350] able to issue these commands.
+[00:17:01,350 --> 00:17:06,430] So the solution we found is to just lay out
+[00:17:06,430 --> 00:17:09,570] an autoregressive model, a kind of a little recurrent neural
+[00:17:09,570 --> 00:17:13,610] network that was structured so that all these arguments were
+[00:17:13,610 --> 00:17:17,010] lining up with different softmaxes, that would basically
+[00:17:17,010 --> 00:17:19,670] say, Q, yes or no, when.
+[00:17:19,670 --> 00:17:23,090] And then it's a softmax between 0 and 128 steps
+[00:17:23,090 --> 00:17:25,690] or whatever maximum we decided, what
+[00:17:25,690 --> 00:17:30,370] is also softmax, a categorical softmax, over positions,
+[00:17:30,370 --> 00:17:31,270] et cetera, et cetera.
+[00:17:31,270 --> 00:17:34,810] So we handcrafted this architecture.
+[00:17:34,810 --> 00:17:39,570] And then we obviously learned both imitation and reinforcement
+[00:17:39,570 --> 00:17:44,890] learning to finesse how to issue these sequence of instructions
+[00:17:44,890 --> 00:17:48,690] or commands that form an API call that then we
+[00:17:48,690 --> 00:17:50,330] would send to the game.
+[00:17:50,330 --> 00:17:54,830] And this is strikingly close to tool use in general.
+[00:17:54,830 --> 00:17:57,690] Because in tool use in LLMs, what we
+[00:17:57,690 --> 00:17:59,650] have is an access to an API.
+[00:17:59,650 --> 00:18:00,290] There's MCP.
+[00:18:00,290 --> 00:18:01,790] There's so many different protocols.
+[00:18:01,790 --> 00:18:03,950] But essentially, there's an API.
+[00:18:03,950 --> 00:18:08,600] There's a way to define how to call a search engine
+[00:18:08,600 --> 00:18:10,980] or issue a command on a terminal,
+[00:18:10,980 --> 00:18:14,400] or click on the screen for that matter, all these things.
+[00:18:14,400 --> 00:18:18,100] And then this is defined now in natural language.
+[00:18:18,100 --> 00:18:23,240] But actually, lots of different problems and solutions,
+[00:18:23,240 --> 00:18:24,420] again, align here.
+[00:18:24,420 --> 00:18:26,052] And it was cool too.
+[00:18:26,052 --> 00:18:28,260] At the time, I mentioned when I talk about AlphaStar,
+[00:18:28,260 --> 00:18:29,760] AlphaStar is like a language.
+[00:18:29,760 --> 00:18:32,960] You just need to issue these, literally,
+[00:18:32,960 --> 00:18:36,480] code calls or API calls into the game.
+[00:18:36,480 --> 00:18:41,520] And there are some differences that are notable as well.
+[00:18:41,520 --> 00:18:46,760] Here, this architecture is setting the API.
+[00:18:46,760 --> 00:18:48,960] So the aggressive actions are expressed
+[00:18:48,960 --> 00:18:51,520] through this particular architecture.
+[00:18:51,520 --> 00:18:54,040] As cool as it is, it's fixed.
+[00:18:54,040 --> 00:18:58,760] Whereas today, we know that to issue API calls using
+[00:18:58,760 --> 00:19:03,140] the power of generalization of text or code or combinations
+[00:19:03,140 --> 00:19:07,300] allows us to issue API calls to all sorts
+[00:19:07,300 --> 00:19:10,980] of different environments that agents might be connected to.
+[00:19:10,980 --> 00:19:13,460] We also have now a single transformer architecture
+[00:19:13,460 --> 00:19:17,020] that just writes these text or code for us that
+[00:19:17,020 --> 00:19:20,660] then is interpreted and sent to the environment.
+[00:19:20,660 --> 00:19:23,980] And then there's actually a lot of flexibility even
+[00:19:23,980 --> 00:19:26,820] in the formats because you can instruct the models to change
+[00:19:26,820 --> 00:19:29,540] the formats if you want to be empirical about which formats
+[00:19:29,540 --> 00:19:32,420] might be best, versus here, where there's
+[00:19:32,420 --> 00:19:34,560] a certain architectural rigidity then.
+[00:19:34,560 --> 00:19:38,900] So of course, we did ablate many decisions.
+[00:19:38,900 --> 00:19:41,180] And we had to retrain the models and then try which
+[00:19:41,180 --> 00:19:43,060] ones play the game better.
+[00:19:43,060 --> 00:19:49,180] But it was much more cumbersome if we need to retrain.
+[00:19:49,180 --> 00:19:51,820] Now another very big problem, and I
+[00:19:51,820 --> 00:19:54,700] think this is actually a key debate, even today.
+[00:19:54,700 --> 00:19:58,500] It's still pretty hot between many folks, which
+[00:19:58,500 --> 00:20:03,170] are, the issue of using imitation learning, which
+[00:20:03,170 --> 00:20:07,490] we commonly denote as pre-training in the LLM world.
+[00:20:07,490 --> 00:20:12,370] So in StarCraft, unlike, let's say, Go or Atari,
+[00:20:12,370 --> 00:20:14,830] where the action space, however large,
+[00:20:14,830 --> 00:20:18,970] was literally not as large as it is in StarCraft,
+[00:20:18,970 --> 00:20:23,170] where it's very combinatorial, and also the time horizon
+[00:20:23,170 --> 00:20:25,490] was much longer, et cetera, et cetera,
+[00:20:25,490 --> 00:20:28,470] exploration is and was very challenging.
+[00:20:28,470 --> 00:20:31,970] And I'll demonstrate that kind of pretty sharply
+[00:20:31,970 --> 00:20:34,370] in the next video.
+[00:20:34,370 --> 00:20:38,370] So the problem is, random policy will not do much
+[00:20:38,370 --> 00:20:40,810] in this game that's useful.
+[00:20:40,810 --> 00:20:44,210] And so in a way, the bitter lesson discussion,
+[00:20:44,210 --> 00:20:49,090] which is, should you gather as much imitation learning
+[00:20:49,090 --> 00:20:52,650] experience to bootstrap the knowledge about the domain
+[00:20:52,650 --> 00:20:55,290] even in a game like StarCraft, which arguably,
+[00:20:55,290 --> 00:21:00,070] is not AGI complete, as complex as it is,
+[00:21:00,070 --> 00:21:02,670] didn't work to the best of our abilities.
+[00:21:02,670 --> 00:21:06,950] So for us, it was very clear we would need an imitation
+[00:21:06,950 --> 00:21:11,110] learning plus then an experience learning, reinforcement
+[00:21:11,110 --> 00:21:13,710] learning, loop on top.
+[00:21:13,710 --> 00:21:18,590] And that was kind of a nice merging of deep learning
+[00:21:18,590 --> 00:21:22,190] and reinforcement learning, which I very much welcome also
+[00:21:22,190 --> 00:21:28,510] in LLMs, although it can be debated whether, ultimately,
+[00:21:28,510 --> 00:21:30,450] pure reinforcement learning, for example,
+[00:21:30,450 --> 00:21:33,170] could get us all the way there.
+[00:21:33,170 --> 00:21:34,810] I strongly believe that answer is no,
+[00:21:34,810 --> 00:21:37,390] as you can probably guess.
+[00:21:37,390 --> 00:21:41,630] So what happens when you apply pure reinforcement learning is
+[00:21:41,630 --> 00:21:44,150] that it actually discovers how to beat
+[00:21:44,150 --> 00:21:46,770] the enemy but in a way that is unsatisfactory.
+[00:21:46,770 --> 00:21:49,030] It takes all your workers.
+[00:21:49,030 --> 00:21:51,250] And then it just sends them to attack.
+[00:21:51,250 --> 00:21:53,610] This is not an uncommon technique.
+[00:21:53,610 --> 00:21:57,170] I mean, if you're a newbie, you might do it.
+[00:21:57,170 --> 00:22:00,600] Some professional gamers do it at some point with [? aliens, ?]
+[00:22:00,600 --> 00:22:03,820] especially that they also bring all the workers to attack.
+[00:22:03,820 --> 00:22:07,540] This one beat the hardest AI in the game by exploiting it,
+[00:22:07,540 --> 00:22:09,420] basically with something that was not
+[00:22:09,420 --> 00:22:11,180] pre-programmed to defend very well
+[00:22:11,180 --> 00:22:13,580] against this kind of attack.
+[00:22:13,580 --> 00:22:17,660] But clearly, we just kept seeing these results.
+[00:22:17,660 --> 00:22:19,860] And we had to resort to essentially using
+[00:22:19,860 --> 00:22:22,600] human data, which luckily, we did.
+[00:22:22,600 --> 00:22:25,660] We open-sourced over 1 million games of StarCraft,
+[00:22:25,660 --> 00:22:29,780] thanks to Blizzard collecting anonymous replays online.
+[00:22:29,780 --> 00:22:31,600] They're still available today, hopefully.
+[00:22:31,600 --> 00:22:33,860] And there's a good cool way to do research
+[00:22:33,860 --> 00:22:36,780] on imitation learning.
+[00:22:36,780 --> 00:22:41,620] But basically, getting lots of human data online
+[00:22:41,620 --> 00:22:46,380] was felt necessary and was part of the solution.
+[00:22:46,380 --> 00:22:50,100] And then something else we did which also, at the time,
+[00:22:50,100 --> 00:22:51,520] felt very different.
+[00:22:51,520 --> 00:22:55,220] But besides saying, hey, imitate every human move
+[00:22:55,220 --> 00:22:58,620] from these millions of games, we also said,
+[00:22:58,620 --> 00:23:01,860] look, hold on a second, from the whole game,
+[00:23:01,860 --> 00:23:03,220] we know what happened.
+[00:23:03,220 --> 00:23:05,620] We know how good the players were.
+[00:23:05,620 --> 00:23:07,100] We have some metadata.
+[00:23:07,100 --> 00:23:09,420] We know what the players eventually built,
+[00:23:09,420 --> 00:23:11,400] what units they did.
+[00:23:11,400 --> 00:23:15,100] So these metadata, we decided to encode it.
+[00:23:15,100 --> 00:23:16,600] It's a bit of a cheating information
+[00:23:16,600 --> 00:23:18,058] because, as you start the game, you
+[00:23:18,058 --> 00:23:22,640] don't know the future units that will appear, et cetera.
+[00:23:22,640 --> 00:23:26,600] But it was sort of a guiding signal
+[00:23:26,600 --> 00:23:30,000] to condition the neural network to look
+[00:23:30,000 --> 00:23:31,580] at these for correlations.
+[00:23:31,580 --> 00:23:35,080] So for instance, the neural net would, OK, I need to do--
+[00:23:35,080 --> 00:23:36,502] this kind of unit will appear.
+[00:23:36,502 --> 00:23:38,960] It would learn the correlation between these units and then
+[00:23:38,960 --> 00:23:41,820] how to build it even in imitation learning setting,
+[00:23:41,820 --> 00:23:44,480] even though the correlations are fairly weak.
+[00:23:44,480 --> 00:23:47,560] And so that was kind of a powerful thing
+[00:23:47,560 --> 00:23:49,180] to do for many reasons.
+[00:23:49,180 --> 00:23:52,680] And I'll go get back to these conditioning signals again
+[00:23:52,680 --> 00:23:55,310] as well during the lecture.
+[00:23:55,310 --> 00:23:58,190] But again, contrasting this with current LLMs,
+[00:23:58,190 --> 00:24:02,870] this actually was a form of prompt or instruction following.
+[00:24:02,870 --> 00:24:08,270] So we all start a model, and we tell it what we want it to do.
+[00:24:08,270 --> 00:24:11,890] And that was our way, without obviously knowing about this
+[00:24:11,890 --> 00:24:15,400] yet, of doing the same to a fairly complex system.
+[00:24:15,400 --> 00:24:18,990] We would tell this agent to either do
+[00:24:18,990 --> 00:24:22,590] this sequence of buildings and/or to construct these units
+[00:24:22,590 --> 00:24:26,910] and/or to behave like a professional gamer or a novice
+[00:24:26,910 --> 00:24:27,810] in advance.
+[00:24:27,810 --> 00:24:29,510] That was our instruction.
+[00:24:29,510 --> 00:24:32,670] And then by doing this, the agent
+[00:24:32,670 --> 00:24:37,670] was reconfigurable to play in many different styles,
+[00:24:37,670 --> 00:24:41,790] controlled by the user, prompted by the user.
+[00:24:41,790 --> 00:24:44,530] Now that's a similarity, many differences.
+[00:24:44,530 --> 00:24:50,030] I mean, this agent was trained on about 5 billion tokens.
+[00:24:50,030 --> 00:24:53,170] We know, of course, LLMs trained on over 1 trillion tokens.
+[00:24:53,170 --> 00:24:56,890] So the order of magnitude is quite different.
+[00:24:56,890 --> 00:25:00,810] These prompts were structured, were again
+[00:25:00,810 --> 00:25:05,410] hand-tuned to the style of vectors, binary vectors
+[00:25:05,410 --> 00:25:08,470] that we expected, rather than expressed through language.
+[00:25:08,470 --> 00:25:11,610] It was not that we were writing, hey, build an overlord
+[00:25:11,610 --> 00:25:14,335] and then build a [INAUDIBLE].
+[00:25:14,335 --> 00:25:17,170] These were binary encoded, so to speak.
+[00:25:17,170 --> 00:25:20,830] And then these prompts, unlike in today's LLMs,
+[00:25:20,830 --> 00:25:23,630] were derived by just looking at the whole game.
+[00:25:23,630 --> 00:25:25,070] We could look at the future.
+[00:25:25,070 --> 00:25:26,450] We saw the whole game.
+[00:25:26,450 --> 00:25:28,850] We summarized it into these vectors that
+[00:25:28,850 --> 00:25:34,230] were given from the first frame of the game versus, of course,
+[00:25:34,230 --> 00:25:38,450] in current LLMs, oftentimes, we have a prompt
+[00:25:38,450 --> 00:25:42,870] or an instruction that requires human annotation in some form.
+[00:25:42,870 --> 00:25:46,230] Not always, but it's generally, hey, there's coding competition.
+[00:25:46,230 --> 00:25:48,970] Someone comes up with a nice coding competition
+[00:25:48,970 --> 00:25:51,230] problem with some instructions.
+[00:25:51,230 --> 00:25:55,040] And then we let the agents try to solve
+[00:25:55,040 --> 00:25:57,660] for that particular coding problem, for example,
+[00:25:57,660 --> 00:26:01,760] or a theorem proved by LLMs, et cetera.
+[00:26:01,760 --> 00:26:06,360] So again, some similarities, some differences here as well.
+[00:26:06,360 --> 00:26:10,280] But with these, we actually went from that state of degeneracy
+[00:26:10,280 --> 00:26:15,080] of RL to actually being able to start to see believable game
+[00:26:15,080 --> 00:26:17,080] states being achieved by these agents
+[00:26:17,080 --> 00:26:19,300] that they didn't experience the game,
+[00:26:19,300 --> 00:26:22,960] but they imitated the human knowledge,
+[00:26:22,960 --> 00:26:25,720] same as what we see with LLMs before we
+[00:26:25,720 --> 00:26:28,520] do any post-training step.
+[00:26:28,520 --> 00:26:33,120] Now on to, I think, a very exciting area of progress,
+[00:26:33,120 --> 00:26:35,840] and I would say probably not the most
+[00:26:35,840 --> 00:26:40,680] mature even in LLMs, despite all the investment, which
+[00:26:40,680 --> 00:26:45,280] is post-training or using reinforcement learning.
+[00:26:45,280 --> 00:26:48,000] So in StarCraft, we did a few things, all of which,
+[00:26:48,000 --> 00:26:51,620] actually, we also see in some form or another,
+[00:26:51,620 --> 00:26:54,400] done for similar reasons, to be honest,
+[00:26:54,400 --> 00:26:58,340] in current large language models.
+[00:26:58,340 --> 00:27:03,580] So here is a fairly imperfect way to measure Elo scores.
+[00:27:03,580 --> 00:27:07,120] You might be now fairly familiar with Elo scores, thanks to LMCs,
+[00:27:07,120 --> 00:27:10,340] for example, which scores, of course,
+[00:27:10,340 --> 00:27:14,020] your favorite LLM providers against each other.
+[00:27:14,020 --> 00:27:16,420] But of course, I mean, chess and many other games
+[00:27:16,420 --> 00:27:18,060] use Elo as a system.
+[00:27:18,060 --> 00:27:23,120] And think of things like 40 Elo differences, not super large,
+[00:27:23,120 --> 00:27:24,800] but it starts to be significant.
+[00:27:24,800 --> 00:27:27,900] 400 is fairly significant difference.
+[00:27:27,900 --> 00:27:32,640] So if we train from scratch without human data,
+[00:27:32,640 --> 00:27:34,780] we didn't get a very strong agent.
+[00:27:34,780 --> 00:27:39,460] Just the supervised learning policy was at 900 Elo.
+[00:27:39,460 --> 00:27:44,660] So that's a fairly strong initial state
+[00:27:44,660 --> 00:27:48,650] to then kickstart the whole reinforcement learning
+[00:27:48,650 --> 00:27:52,770] multi-agent system that we had.
+[00:27:52,770 --> 00:27:55,930] Now, the obvious thing is that this policy,
+[00:27:55,930 --> 00:27:59,330] initialize it, and then add, just use
+[00:27:59,330 --> 00:28:03,850] reinforcement learning vanilla, and you get a bit of a boost.
+[00:28:03,850 --> 00:28:06,730] But what tends to happen is, you might
+[00:28:06,730 --> 00:28:09,210] see some collapse of behaviors, which also
+[00:28:09,210 --> 00:28:11,430] is quite commonly seen in LLMs.
+[00:28:11,430 --> 00:28:15,170] So the diversity of the whole distribution
+[00:28:15,170 --> 00:28:17,770] that you've gathered over imitation learning
+[00:28:17,770 --> 00:28:20,090] is lost, so to speak.
+[00:28:20,090 --> 00:28:23,070] So we added a supervised KL penalty,
+[00:28:23,070 --> 00:28:27,010] which is a fancy way to say, we distill the policy,
+[00:28:27,010 --> 00:28:29,170] the original policy, onto the one
+[00:28:29,170 --> 00:28:31,490] we were training with reinforcement learning.
+[00:28:31,490 --> 00:28:35,170] So in a way, you don't overcommit too early
+[00:28:35,170 --> 00:28:37,110] to a certain particular way of playing.
+[00:28:37,110 --> 00:28:41,730] You keep the diversity of styles and strategies, et cetera,
+[00:28:41,730 --> 00:28:44,470] although that itself was not easy to do.
+[00:28:44,470 --> 00:28:46,150] So we'll get back to that in a second.
+[00:28:46,150 --> 00:28:49,930] But that helped quite a bit keep things much better.
+[00:28:49,930 --> 00:28:52,750] So that boosted Elo by 400.
+[00:28:52,750 --> 00:28:54,150] And then the last thing, which is
+[00:28:54,150 --> 00:28:57,430] this conditioning, explicit conditioning,
+[00:28:57,430 --> 00:29:02,310] on the kinds of things we want the agents to do, further boost
+[00:29:02,310 --> 00:29:06,310] the Elo score by almost 150 or so.
+[00:29:06,310 --> 00:29:08,430] So all these aspects came together.
+[00:29:08,430 --> 00:29:14,750] And we see obviously all these being employed as well in LLMs.
+[00:29:14,750 --> 00:29:16,610] Another trick we find, which was neat,
+[00:29:16,610 --> 00:29:20,870] is that for the value function, which tells you whether you're
+[00:29:20,870 --> 00:29:24,870] winning or losing, even though it's a partial observable game,
+[00:29:24,870 --> 00:29:28,570] we found that the value function seeing the whole board,
+[00:29:28,570 --> 00:29:30,510] so to speak, was much more accurate
+[00:29:30,510 --> 00:29:35,290] and helped reducing variance in training, which was problematic
+[00:29:35,290 --> 00:29:37,410] and always using reinforcement learning.
+[00:29:37,410 --> 00:29:40,470] So that's another trick we did, which also, in different shapes
+[00:29:40,470 --> 00:29:44,350] and forms, is seen as positive when you apply it
+[00:29:44,350 --> 00:29:49,580] to certain domains in current large language models.
+[00:29:49,580 --> 00:29:54,620] So all these tricks and more are used in modern LLMs.
+[00:29:54,620 --> 00:29:57,980] But what are the differences between what we were doing here
+[00:29:57,980 --> 00:29:59,380] and LLMs?
+[00:29:59,380 --> 00:30:02,300] I mean, most crucially, that rewards
+[00:30:02,300 --> 00:30:07,040] can't be fully specified always, means StarCraft,
+[00:30:07,040 --> 00:30:08,820] you win, you lose.
+[00:30:08,820 --> 00:30:10,280] There are interesting things.
+[00:30:10,280 --> 00:30:14,160] StarCraft, actually, many people resign before losing.
+[00:30:14,160 --> 00:30:16,340] So it's not that all the data, you
+[00:30:16,340 --> 00:30:18,298] will get to the winning condition necessarily.
+[00:30:18,298 --> 00:30:19,840] So there are some fun problems there.
+[00:30:19,840 --> 00:30:25,740] But by and large, you can compute success or not success.
+[00:30:25,740 --> 00:30:30,420] Whereas, of course in LLMs, I mean, write me a nice poem,
+[00:30:30,420 --> 00:30:33,980] it's just good luck, getting humans to agree on that.
+[00:30:33,980 --> 00:30:38,300] So it's very, very tricky to reward behaviors
+[00:30:38,300 --> 00:30:42,140] when you're going to much more general problems.
+[00:30:42,140 --> 00:30:44,730] Now, that's kind of annoying, definitely
+[00:30:44,730 --> 00:30:47,690] to me, which is, compute envelope for LLMs
+[00:30:47,690 --> 00:30:50,690] are heavily skewed towards pre-training.
+[00:30:50,690 --> 00:30:54,890] So you spend most of our flops in pre-training
+[00:30:54,890 --> 00:30:56,790] and only a little bit in post-training.
+[00:30:56,790 --> 00:30:58,950] And that feels wrong for a variety of reasons.
+[00:30:58,950 --> 00:31:03,350] And certainly for AlphaStar, it was not an exception.
+[00:31:03,350 --> 00:31:06,610] Most of the compute, most of the weights updates
+[00:31:06,610 --> 00:31:12,250] were done in these experiential or reinforcement learning stage.
+[00:31:12,250 --> 00:31:15,890] And then overfitting is very common in LLMs
+[00:31:15,890 --> 00:31:19,290] because, it turns out, we do not have an infinite amount
+[00:31:19,290 --> 00:31:22,290] of tasks that are interesting for humans
+[00:31:22,290 --> 00:31:28,570] to solve or to perform that would help train LLMs when they
+[00:31:28,570 --> 00:31:33,010] deploy it against real humans or with real humans
+[00:31:33,010 --> 00:31:36,310] in the loop, the kinds of things they would ask.
+[00:31:36,310 --> 00:31:38,190] There's a limited amount of data.
+[00:31:38,190 --> 00:31:41,490] Whereas, for StarCraft, every game is unique.
+[00:31:41,490 --> 00:31:43,970] And because it's constrained by the environment,
+[00:31:43,970 --> 00:31:46,170] you don't see this overfitting issue,
+[00:31:46,170 --> 00:31:47,430] which of course is related.
+[00:31:47,430 --> 00:31:51,510] Second and third bullet points here are quite related.
+[00:31:51,510 --> 00:31:53,990] So let me take a sip of my tea.
+[00:31:53,990 --> 00:31:57,510] And let's get into slightly more technical, more intuitive
+[00:31:57,510 --> 00:32:03,730] part of the talk about why do we need multi-agent systems.
+[00:32:03,730 --> 00:32:07,630] What did we do in AlphaStar?
+[00:32:07,630 --> 00:32:10,550] So this was quite fun at the time.
+[00:32:10,550 --> 00:32:15,470] Certainly, I enjoyed, of course, the imitation learning.
+[00:32:15,470 --> 00:32:17,390] Sequence-to-sequence was an example
+[00:32:17,390 --> 00:32:19,510] of imitation learning very heavily.
+[00:32:19,510 --> 00:32:23,830] Reinforcement learning, I kind of, hey, I know what's going on.
+[00:32:23,830 --> 00:32:26,150] As a scientist, you learn you learn that domain
+[00:32:26,150 --> 00:32:28,190] as you join DeepMind.
+[00:32:28,190 --> 00:32:30,110] So it was kind of everywhere.
+[00:32:30,110 --> 00:32:33,050] Multi-agent, all that I learned was during the project.
+[00:32:33,050 --> 00:32:36,630] And it was very fun and very intuitive and very simple
+[00:32:36,630 --> 00:32:39,030] to see results, very drastic results very quickly,
+[00:32:39,030 --> 00:32:43,660] just by trying, sometimes, extremely simple ideas.
+[00:32:43,660 --> 00:32:47,100] So why did we want multi-agent learning in AlphaStar,
+[00:32:47,100 --> 00:32:48,720] was to add robustness.
+[00:32:48,720 --> 00:32:50,660] So hopefully, you'll get what that
+[00:32:50,660 --> 00:32:54,180] means through my explanations.
+[00:32:54,180 --> 00:32:57,160] So you have these models.
+[00:32:57,160 --> 00:32:58,500] They do amazing things.
+[00:32:58,500 --> 00:33:00,479] But we see them fail often.
+[00:33:00,479 --> 00:33:03,379] And that happened certainly in AlphaStar.
+[00:33:03,379 --> 00:33:06,520] And we see this happen in LLMs all the time as well.
+[00:33:06,520 --> 00:33:10,340] You ask simple questions, like, is this number larger
+[00:33:10,340 --> 00:33:13,740] than this number, how many Rs are in strawberry.
+[00:33:13,740 --> 00:33:18,660] And these models tend to flop quite dramatically, even
+[00:33:18,660 --> 00:33:22,260] though they might be, I mean, fuels [? medal ?] levels
+[00:33:22,260 --> 00:33:24,560] in some aspects of mathematics.
+[00:33:24,560 --> 00:33:27,080] They might fail miserably in other aspects.
+[00:33:27,080 --> 00:33:34,540] So notionally, that is very similar to the kinds of issues
+[00:33:34,540 --> 00:33:35,360] we encounter.
+[00:33:35,360 --> 00:33:39,400] We train a very good policy with imitation learning
+[00:33:39,400 --> 00:33:40,860] and reinforcement learning.
+[00:33:40,860 --> 00:33:44,880] We then play the game as humans, not in the self-play way
+[00:33:44,880 --> 00:33:47,880] that you keep getting better Elo scores.
+[00:33:47,880 --> 00:33:54,120] And then we found that simple strategies made the agent--
+[00:33:54,120 --> 00:33:55,560] it didn't react properly.
+[00:33:55,560 --> 00:33:57,320] And they were fairly simple.
+[00:33:57,320 --> 00:34:00,000] If you played at the high level, it
+[00:34:00,000 --> 00:34:03,460] would really react to your moves and feel super human.
+[00:34:03,460 --> 00:34:06,700] But it would not understand some basics.
+[00:34:06,700 --> 00:34:09,760] So it very much feels similar too.
+[00:34:09,760 --> 00:34:11,920] Although of course, we're doing a lot
+[00:34:11,920 --> 00:34:16,800] of advancements in our LLMs, but it felt similar.
+[00:34:16,800 --> 00:34:19,280] And using game nomenclature, although you
+[00:34:19,280 --> 00:34:23,720] appreciate this is similar to the failures you're seeing.
+[00:34:23,720 --> 00:34:27,800] We have different policies or different examples
+[00:34:27,800 --> 00:34:34,000] that we could get against our agents from--
+[00:34:34,000 --> 00:34:37,790] some are very exploitative, not that interesting,
+[00:34:37,790 --> 00:34:41,550] to actual strategies that we would certainly
+[00:34:41,550 --> 00:34:44,570] encounter if we had this agent online in the wild.
+[00:34:44,570 --> 00:34:47,550] So adversarial policies, these would be,
+[00:34:47,550 --> 00:34:49,050] like, making the agent flip.
+[00:34:49,050 --> 00:34:51,030] It's almost like adversarial examples.
+[00:34:51,030 --> 00:34:53,510] In neural nets, you change a pixel a little bit,
+[00:34:53,510 --> 00:34:57,990] and a panda becomes an airplane, according to a neural net.
+[00:34:57,990 --> 00:35:00,790] Similar things you can get with a policy, where maybe you
+[00:35:00,790 --> 00:35:03,350] bring a unit, and you move it in certain ways,
+[00:35:03,350 --> 00:35:06,750] and the neural network just degenerates.
+[00:35:06,750 --> 00:35:10,370] So that's unlikely to be found unless you let, of course,
+[00:35:10,370 --> 00:35:12,590] users probe it.
+[00:35:12,590 --> 00:35:15,790] But it's still the most basic exploit
+[00:35:15,790 --> 00:35:18,990] you could think about from a neural network perspective.
+[00:35:18,990 --> 00:35:23,870] Then we have exploiters that are just repeatedly playing
+[00:35:23,870 --> 00:35:27,190] properly, so to speak, against a single policy.
+[00:35:27,190 --> 00:35:29,630] But eventually, they might find a weakness.
+[00:35:29,630 --> 00:35:31,750] And then they go deep into that weakness,
+[00:35:31,750 --> 00:35:35,550] strategically speaking, up until they just basically
+[00:35:35,550 --> 00:35:36,930] beat you all the time.
+[00:35:36,930 --> 00:35:41,030] And that's, in a way, similar.
+[00:35:41,030 --> 00:35:42,730] Both exploiter and the next level
+[00:35:42,730 --> 00:35:46,570] are similar to what we're seeing in LLMs these days.
+[00:35:46,570 --> 00:35:50,410] The third level is cheese, which is a strategy that
+[00:35:50,410 --> 00:35:53,690] might generalize, might be actually fairly robust
+[00:35:53,690 --> 00:35:56,890] against many different opponents versus the second one, which
+[00:35:56,890 --> 00:35:59,730] is against just one opponent.
+[00:35:59,730 --> 00:36:02,410] But of course, it's not probably the best optimal strategy
+[00:36:02,410 --> 00:36:05,290] for this game, although mix and matching cheese
+[00:36:05,290 --> 00:36:09,610] and normal policies is commonly done at the professional level
+[00:36:09,610 --> 00:36:11,730] of StarCraft as well because you always
+[00:36:11,730 --> 00:36:14,170] need to be worried that this strategy might
+[00:36:14,170 --> 00:36:15,102] occur at any time.
+[00:36:15,102 --> 00:36:16,810] You're not seeing the board all the time.
+[00:36:16,810 --> 00:36:19,370] So to play the game optimally, similar to,
+[00:36:19,370 --> 00:36:21,330] of course, things like you see in poker,
+[00:36:21,330 --> 00:36:23,710] you always need to be worried about many things.
+[00:36:23,710 --> 00:36:27,438] So you cannot go too far into optimizing against an opponent
+[00:36:27,438 --> 00:36:29,730] that, even though you're not seeing what they're doing,
+[00:36:29,730 --> 00:36:34,440] you don't know they're doing, so unpredictability is important.
+[00:36:34,440 --> 00:36:36,840] So the third kind, the cheeses, you
+[00:36:36,840 --> 00:36:39,520] usually see them at even the highest level.
+[00:36:39,520 --> 00:36:43,360] And then there's normal policies and optimal policies.
+[00:36:43,360 --> 00:36:46,480] Now, putting it differently, this
+[00:36:46,480 --> 00:36:48,040] is called non-transitiveness.
+[00:36:48,040 --> 00:36:51,000] What this means is, would this policy
+[00:36:51,000 --> 00:36:54,380] work against a different opponent?
+[00:36:54,380 --> 00:36:58,512] So the adversarial thing, most likely not.
+[00:36:58,512 --> 00:37:02,040] The adversarial attack might be specific to the weights
+[00:37:02,040 --> 00:37:03,680] of your neural network.
+[00:37:03,680 --> 00:37:07,880] Then the exploiter policy, you train or you repeatedly play
+[00:37:07,880 --> 00:37:11,120] against the same opponent, who cannot update their weights.
+[00:37:11,120 --> 00:37:14,280] So that one is specific to one opponent.
+[00:37:14,280 --> 00:37:16,040] Cheese tends to generalize.
+[00:37:16,040 --> 00:37:19,280] So maybe when we're talking about the R's in strawberry
+[00:37:19,280 --> 00:37:23,200] and so on, we see many models, trained not very differently
+[00:37:23,200 --> 00:37:26,040] but somewhat differently by different companies,
+[00:37:26,040 --> 00:37:27,340] have these weaknesses.
+[00:37:27,340 --> 00:37:30,280] So maybe, those kind of exploits are
+[00:37:30,280 --> 00:37:32,120] more in this cheese category, which
+[00:37:32,120 --> 00:37:35,420] are reasonably generalizable but, of course,
+[00:37:35,420 --> 00:37:39,140] not very kind of interesting or strong.
+[00:37:39,140 --> 00:37:43,240] I mean, no one, hopefully, just uses these to cheese the model,
+[00:37:43,240 --> 00:37:44,080] so to speak.
+[00:37:44,080 --> 00:37:48,360] Then we have normal policies and then the optimal policy,
+[00:37:48,360 --> 00:37:49,860] which, of course, is very, very hard
+[00:37:49,860 --> 00:37:55,460] to find with deep reinforcement learning and multi-agent.
+[00:37:55,460 --> 00:37:58,280] So if we put this figure differently,
+[00:37:58,280 --> 00:38:01,140] one observation that my colleague did
+[00:38:01,140 --> 00:38:06,440] is that most interesting games have these different axes.
+[00:38:06,440 --> 00:38:10,500] The z-axis here is the strength, the inherent strength
+[00:38:10,500 --> 00:38:16,860] of the player, the Elo score, or the z-score.
+[00:38:16,860 --> 00:38:20,660] But then within a slice of this thing,
+[00:38:20,660 --> 00:38:24,500] you would actually find different cycles
+[00:38:24,500 --> 00:38:27,980] of non-transitivity, meaning that three models
+[00:38:27,980 --> 00:38:30,580] at the same Elo score, especially if the Elo score is
+[00:38:30,580 --> 00:38:33,970] not very high, might beat each other in a way that's
+[00:38:33,970 --> 00:38:35,170] non-transitive.
+[00:38:35,170 --> 00:38:37,070] Rock, paper, scissors cycles, actually,
+[00:38:37,070 --> 00:38:41,970] that's a commonly used abstraction that's very clear.
+[00:38:41,970 --> 00:38:44,450] Rock, paper, scissors, one beats the other.
+[00:38:44,450 --> 00:38:49,010] So think of, we might have three models, three agents,
+[00:38:49,010 --> 00:38:52,510] at the same level, but one very strongly beats the next,
+[00:38:52,510 --> 00:38:56,030] and the next one very strongly beats the next one, and so on.
+[00:38:56,030 --> 00:38:59,690] So there's these cycles of non-transitive and many
+[00:38:59,690 --> 00:39:06,110] interesting games studied here possess this property.
+[00:39:06,110 --> 00:39:08,830] And this is obviously designed for zero-sum games.
+[00:39:08,830 --> 00:39:12,090] So for LLMs, you need to make some abstractions
+[00:39:12,090 --> 00:39:13,830] to think about what that means.
+[00:39:13,830 --> 00:39:16,050] But we certainly have Elo scores.
+[00:39:16,050 --> 00:39:18,890] And we certainly see models having strengths
+[00:39:18,890 --> 00:39:22,850] that are not uniformly the same across the same,
+[00:39:22,850 --> 00:39:25,630] let's say, level of LMC's performance, for example.
+[00:39:25,630 --> 00:39:32,150] So that is an interesting aspect of the complexity of the kind
+[00:39:32,150 --> 00:39:34,870] of task we're trying to solve.
+[00:39:34,870 --> 00:39:35,970] I'll skip this slide.
+[00:39:35,970 --> 00:39:38,210] Just there's the reference from 2020.
+[00:39:38,210 --> 00:39:40,130] But that explains this intuitively,
+[00:39:40,130 --> 00:39:43,390] this issue of, there's an area where
+[00:39:43,390 --> 00:39:46,130] you're not so good, that things are very non-transitive.
+[00:39:46,130 --> 00:39:48,270] And then as you become very, very good,
+[00:39:48,270 --> 00:39:52,590] then there's a dominant strategy that no one can beat.
+[00:39:52,590 --> 00:39:54,870] So that's how we're seeing in most
+[00:39:54,870 --> 00:39:58,630] games, this kind of behavior.
+[00:39:58,630 --> 00:40:02,270] Now switching gears a bit, how do you actually
+[00:40:02,270 --> 00:40:04,110] train these models?
+[00:40:04,110 --> 00:40:05,790] There's a few techniques.
+[00:40:05,790 --> 00:40:07,810] But all of them have some issues,
+[00:40:07,810 --> 00:40:10,990] especially as the games become strategically complex.
+[00:40:10,990 --> 00:40:13,970] So here is rock, paper, scissors, actually.
+[00:40:13,970 --> 00:40:20,410] So each of the vertices here are rock, paper, or scissors.
+[00:40:20,410 --> 00:40:22,630] A strategy is just a distribution
+[00:40:22,630 --> 00:40:24,330] of what will you play.
+[00:40:24,330 --> 00:40:27,870] So if you play against an opponent that always plays rock,
+[00:40:27,870 --> 00:40:29,760] well, that's a very bad strategy.
+[00:40:29,760 --> 00:40:33,220] And the optimal strategy is uniform.
+[00:40:33,220 --> 00:40:37,960] So if you do self-play kind of naively, and you try to say,
+[00:40:37,960 --> 00:40:41,380] I'm going to learn an agent that plays rock, paper, scissors,
+[00:40:41,380 --> 00:40:46,100] you see this effect of oscillating around the middle,
+[00:40:46,100 --> 00:40:49,620] and locally, you're very strongly into one strategy.
+[00:40:49,620 --> 00:40:55,230] So sadly, that makes convergence very hard.
+[00:40:55,230 --> 00:40:56,980] Now, what you can start thinking about is,
+[00:40:56,980 --> 00:41:01,500] hey, let's add population, populations of policies
+[00:41:01,500 --> 00:41:02,880] all playing against each other.
+[00:41:02,880 --> 00:41:06,120] So there's several ways to do this.
+[00:41:06,120 --> 00:41:07,900] Here are the three figures.
+[00:41:07,900 --> 00:41:12,320] But these are starting to feel a bit better, intuitively as well.
+[00:41:12,320 --> 00:41:12,820] if
+[00:41:12,820 --> 00:41:15,240] I want to learn proactively rock, paper, scissors,
+[00:41:15,240 --> 00:41:17,380] I'm exposed to many players, maybe someone who
+[00:41:17,380 --> 00:41:20,700] has very suboptimal strategy playing only scissors,
+[00:41:20,700 --> 00:41:24,860] but at least, I wouldn't know that player a priori.
+[00:41:24,860 --> 00:41:27,400] So I might learn, eventually, that I
+[00:41:27,400 --> 00:41:30,000] have to play the optimal or the Nash
+[00:41:30,000 --> 00:41:32,880] here, which is the middle point, equal distribution
+[00:41:32,880 --> 00:41:34,720] of the symbols.
+[00:41:34,720 --> 00:41:37,840] Very simple game, though, so obviously very toy.
+[00:41:37,840 --> 00:41:41,000] And different strategies yield different results.
+[00:41:41,000 --> 00:41:44,780] The one that is most hopeful, but even in this toy example,
+[00:41:44,780 --> 00:41:48,360] it doesn't quite get always the result that is desired,
+[00:41:48,360 --> 00:41:50,920] is the rightmost, which is, you have
+[00:41:50,920 --> 00:41:54,280] a population of these agents that you play against,
+[00:41:54,280 --> 00:41:59,280] and you play always against the strongest opponent.
+[00:41:59,280 --> 00:42:03,440] That feels like a good strategy to maybe set yourself,
+[00:42:03,440 --> 00:42:05,160] your whole system up.
+[00:42:05,160 --> 00:42:08,420] And we didn't quite do this in StarCraft.
+[00:42:08,420 --> 00:42:10,080] But there's a lot of these intuitions
+[00:42:10,080 --> 00:42:12,160] that played a big role.
+[00:42:12,160 --> 00:42:14,186] Let's see this played.
+[00:42:14,186 --> 00:42:15,060] We saw this.
+[00:42:15,060 --> 00:42:16,560] This is a real example of what we
+[00:42:16,560 --> 00:42:19,360] saw as we trained using self-play
+[00:42:19,360 --> 00:42:21,800] in AlphaStar in the early days.
+[00:42:21,800 --> 00:42:24,630] And let's use a equivalent of rock, paper,
+[00:42:24,630 --> 00:42:28,350] scissors in StarCraft world, which is three different kinds
+[00:42:28,350 --> 00:42:33,250] of units-- void ray, which is an air unit; immortal,
+[00:42:33,250 --> 00:42:36,990] which is a very strong ground unit that cannot attack the air;
+[00:42:36,990 --> 00:42:41,030] and then stalker, which is kind of a unit that can attack
+[00:42:41,030 --> 00:42:44,510] the air but is not the strongest ground unit.
+[00:42:44,510 --> 00:42:49,330] So void ray beats immortal, immortal beats stalker,
+[00:42:49,330 --> 00:42:50,870] stalker beats void ray.
+[00:42:50,870 --> 00:42:53,610] And it's kind of true, if you do it just naively,
+[00:42:53,610 --> 00:42:55,470] you just build lots of these units.
+[00:42:55,470 --> 00:42:57,410] You most likely will see this.
+[00:42:57,410 --> 00:43:01,270] This actually represents the game reasonably faithfully,
+[00:43:01,270 --> 00:43:03,550] so great.
+[00:43:03,550 --> 00:43:04,270] We set this.
+[00:43:04,270 --> 00:43:06,090] And we start from imitation learning.
+[00:43:06,090 --> 00:43:07,430] So we have that players--
+[00:43:07,430 --> 00:43:10,390] I mean, there's a distribution over different strategies
+[00:43:10,390 --> 00:43:14,550] that people will have done when they play online.
+[00:43:14,550 --> 00:43:16,730] And our initial policy is in the middle.
+[00:43:16,730 --> 00:43:19,570] It's not very good at either of these.
+[00:43:19,570 --> 00:43:22,030] But it represents the whole distribution.
+[00:43:22,030 --> 00:43:25,950] And as we trained, what happened is, our policies,
+[00:43:25,950 --> 00:43:28,150] even with the distillation losses and so on,
+[00:43:28,150 --> 00:43:32,950] started to only do void rays really well, lots of them.
+[00:43:32,950 --> 00:43:36,630] Very good micromanagement, but they became really, really,
+[00:43:36,630 --> 00:43:38,370] really specialized.
+[00:43:38,370 --> 00:43:40,690] So the whole population, which was not really
+[00:43:40,690 --> 00:43:45,210] a population, this is just pure self-play actually,
+[00:43:45,210 --> 00:43:50,650] the only strategy that became present during training
+[00:43:50,650 --> 00:43:51,930] was void rays.
+[00:43:51,930 --> 00:43:54,890] And of course, that washed out a little bit the prior knowledge
+[00:43:54,890 --> 00:43:57,650] that we came in, even with distillation.
+[00:43:57,650 --> 00:44:00,230] And that meant that from the agent's perspective,
+[00:44:00,230 --> 00:44:01,210] it was delusional.
+[00:44:01,210 --> 00:44:05,470] It was playing against itself, void ray versus void ray,
+[00:44:05,470 --> 00:44:07,650] great battles, awesome games, that we
+[00:44:07,650 --> 00:44:10,090] recorded during that time.
+[00:44:10,090 --> 00:44:13,670] If the enemy happened to do immortals, no issue.
+[00:44:13,670 --> 00:44:16,210] These units dominate this.
+[00:44:16,210 --> 00:44:17,930] But if someone just said, OK, I'm
+[00:44:17,930 --> 00:44:20,730] going to do these other units, then
+[00:44:20,730 --> 00:44:23,220] these agents didn't even encounter these anymore
+[00:44:23,220 --> 00:44:26,360] because all it saw in its games were
+[00:44:26,360 --> 00:44:28,360] massive amounts of void rays.
+[00:44:28,360 --> 00:44:32,260] So sadly, this was not a very robust strategy.
+[00:44:32,260 --> 00:44:34,460] I mean, if you force a pro player to, hey,
+[00:44:34,460 --> 00:44:37,400] you have to do void rays, only do
+[00:44:37,400 --> 00:44:40,160] that, no cheese, no different strategies,
+[00:44:40,160 --> 00:44:41,820] then this agent was very good.
+[00:44:41,820 --> 00:44:44,680] But of course, people are diversifying what they do.
+[00:44:44,680 --> 00:44:46,660] These are not the only three strategies.
+[00:44:46,660 --> 00:44:49,040] There's early rushes, all sorts of things
+[00:44:49,040 --> 00:44:50,760] that happen in these domains.
+[00:44:50,760 --> 00:44:54,200] So that really didn't work well.
+[00:44:54,200 --> 00:44:56,720] What we added, though, the key notion in the league
+[00:44:56,720 --> 00:44:58,640] is to add exploiters.
+[00:44:58,640 --> 00:45:04,400] So as you train the model, the main agent, this steal agent,
+[00:45:04,400 --> 00:45:06,840] it might still specialize to the void rays.
+[00:45:06,840 --> 00:45:10,100] But then at some point during the training process,
+[00:45:10,100 --> 00:45:11,880] like the reinforcement learning, you're
+[00:45:11,880 --> 00:45:14,040] going to add a second agent.
+[00:45:14,040 --> 00:45:16,980] And this agent is going to be an exploiter,
+[00:45:16,980 --> 00:45:19,360] meaning that it's only going to care
+[00:45:19,360 --> 00:45:23,190] about beating this agent here.
+[00:45:23,190 --> 00:45:25,930] Its goal is going to be, beat this agent.
+[00:45:25,930 --> 00:45:27,490] This agent cannot train against this.
+[00:45:27,490 --> 00:45:28,810] So there's an asymmetry.
+[00:45:28,810 --> 00:45:31,690] The red gets to see the games and learn from them.
+[00:45:31,690 --> 00:45:33,430] But the teal does not.
+[00:45:33,430 --> 00:45:35,790] So then what happens naturally is
+[00:45:35,790 --> 00:45:38,650] that if the agent starts to specialize to void rays,
+[00:45:38,650 --> 00:45:43,110] naturally, the exploiter will start doing stalkers.
+[00:45:43,110 --> 00:45:47,710] So now, at least this agent has seen that, hey, there
+[00:45:47,710 --> 00:45:50,190] are very good players out there that will do
+[00:45:50,190 --> 00:45:52,070] this other unit that beats me.
+[00:45:52,070 --> 00:45:55,590] So it's going to be exposed to this strategy
+[00:45:55,590 --> 00:46:01,230] and be able to react properly and even say, run out
+[00:46:01,230 --> 00:46:04,870] of the optimum, which is to build lots of void rays,
+[00:46:04,870 --> 00:46:07,790] to say, hey, maybe I actually should also build immortals
+[00:46:07,790 --> 00:46:11,870] if I see that the enemy is doing lots of stalkers, et cetera.
+[00:46:11,870 --> 00:46:13,490] So this is simplistic.
+[00:46:13,490 --> 00:46:16,270] But I think it gets the idea of the algorithm we end up
+[00:46:16,270 --> 00:46:18,690] developing intuitively.
+[00:46:18,690 --> 00:46:22,090] In full, what we do is this in steroids.
+[00:46:22,090 --> 00:46:25,930] So we had many different agents that
+[00:46:25,930 --> 00:46:29,210] were created with the sole goal of making
+[00:46:29,210 --> 00:46:32,490] the main agents, the agents we actually deployed and became
+[00:46:32,490 --> 00:46:35,990] grandmaster against the global population of players.
+[00:46:35,990 --> 00:46:40,870] So you can imagine we have these three main agents, one per race.
+[00:46:40,870 --> 00:46:44,490] And then we have different agents
+[00:46:44,490 --> 00:46:47,310] whose goal is just to make the main agents stronger.
+[00:46:47,310 --> 00:46:50,370] So that's the whole multi-agent system we designed.
+[00:46:50,370 --> 00:46:52,910] And the way it works is actually super simple.
+[00:46:52,910 --> 00:46:55,170] We didn't experiment a lot with this.
+[00:46:55,170 --> 00:46:57,650] So the main agents are essentially
+[00:46:57,650 --> 00:46:59,650] playing against themselves, playing
+[00:46:59,650 --> 00:47:01,610] against the other main agents, and playing
+[00:47:01,610 --> 00:47:03,750] against the whole population all the time.
+[00:47:03,750 --> 00:47:07,130] They're playing against everyone.
+[00:47:07,130 --> 00:47:10,210] I'll get to how that distribution of everyone
+[00:47:10,210 --> 00:47:11,850] evolves over time.
+[00:47:11,850 --> 00:47:16,270] But then these main exploiter agents, they will basically say,
+[00:47:16,270 --> 00:47:20,560] hey, start from the prior, try to beat, let's say,
+[00:47:20,560 --> 00:47:24,280] the three agents maximally, so just cheat,
+[00:47:24,280 --> 00:47:26,740] cheat in the sense of, I can train against you,
+[00:47:26,740 --> 00:47:28,600] you cannot train against me.
+[00:47:28,600 --> 00:47:31,880] Develop a policy that eventually reaches a certain win rate.
+[00:47:31,880 --> 00:47:33,960] When the win rate is very high, meaning
+[00:47:33,960 --> 00:47:39,320] I exploited you successfully, only then you say, hey, here
+[00:47:39,320 --> 00:47:41,240] I am, I'm beating you.
+[00:47:41,240 --> 00:47:43,440] I'm a new player in this world.
+[00:47:43,440 --> 00:47:44,220] Deal with it.
+[00:47:44,220 --> 00:47:47,120] So this agent was secretly training until it
+[00:47:47,120 --> 00:47:48,920] became good at exploiting.
+[00:47:48,920 --> 00:47:51,780] And when it became good, it dropped a checkpoint.
+[00:47:51,780 --> 00:47:54,300] It showed itself against the main agents,
+[00:47:54,300 --> 00:47:56,600] which now, all of a sudden, could play against it.
+[00:47:56,600 --> 00:47:59,600] And it went, and it restarted the same process again
+[00:47:59,600 --> 00:48:00,500] from the prior.
+[00:48:00,500 --> 00:48:05,240] So over time, you will find different exploiters
+[00:48:05,240 --> 00:48:09,480] at different stages of training against the main agent.
+[00:48:09,480 --> 00:48:11,940] And then we also added league exploiters,
+[00:48:11,940 --> 00:48:13,540] which is the same concept.
+[00:48:13,540 --> 00:48:16,300] But instead of beating only the main agents,
+[00:48:16,300 --> 00:48:19,460] these agents try to beat everyone in the population
+[00:48:19,460 --> 00:48:23,080] by finding exploits that work against everyone,
+[00:48:23,080 --> 00:48:28,040] rather than just the main agent, which is a bit more like cheese.
+[00:48:28,040 --> 00:48:31,420] So we have main exploiters, league exploiters, and then,
+[00:48:31,420 --> 00:48:33,340] of course, main agents.
+[00:48:33,340 --> 00:48:36,740] This was very fun to see, like, the dynamics, the learning
+[00:48:36,740 --> 00:48:40,660] dynamics, very hard to understand even
+[00:48:40,660 --> 00:48:42,680] in a game, what's actually going on.
+[00:48:42,680 --> 00:48:43,960] I mean, intuitively, we know.
+[00:48:43,960 --> 00:48:47,940] But lots to do that are left on the table from these AlphaStar
+[00:48:47,940 --> 00:48:49,740] league, as we call it.
+[00:48:49,740 --> 00:48:51,700] But it was very powerful.
+[00:48:51,700 --> 00:48:58,060] And then over time, we have over 1,000 agents that have different
+[00:48:58,060 --> 00:48:59,120] strengths.
+[00:48:59,120 --> 00:49:02,420] They will beat a previous agent.
+[00:49:02,420 --> 00:49:05,220] But eventually, the main agents catch up
+[00:49:05,220 --> 00:49:06,720] and beat the exploiters.
+[00:49:06,720 --> 00:49:10,060] So there's all sorts of interesting win-rate dynamics.
+[00:49:10,060 --> 00:49:14,008] And it can be represented in this shape of the spinning top,
+[00:49:14,008 --> 00:49:14,550] a little bit.
+[00:49:14,550 --> 00:49:20,230] So the weakest agents here are highly non-transitive.
+[00:49:20,230 --> 00:49:23,750] There are 30,000 RPS cycles.
+[00:49:23,750 --> 00:49:29,390] That means the cycle length of non-transitivity is 30,000.
+[00:49:29,390 --> 00:49:33,330] So you can find 30,000 agents--
+[00:49:33,330 --> 00:49:35,250] I believe that's what it means-- that beat
+[00:49:35,250 --> 00:49:37,850] the next one, the next one, and so on and so forth.
+[00:49:37,850 --> 00:49:39,650] And as the agents become stronger,
+[00:49:39,650 --> 00:49:41,250] they start to fully dominate, which
+[00:49:41,250 --> 00:49:46,810] is also commonly seen, I mean, in these interesting games.
+[00:49:46,810 --> 00:49:47,910] So that's an analysis.
+[00:49:47,910 --> 00:49:51,250] This is what happens in rock, paper, scissors to give you
+[00:49:51,250 --> 00:49:55,290] an example, so much more complex game dynamics.
+[00:49:55,290 --> 00:49:58,030] And then, as I said, it was very fun to see this happen.
+[00:49:58,030 --> 00:50:00,970] So you would be training and, all of a sudden, this red agent
+[00:50:00,970 --> 00:50:03,250] is an exploiter that finds a cheese that's
+[00:50:03,250 --> 00:50:04,430] called cannon rush.
+[00:50:04,430 --> 00:50:10,050] So the blue agent, that's the main agent,
+[00:50:10,050 --> 00:50:13,030] has not seen this strategy enough so it can't really
+[00:50:13,030 --> 00:50:14,310] define very well.
+[00:50:14,310 --> 00:50:18,230] But eventually, by now playing against this red agent that's
+[00:50:18,230 --> 00:50:21,910] now frozen in time and it will just do the same strategy,
+[00:50:21,910 --> 00:50:26,210] eventually will be able to defend and so on and so forth,
+[00:50:26,210 --> 00:50:28,470] so with workers, which is the right reaction,
+[00:50:28,470 --> 00:50:32,430] and scout to find that you've been, indeed, in this situation
+[00:50:32,430 --> 00:50:34,150] and so on and so forth.
+[00:50:34,150 --> 00:50:38,110] And we saw all sorts of interesting dynamics as well.
+[00:50:38,110 --> 00:50:40,030] Anyways, there's lots of cool games
+[00:50:40,030 --> 00:50:43,453] and, hopefully, analysis that you can see online.
+[00:50:43,453 --> 00:50:45,370] I don't want to talk about StarCraft too much.
+[00:50:45,370 --> 00:50:48,310] But it's a passion of mine, as you can see.
+[00:50:48,310 --> 00:50:50,970] But yeah, this was kind of very critical.
+[00:50:50,970 --> 00:50:52,950] And then in the results, you could
+[00:50:52,950 --> 00:50:57,150] see that if you only train with the population still, but only
+[00:50:57,150 --> 00:50:58,290] of main agents--
+[00:50:58,290 --> 00:51:01,030] so just have three agents playing against each other
+[00:51:01,030 --> 00:51:03,090] and against themselves in the past,
+[00:51:03,090 --> 00:51:05,630] that's called fictitious self-play--
+[00:51:05,630 --> 00:51:08,030] you achieve certain strength.
+[00:51:08,030 --> 00:51:10,680] And this core is not that perfect.
+[00:51:10,680 --> 00:51:13,960] If you play as a human, you would not be that strong.
+[00:51:13,960 --> 00:51:17,740] I mean, these differences were probably less than reality.
+[00:51:17,740 --> 00:51:19,520] And we checked these a little bit.
+[00:51:19,520 --> 00:51:23,260] But it was hard to do these experiments in the wild.
+[00:51:23,260 --> 00:51:26,840] Then by adding main exploiters, we became much stronger.
+[00:51:26,840 --> 00:51:29,320] And by adding, on top of that, league exploiters,
+[00:51:29,320 --> 00:51:33,700] we had the final system that was robust
+[00:51:33,700 --> 00:51:36,420] against many different strategies and, of course, very
+[00:51:36,420 --> 00:51:39,740] strong at playing the game.
+[00:51:39,740 --> 00:51:42,860] Now, a couple of details and then I'll conclude,
+[00:51:42,860 --> 00:51:46,240] is that the path of learning matters.
+[00:51:46,240 --> 00:51:49,345] And it's so hard to know how it matters.
+[00:51:49,345 --> 00:51:52,740] Basically, if you are now an agent
+[00:51:52,740 --> 00:51:56,900] and is exploited very often or very rarely or initially is
+[00:51:56,900 --> 00:51:59,720] never exploited, I mean, all these changes, happily,
+[00:51:59,720 --> 00:52:03,580] the policy you end up with at the end of this process.
+[00:52:03,580 --> 00:52:08,400] So there's lots of details that are to be worked out,
+[00:52:08,400 --> 00:52:09,910] even from a theory perspective.
+[00:52:09,910 --> 00:52:13,520] But in these games, and with deep reinforcement learning,
+[00:52:13,520 --> 00:52:15,720] theory is also hard to come by.
+[00:52:15,720 --> 00:52:19,420] And we had a couple of strategies on how to matchmake.
+[00:52:19,420 --> 00:52:20,740] So I'm the main agent.
+[00:52:20,740 --> 00:52:23,200] There is literally 1,000 agents.
+[00:52:23,200 --> 00:52:25,080] Which should I play against?
+[00:52:25,080 --> 00:52:27,128] So we had two strategies.
+[00:52:27,128 --> 00:52:28,920] One is, play against the one that beats you
+[00:52:28,920 --> 00:52:31,560] the most, which is hard opponents.
+[00:52:31,560 --> 00:52:34,720] And the other one is, play against the one that
+[00:52:34,720 --> 00:52:35,860] you're 50/50.
+[00:52:35,860 --> 00:52:38,600] You're closest to maximum entropy.
+[00:52:38,600 --> 00:52:40,742] Because if the one that beats you the most
+[00:52:40,742 --> 00:52:42,200] beats you all the time, there's not
+[00:52:42,200 --> 00:52:43,880] going to be a learning signal.
+[00:52:43,880 --> 00:52:47,360] So we tried this, both strategies.
+[00:52:47,360 --> 00:52:51,000] Variance was a little better, like this one that maximizes,
+[00:52:51,000 --> 00:52:54,600] kind of, that tries to get to the sweet spot of 50/50.
+[00:52:54,600 --> 00:52:58,735] But also, I mean, this is one of the many parameters that
+[00:52:58,735 --> 00:53:00,360] tells you that the process in which you
+[00:53:00,360 --> 00:53:03,840] create these main policies matters a whole lot.
+[00:53:03,840 --> 00:53:06,040] And then the other part that was important
+[00:53:06,040 --> 00:53:12,030] is that to generate interesting counterstrategies or exploiters
+[00:53:12,030 --> 00:53:16,350] or cheeses, having controllability mattered.
+[00:53:16,350 --> 00:53:19,390] So not only we started from the prior distribution
+[00:53:19,390 --> 00:53:21,110] that we had trained in imitation learning
+[00:53:21,110 --> 00:53:23,830] and say, hey, go and exploit the main agent,
+[00:53:23,830 --> 00:53:28,110] we also were opinionated about how you should exploit it.
+[00:53:28,110 --> 00:53:30,910] So we would sometimes, not always, say,
+[00:53:30,910 --> 00:53:32,850] I want you to exploit the main agent,
+[00:53:32,850 --> 00:53:36,190] but please do it with this unit type.
+[00:53:36,190 --> 00:53:38,710] Like, I mentioned how we did this prompting.
+[00:53:38,710 --> 00:53:42,370] So it was kind of tying your hands behind a little bit,
+[00:53:42,370 --> 00:53:44,250] saying, hey, I want you to beat me,
+[00:53:44,250 --> 00:53:46,430] but you have to use this unit.
+[00:53:46,430 --> 00:53:50,030] And that added a component of robustness and diversification
+[00:53:50,030 --> 00:53:51,750] that also help.
+[00:53:51,750 --> 00:53:54,830] So lots of different choices here, not a lot of time
+[00:53:54,830 --> 00:53:57,870] we had during the project to fully study these.
+[00:53:57,870 --> 00:54:00,750] But you can see lots of different possibilities.
+[00:54:00,750 --> 00:54:03,350] And it was very important to have this diversity
+[00:54:03,350 --> 00:54:04,730] in the main policy.
+[00:54:04,730 --> 00:54:07,770] Of course, in LLMs, that is trivial.
+[00:54:07,770 --> 00:54:10,790] So they're very profitable.
+[00:54:10,790 --> 00:54:12,150] There's a lot of diversity.
+[00:54:12,150 --> 00:54:15,930] So there's not a problem at all to think about, hey,
+[00:54:15,930 --> 00:54:18,130] I don't know, solve this theorem but do it
+[00:54:18,130 --> 00:54:22,790] in Catalan or in Spanish or do it in very bare bones.
+[00:54:22,790 --> 00:54:25,970] All these things will add some sort of robustness
+[00:54:25,970 --> 00:54:30,450] to, maybe, new encounters that you'll find,
+[00:54:30,450 --> 00:54:34,570] meaning new prompts in LLMs and so on and so forth.
+[00:54:34,570 --> 00:54:38,810] So contrasting is very exciting, multi-agent ideas
+[00:54:38,810 --> 00:54:41,850] and space with LLMs.
+[00:54:41,850 --> 00:54:45,850] I mean, one difference is that users are, in general,
+[00:54:45,850 --> 00:54:46,770] collaborative.
+[00:54:46,770 --> 00:54:50,930] It's not a zero-sum game that we play.
+[00:54:50,930 --> 00:54:53,450] I go online, and I want to achieve something, get
+[00:54:53,450 --> 00:54:56,850] some information, help me with some problem that I'm having.
+[00:54:56,850 --> 00:55:03,010] So I'm actually collaborative with the other agent, right?
+[00:55:03,010 --> 00:55:05,040] So that's an interesting difference.
+[00:55:05,040 --> 00:55:08,920] That being said, we also have adversarial users.
+[00:55:08,920 --> 00:55:12,700] I mean, who doesn't like to find weird failure modes?
+[00:55:12,700 --> 00:55:15,480] And then Twitter likes are, obviously,
+[00:55:15,480 --> 00:55:19,880] one of the reward signals that humans like to optimize.
+[00:55:19,880 --> 00:55:25,200] And also more seriously, eventually, these systems
+[00:55:25,200 --> 00:55:28,480] become closer and closer to AGI, very powerful.
+[00:55:28,480 --> 00:55:30,440] So you might want to--
+[00:55:30,440 --> 00:55:32,778] them for doing something that they shouldn't be doing.
+[00:55:32,778 --> 00:55:34,320] So there's going to be adversariality
+[00:55:34,320 --> 00:55:39,080] as well, trying to go around how the system is
+[00:55:39,080 --> 00:55:40,440] designed to be used.
+[00:55:40,440 --> 00:55:44,430] So both aspects could use multi-agent techniques,
+[00:55:44,430 --> 00:55:46,680] such as the one I described from the AlphaStar league,
+[00:55:46,680 --> 00:55:48,440] differently.
+[00:55:48,440 --> 00:55:51,920] Complexity is massive compared to even a game
+[00:55:51,920 --> 00:55:53,580] as complex as StarCraft.
+[00:55:53,580 --> 00:55:55,140] So there's no clear reward.
+[00:55:55,140 --> 00:55:57,480] We discussed this.
+[00:55:57,480 --> 00:56:03,020] Prompting is much less clean than bits of which units should
+[00:56:03,020 --> 00:56:04,100] you build.
+[00:56:04,100 --> 00:56:05,240] Prompting can be vast.
+[00:56:05,240 --> 00:56:07,100] It's natural language.
+[00:56:07,100 --> 00:56:08,040] It's unbounded.
+[00:56:08,040 --> 00:56:11,100] It's very, very interesting, the amount of complexity
+[00:56:11,100 --> 00:56:13,020] we'll deal with here.
+[00:56:13,020 --> 00:56:16,280] To the extent that even these LLMs playing StarCraft,
+[00:56:16,280 --> 00:56:18,140] which is a dream of mine--
+[00:56:18,140 --> 00:56:19,280] They can play.
+[00:56:19,280 --> 00:56:20,620] They're not very good--
+[00:56:20,620 --> 00:56:22,320] is actually one of the many domains.
+[00:56:22,320 --> 00:56:25,380] So you could see a particular case of current models
+[00:56:25,380 --> 00:56:27,760] is that we might just instruct them to, hey,
+[00:56:27,760 --> 00:56:30,180] be a very good StarCraft player, and then
+[00:56:30,180 --> 00:56:32,020] give them control of the environment
+[00:56:32,020 --> 00:56:32,960] and see what they do.
+[00:56:32,960 --> 00:56:35,140] And in fact, games, more and more,
+[00:56:35,140 --> 00:56:38,040] are starting to be reused, turned around,
+[00:56:38,040 --> 00:56:39,600] be used as an evaluation.
+[00:56:39,600 --> 00:56:43,840] There's a Game Arena, I believe, on Kaggle that is very popular,
+[00:56:43,840 --> 00:56:45,020] for example.
+[00:56:45,020 --> 00:56:47,740] And famously, I think some of the LLMs
+[00:56:47,740 --> 00:56:50,580] tried to compete Pokemon, et cetera, so very cool domain
+[00:56:50,580 --> 00:56:53,860] as well to test ideas.
+[00:56:53,860 --> 00:56:56,780] I will say, some amount of auto-red teaming,
+[00:56:56,780 --> 00:57:00,870] et cetera, has been using multi-agent techniques.
+[00:57:00,870 --> 00:57:03,770] But I think, overall, it's still in its infancy.
+[00:57:03,770 --> 00:57:07,730] So there's lots and lots of research to be done here.
+[00:57:07,730 --> 00:57:11,410] So to conclude this sort of past and future combination
+[00:57:11,410 --> 00:57:15,930] and, of course, present of LLMs, I would say,
+[00:57:15,930 --> 00:57:18,550] there's lots pre-LLM agents.
+[00:57:18,550 --> 00:57:22,850] There's lots of gems to learn from from many different papers
+[00:57:22,850 --> 00:57:24,770] and different problems.
+[00:57:24,770 --> 00:57:26,210] Tool use was discussed.
+[00:57:26,210 --> 00:57:30,430] Architectures, losses, regularization, value functions,
+[00:57:30,430 --> 00:57:33,950] I mean, lots of things we can probably revisit very seriously,
+[00:57:33,950 --> 00:57:36,050] and we should.
+[00:57:36,050 --> 00:57:39,130] My strong belief is that human priors are going
+[00:57:39,130 --> 00:57:42,530] to be part of the path to AGI.
+[00:57:42,530 --> 00:57:46,210] But we need to obviously also build knowledge and experience
+[00:57:46,210 --> 00:57:48,490] on top of that prior knowledge.
+[00:57:48,490 --> 00:57:50,950] I've seen it succeed enough times now,
+[00:57:50,950 --> 00:57:55,490] including in AlphaGo, which also use imitation plus RL that,
+[00:57:55,490 --> 00:57:57,290] I believe, that's certainly the shortest
+[00:57:57,290 --> 00:58:04,710] path to AGI, although happy to discuss that if useful.
+[00:58:04,710 --> 00:58:09,830] Then in general, RL or post-training on top of LLMs
+[00:58:09,830 --> 00:58:12,630] still feels in their infancy when I think and compare it
+[00:58:12,630 --> 00:58:14,790] to a system like the AlphaStar system.
+[00:58:14,790 --> 00:58:19,190] We can train on thousands of steps, maybe,
+[00:58:19,190 --> 00:58:21,030] versus in this AlphaStar league, we
+[00:58:21,030 --> 00:58:25,070] use 10 to the 10 training steps in post-training, so vastly
+[00:58:25,070 --> 00:58:27,510] more compute used in post-training
+[00:58:27,510 --> 00:58:30,710] rather than in pre-training.
+[00:58:30,710 --> 00:58:32,270] Of course, we also have this issue
+[00:58:32,270 --> 00:58:34,490] that the rewards are fuzzily specified.
+[00:58:34,490 --> 00:58:37,470] So that is definitely a challenge.
+[00:58:37,470 --> 00:58:41,270] And last but not least, multi-agent RL, in whichever way
+[00:58:41,270 --> 00:58:45,550] you can think of creating a population of users and agents
+[00:58:45,550 --> 00:58:48,230] talking to one another and really optimize
+[00:58:48,230 --> 00:58:51,050] and train for that, I think that's very exciting.
+[00:58:51,050 --> 00:58:53,870] And it's going to have, probably, a new scalability
+[00:58:53,870 --> 00:58:56,830] breakthrough, I can imagine, in the next few years,
+[00:58:56,830 --> 00:58:59,420] maybe from some of you.

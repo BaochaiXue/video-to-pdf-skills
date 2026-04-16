@@ -1,0 +1,168 @@
+# seg_14 Contract
+
+Source range:
+- transcript: 01:09:00,719 -- 01:14:35,600
+- segment hint: Segment 14
+
+Must cover unit ids:
+- sub_1860
+- sub_1861
+- sub_1862
+- sub_1863
+- sub_1864
+- sub_1865
+- sub_1866
+- sub_1867
+- sub_1868
+- sub_1869
+- sub_1870
+- sub_1871
+- sub_1872
+- sub_1873
+- sub_1874
+- sub_1875
+- sub_1876
+- sub_1877
+- sub_1878
+- sub_1879
+- sub_1880
+- sub_1881
+- sub_1882
+- sub_1883
+- sub_1884
+- sub_1885
+- sub_1886
+- sub_1887
+- sub_1888
+- sub_1889
+- sub_1890
+- sub_1891
+- sub_1892
+- sub_1893
+- sub_1894
+- sub_1895
+- sub_1896
+- sub_1897
+- sub_1898
+- sub_1899
+- sub_1900
+- sub_1901
+- sub_1902
+- sub_1903
+- sub_1904
+- sub_1905
+- sub_1906
+- sub_1907
+- sub_1908
+- sub_1909
+- sub_1910
+- sub_1911
+- sub_1912
+- sub_1913
+- sub_1914
+- sub_1915
+- sub_1916
+- sub_1917
+- sub_1918
+- sub_1919
+- sub_1920
+- sub_1921
+- sub_1922
+- sub_1923
+- sub_1924
+- sub_1925
+- sub_1926
+- sub_1927
+- sub_1928
+- sub_1929
+- sub_1930
+- sub_1931
+- sub_1932
+- sub_1933
+- sub_1934
+- sub_1935
+- sub_1936
+- sub_1937
+- sub_1938
+- sub_1939
+- sub_1940
+- sub_1941
+- sub_1942
+- sub_1943
+- sub_1944
+- sub_1945
+- sub_1946
+- sub_1947
+- sub_1948
+- sub_1949
+- sub_1950
+- sub_1951
+- sub_1952
+- sub_1953
+- sub_1954
+- sub_1955
+- sub_1956
+- sub_1957
+- sub_1958
+- sub_1959
+- sub_1960
+- sub_1961
+- sub_1962
+- sub_1963
+- sub_1964
+- sub_1965
+- sub_1966
+- sub_1967
+- sub_1968
+- sub_1969
+- sub_1970
+- sub_1971
+- sub_1972
+- sub_1973
+- sub_1974
+- sub_1975
+- sub_1976
+- sub_1977
+- sub_1978
+- sub_1979
+- sub_1980
+- sub_1981
+- sub_1982
+- sub_1983
+- sub_1984
+- sub_1985
+- sub_1986
+- sub_1987
+- sub_1988
+- sub_1989
+- sub_1990
+- sub_1991
+- sub_1992
+- sub_1993
+- sub_1994
+- sub_1995
+- sub_1996
+- sub_1997
+- sub_1998
+- sub_1999
+- sub_2000
+- sub_2001
+- sub_2002
+- slide_0033
+- slide_0037
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

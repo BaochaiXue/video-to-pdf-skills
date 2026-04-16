@@ -1,0 +1,163 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newcommand{\notetitle}{CS294/194-196 第 10 讲：现实世界 AI Agents 的部署经验}
+\newcommand{\noteauthors}{Codex 基于 Clay Bavor 讲座视频、官方 slides 与补充 reading 重写}
+\newcommand{\notedate}{2026-04-16}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=sfJM4LaiYsM}
+\newcommand{\videocoverpath}{../../raw/10_sfJM4LaiYsM/10_sfJM4LaiYsM.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程讲义\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{课程}：UCB CS294/194-196 Agentic AI（Fall 2025）\par
+\textbf{讲次}：Practical Lessons from Deploying Real-World AI Agents\par
+\textbf{主讲}：Clay Bavor, Sierra\par
+\textbf{视频}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{为什么“部署经验”值得单独讲一讲}
+前面的几讲主要在讨论 agent 的训练、评测、后训练和系统设计，而 Clay Bavor 这一讲把焦点直接拉到一个更现实的问题上：\textbf{当 agent 真正面对企业客户、真实用户和客服工作流时，什么才算“做对了”？} 这是一种非常重要的课程转向，因为它把我们从研究性指标拉回到了生产系统的成功标准。
+
+这讲的基调并不是“再讲一遍模型能力”，而是强调：现实世界 agent 的价值，往往不来自单个 model capability，而来自整个体验是否围绕 job-to-be-done 重构。也就是说，模型越强，越不能只把它塞进旧交互壳子里。
+
+\subsection{本章小结}
+本讲的价值在于把 agent 从“研究对象”转成“交付对象”。当系统面对客户体验、业务指标和真实故障时，设计原则会发生明显变化。
+
+\section{从互联网到 mobile，再到 agent：交互范式为什么会再换一次}
+官方 slides 里最醒目的一组类比，是 ``Internet $\rightarrow$ Websites''、``Mobile $\rightarrow$ Apps''、``AI $\rightarrow$ Agents''。Clay Bavor 想表达的不是一句营销口号，而是一个交互范式的变化：如果 AI 真正成为主接口，那么应用层的组织方式就不该只是在原有网页或 App 上加一个聊天框，而应当围绕 agent 的任务执行逻辑重新设计。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{pdf_pages/page-05.png}
+\caption{技术浪潮与交互形态的对应关系：网站、App 与 agent 并不是同一层抽象的简单替换。}
+\end{figure}
+
+slides 紧接着又把这个判断落到一句很具体的话上：\textbf{The conversation is the interface.} 这句话的真正含义不是“未来所有产品都只剩聊天窗口”，而是说交互单元从静态页面和按钮，转向了围绕意图、上下文和任务结果持续展开的会话回路。对企业场景尤其如此，因为用户并不想“操作系统”，他们想“完成任务”。
+
+\subsection{为什么 agent 更适合围绕任务而不是页面设计}
+当用户面对一个客服、销售或支持场景时，他们关心的不是系统内部做了多少步推理，而是问题有没有被解决。因此 agent 最自然的产品抽象，不是“一个更会说话的 UI”，而是“一个能把任务持续推进到完成的执行体”。这也是 slides 里 `Pay for a job well done` 那页真正强调的重点：计费、价值评估和系统设计都应该围绕任务完成度，而不是 token 数或交互次数。
+
+\begin{importantbox}{部署视角下的核心判断}
+现实世界 agent 的接口不是 model API，而是任务结果。对企业客户而言，最重要的问题永远是：问题是否被解决、是否可靠、是否可持续扩展。
+\end{importantbox}
+
+\subsection{本章小结}
+从网站到 App，再到 agent，本质上是系统和用户之间的契约在变化。agent 的出现要求我们围绕 intent、context 和 task completion 去重写交互逻辑。
+
+\section{Conversation 是接口，但 workflow 才是产品}
+如果把这一讲压缩成一句最像教材的判断，那就是：\textbf{conversation 只是表层接口，真正决定产品价值的是隐藏在后面的 workflow 设计。} Clay Bavor 花了不少篇幅说明，企业 agent 不是一轮问答，而是包含信息收集、身份确认、知识检索、工具调用、状态更新、handoff 和结果校验的一整条链。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{pdf_pages/page-07.png}
+\caption{“The conversation is the interface” 的正确理解：对用户可见的是对话，对系统真正关键的是后面的状态流与任务流。}
+\end{figure}
+
+这件事和通用聊天产品有本质差异。对通用聊天产品来说，用户容忍一定程度的 exploratory interaction；但在企业流程里，客户往往只关心某件事是否被可靠完成，例如订单状态查询、账户修改、退款、预约或升级服务。如果系统不能稳定接住这些流程，它就算再会聊天，也只是演示系统。
+
+\subsection{为什么企业 agent 需要比 chatbot 更强的状态管理}
+企业 agent 几乎天然需要持久状态和结构化上下文。一次客服对话可能跨越多个回合，涉及账户信息、历史订单、政策规则、工具返回结果和升级工单状态。没有这些结构化状态，系统就很容易在多轮过程中自相矛盾。也正因如此，这一讲虽然没有用很重的系统术语，但它实际上一直在强调 memory、policy、tool use 和 workflow orchestration 的重要性。
+
+\subsection{本章小结}
+现实世界里的 conversation 不是自由聊天，而是执行入口。真正的系统设计单位是 workflow，而不是单轮 prompt。
+
+\section{什么叫“部署成功”：可靠性、评测与 Voice Sims}
+这讲最有工程价值的部分之一，是它没有把部署成功等同于“内部 demo 看起来很聪明”。相反，它把问题转向：\textbf{在真实环境里，如何评价 agent 是否真的可靠？} 这正是补充阅读 `τ2-Bench` 和 `Voice Sims` 出现的原因。
+
+`τ2-Bench: Evaluating Conversational Agents in a Dual-Control Environment` 的意义在于，它把对话 agent 放回一个更真实的评测框架：agent 不是在静态 benchmark 上答题，而是在会话与环境共同演化的条件下执行任务。对 agent 研究来说，这比单纯的 closed-form QA benchmark 更接近真实世界，因为很多错误都发生在状态切换、策略执行和用户交互细节里。
+
+`Voice Sims` 则代表另一类更偏产品与运营的评测方式：在真正面向客户之前，用接近真实世界条件的模拟交互去测试 agent。它的核心价值不是“多跑几个 scripted test”，而是提前暴露流程卡点、边界条件、对话崩坏和 handoff 失败。换句话说，这类评测是在告诉我们：\textbf{agent 的可靠性要在 deployment loop 里被验证，而不是只在研究论文里被宣称。}
+
+\begin{knowledgebox}{为什么评测在部署阶段反而更重要}
+研究阶段的评测帮助你比较方法；部署阶段的评测帮助你控制风险。后者往往更依赖真实 workflow、真实策略约束和真实用户行为分布。
+\end{knowledgebox}
+
+\subsection{“Trust” 不是抽象美德，而是系统属性}
+Sierra 的企业定位使得这讲反复回到 trust。这里的 trust 并不只是一个品牌词，而是由一组具体系统属性组成：可预测的行为边界、正确的策略执行、稳定的 handoff、可靠的身份与权限控制，以及对失败模式的及时暴露和修复。换句话说，agent 一旦部署到 customer-facing 流程里，trust 就等于系统工程。
+
+\subsection{本章小结}
+部署成功不等于“模型回答得像人”，而等于“系统在真实任务里可评测、可约束、可纠错”。这也是 agent 走向生产的门槛。
+
+\section{从企业角度看 agent：不是 demo，而是业务操作系统的一部分}
+Clay Bavor 这讲还有一个很重要的视角转换：企业购买的不是一个“炫酷 demo”，而是一种新的 customer operation layer。agent 若真要落地，就必须接入企业已有的政策、数据、CRM、知识库、工具权限和人工团队。也就是说，agent 不是替代企业流程，而是嵌入并重构企业流程。
+
+这一点对理解 agent 基础设施很重要。企业 agent 至少需要：
+\begin{itemize}[leftmargin=1.5em]
+\item 明确的 policy boundary；
+\item 对工具调用和数据访问的可控权限；
+\item 失败后的人工接管和审计轨迹；
+\item 能够根据真实反馈持续迭代的 evaluation loop。
+\end{itemize}
+
+这也是为什么这讲虽然表面上更像产品课，但它与前面的 systems 和 evaluation 章节高度一致。它只是在用企业落地语言复述同一个结论：agent 不是孤立模型，而是一个要进入复杂组织流程的系统。
+
+\begin{warningbox}{最容易被忽略的部署风险}
+如果把企业 agent 理解成“客服场景里的聊天模型”，就会低估真实部署难度。真正的难点在于 policy、workflow、handoff、权限和评测闭环，而不是单次回复的流畅度。
+\end{warningbox}
+
+\subsection{本章小结}
+企业场景让 agent 的系统属性彻底暴露出来：你不仅要会生成答案，还要会完成流程、遵守政策、接受评测并在失败时回退。
+
+\section{总结与延伸}
+这讲最值得带走的结论有四点。
+
+第一，\textbf{agent 代表的是新的交互范式，而不是旧界面上的 AI 插件。}
+
+第二，\textbf{conversation 是表面接口，workflow 才是真正的产品。}
+
+第三，\textbf{现实世界部署的核心不只是更强模型，而是可靠性、可评测性与 trust。}
+
+第四，\textbf{企业 agent 的成功标准是 job-to-be-done 是否被稳定完成，而不是对话是否“像人”。}
+
+\subsection{拓展阅读}
+\begin{itemize}[leftmargin=1.5em]
+\item \emph{$\tau^2$-Bench: Evaluating Conversational Agents in a Dual-Control Environment}
+\item \emph{Voice Sims: test agents in real world conditions before they talk to customers}
+\end{itemize}
+
+\subsection{本章小结}
+这一讲把 Agentic AI 从研究原型拉到了真实企业流程里。读完之后，应该更清楚地看到：部署 agent 的难点在系统工程，而不在一句更聪明的 prompt。
+
+\end{document}

@@ -1,0 +1,156 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[fontset=fandol]{ctex}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,longtable,array}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{caption}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\graphicspath{{./}{./pdf_pages/}}
+
+\title{UCB CS294/194-196 Agentic AI Fall 2025\\第08讲：Predictable Noise in LLM}
+\author{基于公开视频、slides、字幕与官方 reading 整理}
+\date{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{课程问题：为什么评测噪声现在成了核心议题}
+Sida Wang 这一讲从一个很现实的判断出发：LLM 时代的 benchmark 越来越小，而任务又越来越接近真实应用，因此“提升几个百分点”这件事已经不能直接等价于“模型真的变强了”。在 ImageNet 时代，十万级测试集加上单一准确率已经足够稳定；但在 HumanEval、SWE-bench、LiveCodeBench、T-Bench 以及各种 agentic benchmark 里，样本数更小，任务更开放，输出更长，评测过程更复杂，噪声就开始主导观测结果。
+
+这不是说统计显著性不再重要，而是说显著性本身必须和任务结构一起看。课程把这个问题拆成两部分：第一，如何用标准统计工具理解噪声、方差和置信区间；第二，如何识别“可预测的噪声”（predictable noise），也就是那些和 benchmark 设计、题目类型、模型能力曲线相关联的系统性波动。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-04.png}
+  \caption{课程把 LLM 评测与 ImageNet 时代的经验作对照：小幅提升在小测试集上不一定有同样的解释力。}
+\end{figure}
+
+\section{小样本时代的统计学：显著性、功效与 paired comparison}
+在最基础的一层，假设我们对某个 benchmark 的准确率做了 $n$ 次独立评测，得到估计值
+\[
+\hat p=\frac{1}{n}\sum_{i=1}^{n}x_i,\qquad x_i\in\{0,1\}.
+\]
+其中，$x_i$ 表示第 $i$ 题是否答对，$n$ 是样本数，$\hat p$ 是经验准确率。
+如果把每道题视为伯努利试验，那么标准误差可以写成
+\[
+\mathrm{SE}(\hat p)=\sqrt{\frac{\hat p(1-\hat p)}{n}}.
+\]
+这条公式在课程里不是为了“回顾统计课”，而是为了说明一个事实：当 $n$ 很小的时候，即使平均准确率有一点点提升，误差条也可能覆盖掉这点提升。换句话说，很多论文里看上去“明显更好”的结果，可能只是抽样波动。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-05.png}
+  \caption{测试集规模的变化：agentic benchmarks 和 code benchmarks 的样本数往往比经典视觉基准小得多。}
+\end{figure}
+
+课程接着强调 paired comparison 的好处。若两个模型在同一批题目上进行对比，记二者在第 $i$ 题上的结果分别为 $X_i$ 和 $Y_i$，则差值
+\[
+D_i=Y_i-X_i
+\]
+的均值 $\bar D$ 比直接比较两个独立估计更稳，因为
+\[
+\mathrm{Var}(\bar D)=\frac{1}{n}\mathrm{Var}(D_i)
+=\frac{1}{n}\bigl(\mathrm{Var}(X_i)+\mathrm{Var}(Y_i)-2\mathrm{Cov}(X_i,Y_i)\bigr).
+\]
+其中，$X_i$ 和 $Y_i$ 分别表示两个模型在第 $i$ 题上的 0/1 结果，协方差项越大，paired 设计带来的降噪效果就越明显。
+当两个模型在很多题目上的成败模式高度相关时，$\mathrm{Cov}(X_i,Y_i)$ 会显著降低方差，这就是 paired evaluation 的统计优势。课程的实际建议不是“永远做 paired”，而是：如果你能让两个模型在同样的题目、同样的随机性条件下比较，就尽量做 paired；如果不能，就要明确说出你的独立性假设。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-18.png}
+  \caption{课程用 super-population 视角解释评测：单次观测是总体分布的一个样本，而不是宇宙真理。}
+\end{figure}
+
+\section{Predictable Noise：噪声为什么不是纯随机的}
+这一讲最重要的概念是 predictable noise。直观地说，benchmark 的噪声并不完全像均匀白噪声那样随机分布，而是与题目难度、问题类型、模型整体准确率以及任务结构有关。换句话说，噪声不是“模型外面飘着的背景音”，而是 benchmark 本身的一部分。
+
+课程给出的一个关键分解是总方差分解：
+\[
+\mathrm{Var}(Y)=\mathrm{Var}\bigl(\mathbb{E}[Y\mid Z]\bigr)+\mathbb{E}\bigl[\mathrm{Var}(Y\mid Z)\bigr],
+\]
+其中 $Z$ 表示题目特征、任务类别或 benchmark 的上下文变量。第一项是可预测部分，第二项是残余噪声。这个分解的意义在于：如果不同任务族之间的均值差异很大，那么 benchmark 的整体波动有一部分其实是可以解释的，不应该被简单归类成“统计误差”；反过来，如果残余噪声占主导，那么即使模型平均分更高，也未必代表稳定的能力跃迁。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-24.png}
+  \caption{paired comparison 的直觉解释：共享同一批题目时，差值的方差通常比两个独立估计的方差更小。}
+\end{figure}
+
+课程还讨论了一个很容易误解的点：\textbf{我们不能简单通过“加大 signal”来消除噪声}。在很多 benchmark 上，题目规模、题目形式与模型能力之间存在内在耦合，尤其是在 agentic benchmark 里，一些任务虽然样本少，但每个样本都很信息密集，因而单样本的方差并不低。即便你把数据量增加一点，评测噪声也不一定线性下降，因为任务本身可能不满足独立同分布的理想条件。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-29.png}
+  \caption{Predictable noise 的核心直觉：不同 benchmark 族和不同模型能力区间会呈现系统性的噪声模式。}
+\end{figure}
+
+\section{Eval-Arena 与 benchmark 建构者的视角}
+课程给出的实践型案例是 Eval-Arena。这里的重点不是某个单独分数，而是整个评测套件如何让研究者看到噪声的形状。Eval-Arena 试图把 docs、code、agentic tasks 和不同模型参与者放在统一框架中，从而帮助分析：
+\begin{itemize}[leftmargin=1.4em]
+  \item 某个 benchmark 的噪声水平到底有多大；
+  \item 噪声是否与整体准确率 $A$ 相关；
+  \item 采用 paired 设计之后，方差是否真正下降；
+  \item 不同 task family 的 signal-to-noise ratio 是否值得继续投入。
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-33.png}
+  \caption{经验分布可以用 Beta 族近似，这让我们能用更直观的方式理解成功率与噪声的关系。}
+\end{figure}
+
+更实际的结论是：benchmark builder 应该把“噪声区间”当作交付物的一部分，而不是只给一个点估计。一个比较负责任的报告至少应该包括：
+\begin{enumerate}[leftmargin=1.6em]
+  \item 点估计和置信区间；
+  \item paired / unpaired 设计说明；
+  \item 重复采样或 bootstrap 的不确定度；
+  \item benchmark 题型与模型族之间的噪声关系；
+  \item 与过去版本相比，噪声是否改变。
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-39.png}
+  \caption{课程给出的 benchmark size 与 signal/noise 的对照，强调小规模基准并不天然等于高质量基准。}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{pdf_pages/page-42.png}
+  \caption{paired comparisons 仍然是最实用的降噪工具之一，但它的收益取决于任务结构是否允许共享样本。}
+\end{figure}
+
+\section{从 beta 分布到噪声区间}
+课程把一些实际观测结果画成 Beta 分布族，是为了说明“成功率”本身也应被看作随机变量，而不是固定常数。若在某个 benchmark 上观察到 $s$ 次成功、$f$ 次失败，并给定先验 $\mathrm{Beta}(\alpha,\beta)$，则后验为
+\[
+p\mid s,f \sim \mathrm{Beta}(\alpha+s,\beta+f).
+\]
+这让我们可以自然地给出不确定度区间，而不是只报一个最优点。对于小 benchmark 来说，这一点尤其关键，因为一次新结果可能只是在后验分布里移动了一小步，并不足以说明模型能力发生了结构性变化。
+
+在实际工程里，课程建议不要只问“这个模型是不是更好”，而要问：
+\begin{itemize}[leftmargin=1.4em]
+  \item 在多大概率下它更好；
+  \item 在什么题型上更好；
+  \item 噪声区间是否已经大于预期增益；
+  \item 是否需要重新设计 benchmark 本身。
+\end{itemize}
+这使得评测从一次性排名转向了一种更接近科学实验的过程。
+
+\subsection{本章小结}
+这一讲的结论可以概括为：LLM 时代的评测问题不是“统计学失效了”，而是“统计学必须进入 benchmark 设计本身”。当 benchmark 变小、任务变难、输出变长时，噪声、方差和相关性就不再是背景知识，而是决定结论是否可信的核心变量。paired comparison、super-population 视角、Beta 后验和噪声区间，都是帮助我们把“一个分数”变成“一个可解释结论”的工具。
+
+\section{总结与延伸}
+如果把这讲扩展到 Agentic AI 的真实应用中，最重要的启发是：评测不应该只是模型发布之后的最后一步，而应该是系统开发的一部分。一个 agent 系统如果很难稳定复现 benchmark 提升，那么它在真实部署中同样可能不稳定。反过来，若 benchmark builder 能把噪声显式建模，那么研究者就能更早判断某个方法究竟是在改进能力，还是只是在利用评测偶然性。
+
+因此，这讲不是在教“怎么算显著性”这么简单，而是在教如何把显著性、噪声与 benchmark 结构一起理解。对后续的系统、科学发现和 agent 设计章节，这种思维方式都很重要。
+
+\end{document}

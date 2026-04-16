@@ -1,0 +1,168 @@
+# seg_05 Contract
+
+Source range:
+- transcript: 00:21:19,440 -- 00:26:39,279
+- segment hint: Segment 5
+
+Must cover unit ids:
+- sub_0573
+- sub_0574
+- sub_0575
+- sub_0576
+- sub_0577
+- sub_0578
+- sub_0579
+- sub_0580
+- sub_0581
+- sub_0582
+- sub_0583
+- sub_0584
+- sub_0585
+- sub_0586
+- sub_0587
+- sub_0588
+- sub_0589
+- sub_0590
+- sub_0591
+- sub_0592
+- sub_0593
+- sub_0594
+- sub_0595
+- sub_0596
+- sub_0597
+- sub_0598
+- sub_0599
+- sub_0600
+- sub_0601
+- sub_0602
+- sub_0603
+- sub_0604
+- sub_0605
+- sub_0606
+- sub_0607
+- sub_0608
+- sub_0609
+- sub_0610
+- sub_0611
+- sub_0612
+- sub_0613
+- sub_0614
+- sub_0615
+- sub_0616
+- sub_0617
+- sub_0618
+- sub_0619
+- sub_0620
+- sub_0621
+- sub_0622
+- sub_0623
+- sub_0624
+- sub_0625
+- sub_0626
+- sub_0627
+- sub_0628
+- sub_0629
+- sub_0630
+- sub_0631
+- sub_0632
+- sub_0633
+- sub_0634
+- sub_0635
+- sub_0636
+- sub_0637
+- sub_0638
+- sub_0639
+- sub_0640
+- sub_0641
+- sub_0642
+- sub_0643
+- sub_0644
+- sub_0645
+- sub_0646
+- sub_0647
+- sub_0648
+- sub_0649
+- sub_0650
+- sub_0651
+- sub_0652
+- sub_0653
+- sub_0654
+- sub_0655
+- sub_0656
+- sub_0657
+- sub_0658
+- sub_0659
+- sub_0660
+- sub_0661
+- sub_0662
+- sub_0663
+- sub_0664
+- sub_0665
+- sub_0666
+- sub_0667
+- sub_0668
+- sub_0669
+- sub_0670
+- sub_0671
+- sub_0672
+- sub_0673
+- sub_0674
+- sub_0675
+- sub_0676
+- sub_0677
+- sub_0678
+- sub_0679
+- sub_0680
+- sub_0681
+- sub_0682
+- sub_0683
+- sub_0684
+- sub_0685
+- sub_0686
+- sub_0687
+- sub_0688
+- sub_0689
+- sub_0690
+- sub_0691
+- sub_0692
+- sub_0693
+- sub_0694
+- sub_0695
+- sub_0696
+- sub_0697
+- sub_0698
+- sub_0699
+- sub_0700
+- sub_0701
+- sub_0702
+- sub_0703
+- sub_0704
+- sub_0705
+- sub_0706
+- sub_0707
+- sub_0708
+- sub_0709
+- sub_0710
+- sub_0711
+- sub_0712
+- sub_0713
+- sub_0714
+- sub_0715
+- slide_0011
+- slide_0013
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+

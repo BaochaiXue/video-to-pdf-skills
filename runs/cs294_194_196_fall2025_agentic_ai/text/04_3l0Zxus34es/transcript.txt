@@ -1,0 +1,1900 @@
+[00:00:00,400 --> 00:00:05,600] Uh good afternoon everyone. Very excited
+[00:00:03,200 --> 00:00:07,759] to be here to be talking about the post
+[00:00:05,600 --> 00:00:10,000] training verified by agents. So the
+[00:00:07,759 --> 00:00:12,160] agent AI course is a super exciting
+[00:00:10,000 --> 00:00:15,679] course. uh believe that you'll be able
+[00:00:12,160 --> 00:00:18,240] to learn a lot from lots of uh uh people
+[00:00:15,679 --> 00:00:19,920] and first of all that disclaimer that
+[00:00:18,240 --> 00:00:22,160] everything I talk about here in the
+[00:00:19,920 --> 00:00:25,680] lecture all the views I express are
+[00:00:22,160 --> 00:00:27,279] solely those of the guest is me and not
+[00:00:25,680 --> 00:00:28,880] represented
+[00:00:27,279 --> 00:00:31,840] representative of the company including
+[00:00:28,880 --> 00:00:34,000] Nvidia or or UC Berkeley.
+[00:00:31,840 --> 00:00:35,840] So we'll be focusing on post training
+[00:00:34,000 --> 00:00:37,760] variable agents which is a very
+[00:00:35,840 --> 00:00:41,360] important topics in building highly
+[00:00:37,760 --> 00:00:44,559] reliable agent systems uh from the basic
+[00:00:41,360 --> 00:00:48,079] requirements of building agentic models.
+[00:00:44,559 --> 00:00:49,680] So how do the agentic models different
+[00:00:48,079 --> 00:00:52,239] uh differ from traditional large
+[00:00:49,680 --> 00:00:55,920] language models? From the very early
+[00:00:52,239 --> 00:00:58,079] days when was first produced
+[00:00:55,920 --> 00:01:00,399] uh we use a technique called reinforced
+[00:00:58,079 --> 00:01:02,640] learning from human feedback. At that
+[00:01:00,399 --> 00:01:06,000] time the language models really train to
+[00:01:02,640 --> 00:01:08,000] align really well with human preference.
+[00:01:06,000 --> 00:01:09,200] For example, they interact with you.
+[00:01:08,000 --> 00:01:12,479] They really understand what you are
+[00:01:09,200 --> 00:01:14,880] saying, make you feel better.
+[00:01:12,479 --> 00:01:17,520] But later essentially all the uh
+[00:01:14,880 --> 00:01:19,600] frontier labs and all the model vendors
+[00:01:17,520 --> 00:01:22,479] started to add this agentic capabilities
+[00:01:19,600 --> 00:01:25,200] to their models and precisely for
+[00:01:22,479 --> 00:01:28,159] agentic model the model is really
+[00:01:25,200 --> 00:01:29,840] aligned with the environment feedbacks.
+[00:01:28,159 --> 00:01:31,520] uh by environment I actually mean
+[00:01:29,840 --> 00:01:33,520] something very specific later I will
+[00:01:31,520 --> 00:01:35,680] detail they are designed to provide
+[00:01:33,520 --> 00:01:38,720] interactions that to maximize verifiable
+[00:01:35,680 --> 00:01:40,560] rewards in addition to human preference.
+[00:01:38,720 --> 00:01:44,000] So basically when you actually talking
+[00:01:40,560 --> 00:01:45,360] to those agency language models they are
+[00:01:44,000 --> 00:01:47,920] supposed to really understand your
+[00:01:45,360 --> 00:01:49,360] intentions very well because it's uh
+[00:01:47,920 --> 00:01:51,840] designed to first maximize human
+[00:01:49,360 --> 00:01:53,600] preference but also at the same time
+[00:01:51,840 --> 00:01:57,360] it's designed to help you accomplish
+[00:01:53,600 --> 00:01:59,040] tasks. That's extremely critical and for
+[00:01:57,360 --> 00:02:01,280] evaluating the quality of task
+[00:01:59,040 --> 00:02:04,079] completion we usually use something
+[00:02:01,280 --> 00:02:07,680] different from generic reward models
+[00:02:04,079 --> 00:02:10,160] because for certain task maybe there
+[00:02:07,680 --> 00:02:12,000] will be a few correct answers and there
+[00:02:10,160 --> 00:02:14,000] will be really wrong answers. You
+[00:02:12,000 --> 00:02:16,239] absolutely cannot do that and usually
+[00:02:14,000 --> 00:02:18,720] for human preference uh the situation is
+[00:02:16,239 --> 00:02:21,200] slightly different.
+[00:02:18,720 --> 00:02:23,280] So brief recap of earlier models that
+[00:02:21,200 --> 00:02:25,599] were trained to be great chat bots. The
+[00:02:23,280 --> 00:02:28,319] way we treat usually is the following.
+[00:02:25,599 --> 00:02:30,720] Say you collect lots of human assistant
+[00:02:28,319 --> 00:02:33,040] chats. Human says something, assistant
+[00:02:30,720 --> 00:02:34,879] says something. Then later you would
+[00:02:33,040 --> 00:02:39,440] like to rank assistant responses based
+[00:02:34,879 --> 00:02:42,400] on human preference. Maybe you uh uh do
+[00:02:39,440 --> 00:02:44,480] sourcing, ask lots of people. Uh then
+[00:02:42,400 --> 00:02:46,080] you collect this human preference. Then
+[00:02:44,480 --> 00:02:48,080] you try to figure out the reward
+[00:02:46,080 --> 00:02:50,720] modeling technique to come up with a
+[00:02:48,080 --> 00:02:53,280] reward model basically based on the
+[00:02:50,720 --> 00:02:55,280] human assistant interactions trying to
+[00:02:53,280 --> 00:02:58,319] create whether a certain response from
+[00:02:55,280 --> 00:03:00,480] the assistant is good or not. Once you
+[00:02:58,319 --> 00:03:02,080] get really high quality reward model we
+[00:03:00,480 --> 00:03:04,239] like to start training the language
+[00:03:02,080 --> 00:03:06,560] model so that it can actually behave
+[00:03:04,239 --> 00:03:08,720] better in terms of maximizing human
+[00:03:06,560 --> 00:03:11,680] preference. There are many algorithm you
+[00:03:08,720 --> 00:03:13,920] can use here. So I also includes SFT.
+[00:03:11,680 --> 00:03:16,319] Sometime people say SFT which is
+[00:03:13,920 --> 00:03:19,040] abbreviation for superstine tuning is
+[00:03:16,319 --> 00:03:21,440] mostly used for strictly mim mimicking
+[00:03:19,040 --> 00:03:23,280] the expert behavior. I include here
+[00:03:21,440 --> 00:03:25,519] because SFT actually is also being used
+[00:03:23,280 --> 00:03:28,959] a lot even when you are given a reward
+[00:03:25,519 --> 00:03:31,599] model. So the intuition is that uh I can
+[00:03:28,959 --> 00:03:34,080] use a reward model to create multiple
+[00:03:31,599 --> 00:03:36,959] different responses from the assistant.
+[00:03:34,080 --> 00:03:39,280] Then basically I can only choose those
+[00:03:36,959 --> 00:03:41,599] assistant responses that rank very high
+[00:03:39,280 --> 00:03:44,080] by the reward model then conduct super
+[00:03:41,599 --> 00:03:45,519] fine tuning on those responses. I can
+[00:03:44,080 --> 00:03:48,159] also use other reinforcement learning
+[00:03:45,519 --> 00:03:50,560] algorithms like PO and GRPO any
+[00:03:48,159 --> 00:03:52,799] algorithm you come up with or you have
+[00:03:50,560 --> 00:03:54,959] heard of finally to produce a model to
+[00:03:52,799 --> 00:03:57,200] maximize human preference. Hopefully by
+[00:03:54,959 --> 00:03:58,799] talking to that model you feel that it's
+[00:03:57,200 --> 00:04:01,599] really engaging model really understands
+[00:03:58,799 --> 00:04:03,599] you. You feel very happy about this.
+[00:04:01,599 --> 00:04:05,439] Feel free to also stop me when you have
+[00:04:03,599 --> 00:04:08,480] questions.
+[00:04:05,439 --> 00:04:10,959] Uh what more is necessary? So turns out
+[00:04:08,480 --> 00:04:13,840] one of the key applications of IM is
+[00:04:10,959 --> 00:04:15,760] actually agency tasks conversations is
+[00:04:13,840 --> 00:04:18,079] not verifiable. There are also usually
+[00:04:15,760 --> 00:04:20,239] no clear single correct answer. You use
+[00:04:18,079 --> 00:04:22,639] a really sophisticated reward model to
+[00:04:20,239 --> 00:04:25,520] model preference and records interaction
+[00:04:22,639 --> 00:04:28,320] with the user only. uh but in terms of
+[00:04:25,520 --> 00:04:31,840] enterprise applications of LMS many
+[00:04:28,320 --> 00:04:34,160] tasks they have a uh they actually
+[00:04:31,840 --> 00:04:36,960] require the deep interaction between the
+[00:04:34,160 --> 00:04:39,600] human sometimes multiple people multiple
+[00:04:36,960 --> 00:04:42,240] assistants and many other entities uh
+[00:04:39,600 --> 00:04:45,199] including the environments uh specific
+[00:04:42,240 --> 00:04:48,000] code repo specific software system and
+[00:04:45,199 --> 00:04:50,080] many different tools. So basically you
+[00:04:48,000 --> 00:04:52,160] need to make sure that IM is able to
+[00:04:50,080 --> 00:04:54,320] understand the feedback given by many
+[00:04:52,160 --> 00:04:57,360] different entities understand the full
+[00:04:54,320 --> 00:04:59,120] states uh of this environment and also
+[00:04:57,360 --> 00:05:02,080] make sure that when I am perform a
+[00:04:59,120 --> 00:05:04,080] certain task uh it's able to really
+[00:05:02,080 --> 00:05:05,759] produce the correct answer and there's a
+[00:05:04,080 --> 00:05:07,759] very clear verifier demonstrating
+[00:05:05,759 --> 00:05:09,600] whether the answer is correct or not and
+[00:05:07,759 --> 00:05:11,520] you should really not produce the wrong
+[00:05:09,600 --> 00:05:14,639] answers because that's going to make the
+[00:05:11,520 --> 00:05:16,320] whole system totally crash. Uh so
+[00:05:14,639 --> 00:05:19,039] sometimes people say that you can use
+[00:05:16,320 --> 00:05:20,800] other detistic system to help fix that
+[00:05:19,039 --> 00:05:23,199] but one thing people have found is that
+[00:05:20,800 --> 00:05:26,080] if the IM is not strong enough in
+[00:05:23,199 --> 00:05:27,759] producing essentially right answers uh
+[00:05:26,080 --> 00:05:29,199] it's very very hard to build a reliable
+[00:05:27,759 --> 00:05:32,240] system even after you do lots of
+[00:05:29,199 --> 00:05:34,720] software engineering on top of this.
+[00:05:32,240 --> 00:05:37,360] So precisely uh for today's models they
+[00:05:34,720 --> 00:05:39,280] are trained to be great agents. Uh the
+[00:05:37,360 --> 00:05:41,680] user no longer ask a question saying how
+[00:05:39,280 --> 00:05:43,600] are you? Uh you start very engaging
+[00:05:41,680 --> 00:05:46,160] conversations. your user has a very
+[00:05:43,600 --> 00:05:47,360] clear target sometimes even wake but
+[00:05:46,160 --> 00:05:49,680] there's something user wants to
+[00:05:47,360 --> 00:05:51,440] accomplish they I want to achieve this I
+[00:05:49,680 --> 00:05:54,160] want to book flights I want to talk to
+[00:05:51,440 --> 00:05:57,199] my server system then I am needs to be
+[00:05:54,160 --> 00:05:59,759] able to understand this and precisely uh
+[00:05:57,199 --> 00:06:02,479] execute so there are many different ways
+[00:05:59,759 --> 00:06:04,880] to evaluate the outputs of and the
+[00:06:02,479 --> 00:06:07,759] system uh there are different rubrics
+[00:06:04,880 --> 00:06:10,000] divide by people uh uh you can also
+[00:06:07,759 --> 00:06:12,400] write down different ground truths uh
+[00:06:10,000 --> 00:06:14,400] you have a very clear recording of the
+[00:06:12,400 --> 00:06:16,479] environmental states and you also
+[00:06:14,400 --> 00:06:19,280] conduct lots of unit tests to check the
+[00:06:16,479 --> 00:06:21,199] output of thems by doing this you get a
+[00:06:19,280 --> 00:06:24,319] very good signals you understand whether
+[00:06:21,199 --> 00:06:26,479] the output in this case is right or not
+[00:06:24,319 --> 00:06:29,039] then you start to use lots of other post
+[00:06:26,479 --> 00:06:33,840] training algorithms again super fine
+[00:06:29,039 --> 00:06:36,080] tuning uh po gpo uh to actually uh uh
+[00:06:33,840 --> 00:06:37,600] improve the model so eventually the goal
+[00:06:36,080 --> 00:06:39,759] is that you want to construct a very
+[00:06:37,600 --> 00:06:42,479] strong agentic model to maximize
+[00:06:39,759 --> 00:06:45,280] correctness by interacting with with uh
+[00:06:42,479 --> 00:06:47,120] uh waiting sandboxes with very complex
+[00:06:45,280 --> 00:06:48,880] tools. I will try to make everything
+[00:06:47,120 --> 00:06:51,520] very precise later when we go into the
+[00:06:48,880 --> 00:06:53,120] details of this.
+[00:06:51,520 --> 00:06:54,800] Okay.
+[00:06:53,120 --> 00:06:57,280] Uh but what is needed to train the
+[00:06:54,800 --> 00:06:59,360] verifiable agent models in particular?
+[00:06:57,280 --> 00:07:01,520] It is a very important topic lots of
+[00:06:59,360 --> 00:07:03,520] people in the community are focusing on.
+[00:07:01,520 --> 00:07:05,680] I would say that there are three core
+[00:07:03,520 --> 00:07:08,000] steps and each one is actually very
+[00:07:05,680 --> 00:07:09,599] challenging these days. It really
+[00:07:08,000 --> 00:07:12,319] requires the collaboration of many
+[00:07:09,599 --> 00:07:14,479] people across industry across academia
+[00:07:12,319 --> 00:07:16,560] to contribute to this so that we'll be
+[00:07:14,479 --> 00:07:18,800] able to get a very very strong agency
+[00:07:16,560 --> 00:07:20,800] language models in the future. So the
+[00:07:18,800 --> 00:07:23,759] first step I say to get good uh
+[00:07:20,800 --> 00:07:26,080] verifiable training data to train agents
+[00:07:23,759 --> 00:07:28,240] without high quality training data we
+[00:07:26,080 --> 00:07:30,720] simply cannot produce very high quality
+[00:07:28,240 --> 00:07:32,960] agent LMS. I be talking about the
+[00:07:30,720 --> 00:07:35,759] challenges behind getting very high
+[00:07:32,960 --> 00:07:37,599] quality training data. The step two is
+[00:07:35,759 --> 00:07:39,360] actually evaluation.
+[00:07:37,599 --> 00:07:42,000] You collect the data, you figure out
+[00:07:39,360 --> 00:07:43,759] your training uh uh uh approach, you
+[00:07:42,000 --> 00:07:45,280] train the model, but then you need to
+[00:07:43,759 --> 00:07:47,919] really understand whether it's good or
+[00:07:45,280 --> 00:07:50,880] not. So generally there's a very
+[00:07:47,919 --> 00:07:54,240] dangerous trend of really uh entering
+[00:07:50,880 --> 00:07:55,840] the in this uh illusion that we feel we
+[00:07:54,240 --> 00:07:58,080] collect the data, the data is
+[00:07:55,840 --> 00:07:59,759] comprehensive enough, then we only test
+[00:07:58,080 --> 00:08:01,680] the things that are really aligned with
+[00:07:59,759 --> 00:08:03,520] our data. It really appears that
+[00:08:01,680 --> 00:08:05,520] everything's working really well. Then
+[00:08:03,520 --> 00:08:07,759] suddenly we test everything in a while
+[00:08:05,520 --> 00:08:10,400] things start to break. So how do we
+[00:08:07,759 --> 00:08:13,039] define a verifiable agents? We actually
+[00:08:10,400 --> 00:08:15,039] talking about uh some concrete examples.
+[00:08:13,039 --> 00:08:17,680] Uh maybe let's try to make it even more
+[00:08:15,039 --> 00:08:19,680] concrete. For example, one thing could
+[00:08:17,680 --> 00:08:24,160] be that uh you're solving a math
+[00:08:19,680 --> 00:08:26,000] problem. Then uh the computer also has
+[00:08:24,160 --> 00:08:29,280] access to certain tools. For example,
+[00:08:26,000 --> 00:08:30,960] Python coding tool. Then after accessing
+[00:08:29,280 --> 00:08:33,279] to the coding tool, writing lots of
+[00:08:30,960 --> 00:08:35,680] codes, understanding a problem, finally
+[00:08:33,279 --> 00:08:36,880] the IM is supposed to produce an answer.
+[00:08:35,680 --> 00:08:39,760] For example, the final answer to the
+[00:08:36,880 --> 00:08:43,200] math problem is number two. Then I want
+[00:08:39,760 --> 00:08:46,080] to make sure it's uh precisely uh uh the
+[00:08:43,200 --> 00:08:47,600] right answer. So in just one example,
+[00:08:46,080 --> 00:08:49,839] the other examples in software
+[00:08:47,600 --> 00:08:53,519] engineering, you're able to produce a
+[00:08:49,839 --> 00:08:54,880] code a code script and then there are
+[00:08:53,519 --> 00:08:57,120] many different ways to check the
+[00:08:54,880 --> 00:08:58,640] validity of the code. For example, there
+[00:08:57,120 --> 00:09:00,560] are so many different unit tests I can
+[00:08:58,640 --> 00:09:02,560] write. You need to be be able to pass
+[00:09:00,560 --> 00:09:05,519] all of these tests to make sure that's
+[00:09:02,560 --> 00:09:07,920] finally is correct. Uh turns out it is
+[00:09:05,519 --> 00:09:09,760] really complicated question. So there
+[00:09:07,920 --> 00:09:12,240] are so many different verifiers you can
+[00:09:09,760 --> 00:09:13,760] build and the current challenge
+[00:09:12,240 --> 00:09:16,399] everybody is facing in the community is
+[00:09:13,760 --> 00:09:18,480] that we haven't got enough uh strong
+[00:09:16,399 --> 00:09:20,959] verifiers to really make sure that we
+[00:09:18,480 --> 00:09:23,839] capture all the all the corner cases of
+[00:09:20,959 --> 00:09:27,040] the intelligence.
+[00:09:23,839 --> 00:09:29,600] So uh the third step uh is actually also
+[00:09:27,040 --> 00:09:32,399] about training. So this is also a very
+[00:09:29,600 --> 00:09:34,160] uh uh complex topics until today many
+[00:09:32,399 --> 00:09:36,560] people community are trained very hard
+[00:09:34,160 --> 00:09:38,399] to research on this which is that I got
+[00:09:36,560 --> 00:09:40,959] very good training data. I also figure
+[00:09:38,399 --> 00:09:43,600] out how do we evaluate my agents. But
+[00:09:40,959 --> 00:09:46,480] what exactly is the best way of feeding
+[00:09:43,600 --> 00:09:49,680] the data to the model so that the models
+[00:09:46,480 --> 00:09:53,040] intelligence in fact actually improves
+[00:09:49,680 --> 00:09:55,279] u in some sense when we think about
+[00:09:53,040 --> 00:09:57,120] building the verifiable agents we really
+[00:09:55,279 --> 00:10:00,399] think about this essentially as training
+[00:09:57,120 --> 00:10:02,640] a human being. So when you're training
+[00:10:00,399 --> 00:10:04,880] uh like engineer in a company what
+[00:10:02,640 --> 00:10:07,360] usually you do is that you first gave
+[00:10:04,880 --> 00:10:08,720] some instructions you say well maybe
+[00:10:07,360 --> 00:10:10,800] you're supposed to write code in this
+[00:10:08,720 --> 00:10:12,880] way or you're supposed to operate the
+[00:10:10,800 --> 00:10:14,640] software system in certain way then the
+[00:10:12,880 --> 00:10:16,640] person started doing that started
+[00:10:14,640 --> 00:10:19,200] writing code started interacting with
+[00:10:16,640 --> 00:10:21,360] the software system submitting tickets
+[00:10:19,200 --> 00:10:23,200] things like that then sometimes they
+[00:10:21,360 --> 00:10:25,120] will make mistakes but they will receive
+[00:10:23,200 --> 00:10:28,480] some feedback.
+[00:10:25,120 --> 00:10:30,240] Uh the key challenge is that uh for a
+[00:10:28,480 --> 00:10:32,079] human you can just tell the human well
+[00:10:30,240 --> 00:10:34,399] here's a feedback I give to you. What
+[00:10:32,079 --> 00:10:36,959] about next time you do better but for
+[00:10:34,399 --> 00:10:39,440] the machine the hardest part is to
+[00:10:36,959 --> 00:10:41,279] transform this natural human interaction
+[00:10:39,440 --> 00:10:43,279] into something that's implementable by
+[00:10:41,279 --> 00:10:46,160] algorithm. So the algorithm needs to
+[00:10:43,279 --> 00:10:49,040] make sure once the per first attempt
+[00:10:46,160 --> 00:10:51,519] something but it made a mistake. I give
+[00:10:49,040 --> 00:10:53,680] the very detailed feedback. How do I
+[00:10:51,519 --> 00:10:55,839] guarantee the next time the also
+[00:10:53,680 --> 00:10:58,480] attempts the same question? The quality
+[00:10:55,839 --> 00:11:00,959] of his time actually improves. If I'm
+[00:10:58,480 --> 00:11:03,360] not able to achieve this, then basically
+[00:11:00,959 --> 00:11:06,000] I'm not able to replicate this natural
+[00:11:03,360 --> 00:11:07,839] feedback loop of human learning. Then
+[00:11:06,000 --> 00:11:10,399] we're going to really hit a plateau of
+[00:11:07,839 --> 00:11:11,760] the final intelligence of the system. So
+[00:11:10,399 --> 00:11:13,519] that's why the step three is also
+[00:11:11,760 --> 00:11:15,279] extremely critical. We'll also be
+[00:11:13,519 --> 00:11:17,519] spending lots of time talking about step
+[00:11:15,279 --> 00:11:19,680] three including some approaches people
+[00:11:17,519 --> 00:11:21,839] have taken in the past. But I really
+[00:11:19,680 --> 00:11:23,920] want to emphasize that uh all all the
+[00:11:21,839 --> 00:11:25,839] three steps they require very extensive
+[00:11:23,920 --> 00:11:27,440] research at this point. So it's actually
+[00:11:25,839 --> 00:11:28,800] a fascinating opportunity to for
+[00:11:27,440 --> 00:11:30,640] everyone to get into the field at this
+[00:11:28,800 --> 00:11:32,079] point.
+[00:11:30,640 --> 00:11:35,200] Okay, talking about the first thing
+[00:11:32,079 --> 00:11:38,079] getting good training data.
+[00:11:35,200 --> 00:11:41,680] So uh agentic models maximize verifiable
+[00:11:38,079 --> 00:11:44,959] rewards. uh what exactly would be the uh
+[00:11:41,680 --> 00:11:47,760] core components of training data that uh
+[00:11:44,959 --> 00:11:50,480] uh we specify to really make sure that
+[00:11:47,760 --> 00:11:51,920] they actually of high quality. So I
+[00:11:50,480 --> 00:11:54,000] first of want to emphasize three
+[00:11:51,920 --> 00:11:56,320] different things they are kind of very
+[00:11:54,000 --> 00:11:58,240] very related in certain literature maybe
+[00:11:56,320 --> 00:11:59,839] they are combined together but I do
+[00:11:58,240 --> 00:12:01,440] think that uh I think that things are
+[00:11:59,839 --> 00:12:04,320] are slightly different. So I want to
+[00:12:01,440 --> 00:12:06,480] emphasize uh three different aspects of
+[00:12:04,320 --> 00:12:09,200] the data sets. The first is called the
+[00:12:06,480 --> 00:12:12,079] environment. So how do I think about the
+[00:12:09,200 --> 00:12:15,360] environment for the agent? So say you
+[00:12:12,079 --> 00:12:17,680] build a a coding agent, right? So
+[00:12:15,360 --> 00:12:20,240] basically the agent uh takes in your
+[00:12:17,680 --> 00:12:22,560] instructions trying to generate code in
+[00:12:20,240 --> 00:12:24,399] a well formulated the code ripple. Maybe
+[00:12:22,560 --> 00:12:26,160] the code repo has some issues. There's
+[00:12:24,399 --> 00:12:28,000] certain bugs. You're supposed to fix
+[00:12:26,160 --> 00:12:30,720] that. Then the environment basically
+[00:12:28,000 --> 00:12:33,760] encodes the the whole state of this
+[00:12:30,720 --> 00:12:37,600] ripple. For example, the prefix and
+[00:12:33,760 --> 00:12:40,000] surfig of the code script and lots of
+[00:12:37,600 --> 00:12:42,480] files we have loaded, lots of downstream
+[00:12:40,000 --> 00:12:44,079] task we need to deal with. Uh they
+[00:12:42,480 --> 00:12:46,880] describe the the states of the
+[00:12:44,079 --> 00:12:48,880] environment and also it includes lots of
+[00:12:46,880 --> 00:12:52,000] system prompts people have already set
+[00:12:48,880 --> 00:12:53,920] up for different parts to work together.
+[00:12:52,000 --> 00:12:57,680] The second part I want to talk about uh
+[00:12:53,920 --> 00:12:59,600] is tools. So basically uh the agentic
+[00:12:57,680 --> 00:13:02,079] IMS they are trained to generate tokens
+[00:12:59,600 --> 00:13:03,760] that have consumed by software tools to
+[00:13:02,079 --> 00:13:05,839] provide additional relative information
+[00:13:03,760 --> 00:13:09,040] to the model. So precisely you should
+[00:13:05,839 --> 00:13:11,279] think of this as additional in software
+[00:13:09,040 --> 00:13:14,160] engineering language additional APIs
+[00:13:11,279 --> 00:13:16,720] provided uh to the system. For example,
+[00:13:14,160 --> 00:13:18,560] you call the system. Well, if the user
+[00:13:16,720 --> 00:13:20,639] ask you a question, what's the today's
+[00:13:18,560 --> 00:13:22,959] weather? IM is not supposed to know
+[00:13:20,639 --> 00:13:25,440] that, but AM really knows that it is
+[00:13:22,959 --> 00:13:27,680] access to certain APIs that's able to
+[00:13:25,440 --> 00:13:30,160] access to this weather. The IM is
+[00:13:27,680 --> 00:13:33,040] supposed to be producing the exact API
+[00:13:30,160 --> 00:13:34,800] call uh to the external system. Then
+[00:13:33,040 --> 00:13:37,040] external system should be able to
+[00:13:34,800 --> 00:13:39,279] feedback the concrete information
+[00:13:37,040 --> 00:13:41,839] regarding to this weather. AM should be
+[00:13:39,279 --> 00:13:43,440] able to internalize that. then finally
+[00:13:41,839 --> 00:13:46,560] uh presents the final answer to the
+[00:13:43,440 --> 00:13:48,720] user. So it could the APIs could it
+[00:13:46,560 --> 00:13:50,560] could provide additional information.
+[00:13:48,720 --> 00:13:52,959] The APIs could actually also help change
+[00:13:50,560 --> 00:13:54,880] the environment state. So basically your
+[00:13:52,959 --> 00:13:56,959] working environments the state is really
+[00:13:54,880 --> 00:13:59,120] complex has lots of different moving
+[00:13:56,959 --> 00:14:01,199] parts. Then maybe you are given certain
+[00:13:59,120 --> 00:14:02,880] tools to help you modify the states
+[00:14:01,199 --> 00:14:04,880] because maybe in order to actually
+[00:14:02,880 --> 00:14:06,560] accomplish certain task there will be
+[00:14:04,880 --> 00:14:08,160] certain states that needs to be changed.
+[00:14:06,560 --> 00:14:11,279] Maybe even the user doesn't doesn't know
+[00:14:08,160 --> 00:14:13,199] that. But as a very strong agent I am
+[00:14:11,279 --> 00:14:16,240] the uh the assistant is supposed to know
+[00:14:13,199 --> 00:14:17,600] that user gives a task then the agent is
+[00:14:16,240 --> 00:14:19,600] supposed to be able to decompose the
+[00:14:17,600 --> 00:14:21,120] task figure out what exactly are the
+[00:14:19,600 --> 00:14:23,519] right tools to call change the
+[00:14:21,120 --> 00:14:26,000] environmental states if necessary uh and
+[00:14:23,519 --> 00:14:27,680] finally produce the answer and the point
+[00:14:26,000 --> 00:14:30,560] story is really about checking the
+[00:14:27,680 --> 00:14:33,279] answer. So basically model are trained
+[00:14:30,560 --> 00:14:35,040] to generate tokens it produce the answer
+[00:14:33,279 --> 00:14:36,880] but how do we even know if the answer is
+[00:14:35,040 --> 00:14:39,760] correct or not? We need to build the
+[00:14:36,880 --> 00:14:41,040] so-called verifiers. The verifiers will
+[00:14:39,760 --> 00:14:43,680] tell you whether you have really
+[00:14:41,040 --> 00:14:45,920] succeeded in combinational tasks. In
+[00:14:43,680 --> 00:14:48,240] some sense, it's also quite challenging
+[00:14:45,920 --> 00:14:51,040] because there are lots of intricate
+[00:14:48,240 --> 00:14:53,839] issues related to evaluation. Maybe you
+[00:14:51,040 --> 00:14:56,959] really produced a right answer but you
+[00:14:53,839 --> 00:14:59,519] took it took you like so many steps. It
+[00:14:56,959 --> 00:15:02,079] consumed so many tokens. Maybe I'm our
+[00:14:59,519 --> 00:15:05,120] access also supposed to penalize you to
+[00:15:02,079 --> 00:15:06,320] this. So even for that turns out it's
+[00:15:05,120 --> 00:15:08,480] really very good to think about
+[00:15:06,320 --> 00:15:10,800] verifiers not as a single number
+[00:15:08,480 --> 00:15:14,959] checking it is correct or not think of
+[00:15:10,800 --> 00:15:17,040] this really as a vector talking about uh
+[00:15:14,959 --> 00:15:19,199] evaluating the quality of the model from
+[00:15:17,040 --> 00:15:21,360] many different perspectives. It can be
+[00:15:19,199 --> 00:15:23,519] unit test for code we just talk about
+[00:15:21,360 --> 00:15:25,440] math checker for proofs or for web
+[00:15:23,519 --> 00:15:26,880] tasks. You can also check whether you
+[00:15:25,440 --> 00:15:28,720] have really accomplished certain task on
+[00:15:26,880 --> 00:15:31,279] your browser.
+[00:15:28,720 --> 00:15:32,880] So the three aspects
+[00:15:31,279 --> 00:15:36,800] uh then I want to talk about some of the
+[00:15:32,880 --> 00:15:39,120] challenges in preparing the the data. So
+[00:15:36,800 --> 00:15:40,880] the first step is to get good training
+[00:15:39,120 --> 00:15:42,800] data in getting in training this very
+[00:15:40,880 --> 00:15:45,279] strong agentic
+[00:15:42,800 --> 00:15:47,440] and in order to really make sure it
+[00:15:45,279 --> 00:15:50,399] works in the wild it appears that you
+[00:15:47,440 --> 00:15:51,920] need to really follow a principle to say
+[00:15:50,399 --> 00:15:54,079] I need to understand many different
+[00:15:51,920 --> 00:15:55,680] environments. I need to have a system
+[00:15:54,079 --> 00:15:57,920] that's able to use many different kinds
+[00:15:55,680 --> 00:16:00,320] of tools. I also need to make sure the
+[00:15:57,920 --> 00:16:03,199] system does well on so many different
+[00:16:00,320 --> 00:16:05,519] verifiers that actually is very
+[00:16:03,199 --> 00:16:07,199] interesting and it's also the lessons
+[00:16:05,519 --> 00:16:11,440] learned by the whole community over the
+[00:16:07,199 --> 00:16:15,120] past uh uh uh two years uh showing that
+[00:16:11,440 --> 00:16:17,199] um one definitely shouldn't be uh uh
+[00:16:15,120 --> 00:16:19,279] tricked to believe that the whole system
+[00:16:17,199 --> 00:16:21,600] is working very well when you actually
+[00:16:19,279 --> 00:16:24,320] only working with very few environments
+[00:16:21,600 --> 00:16:26,399] very limited verification because uh the
+[00:16:24,320 --> 00:16:28,639] system would indeed break once you go
+[00:16:26,399 --> 00:16:30,720] beyond the the the scope of your data
+[00:16:28,639 --> 00:16:33,920] and the key challenge here is really
+[00:16:30,720 --> 00:16:35,360] make sure that you got enough coverage.
+[00:16:33,920 --> 00:16:37,279] So here I want to give you some some
+[00:16:35,360 --> 00:16:42,480] more examples talking about. So what we
+[00:16:37,279 --> 00:16:44,720] have been um um discussing on high level
+[00:16:42,480 --> 00:16:47,759] say you want to train a very strong
+[00:16:44,720 --> 00:16:49,759] agentic system and then there are so
+[00:16:47,759 --> 00:16:52,959] many possible combinations of
+[00:16:49,759 --> 00:16:55,360] environments tools and verifiers. For
+[00:16:52,959 --> 00:16:59,759] example, in environments, there can be
+[00:16:55,360 --> 00:17:02,079] math. Uh for uh math environments, you
+[00:16:59,759 --> 00:17:05,760] are given a problem, then interact with
+[00:17:02,079 --> 00:17:08,799] the user and the provides answer, then
+[00:17:05,760 --> 00:17:11,839] you could have a math verify verifiers
+[00:17:08,799 --> 00:17:13,360] uh proof checker uh then in the
+[00:17:11,839 --> 00:17:15,120] environments you actually could also
+[00:17:13,360 --> 00:17:16,480] have access to different coding tools.
+[00:17:15,120 --> 00:17:18,559] That's why these days sometimes when you
+[00:17:16,480 --> 00:17:21,600] use chatgbtd you see that you ask a math
+[00:17:18,559 --> 00:17:24,720] question charge GBT actually would call
+[00:17:21,600 --> 00:17:26,400] uh u python uh try to write some script
+[00:17:24,720 --> 00:17:29,120] to really verify that answer is actually
+[00:17:26,400 --> 00:17:30,720] correct uh or you are working with
+[00:17:29,120 --> 00:17:33,280] enterprise software for example here I
+[00:17:30,720 --> 00:17:35,760] talk about the sales assistant then it
+[00:17:33,280 --> 00:17:37,840] to access different software API tools
+[00:17:35,760 --> 00:17:40,720] maybe a sales person wants to ask
+[00:17:37,840 --> 00:17:42,480] today's weather I want to get news maybe
+[00:17:40,720 --> 00:17:45,120] I also want to access a database built
+[00:17:42,480 --> 00:17:47,440] in my system maybe I I want understand
+[00:17:45,120 --> 00:17:50,240] who actually are my customers, what
+[00:17:47,440 --> 00:17:53,760] exactly uh is the progress uh with
+[00:17:50,240 --> 00:17:57,039] customers and maybe I I want to really
+[00:17:53,760 --> 00:17:59,280] uh write really a precise query language
+[00:17:57,039 --> 00:18:00,880] to query the database and also to make
+[00:17:59,280 --> 00:18:03,679] sure that I'm able to internalize the
+[00:18:00,880 --> 00:18:06,400] outputs from the database.
+[00:18:03,679 --> 00:18:08,960] So many different types of environments
+[00:18:06,400 --> 00:18:10,799] uh tools and verifiers is very
+[00:18:08,960 --> 00:18:13,039] important. we we achieve very good
+[00:18:10,799 --> 00:18:14,400] coverage and it's always an interesting
+[00:18:13,039 --> 00:18:16,880] challenge to make sure that we have
+[00:18:14,400 --> 00:18:19,520] indeed covered the uh all the important
+[00:18:16,880 --> 00:18:21,039] aspects we care about. Uh so that's why
+[00:18:19,520 --> 00:18:24,720] it's also super exciting time to do
+[00:18:21,039 --> 00:18:27,520] research because uh always uh uh we got
+[00:18:24,720 --> 00:18:29,919] something more to work on.
+[00:18:27,520 --> 00:18:33,600] uh one thing I want to really emphasize
+[00:18:29,919 --> 00:18:35,440] uh which uh uh is is a very fair quality
+[00:18:33,600 --> 00:18:37,760] and these days when we look at the open
+[00:18:35,440 --> 00:18:40,559] source community is actually one thing
+[00:18:37,760 --> 00:18:44,720] that's uh uh that's really lacking at
+[00:18:40,559 --> 00:18:46,799] this point. Uh so generally
+[00:18:44,720 --> 00:18:49,919] one thing one have uh one has observed
+[00:18:46,799 --> 00:18:52,480] is that it's very easy to think about
+[00:18:49,919 --> 00:18:55,440] one rule to verify a certain answer and
+[00:18:52,480 --> 00:18:58,320] just put it down as a single verifier.
+[00:18:55,440 --> 00:19:00,880] But uh the thesis that has appeared
+[00:18:58,320 --> 00:19:02,720] again again in the community was that
+[00:19:00,880 --> 00:19:04,880] whenever we thought we have built a very
+[00:19:02,720 --> 00:19:07,120] high quality verifier in checking the
+[00:19:04,880 --> 00:19:10,000] answer of the LMS turns out we have
+[00:19:07,120 --> 00:19:11,360] missed some corner cases. So here I'm
+[00:19:10,000 --> 00:19:12,799] just showing you something very basic
+[00:19:11,360 --> 00:19:15,120] which has already been covered by the
+[00:19:12,799 --> 00:19:16,880] community but there are way more complex
+[00:19:15,120 --> 00:19:20,400] examples showing that it's actually
+[00:19:16,880 --> 00:19:22,559] quite difficult. For example, let's say
+[00:19:20,400 --> 00:19:24,320] uh the user has a question. I want to
+[00:19:22,559 --> 00:19:26,799] ask how much change would I get back if
+[00:19:24,320 --> 00:19:29,440] I buy a drink for 50 cents and give a
+[00:19:26,799 --> 00:19:31,520] dollar. Then I'm give a multiple
+[00:19:29,440 --> 00:19:35,280] different answers. Right? So basically
+[00:19:31,520 --> 00:19:37,679] can give uh uh one half two or four.
+[00:19:35,280 --> 00:19:38,799] Then in terms of the verify quality you
+[00:19:37,679 --> 00:19:41,120] are really supposed to say that all of
+[00:19:38,799 --> 00:19:44,320] these are correct because they actually
+[00:19:41,120 --> 00:19:47,440] indeed uh uh tell you what's the right
+[00:19:44,320 --> 00:19:49,440] amount of change. However, uh users
+[00:19:47,440 --> 00:19:51,679] question could actually also include
+[00:19:49,440 --> 00:19:54,080] something uh more stringent. For
+[00:19:51,679 --> 00:19:56,400] example, uh in addition to just asking
+[00:19:54,080 --> 00:19:58,240] you how much change would I get back, I
+[00:19:56,400 --> 00:20:01,120] have additional request. Please just
+[00:19:58,240 --> 00:20:03,200] give me the simplest form. So once I
+[00:20:01,120 --> 00:20:05,679] have that verifier answer is supposed to
+[00:20:03,200 --> 00:20:09,840] be different uh because supposed to be
+[00:20:05,679 --> 00:20:11,840] uh one half then in these cases uh in
+[00:20:09,840 --> 00:20:13,440] particular it's very easy to make
+[00:20:11,840 --> 00:20:15,919] mistakes when you are constructing
+[00:20:13,440 --> 00:20:18,480] verifiers and those those cases are
+[00:20:15,919 --> 00:20:20,799] usually very costly because generally
+[00:20:18,480 --> 00:20:22,960] these days are already quite strong.
+[00:20:20,799 --> 00:20:26,000] You'll give them a very simple question,
+[00:20:22,960 --> 00:20:27,840] it will able to answer it and only in
+[00:20:26,000 --> 00:20:30,000] those challenging cases would they
+[00:20:27,840 --> 00:20:32,159] sometimes make a mistake but if you
+[00:20:30,000 --> 00:20:35,440] verify it's also wrong didn't capture
+[00:20:32,159 --> 00:20:37,200] the nuance uh in the in the question you
+[00:20:35,440 --> 00:20:39,679] you absolutely cannot further improve
+[00:20:37,200 --> 00:20:42,320] the quality of the so that's actually
+[00:20:39,679 --> 00:20:45,840] one thing we really want to emphasize
+[00:20:42,320 --> 00:20:49,440] is uh false positive or false negative
+[00:20:45,840 --> 00:20:50,640] which is better or worse maybe more more
+[00:20:49,440 --> 00:20:53,360] significant
+[00:20:50,640 --> 00:20:56,000] uh actually in our experiences I would
+[00:20:53,360 --> 00:20:58,799] say that it's it's very important to
+[00:20:56,000 --> 00:21:01,840] minimize both types of errors
+[00:20:58,799 --> 00:21:04,640] uh because it's u sometimes of course
+[00:21:01,840 --> 00:21:06,000] it's also because uh in uh in different
+[00:21:04,640 --> 00:21:08,480] applications you assign different
+[00:21:06,000 --> 00:21:10,320] weights to different types of arrows but
+[00:21:08,480 --> 00:21:12,159] in reality
+[00:21:10,320 --> 00:21:15,600] uh you can always find the interesting
+[00:21:12,159 --> 00:21:17,760] applications where uh a particular type
+[00:21:15,600 --> 00:21:19,600] of arrow either false positive or false
+[00:21:17,760 --> 00:21:22,320] negative could
+[00:21:19,600 --> 00:21:23,520] uh produce catastrophic results. So you
+[00:21:22,320 --> 00:21:25,200] really want to make sure that doesn't
+[00:21:23,520 --> 00:21:27,280] really happen. You want to conduct
+[00:21:25,200 --> 00:21:30,159] minimal software engineering to finally
+[00:21:27,280 --> 00:21:32,320] fix the the outputs of thems.
+[00:21:30,159 --> 00:21:34,159] So I'm just showing this as example
+[00:21:32,320 --> 00:21:36,000] trying to convince you it's actually
+[00:21:34,159 --> 00:21:37,760] quite challenging to write very good
+[00:21:36,000 --> 00:21:40,080] verifiers because there are lots of
+[00:21:37,760 --> 00:21:42,159] nuance uh in evaluating the final
+[00:21:40,080 --> 00:21:46,159] output.
+[00:21:42,159 --> 00:21:48,400] Okay. So then we we talk about the first
+[00:21:46,159 --> 00:21:50,720] part which is uh how to get a very high
+[00:21:48,400 --> 00:21:52,720] quality training data uh in order to
+[00:21:50,720 --> 00:21:54,320] train a very high uh very very good
+[00:21:52,720 --> 00:21:56,320] agency.
+[00:21:54,320 --> 00:21:59,039] Now then we talking about the second
+[00:21:56,320 --> 00:22:01,679] comp uh component which is getting good
+[00:21:59,039 --> 00:22:05,120] evaluation data. So it's kind of
+[00:22:01,679 --> 00:22:08,640] connected to training data. uh but uh in
+[00:22:05,120 --> 00:22:10,960] reality we focus on this we do try to uh
+[00:22:08,640 --> 00:22:14,159] view this from different perspective in
+[00:22:10,960 --> 00:22:16,080] some sense even trying to tackle certain
+[00:22:14,159 --> 00:22:18,159] aspects that are not really being paid
+[00:22:16,080 --> 00:22:21,120] attention to in training because the
+[00:22:18,159 --> 00:22:23,360] intuition is that uh uh we really want
+[00:22:21,120 --> 00:22:25,840] the training to be generalizable. So
+[00:22:23,360 --> 00:22:27,919] basically in collecting training data
+[00:22:25,840 --> 00:22:30,320] there's actually no way we have
+[00:22:27,919 --> 00:22:32,799] collected all the data in the world. For
+[00:22:30,320 --> 00:22:35,440] example, just think about amount of data
+[00:22:32,799 --> 00:22:38,240] human being would produce when we are
+[00:22:35,440 --> 00:22:40,559] interacting with internet when we are
+[00:22:38,240 --> 00:22:42,799] internet interacting with a browser or
+[00:22:40,559 --> 00:22:45,200] when we are doing math proofs or
+[00:22:42,799 --> 00:22:48,000] engineers code that's basically
+[00:22:45,200 --> 00:22:50,640] unlimited there actually is no way we
+[00:22:48,000 --> 00:22:52,799] just cover all of them. So the whole
+[00:22:50,640 --> 00:22:56,400] point is that you want to build a very
+[00:22:52,799 --> 00:22:58,880] good pipeline to make sure that once you
+[00:22:56,400 --> 00:23:01,120] achieve solid coverage of training data,
+[00:22:58,880 --> 00:23:02,640] it's supposed to generalize to many
+[00:23:01,120 --> 00:23:04,640] environments you haven't really seen
+[00:23:02,640 --> 00:23:06,320] because there's absolutely no way you
+[00:23:04,640 --> 00:23:09,360] you see uh all of these the different
+[00:23:06,320 --> 00:23:11,919] environments. That's actually one task
+[00:23:09,360 --> 00:23:14,080] that this good evaluations uh is
+[00:23:11,919 --> 00:23:17,600] supposed to capture. For example, here
+[00:23:14,080 --> 00:23:20,480] I'm just listing very few uh uh uh like
+[00:23:17,600 --> 00:23:22,000] targets of a good aentic model. Later
+[00:23:20,480 --> 00:23:23,760] I'll be talking about some existing
+[00:23:22,000 --> 00:23:26,480] evaluation systems people have already
+[00:23:23,760 --> 00:23:29,440] built to capture those targets. For
+[00:23:26,480 --> 00:23:31,760] example, one thing uh I want agents to
+[00:23:29,440 --> 00:23:33,600] work with many different tools. It's so
+[00:23:31,760 --> 00:23:35,520] natural if agent can only work with a
+[00:23:33,600 --> 00:23:37,120] few different tools. I give a new one,
+[00:23:35,520 --> 00:23:38,960] maybe the user modifies a tool, then the
+[00:23:37,120 --> 00:23:41,039] system just breaks. We really cannot
+[00:23:38,960 --> 00:23:43,120] tolerate that. It's also expected to
+[00:23:41,039 --> 00:23:45,600] work for many different use cases. It's
+[00:23:43,120 --> 00:23:47,840] also very natural because maybe the user
+[00:23:45,600 --> 00:23:49,679] today also uh uh comes up with a
+[00:23:47,840 --> 00:23:52,159] different use case. You also do not want
+[00:23:49,679 --> 00:23:54,240] the system to break. It operates with
+[00:23:52,159 --> 00:23:56,159] software assistant one but there's so
+[00:23:54,240 --> 00:23:59,120] system two with slightly motivated API.
+[00:23:56,159 --> 00:24:01,760] you want this to continue to work
+[00:23:59,120 --> 00:24:04,400] and you also another core aspect in in
+[00:24:01,760 --> 00:24:06,159] particular uh in the human interactions
+[00:24:04,400 --> 00:24:08,400] I think it's also being surfaced again
+[00:24:06,159 --> 00:24:09,919] and again is that agents are expected to
+[00:24:08,400 --> 00:24:12,400] work under vaguely specified
+[00:24:09,919 --> 00:24:14,480] instructions so in the very early days
+[00:24:12,400 --> 00:24:17,360] of agentic systems when people are
+[00:24:14,480 --> 00:24:19,919] designing evaluation is always like the
+[00:24:17,360 --> 00:24:22,880] user would have a very clear target the
+[00:24:19,919 --> 00:24:24,559] user would say please conduct this then
+[00:24:22,880 --> 00:24:26,880] you see that IM behaves very
+[00:24:24,559 --> 00:24:29,440] intelligently it's really to able to
+[00:24:26,880 --> 00:24:31,919] decompose the problem, execute the task,
+[00:24:29,440 --> 00:24:34,640] calling the APIs in the right way. But
+[00:24:31,919 --> 00:24:37,360] later in reality, people really found in
+[00:24:34,640 --> 00:24:39,520] the wild when people started to interact
+[00:24:37,360 --> 00:24:41,760] with those agents, they have absolutely
+[00:24:39,520 --> 00:24:44,320] no idea they want what they want to do.
+[00:24:41,760 --> 00:24:46,480] So basically asking random questions,
+[00:24:44,320 --> 00:24:48,720] they actually hoping the agent could
+[00:24:46,480 --> 00:24:50,799] tell them what they should do to in
+[00:24:48,720 --> 00:24:52,480] order to accomplish this task. So in
+[00:24:50,799 --> 00:24:54,559] some sense really means that you need a
+[00:24:52,480 --> 00:24:56,960] very smart system. The system should be
+[00:24:54,559 --> 00:24:59,200] able to understand human intentions by
+[00:24:56,960 --> 00:25:02,240] proactively talking to people but also
+[00:24:59,200 --> 00:25:05,279] at the same time produce very precisely
+[00:25:02,240 --> 00:25:08,320] formatted uh uh uh outputs so that they
+[00:25:05,279 --> 00:25:11,440] can actually interact with very rigid uh
+[00:25:08,320 --> 00:25:13,760] rigidly formatted software systems. So
+[00:25:11,440 --> 00:25:15,760] number four agents expect to work under
+[00:25:13,760 --> 00:25:18,960] many different software systems. For
+[00:25:15,760 --> 00:25:21,039] example you use cursor in programming I
+[00:25:18,960 --> 00:25:23,200] build a system for cursor works very
+[00:25:21,039 --> 00:25:25,840] well. Suddenly you change to another
+[00:25:23,200 --> 00:25:29,520] system I use exact same completely
+[00:25:25,840 --> 00:25:31,440] breaks. Uh it's definitely not ideal and
+[00:25:29,520 --> 00:25:33,919] if that really happens and also brings
+[00:25:31,440 --> 00:25:35,919] people into question the the quality and
+[00:25:33,919 --> 00:25:38,559] the intelligence of your of your large
+[00:25:35,919 --> 00:25:40,640] language model because maybe it just
+[00:25:38,559 --> 00:25:42,480] simply isn't smart enough to understand
+[00:25:40,640 --> 00:25:45,840] those changes. This generally will be
+[00:25:42,480 --> 00:25:48,240] very problematic. Uh the fifth one is uh
+[00:25:45,840 --> 00:25:50,880] very generic. I call here expected to be
+[00:25:48,240 --> 00:25:52,720] robust. is really because there are so
+[00:25:50,880 --> 00:25:54,799] many things could actually go wrong in
+[00:25:52,720 --> 00:25:56,880] interaction with humans and with
+[00:25:54,799 --> 00:25:59,039] software systems. Human beings may not
+[00:25:56,880 --> 00:26:00,720] really know what they want and the solar
+[00:25:59,039 --> 00:26:04,480] system could also sometimes produce
+[00:26:00,720 --> 00:26:07,520] issues. You want to make sure that the
+[00:26:04,480 --> 00:26:10,880] really behaves as a really smart person
+[00:26:07,520 --> 00:26:13,520] uh just like uh very high quality
+[00:26:10,880 --> 00:26:15,520] engineers who be able to debug all
+[00:26:13,520 --> 00:26:17,760] different issues that emerge in our
+[00:26:15,520 --> 00:26:19,919] daily life.
+[00:26:17,760 --> 00:26:22,559] So uh the slides will be also be made
+[00:26:19,919 --> 00:26:24,159] available online. Uh here I just want to
+[00:26:22,559 --> 00:26:25,600] give you some more concrete examples of
+[00:26:24,159 --> 00:26:30,640] what people have already done in the
+[00:26:25,600 --> 00:26:33,679] past. So uh those benchmarks uh they
+[00:26:30,640 --> 00:26:35,360] actually they do map uh to the specific
+[00:26:33,679 --> 00:26:39,279] requirements we have been talking about
+[00:26:35,360 --> 00:26:42,000] here. For example uh one two is about
+[00:26:39,279 --> 00:26:43,840] different tools and different use cases.
+[00:26:42,000 --> 00:26:45,840] Uh so on the left I'm showing the
+[00:26:43,840 --> 00:26:47,520] offtheshelf benchmarks which actually
+[00:26:45,840 --> 00:26:50,640] cover many different use cases, many
+[00:26:47,520 --> 00:26:52,240] different tools and there's also uh
+[00:26:50,640 --> 00:26:55,200] number four on the different server
+[00:26:52,240 --> 00:26:57,440] systems. So here uh I'm I'm I'm talking
+[00:26:55,200 --> 00:26:59,840] about different agent harnesses uh which
+[00:26:57,440 --> 00:27:03,120] I will also uh describe in detail and
+[00:26:59,840 --> 00:27:06,320] number 35 here is focusing on unit test
+[00:27:03,120 --> 00:27:09,760] evaluations checking robustness of the
+[00:27:06,320 --> 00:27:12,799] of the outputs. Okay, so maybe uh I'll
+[00:27:09,760 --> 00:27:15,679] start from the left. So uh in the past
+[00:27:12,799 --> 00:27:18,799] uh a couple of years uh the community
+[00:27:15,679 --> 00:27:21,440] has developed uh some really significant
+[00:27:18,799 --> 00:27:24,400] benchmarks trying to push the
+[00:27:21,440 --> 00:27:26,640] intelligence higher and higher. The
+[00:27:24,400 --> 00:27:28,559] benchmarks getting harder and harder.
+[00:27:26,640 --> 00:27:32,640] Generally the people have achieved a
+[00:27:28,559 --> 00:27:35,039] tremendous uh progress and uh indeed per
+[00:27:32,640 --> 00:27:36,799] our observations certain task that in
+[00:27:35,039 --> 00:27:39,360] the past were believed to be very hard
+[00:27:36,799 --> 00:27:41,520] forms these days they can actually solve
+[00:27:39,360 --> 00:27:43,919] them. uh turns out they really produce a
+[00:27:41,520 --> 00:27:45,600] very significant productivity king here
+[00:27:43,919 --> 00:27:49,360] I'm talking about a couple of them for
+[00:27:45,600 --> 00:27:52,640] example sweet bench really uh is really
+[00:27:49,360 --> 00:27:55,360] challenging the to really solve this um
+[00:27:52,640 --> 00:27:57,360] uh very very sophisticated github issues
+[00:27:55,360 --> 00:27:59,200] many times really needs to involve so
+[00:27:57,360 --> 00:28:01,760] many different tools to solve these
+[00:27:59,200 --> 00:28:04,320] issues and also through solving sweet
+[00:28:01,760 --> 00:28:05,600] bench also many people understand that
+[00:28:04,320 --> 00:28:08,320] you're actually supposed to be
+[00:28:05,600 --> 00:28:10,559] interacting with different harnesses I
+[00:28:08,320 --> 00:28:12,640] want to really emphasize is because
+[00:28:10,559 --> 00:28:15,440] there's a very complex like GitHub issue
+[00:28:12,640 --> 00:28:17,039] you need to solve but to solve it many
+[00:28:15,440 --> 00:28:19,039] people actually operating in different
+[00:28:17,039 --> 00:28:20,880] environments for example in one
+[00:28:19,039 --> 00:28:23,039] environments maybe you have a function
+[00:28:20,880 --> 00:28:24,720] called open this file you can you are
+[00:28:23,039 --> 00:28:26,640] supposed to just call this function to
+[00:28:24,720 --> 00:28:28,880] open the file maybe in another
+[00:28:26,640 --> 00:28:30,640] environment you ex you do you do not
+[00:28:28,880 --> 00:28:33,120] have this function you have some other
+[00:28:30,640 --> 00:28:35,679] command line tools you call to actually
+[00:28:33,120 --> 00:28:38,000] accomplish the same task so the whole
+[00:28:35,679 --> 00:28:40,799] point is that in order to check your
+[00:28:38,000 --> 00:28:42,559] capability is solving three venge you're
+[00:28:40,799 --> 00:28:45,039] actually not supposed to be only
+[00:28:42,559 --> 00:28:46,799] sticking to a particular harness you're
+[00:28:45,039 --> 00:28:48,960] supposed to be trying so many different
+[00:28:46,799 --> 00:28:51,279] ones showing that for this particular
+[00:28:48,960 --> 00:28:53,039] task maybe when I give you this set of
+[00:28:51,279 --> 00:28:55,039] different tools another set of different
+[00:28:53,039 --> 00:28:57,360] tools slightly different formulas of
+[00:28:55,039 --> 00:28:59,039] tools are you able to solve it in all
+[00:28:57,360 --> 00:29:01,360] circumstances
+[00:28:59,039 --> 00:29:02,640] if you can it really means that your
+[00:29:01,360 --> 00:29:04,480] intelligence has already achieved a
+[00:29:02,640 --> 00:29:06,159] certain threshold
+[00:29:04,480 --> 00:29:08,960] uh that's actually extremely important
+[00:29:06,159 --> 00:29:11,600] points uh there also are different other
+[00:29:08,960 --> 00:29:14,080] benchmarks like towel bench, BFCL also
+[00:29:11,600 --> 00:29:16,000] from Berkeley uh complex function bench
+[00:29:14,080 --> 00:29:17,760] covering a very wide variety of
+[00:29:16,000 --> 00:29:20,159] different tools, different application
+[00:29:17,760 --> 00:29:21,919] scenarios just to make sure that you do
+[00:29:20,159 --> 00:29:24,480] not overfeit to a particular
+[00:29:21,919 --> 00:29:26,559] application. And there also different
+[00:29:24,480 --> 00:29:29,679] unit test evaluations. For example,
+[00:29:26,559 --> 00:29:32,880] those actually could be uh will be the
+[00:29:29,679 --> 00:29:35,200] focus of uh many uh community members
+[00:29:32,880 --> 00:29:38,320] from a long time ago saying that I want
+[00:29:35,200 --> 00:29:40,559] to check the structured output adherence
+[00:29:38,320 --> 00:29:43,520] which means that maybe in many cases I
+[00:29:40,559 --> 00:29:44,799] want you to produce a JSON output. Uh I
+[00:29:43,520 --> 00:29:47,360] really want to make sure it's it's
+[00:29:44,799 --> 00:29:49,279] really exactly right JSON. So I want to
+[00:29:47,360 --> 00:29:51,600] make sure you do not really need me to
+[00:29:49,279 --> 00:29:54,080] later write a very complex software
+[00:29:51,600 --> 00:29:56,320] engineering code to correct the mistakes
+[00:29:54,080 --> 00:29:58,880] produced by IM. There has been lots of
+[00:29:56,320 --> 00:30:01,360] attempts in the past to produce such
+[00:29:58,880 --> 00:30:04,720] software engineering tools somehow to uh
+[00:30:01,360 --> 00:30:06,399] reduce the burden on IM but later
+[00:30:04,720 --> 00:30:09,279] essentially what everybody observed is
+[00:30:06,399 --> 00:30:12,480] that if the IM itself is not intelligent
+[00:30:09,279 --> 00:30:15,120] enough is not able to produce very high
+[00:30:12,480 --> 00:30:17,200] quality JSON or structured outputs it
+[00:30:15,120 --> 00:30:19,679] becomes essentially impossible for for
+[00:30:17,200 --> 00:30:22,320] anyone to fix the issues later because a
+[00:30:19,679 --> 00:30:24,399] lot of issues really involve very nuance
+[00:30:22,320 --> 00:30:26,240] understanding of the system and it
+[00:30:24,399 --> 00:30:28,240] really requires system with very high
+[00:30:26,240 --> 00:30:30,000] level intelligence. So basically you
+[00:30:28,240 --> 00:30:32,000] cannot easily fix it using very simple
+[00:30:30,000 --> 00:30:34,880] rules.
+[00:30:32,000 --> 00:30:36,799] So one point uh to summarize what they
+[00:30:34,880 --> 00:30:39,039] talk about which is a holistic
+[00:30:36,799 --> 00:30:41,840] environments we want to make sure we
+[00:30:39,039 --> 00:30:45,360] check all kinds of capabilities
+[00:30:41,840 --> 00:30:48,240] humanities last exam uh general uh
+[00:30:45,360 --> 00:30:51,120] scientific knowledge am math sweet bench
+[00:30:48,240 --> 00:30:54,320] encoding it's supposed to be combined
+[00:30:51,120 --> 00:30:57,039] with different harnesses and I want to
+[00:30:54,320 --> 00:30:59,440] make sure that we really create uh super
+[00:30:57,039 --> 00:31:01,600] strong super intelligent model that's
+[00:30:59,440 --> 00:31:04,320] able to solve all of these tasks under
+[00:31:01,600 --> 00:31:07,039] all kinds of combinations of evaluations
+[00:31:04,320 --> 00:31:08,799] to convince ourselves that indeed we
+[00:31:07,039 --> 00:31:11,360] have made progress in terms of
+[00:31:08,799 --> 00:31:13,520] enhancements of intelligence. So keeping
+[00:31:11,360 --> 00:31:16,640] the definition of intelligence holistic
+[00:31:13,520 --> 00:31:18,559] is extremely important because uh uh
+[00:31:16,640 --> 00:31:21,600] these days we are trying to utilize the
+[00:31:18,559 --> 00:31:24,720] systems to increase our productivity and
+[00:31:21,600 --> 00:31:27,600] one thing uh has come up again and again
+[00:31:24,720 --> 00:31:30,399] is that uh uh the system we are dealing
+[00:31:27,600 --> 00:31:32,720] with in practice as a scientist as
+[00:31:30,399 --> 00:31:35,600] engineer as a researcher it's just so
+[00:31:32,720 --> 00:31:38,559] complicated. So in order to make sure
+[00:31:35,600 --> 00:31:42,320] the systems can actually help us, we
+[00:31:38,559 --> 00:31:45,600] want to make sure it is smart enough.
+[00:31:42,320 --> 00:31:48,080] Okay. So uh to continue what we talk
+[00:31:45,600 --> 00:31:50,159] about good evaluations need to count for
+[00:31:48,080 --> 00:31:52,559] all of these things. Evaluate many
+[00:31:50,159 --> 00:31:54,000] different tasks and verifiers many
+[00:31:52,559 --> 00:31:57,200] different ways of letting the agent
+[00:31:54,000 --> 00:31:59,600] explore in a benchmark sandbox by seeing
+[00:31:57,200 --> 00:32:02,159] how the accuracy changes as you swap out
+[00:31:59,600 --> 00:32:04,159] the harnesses. You make sure that if you
+[00:32:02,159 --> 00:32:06,159] see sometimes a very significant
+[00:32:04,159 --> 00:32:08,240] performance drop maybe means that you
+[00:32:06,159 --> 00:32:09,679] did something wrong in the in training
+[00:32:08,240 --> 00:32:12,159] then you need to figure out new ways of
+[00:32:09,679 --> 00:32:14,240] training to to fix this. You also need
+[00:32:12,159 --> 00:32:15,840] to deal with many different tools how to
+[00:32:14,240 --> 00:32:18,640] use different tools in different action
+[00:32:15,840 --> 00:32:20,159] spaces and ideally you really stick to
+[00:32:18,640 --> 00:32:22,640] the same model. So that model needs to
+[00:32:20,159 --> 00:32:24,640] itself figure out what to do. So in
+[00:32:22,640 --> 00:32:26,960] summary evaluation is extremely
+[00:32:24,640 --> 00:32:30,399] important. Lots of people here also
+[00:32:26,960 --> 00:32:32,960] working on very uh significant topics in
+[00:32:30,399 --> 00:32:36,720] evaluation. It is definitely something
+[00:32:32,960 --> 00:32:38,960] we need a help uh uh from from the whole
+[00:32:36,720 --> 00:32:41,600] community on because only by
+[00:32:38,960 --> 00:32:43,679] collectively working on this can we
+[00:32:41,600 --> 00:32:45,840] really understand the limitations of
+[00:32:43,679 --> 00:32:48,159] existing agentic system and make
+[00:32:45,840 --> 00:32:50,640] progress. So it really needs to be
+[00:32:48,159 --> 00:32:52,799] holistic and good measure.
+[00:32:50,640 --> 00:32:55,679] uh one last thing I want to talk about
+[00:32:52,799 --> 00:32:59,279] uh before we go into the training aspect
+[00:32:55,679 --> 00:33:01,360] is actually also about uh uh maybe
+[00:32:59,279 --> 00:33:05,200] approaches to combine different task and
+[00:33:01,360 --> 00:33:07,360] the harnesses to evaluate. So basically
+[00:33:05,200 --> 00:33:09,840] uh say you have already come up with
+[00:33:07,360 --> 00:33:12,240] lots of different evaluations right for
+[00:33:09,840 --> 00:33:15,200] example checking the quality of math
+[00:33:12,240 --> 00:33:18,000] quality of code swapping the harnesses
+[00:33:15,200 --> 00:33:20,960] making sure things are actually good uh
+[00:33:18,000 --> 00:33:22,559] well then you saw some good numbers. So
+[00:33:20,960 --> 00:33:24,080] are you are you still really sure that
+[00:33:22,559 --> 00:33:26,960] you didn't really overfeit all these
+[00:33:24,080 --> 00:33:30,320] benchmarks because maybe in this process
+[00:33:26,960 --> 00:33:32,559] of iterating on your post training you
+[00:33:30,320 --> 00:33:34,240] have collect some data which is really
+[00:33:32,559 --> 00:33:37,120] similar to some of the data in your
+[00:33:34,240 --> 00:33:39,440] evaluation or in the whole community
+[00:33:37,120 --> 00:33:41,360] maybe uh certain models have already
+[00:33:39,440 --> 00:33:43,440] been contaminated maybe certain
+[00:33:41,360 --> 00:33:45,360] evaluations should no longer really work
+[00:33:43,440 --> 00:33:46,880] are you really sure it's not happening
+[00:33:45,360 --> 00:33:48,960] when you see a high number on certain
+[00:33:46,880 --> 00:33:52,399] benchmark say on SWE bench are you
+[00:33:48,960 --> 00:33:55,039] really sure you are it's very strong. Uh
+[00:33:52,399 --> 00:33:57,360] so uh I would like to emphasize that uh
+[00:33:55,039 --> 00:34:00,000] there's also a very important community
+[00:33:57,360 --> 00:34:02,559] effort to continuously trying to check
+[00:34:00,000 --> 00:34:06,240] the quality of evaluations uh which is
+[00:34:02,559 --> 00:34:08,480] also important aspects of AM research.
+[00:34:06,240 --> 00:34:11,839] So basically several aspects one could
+[00:34:08,480 --> 00:34:14,960] consider one thing is about hardness. So
+[00:34:11,839 --> 00:34:17,200] basically suppose at the very early days
+[00:34:14,960 --> 00:34:19,040] maybe IM are not intelligent enough
+[00:34:17,200 --> 00:34:21,200] there will be certain benchmarks maybe
+[00:34:19,040 --> 00:34:23,359] all the IM would score very low on this
+[00:34:21,200 --> 00:34:26,320] benchmarks but maybe these days for
+[00:34:23,359 --> 00:34:28,560] example like GSM 8K everyone scores very
+[00:34:26,320 --> 00:34:30,159] high on this benchmark now you say well
+[00:34:28,560 --> 00:34:32,560] I achieved a five point improvement on
+[00:34:30,159 --> 00:34:34,639] this benchmark it's really unclear you
+[00:34:32,560 --> 00:34:37,359] have actually made some progress because
+[00:34:34,639 --> 00:34:39,359] it's also maybe likely for the specific
+[00:34:37,359 --> 00:34:41,679] base model you work on the model has
+[00:34:39,359 --> 00:34:43,520] already been exposed to certain data.
+[00:34:41,679 --> 00:34:45,200] That's very similar to a GSMK
+[00:34:43,520 --> 00:34:46,720] evaluation. You really do not know
+[00:34:45,200 --> 00:34:48,960] what's going on. You need to
+[00:34:46,720 --> 00:34:50,240] continuously monitor hardness. You also
+[00:34:48,960 --> 00:34:53,040] need to continuously monitor
+[00:34:50,240 --> 00:34:56,800] separability. By that, I mean that when
+[00:34:53,040 --> 00:34:59,440] you ask a question and you ask many
+[00:34:56,800 --> 00:35:02,160] differents the same question.
+[00:34:59,440 --> 00:35:04,320] Ideally, you are supposed to see that
+[00:35:02,160 --> 00:35:06,480] that's supposed to be stronger, they
+[00:35:04,320 --> 00:35:08,320] answer the question better. The IM
+[00:35:06,480 --> 00:35:11,280] that's supposed to be weaker, they they
+[00:35:08,320 --> 00:35:13,920] do not answer as well. In that case, we
+[00:35:11,280 --> 00:35:17,200] would like to say that the benchmark is
+[00:35:13,920 --> 00:35:19,280] able to separate the capabilities of RMS
+[00:35:17,200 --> 00:35:21,920] because if that doesn't really happen or
+[00:35:19,280 --> 00:35:24,880] you observe that well the weaks and
+[00:35:21,920 --> 00:35:26,400] strongs they produce very similar scores
+[00:35:24,880 --> 00:35:28,480] maybe the reaction should be that you
+[00:35:26,400 --> 00:35:30,960] abandon this benchmark because there
+[00:35:28,480 --> 00:35:33,680] must be something that has gone wrong in
+[00:35:30,960 --> 00:35:36,160] the in the past either in training or in
+[00:35:33,680 --> 00:35:38,400] some other types of evaluation that has
+[00:35:36,160 --> 00:35:40,560] maybe has hurt the credibility of this
+[00:35:38,400 --> 00:35:42,640] particular benchmark. There's also of
+[00:35:40,560 --> 00:35:44,400] course issue of diversity which is also
+[00:35:42,640 --> 00:35:47,119] the uh the topic we have been talking
+[00:35:44,400 --> 00:35:49,119] about again and again which is that you
+[00:35:47,119 --> 00:35:51,119] need to have very good coverage. So if
+[00:35:49,119 --> 00:35:53,839] you do not have very good coverage you
+[00:35:51,119 --> 00:35:55,520] you produce high number maybe uh on data
+[00:35:53,839 --> 00:35:57,520] sets you only have like 50 different
+[00:35:55,520 --> 00:35:59,920] prompts they all very similar to each
+[00:35:57,520 --> 00:36:01,359] other uh you produce a high score
+[00:35:59,920 --> 00:36:03,680] doesn't really mean that your system
+[00:36:01,359 --> 00:36:06,240] actually is behaving very well. So all
+[00:36:03,680 --> 00:36:08,160] these are very important topics uh and
+[00:36:06,240 --> 00:36:10,880] it's really a very significant community
+[00:36:08,160 --> 00:36:13,520] effort to make sure that we uh do not
+[00:36:10,880 --> 00:36:15,599] fall into the the pitfalls.
+[00:36:13,520 --> 00:36:17,520] Uh
+[00:36:15,599 --> 00:36:20,800] there so many benchmarks are really is
+[00:36:17,520 --> 00:36:23,040] public. So all the data is available. Uh
+[00:36:20,800 --> 00:36:25,280] are there attempts people have to create
+[00:36:23,040 --> 00:36:28,079] the private benchmarks to really track
+[00:36:25,280 --> 00:36:30,960] the progress? Clearly there are so
+[00:36:28,079 --> 00:36:32,960] actually lots of uh uh individuals,
+[00:36:30,960 --> 00:36:34,160] community members and companies they
+[00:36:32,960 --> 00:36:37,040] would like to create the private
+[00:36:34,160 --> 00:36:40,720] benchmarks to really check that. Um so
+[00:36:37,040 --> 00:36:42,480] in some sense maybe the uh uh the
+[00:36:40,720 --> 00:36:44,400] situation everyone wants to see will be
+[00:36:42,480 --> 00:36:46,640] that uh we need to see way more
+[00:36:44,400 --> 00:36:48,800] benchmarks being proposed because
+[00:36:46,640 --> 00:36:51,440] private benchmark is good but if you
+[00:36:48,800 --> 00:36:53,760] have a very static benchmark then people
+[00:36:51,440 --> 00:36:57,280] try to fit it so many times uh maybe
+[00:36:53,760 --> 00:37:00,079] still would lose credibility and ideally
+[00:36:57,280 --> 00:37:02,160] uh let's say for public benchmarks if
+[00:37:00,079 --> 00:37:04,480] the community can continue to produce
+[00:37:02,160 --> 00:37:06,079] more and more benchmarks in all kinds of
+[00:37:04,480 --> 00:37:07,839] different environments
+[00:37:06,079 --> 00:37:09,839] then it's actually very hard for
+[00:37:07,839 --> 00:37:12,240] everyone to overfeed to all of them.
+[00:37:09,839 --> 00:37:14,480] Then there was a saying that well
+[00:37:12,240 --> 00:37:17,839] suppose you have only five benchmarks in
+[00:37:14,480 --> 00:37:19,760] the world. Uh you have a benchmax them.
+[00:37:17,839 --> 00:37:22,720] So basically you claim your model is
+[00:37:19,760 --> 00:37:24,240] really the best on the five. Uh maybe it
+[00:37:22,720 --> 00:37:27,920] may not really work on all other
+[00:37:24,240 --> 00:37:30,079] benchmarks. But if the community has
+[00:37:27,920 --> 00:37:32,720] collectively produced one billion
+[00:37:30,079 --> 00:37:35,359] benchmarks, right, covering essentially
+[00:37:32,720 --> 00:37:39,119] everything we do in reality, math,
+[00:37:35,359 --> 00:37:41,119] coding, computer use, whatever, then say
+[00:37:39,119 --> 00:37:43,599] that someone comes up and say that I
+[00:37:41,119 --> 00:37:45,839] have over fits to all be one billion
+[00:37:43,599 --> 00:37:48,320] benchmarks, then maybe you have already
+[00:37:45,839 --> 00:37:50,320] achieved AGI because they they really
+[00:37:48,320 --> 00:37:53,119] have already covered everything that uh
+[00:37:50,320 --> 00:37:56,000] uh you care about. So in some sense
+[00:37:53,119 --> 00:37:58,320] benchmarking efforts uh uh is really a
+[00:37:56,000 --> 00:38:00,160] very strong community effort. So we
+[00:37:58,320 --> 00:38:02,400] really would only be able to succeed
+[00:38:00,160 --> 00:38:04,400] when more and more people are producing
+[00:38:02,400 --> 00:38:06,960] very high quality benchmarks covering
+[00:38:04,400 --> 00:38:10,160] their use cases. Uh so that's actually
+[00:38:06,960 --> 00:38:12,160] also an aspect uh I personally feel that
+[00:38:10,160 --> 00:38:15,760] academia can really make a very strong
+[00:38:12,160 --> 00:38:16,960] contribution to uh because um uh there
+[00:38:15,760 --> 00:38:20,240] are many people working on so many
+[00:38:16,960 --> 00:38:22,240] different topics. So uh trying to uh
+[00:38:20,240 --> 00:38:23,920] really capture uh what is actually
+[00:38:22,240 --> 00:38:26,880] missing in the existing training of the
+[00:38:23,920 --> 00:38:30,160] agentic systems.
+[00:38:26,880 --> 00:38:33,760] Great. Then we'll be talking about uh uh
+[00:38:30,160 --> 00:38:37,119] the third part training. Well
+[00:38:33,760 --> 00:38:39,599] uh what does the training agent mean? So
+[00:38:37,119 --> 00:38:41,440] training is a very complex topic these
+[00:38:39,599 --> 00:38:44,480] days. We still have new algorithms
+[00:38:41,440 --> 00:38:46,400] coming up every day. Um but generally I
+[00:38:44,480 --> 00:38:49,920] want to talk about the principle of
+[00:38:46,400 --> 00:38:52,880] training. So in terms of training, you
+[00:38:49,920 --> 00:38:55,920] want the agents to attempt the different
+[00:38:52,880 --> 00:38:58,160] actions in your specific environment and
+[00:38:55,920 --> 00:39:00,640] see what gets it to the final answer the
+[00:38:58,160 --> 00:39:03,200] best. Whichever gets you the best
+[00:39:00,640 --> 00:39:06,079] results, you want the model to reinforce
+[00:39:03,200 --> 00:39:08,400] and repeat. So here I'm talking about
+[00:39:06,079 --> 00:39:11,520] this paradigm. See that on the left
+[00:39:08,400 --> 00:39:13,920] there's a which is supposed to be smart.
+[00:39:11,520 --> 00:39:16,240] Okay, you are training the agents.
+[00:39:13,920 --> 00:39:18,800] So you give the agent a certain task.
+[00:39:16,240 --> 00:39:21,920] You say well please accomplish certain
+[00:39:18,800 --> 00:39:23,839] task try to do it then I would make lots
+[00:39:21,920 --> 00:39:26,560] of attempts attempt here I'm showing one
+[00:39:23,839 --> 00:39:29,359] to five go to environments maybe each
+[00:39:26,560 --> 00:39:31,359] attempt it tries to call different tools
+[00:39:29,359 --> 00:39:33,359] uh try to ch different information try
+[00:39:31,359 --> 00:39:36,079] to make a final decision then finally
+[00:39:33,359 --> 00:39:38,320] there's a verifier saying oh uh for each
+[00:39:36,079 --> 00:39:41,359] attempt is correct or not correct how
+[00:39:38,320 --> 00:39:45,359] much cost has it incurred
+[00:39:41,359 --> 00:39:47,359] uh then ideally uh even without
+[00:39:45,359 --> 00:39:49,200] demonstrating How we train this? We
+[00:39:47,359 --> 00:39:51,680] already know the the target. The target
+[00:39:49,200 --> 00:39:54,800] will be that I want to make sure at the
+[00:39:51,680 --> 00:39:58,320] very end after training the AM is able
+[00:39:54,800 --> 00:40:00,480] to generate uh the correct trajectory.
+[00:39:58,320 --> 00:40:02,880] So the attemp is successful maybe
+[00:40:00,480 --> 00:40:04,720] ideally also with the minimal cost and
+[00:40:02,880 --> 00:40:07,040] there could also be other aspects I care
+[00:40:04,720 --> 00:40:09,599] about in final evaluation.
+[00:40:07,040 --> 00:40:11,359] So what what are some aspect some core
+[00:40:09,599 --> 00:40:13,040] characteristic you you focus on in the
+[00:40:11,359 --> 00:40:14,560] whole training process? I'm talking
+[00:40:13,040 --> 00:40:16,880] about two here. There could be many
+[00:40:14,560 --> 00:40:19,200] others. One thing I want to emphasize
+[00:40:16,880 --> 00:40:21,440] that you want each attempt to be very
+[00:40:19,200 --> 00:40:23,359] different from each other. Since you
+[00:40:21,440 --> 00:40:25,839] want a model to reinforce or discourage
+[00:40:23,359 --> 00:40:28,320] many different styles of attempts just
+[00:40:25,839 --> 00:40:31,119] like a human being, right? Suppose I
+[00:40:28,320 --> 00:40:34,400] want to teach a kid to do something.
+[00:40:31,119 --> 00:40:36,000] Then ideally uh if the person is able to
+[00:40:34,400 --> 00:40:38,160] come up with multiple different
+[00:40:36,000 --> 00:40:41,040] approaches, they're very different from
+[00:40:38,160 --> 00:40:43,040] each other. Then ideally some of them is
+[00:40:41,040 --> 00:40:45,839] correct, some of them is incorrect.
+[00:40:43,040 --> 00:40:48,400] After I give very detailed feedback, I
+[00:40:45,839 --> 00:40:50,160] hope the person can learn very fast. But
+[00:40:48,400 --> 00:40:52,079] the issue is that if the person is only
+[00:40:50,160 --> 00:40:54,960] able to come up with a single answer and
+[00:40:52,079 --> 00:40:57,599] it's wrong, then by telling the person
+[00:40:54,960 --> 00:41:00,560] it is wrong, uh it did give some
+[00:40:57,599 --> 00:41:02,800] information and then it really appears
+[00:41:00,560 --> 00:41:04,480] that it's slightly harder for actually
+[00:41:02,800 --> 00:41:06,240] for the training algorithm to work.
+[00:41:04,480 --> 00:41:08,400] Appears that you didn't provide enough
+[00:41:06,240 --> 00:41:10,400] amount of information at least for for
+[00:41:08,400 --> 00:41:13,280] many algorithms to be able to improve
+[00:41:10,400 --> 00:41:14,960] the quality of agentic systems.
+[00:41:13,280 --> 00:41:18,240] And a second aspect I also want to
+[00:41:14,960 --> 00:41:20,640] emphasize is that every attempt uh would
+[00:41:18,240 --> 00:41:23,839] cause compute to sample and process. You
+[00:41:20,640 --> 00:41:26,800] ask I am as a person to say oh what
+[00:41:23,839 --> 00:41:29,599] about you try this they tried it and
+[00:41:26,800 --> 00:41:32,640] it's totally wrong. You ask to try 100
+[00:41:29,599 --> 00:41:34,400] times all of them are totally wrong.
+[00:41:32,640 --> 00:41:36,960] That wouldn't be very satisfactory
+[00:41:34,400 --> 00:41:39,200] because each attempt cost lots of money
+[00:41:36,960 --> 00:41:41,440] lots of resources. You do not want very
+[00:41:39,200 --> 00:41:44,880] silly attempts. So somehow we are really
+[00:41:41,440 --> 00:41:47,440] in a dedicated situation. So if we give
+[00:41:44,880 --> 00:41:49,440] IM a question it's super easy all the
+[00:41:47,440 --> 00:41:53,040] attempts are exactly correct. It didn't
+[00:41:49,440 --> 00:41:55,520] learn anything. But ask to attempt many
+[00:41:53,040 --> 00:41:57,440] times with all failures cost lots of
+[00:41:55,520 --> 00:41:59,599] money resources
+[00:41:57,440 --> 00:42:02,720] uh and you also need to spend lots of
+[00:41:59,599 --> 00:42:04,960] time figuring out how to make learn. So
+[00:42:02,720 --> 00:42:06,960] it's a really complicated process. till
+[00:42:04,960 --> 00:42:08,240] today uh I believe the whole community
+[00:42:06,960 --> 00:42:10,480] is still trying to figure out what's the
+[00:42:08,240 --> 00:42:12,480] right way to deal with this but I think
+[00:42:10,480 --> 00:42:14,800] that by connecting this better with the
+[00:42:12,480 --> 00:42:16,640] human learning process I did raise lots
+[00:42:14,800 --> 00:42:18,319] of really fascinating questions about
+[00:42:16,640 --> 00:42:22,079] that
+[00:42:18,319 --> 00:42:23,680] so uh we want to talk about some of the
+[00:42:22,079 --> 00:42:25,839] existing approaches taken by the
+[00:42:23,680 --> 00:42:28,240] community and I really want to emphasize
+[00:42:25,839 --> 00:42:30,079] that existing approaches may not really
+[00:42:28,240 --> 00:42:33,520] represent the best approaches one can
+[00:42:30,079 --> 00:42:35,680] take so lots of research to be done uh
+[00:42:33,520 --> 00:42:39,040] in in general are also from from certain
+[00:42:35,680 --> 00:42:40,880] point of view uh if we we really go back
+[00:42:39,040 --> 00:42:43,119] to machine learning theory certain
+[00:42:40,880 --> 00:42:45,760] approaches being proposed here are also
+[00:42:43,119 --> 00:42:48,319] not exactly right so one big issue we
+[00:42:45,760 --> 00:42:50,800] are dealing with in training LMS is that
+[00:42:48,319 --> 00:42:52,560] the theorical foundation usually cannot
+[00:42:50,800 --> 00:42:55,520] connect very well with existing
+[00:42:52,560 --> 00:42:57,920] practices so it's really I believe the
+[00:42:55,520 --> 00:42:59,760] task of whole community to come together
+[00:42:57,920 --> 00:43:01,920] to figure out how we can propose better
+[00:42:59,760 --> 00:43:06,079] formulations but to connect what I
+[00:43:01,920 --> 00:43:08,800] talked about before uh there generally
+[00:43:06,079 --> 00:43:11,040] will be two uh stages in training this
+[00:43:08,800 --> 00:43:13,760] agentic systems. The first stage we call
+[00:43:11,040 --> 00:43:16,720] a super fun tuning or SFT.
+[00:43:13,760 --> 00:43:18,480] So it is basically imitation learning. I
+[00:43:16,720 --> 00:43:21,200] would like to imitate demonstration
+[00:43:18,480 --> 00:43:23,119] trajectories that achieve correctness.
+[00:43:21,200 --> 00:43:25,040] What that really means is that suppose
+[00:43:23,119 --> 00:43:28,079] at the very beginning the IM doesn't
+[00:43:25,040 --> 00:43:31,040] know anything. You give the IM a task it
+[00:43:28,079 --> 00:43:33,200] output some garbage. uh that exactly was
+[00:43:31,040 --> 00:43:35,920] a situation we talk about of the silly
+[00:43:33,200 --> 00:43:38,640] attempts uh that cost lots of money and
+[00:43:35,920 --> 00:43:40,480] resources we didn't make any progress in
+[00:43:38,640 --> 00:43:43,520] that case usually to jump start a whole
+[00:43:40,480 --> 00:43:45,200] system what you would do is that um you
+[00:43:43,520 --> 00:43:47,440] would like to connect some demonstration
+[00:43:45,200 --> 00:43:49,440] trajectories you say well there's a
+[00:43:47,440 --> 00:43:52,880] particular query I would like to show
+[00:43:49,440 --> 00:43:55,040] you as a human being uh the right set of
+[00:43:52,880 --> 00:43:58,560] actions you need to take maybe access
+[00:43:55,040 --> 00:44:00,960] this database also access another API
+[00:43:58,560 --> 00:44:03,280] talk to another system final this whole
+[00:44:00,960 --> 00:44:05,599] trajectory I just show you that what
+[00:44:03,280 --> 00:44:07,760] about you try to replicate this next
+[00:44:05,599 --> 00:44:09,520] time I ask you exactly the same question
+[00:44:07,760 --> 00:44:11,920] what about you try to produce exact the
+[00:44:09,520 --> 00:44:14,880] same answer as a demonstration I've just
+[00:44:11,920 --> 00:44:16,800] shown to you so the hope is that I want
+[00:44:14,880 --> 00:44:19,920] to minimize any silly or non meaningful
+[00:44:16,800 --> 00:44:21,760] attempts the second stage is that well
+[00:44:19,920 --> 00:44:24,480] maybe you are already entered the stage
+[00:44:21,760 --> 00:44:27,040] where I give you a question uh sometimes
+[00:44:24,480 --> 00:44:28,880] still make mistakes but it's not totally
+[00:44:27,040 --> 00:44:31,359] wrong actually sometimes you are
+[00:44:28,880 --> 00:44:33,359] reasonably correct. In this case, I
+[00:44:31,359 --> 00:44:36,000] would like to let you explore because
+[00:44:33,359 --> 00:44:38,240] the more you explore by yourself, uh the
+[00:44:36,000 --> 00:44:39,680] better you learn in some sense very
+[00:44:38,240 --> 00:44:42,720] similar to the philosophy of human
+[00:44:39,680 --> 00:44:44,880] learning. Say in school if the professor
+[00:44:42,720 --> 00:44:47,040] only gives us the precise answer to the
+[00:44:44,880 --> 00:44:50,240] question say you just copy this. We are
+[00:44:47,040 --> 00:44:52,960] not allowed to produce any homework to
+[00:44:50,240 --> 00:44:55,599] be graded by the professor and we don't
+[00:44:52,960 --> 00:44:57,040] get any feedback. Then maybe different
+[00:44:55,599 --> 00:44:58,720] people who make mistakes in different
+[00:44:57,040 --> 00:45:00,800] ways, right? I have this particular type
+[00:44:58,720 --> 00:45:02,400] of mistake. I want to know it was wrong.
+[00:45:00,800 --> 00:45:04,240] Nobody gave me that because professor
+[00:45:02,400 --> 00:45:05,760] only give me the exact right answer.
+[00:45:04,240 --> 00:45:07,680] This new question coming up. I have no
+[00:45:05,760 --> 00:45:10,480] idea that I actually tend to make
+[00:45:07,680 --> 00:45:13,359] certain type of mistakes. So the real
+[00:45:10,480 --> 00:45:15,280] way to learn is to let model explore and
+[00:45:13,359 --> 00:45:18,000] reinforce trajectories to achieve
+[00:45:15,280 --> 00:45:19,920] correctness and discourage the ones that
+[00:45:18,000 --> 00:45:21,839] do not. Going back to the previous
+[00:45:19,920 --> 00:45:24,640] point, you actually also want the model
+[00:45:21,839 --> 00:45:27,599] to produce very diverse trajectories so
+[00:45:24,640 --> 00:45:30,160] that if you go wrong, I want to see you
+[00:45:27,599 --> 00:45:31,920] go wrong. Then I tell you it goes wrong.
+[00:45:30,160 --> 00:45:33,440] Instead of you say, well, essentially
+[00:45:31,920 --> 00:45:35,119] everything is correct, but they are
+[00:45:33,440 --> 00:45:37,040] always the same. Then you didn't really
+[00:45:35,119 --> 00:45:39,599] learn too much about this. You want to
+[00:45:37,040 --> 00:45:42,560] reinforce diverse great attempts from
+[00:45:39,599 --> 00:45:44,800] the current model and discourage diverse
+[00:45:42,560 --> 00:45:47,520] and bad attempts. both sides need need
+[00:45:44,800 --> 00:45:50,319] to be diverse because diversity really
+[00:45:47,520 --> 00:45:53,040] accelerates learning process.
+[00:45:50,319 --> 00:45:56,480] So to uh really uh uh talk about the
+[00:45:53,040 --> 00:45:57,839] details SFD stage and RL stage uh I
+[00:45:56,480 --> 00:45:59,520] personally feel it's very intuitive
+[00:45:57,839 --> 00:46:02,640] because it maps really well to human
+[00:45:59,520 --> 00:46:04,400] being learning at SID stage is basically
+[00:46:02,640 --> 00:46:06,720] maximize the likelihood of sampling the
+[00:46:04,400 --> 00:46:08,960] demonstration trajectories and minimize
+[00:46:06,720 --> 00:46:11,280] likelihood of sampling anything else
+[00:46:08,960 --> 00:46:13,680] give you the predict trajectory say well
+[00:46:11,280 --> 00:46:16,000] what about your samples hopefully it
+[00:46:13,680 --> 00:46:17,200] really works very well it's just here so
+[00:46:16,000 --> 00:46:20,800] that we can sample meaningful
+[00:46:17,200 --> 00:46:23,359] trajectories. So one key aspect of SFT
+[00:46:20,800 --> 00:46:26,880] is that demonstration samples needs to
+[00:46:23,359 --> 00:46:30,160] be diverse. So basically if you give me
+[00:46:26,880 --> 00:46:31,920] very few SF samples very similar style
+[00:46:30,160 --> 00:46:34,079] then maybe what has happened is that the
+[00:46:31,920 --> 00:46:37,040] model is not able to generate diverse
+[00:46:34,079 --> 00:46:39,680] attempts later in AR stage which is bad.
+[00:46:37,040 --> 00:46:41,359] And similarly for the uh uh second
+[00:46:39,680 --> 00:46:44,880] requirements
+[00:46:41,359 --> 00:46:47,359] uh uh here I wrote a requirement which
+[00:46:44,880 --> 00:46:49,440] is ST should be light. uh the intuition
+[00:46:47,359 --> 00:46:51,760] is also exactly same because if you have
+[00:46:49,440 --> 00:46:53,520] conducted very heavy SFT which means
+[00:46:51,760 --> 00:46:55,920] that you have basically tried to teach
+[00:46:53,520 --> 00:46:58,960] the model for every question I collect
+[00:46:55,920 --> 00:47:01,920] in a training set. I tell you what is
+[00:46:58,960 --> 00:47:04,480] the right answer and I tell you please
+[00:47:01,920 --> 00:47:06,640] remember this it is exactly only right
+[00:47:04,480 --> 00:47:09,760] answer then later the model will lose
+[00:47:06,640 --> 00:47:13,040] the ability to figure answers by its own
+[00:47:09,760 --> 00:47:15,119] and in reality the real issue is that no
+[00:47:13,040 --> 00:47:17,839] matter how big the collection of your
+[00:47:15,119 --> 00:47:21,760] training data is it can never cover
+[00:47:17,839 --> 00:47:24,560] every aspect of of our interaction with
+[00:47:21,760 --> 00:47:26,640] and with humans. So if you really only
+[00:47:24,560 --> 00:47:29,200] teach them to exactly follow your
+[00:47:26,640 --> 00:47:31,359] demonstration answers uh generally it
+[00:47:29,200 --> 00:47:34,000] would really fail for tasks that have
+[00:47:31,359 --> 00:47:37,040] actually auto auto distribution.
+[00:47:34,000 --> 00:47:38,960] So in the RL stage uh uh so here I'm
+[00:47:37,040 --> 00:47:40,720] talking about the technical details you
+[00:47:38,960 --> 00:47:44,240] can find the the details in essentially
+[00:47:40,720 --> 00:47:45,920] every paper uh in RL in the ro stage I
+[00:47:44,240 --> 00:47:47,760] want to sample very meaningful but very
+[00:47:45,920 --> 00:47:49,920] different actions for the tasks the
+[00:47:47,760 --> 00:47:52,000] environment and tools you have limited
+[00:47:49,920 --> 00:47:53,920] compute you want to make sure you get as
+[00:47:52,000 --> 00:47:56,319] diverse answers as possible as
+[00:47:53,920 --> 00:47:58,560] meaningful as possible then you figure
+[00:47:56,319 --> 00:48:00,880] out how correct each uh uh each action
+[00:47:58,560 --> 00:48:03,200] sequence is how real and useful certain
+[00:48:00,880 --> 00:48:06,079] actions are then you try to figure out
+[00:48:03,200 --> 00:48:07,839] how to update your so that the next time
+[00:48:06,079 --> 00:48:10,079] when you're trying to generate answers
+[00:48:07,839 --> 00:48:13,200] you generate more the correct answers
+[00:48:10,079 --> 00:48:15,520] you generate less the incorrect answers
+[00:48:13,200 --> 00:48:18,960] uh that appears to be the hardest part.
+[00:48:15,520 --> 00:48:21,280] So in some sense uh or what what's it's
+[00:48:18,960 --> 00:48:24,160] also similar to what we observe in human
+[00:48:21,280 --> 00:48:27,440] learning which is that when the
+[00:48:24,160 --> 00:48:30,880] professor gives the students a task uh
+[00:48:27,440 --> 00:48:32,720] then everyone submits the homework uh
+[00:48:30,880 --> 00:48:34,640] the hardest thing is really to make sure
+[00:48:32,720 --> 00:48:36,720] that the next time when there's a new
+[00:48:34,640 --> 00:48:39,359] task coming up everyone is asked to
+[00:48:36,720 --> 00:48:40,800] submit homework again uh how to make
+[00:48:39,359 --> 00:48:44,400] sure that you really have produced a
+[00:48:40,800 --> 00:48:47,680] better answer. So generally for human
+[00:48:44,400 --> 00:48:51,040] beings people actually uh uh differ in
+[00:48:47,680 --> 00:48:52,960] uh in this way. So many people by giving
+[00:48:51,040 --> 00:48:55,280] the same feedback actually they produce
+[00:48:52,960 --> 00:48:57,119] many different answers once given a new
+[00:48:55,280 --> 00:48:59,359] set of tasks. That's exactly the same
+[00:48:57,119 --> 00:49:01,520] situation for our algorithms. Use
+[00:48:59,359 --> 00:49:04,480] different RO algorithms I give you same
+[00:49:01,520 --> 00:49:05,920] amount of data then later turns out the
+[00:49:04,480 --> 00:49:09,200] quality of the system actually is
+[00:49:05,920 --> 00:49:11,040] different. summarize SAT just here to
+[00:49:09,200 --> 00:49:13,920] discourage meaningless and lowquality
+[00:49:11,040 --> 00:49:16,720] rollouts attempts and RL is here to
+[00:49:13,920 --> 00:49:19,119] truly reinforce intelligence.
+[00:49:16,720 --> 00:49:22,079] So I I indeed have prepared some more
+[00:49:19,119 --> 00:49:24,079] slides talking about the details of RL
+[00:49:22,079 --> 00:49:26,079] uh because I do believe that it's a very
+[00:49:24,079 --> 00:49:29,760] critical research topic. The question is
+[00:49:26,079 --> 00:49:31,359] that uh um has been a certain work uh
+[00:49:29,760 --> 00:49:36,000] actually also work from coming from
+[00:49:31,359 --> 00:49:38,000] Nvidia um talking about uh maybe uh
+[00:49:36,000 --> 00:49:41,440] certain cases one can remove the SF
+[00:49:38,000 --> 00:49:43,119] stage uh we conduct more RL uh by the
+[00:49:41,440 --> 00:49:45,520] way it's also a trend demonstrated by
+[00:49:43,119 --> 00:49:48,800] many frontier labs uh consume more
+[00:49:45,520 --> 00:49:51,359] compute uh so that's actually also go
+[00:49:48,800 --> 00:49:53,359] back goes back to one of the uh core uh
+[00:49:51,359 --> 00:49:56,079] things I talk about when we are talking
+[00:49:53,359 --> 00:49:59,040] about training algorithms is These days
+[00:49:56,079 --> 00:50:02,000] it's really unclear what is actually the
+[00:49:59,040 --> 00:50:05,440] correct training algorithm.
+[00:50:02,000 --> 00:50:06,880] So because uh in some sense uh for those
+[00:50:05,440 --> 00:50:10,880] of you who are very familiar with the
+[00:50:06,880 --> 00:50:13,200] machine learning theory uh you know that
+[00:50:10,880 --> 00:50:16,400] uh the current algorithmic formulation
+[00:50:13,200 --> 00:50:17,839] for combination and RL they actually do
+[00:50:16,400 --> 00:50:20,400] not align very well with machine
+[00:50:17,839 --> 00:50:22,240] learning theory. If you started from a
+[00:50:20,400 --> 00:50:24,400] theoretical perspective, work on
+[00:50:22,240 --> 00:50:27,520] simplified models, you wouldn't be doing
+[00:50:24,400 --> 00:50:29,599] this. You'll be doing something else and
+[00:50:27,520 --> 00:50:31,760] on simplified models something else will
+[00:50:29,599 --> 00:50:35,599] work so much better than this approaches
+[00:50:31,760 --> 00:50:39,200] we currently take on. So that that's a
+[00:50:35,599 --> 00:50:41,839] very big issue. So uh that's why we
+[00:50:39,200 --> 00:50:44,240] believe that more exploration
+[00:50:41,839 --> 00:50:46,400] in terms of different architecture,
+[00:50:44,240 --> 00:50:48,079] different algorithms, better ways of
+[00:50:46,400 --> 00:50:50,319] utilizing data both pre-training and
+[00:50:48,079 --> 00:50:53,119] post- training data is very critical in
+[00:50:50,319 --> 00:50:55,920] the community because currently it would
+[00:50:53,119 --> 00:50:58,559] be very nice if we can move closer to
+[00:50:55,920 --> 00:51:00,160] the theoretical principles while doing
+[00:50:58,559 --> 00:51:02,800] something that's implementable in
+[00:51:00,160 --> 00:51:06,400] practice. Uh this actually currently a
+[00:51:02,800 --> 00:51:08,400] really important research topic. uh so
+[00:51:06,400 --> 00:51:11,119] uh I I personally would encourage
+[00:51:08,400 --> 00:51:14,720] everyone uh to really dive very deep
+[00:51:11,119 --> 00:51:16,800] into this uh because uh uh I believe we
+[00:51:14,720 --> 00:51:18,480] definitely have not converged uh in
+[00:51:16,800 --> 00:51:22,079] terms of uh what's the right algorithm
+[00:51:18,480 --> 00:51:24,480] to use uh as you'll be um you'll see
+[00:51:22,079 --> 00:51:27,119] when I talk about later certain issues
+[00:51:24,480 --> 00:51:30,880] related to the algorithms uh I by no
+[00:51:27,119 --> 00:51:33,839] means mean that those are the maybe the
+[00:51:30,880 --> 00:51:35,680] uh really right approaches we follow
+[00:51:33,839 --> 00:51:38,720] that they will continue to be right even
+[00:51:35,680 --> 00:51:41,440] 10 years from now. But uh maybe the my
+[00:51:38,720 --> 00:51:43,520] purpose is really to show you certain
+[00:51:41,440 --> 00:51:45,920] observations people have made in the
+[00:51:43,520 --> 00:51:48,880] past in running certain algorithms.
+[00:51:45,920 --> 00:51:50,960] Hopefully it can motivate uh you to
+[00:51:48,880 --> 00:51:55,359] design new algorithms that actually work
+[00:51:50,960 --> 00:51:58,319] better. Uh uh maybe one perspective is
+[00:51:55,359 --> 00:52:00,480] be considered as like pattern matching.
+[00:51:58,319 --> 00:52:03,920] uh uh then you want to train the system
+[00:52:00,480 --> 00:52:06,079] to be uh able to conduct critical
+[00:52:03,920 --> 00:52:09,920] thinking and also be able to invent
+[00:52:06,079 --> 00:52:12,880] something new. uh uh first of all uh my
+[00:52:09,920 --> 00:52:14,240] feeling that uh it's uh it's generally
+[00:52:12,880 --> 00:52:18,079] very difficult to understand what
+[00:52:14,240 --> 00:52:20,160] exactly I am is doing because when you
+[00:52:18,079 --> 00:52:22,160] really think about uh how do human
+[00:52:20,160 --> 00:52:23,920] beings learn
+[00:52:22,160 --> 00:52:26,240] uh in many cases suppose when we
+[00:52:23,920 --> 00:52:28,800] actually trying to solve exam questions
+[00:52:26,240 --> 00:52:31,359] right we are attending a class we are
+[00:52:28,800 --> 00:52:33,920] also doing pattern matching
+[00:52:31,359 --> 00:52:36,079] right in school professor shows us one
+[00:52:33,920 --> 00:52:38,480] problem then he has answer then here's
+[00:52:36,079 --> 00:52:42,160] the next problem very similar other we
+[00:52:38,480 --> 00:52:45,359] also do doing very similar things. So uh
+[00:52:42,160 --> 00:52:48,640] me personally I feel that it will be
+[00:52:45,359 --> 00:52:51,280] fascinating to combine everything
+[00:52:48,640 --> 00:52:53,599] related to human learning with I am
+[00:52:51,280 --> 00:52:56,240] learning which is exactly what we are
+[00:52:53,599 --> 00:52:58,319] trying to show here. So we have got some
+[00:52:56,240 --> 00:53:00,400] good intuition with human learning. We
+[00:52:58,319 --> 00:53:03,119] figure out how humans can learn better.
+[00:53:00,400 --> 00:53:05,839] But the issue is that uh many humans
+[00:53:03,119 --> 00:53:07,599] have no idea how they act learned
+[00:53:05,839 --> 00:53:09,440] right they did something they got some
+[00:53:07,599 --> 00:53:12,079] feedback next time they did something
+[00:53:09,440 --> 00:53:14,480] else but here we need to write an
+[00:53:12,079 --> 00:53:16,160] algorithm that's actually the hardest
+[00:53:14,480 --> 00:53:18,800] thing we have no idea how to write an
+[00:53:16,160 --> 00:53:19,920] algorithm and in terms of human learning
+[00:53:18,800 --> 00:53:21,680] there are so many things we want to
+[00:53:19,920 --> 00:53:24,240] learn and there are so many ways to
+[00:53:21,680 --> 00:53:26,720] evaluate a person right just like these
+[00:53:24,240 --> 00:53:29,359] days students take exams from all
+[00:53:26,720 --> 00:53:32,000] courses right are we really sure all the
+[00:53:29,359 --> 00:53:34,800] exams are really fair the develop person
+[00:53:32,000 --> 00:53:38,160] the students in the right way it's super
+[00:53:34,800 --> 00:53:40,000] interesting so uh one point I'm trying
+[00:53:38,160 --> 00:53:42,960] to make here is that it's a so
+[00:53:40,000 --> 00:53:44,800] fascinating area to think about that we
+[00:53:42,960 --> 00:53:47,040] are actually absolutely at the infancy
+[00:53:44,800 --> 00:53:49,280] of the area we really haven't figured
+[00:53:47,040 --> 00:53:51,680] out what's the right way to train those
+[00:53:49,280 --> 00:53:54,160] systems and also deploy them in certain
+[00:53:51,680 --> 00:53:56,079] other critical applications but we have
+[00:53:54,160 --> 00:53:57,839] made interesting observations which is
+[00:53:56,079 --> 00:54:00,559] what I'm trying to show here hopefully
+[00:53:57,839 --> 00:54:03,359] the observations are insight headful and
+[00:54:00,559 --> 00:54:06,240] can stimulate some of the uh research
+[00:54:03,359 --> 00:54:09,520] the people do uh uh people in in this
+[00:54:06,240 --> 00:54:13,440] course can actually do in the future.
+[00:54:09,520 --> 00:54:15,760] Okay. So uh now then let's dive slightly
+[00:54:13,440 --> 00:54:17,599] uh deeper into reinforcement learning.
+[00:54:15,760 --> 00:54:20,240] Uh I want to talk about three core
+[00:54:17,599 --> 00:54:22,480] aspects. Uh I believe that we still need
+[00:54:20,240 --> 00:54:25,440] to do a lot more research around those
+[00:54:22,480 --> 00:54:26,960] aspects potentially new aspects but um
+[00:54:25,440 --> 00:54:28,480] the community has made interesting
+[00:54:26,960 --> 00:54:31,200] observations. I want to share the
+[00:54:28,480 --> 00:54:34,559] observations here. One idea is to train
+[00:54:31,200 --> 00:54:36,559] for longer. So one intuition you do you
+[00:54:34,559 --> 00:54:39,200] situation you don't want to heat is that
+[00:54:36,559 --> 00:54:42,000] you got some data sets you get to
+[00:54:39,200 --> 00:54:44,720] attempt to solve the problems. You
+[00:54:42,000 --> 00:54:46,960] attempt once or twice then later you
+[00:54:44,720 --> 00:54:49,119] found that it can no longer attempt. So
+[00:54:46,960 --> 00:54:51,520] every time it makes attempt produces
+[00:54:49,119 --> 00:54:53,839] exactly the same answers saturates.
+[00:54:51,520 --> 00:54:56,880] Okay. Not able to train longer. Not
+[00:54:53,839 --> 00:54:59,680] ideal because for human beings we really
+[00:54:56,880 --> 00:55:02,480] get constant feedback. We are given a
+[00:54:59,680 --> 00:55:04,240] task, we propose a solution, we get that
+[00:55:02,480 --> 00:55:06,720] uh feedback, next time we propose a
+[00:55:04,240 --> 00:55:09,920] better solution. Ideally later we come
+[00:55:06,720 --> 00:55:11,920] up with really amazing uh uh uh maybe
+[00:55:09,920 --> 00:55:14,400] answers maybe inventing something really
+[00:55:11,920 --> 00:55:16,400] new conducting cutting edge research
+[00:55:14,400 --> 00:55:19,040] inventing general theory of relativity.
+[00:55:16,400 --> 00:55:21,599] Right? It's a there's a very very high
+[00:55:19,040 --> 00:55:23,680] bar here but it would not be very good
+[00:55:21,599 --> 00:55:26,960] to say that it plateaus like very very
+[00:55:23,680 --> 00:55:29,119] quickly. The second aspect observation
+[00:55:26,960 --> 00:55:30,800] people have made is that uh somehow you
+[00:55:29,119 --> 00:55:32,480] need to train on more difficult prompt
+[00:55:30,800 --> 00:55:34,960] and tasks.
+[00:55:32,480 --> 00:55:37,040] So intuitively also makes sense says as
+[00:55:34,960 --> 00:55:39,839] for a human suppose you are given a task
+[00:55:37,040 --> 00:55:42,240] to learn uh you only given really simple
+[00:55:39,839 --> 00:55:44,000] tasks you already know how to solve it
+[00:55:42,240 --> 00:55:46,800] really really well. you didn't really
+[00:55:44,000 --> 00:55:49,440] learn anything new. That's uh for is
+[00:55:46,800 --> 00:55:51,760] also exactly the same. But so we did
+[00:55:49,440 --> 00:55:54,319] talk about some of the intricacy related
+[00:55:51,760 --> 00:55:56,960] to this because if IM is only given
+[00:55:54,319 --> 00:55:58,960] really difficult tasks like uh solving
+[00:55:56,960 --> 00:56:00,960] REM hypothesis
+[00:55:58,960 --> 00:56:03,040] um nobody can really solve and nobody
+[00:56:00,960 --> 00:56:04,880] can make any progress. So that's
+[00:56:03,040 --> 00:56:06,960] actually also a very big challenge.
+[00:56:04,880 --> 00:56:09,359] Turns out it's important to convert the
+[00:56:06,960 --> 00:56:12,640] intuition we have in human learning to
+[00:56:09,359 --> 00:56:14,480] IM learning which is also very big
+[00:56:12,640 --> 00:56:15,760] ongoing research project. I've been
+[00:56:14,480 --> 00:56:17,920] talking about some observations people
+[00:56:15,760 --> 00:56:19,680] have made. The third aspect I want to
+[00:56:17,920 --> 00:56:21,680] emphasize is to train a more diverse
+[00:56:19,680 --> 00:56:24,160] responses with high quality reward
+[00:56:21,680 --> 00:56:26,640] feedback. So which is very natural as
+[00:56:24,160 --> 00:56:30,480] for a human if you only interact with
+[00:56:26,640 --> 00:56:32,960] very uh limited subjects. For example,
+[00:56:30,480 --> 00:56:36,160] you only study
+[00:56:32,960 --> 00:56:37,760] a single subject only take one course
+[00:56:36,160 --> 00:56:40,559] and then you certainly would not be able
+[00:56:37,760 --> 00:56:42,880] to uh answer the questions uh uh in
+[00:56:40,559 --> 00:56:44,880] exams of other courses. Uh you need to
+[00:56:42,880 --> 00:56:46,880] do that and so you need to see many
+[00:56:44,880 --> 00:56:50,960] different meaningful answers per prompt
+[00:56:46,880 --> 00:56:53,359] as uh as many u answers as possible. So
+[00:56:50,960 --> 00:56:55,839] it re the good our algorithm should rely
+[00:56:53,359 --> 00:56:58,960] on those pillars and they act even more
+[00:56:55,839 --> 00:57:01,599] pillars in practice. So I'll very
+[00:56:58,960 --> 00:57:03,440] briefly talk about those pillars. Uh one
+[00:57:01,599 --> 00:57:05,920] pillar we talk about is train longer
+[00:57:03,440 --> 00:57:08,319] being able to train longer. So there has
+[00:57:05,920 --> 00:57:10,480] been many observations in the community
+[00:57:08,319 --> 00:57:13,920] uh talking about this entropy mechanism
+[00:57:10,480 --> 00:57:16,400] or entropy class collapse mechanism uh
+[00:57:13,920 --> 00:57:19,599] and actually many different papers have
+[00:57:16,400 --> 00:57:21,839] also very many other like correlated uh
+[00:57:19,599 --> 00:57:23,760] metrics capturing something similar. But
+[00:57:21,839 --> 00:57:26,160] the idea is the following. So on the
+[00:57:23,760 --> 00:57:27,680] left I'm showing you a plot. X-axis is
+[00:57:26,160 --> 00:57:29,839] the number of training steps. Basically,
+[00:57:27,680 --> 00:57:31,680] you train longer and longer. Yaxis is
+[00:57:29,839 --> 00:57:33,599] showing performance scheme. So,
+[00:57:31,680 --> 00:57:37,440] basically how much the AM has actually
+[00:57:33,599 --> 00:57:41,839] improved. So, uh and uh uh yeah, I'm
+[00:57:37,440 --> 00:57:43,280] also it's is showing this uh uh uh yaxis
+[00:57:41,839 --> 00:57:45,119] I have two curves. One is showing
+[00:57:43,280 --> 00:57:47,680] performance gain, the other is showing
+[00:57:45,119 --> 00:57:50,240] entropy left. By entropy I actually mean
+[00:57:47,680 --> 00:57:54,799] that when I am is trying to generate it
+[00:57:50,240 --> 00:57:56,880] next token uh as being uh uh uh
+[00:57:54,799 --> 00:57:59,359] specified in literature as a
+[00:57:56,880 --> 00:58:02,079] probabilistic inference because next
+[00:57:59,359 --> 00:58:04,400] token is sampled from a distribution
+[00:58:02,079 --> 00:58:07,200] right so by entropy I means that I
+[00:58:04,400 --> 00:58:09,520] basically compute the entropy uh of the
+[00:58:07,200 --> 00:58:11,440] token generation probability by large
+[00:58:09,520 --> 00:58:14,799] entropy it means that there will be high
+[00:58:11,440 --> 00:58:17,280] uncertainty in sampling the next token
+[00:58:14,799 --> 00:58:19,359] then if we have a high entropy then very
+[00:58:17,280 --> 00:58:21,839] likely if you sample the trajectory
+[00:58:19,359 --> 00:58:24,079] twice you'll be able to get two very
+[00:58:21,839 --> 00:58:26,000] very different trajectories. If the
+[00:58:24,079 --> 00:58:28,160] entropy is very low, think of the
+[00:58:26,000 --> 00:58:30,480] situation that whenever you are given a
+[00:58:28,160 --> 00:58:32,480] prompt, then you ask model to predict
+[00:58:30,480 --> 00:58:36,000] next token. Then the model is always
+[00:58:32,480 --> 00:58:38,799] super sure uh next particular token uh a
+[00:58:36,000 --> 00:58:41,599] certain token with 99% the probability.
+[00:58:38,799 --> 00:58:43,680] Then even if you run this,
+[00:58:41,599 --> 00:58:45,119] you sample it so many different times,
+[00:58:43,680 --> 00:58:48,000] you wouldn't be able to sample many
+[00:58:45,119 --> 00:58:51,599] different trajectories because uh only a
+[00:58:48,000 --> 00:58:53,920] single trajectory uh has has very very
+[00:58:51,599 --> 00:58:57,200] high probability. So what this plot has
+[00:58:53,920 --> 00:58:59,280] shown that uh if you do not intervene if
+[00:58:57,200 --> 00:59:00,960] you follow many different algorithms
+[00:58:59,280 --> 00:59:03,839] what's going to happen that as the
+[00:59:00,960 --> 00:59:06,000] number of steps increases
+[00:59:03,839 --> 00:59:08,160] uh the performance would gain indeed you
+[00:59:06,000 --> 00:59:09,680] see in terms of reward uh the model
+[00:59:08,160 --> 00:59:12,960] started to produce very high quality
+[00:59:09,680 --> 00:59:15,280] answers and started to uh to decrease.
+[00:59:12,960 --> 00:59:18,480] So basically later only learns that I'm
+[00:59:15,280 --> 00:59:21,280] able to only produce one one one answer.
+[00:59:18,480 --> 00:59:23,839] So then we ask a question is it really
+[00:59:21,280 --> 00:59:26,640] possible that we produce we still
+[00:59:23,839 --> 00:59:29,280] produce really high quality answers but
+[00:59:26,640 --> 00:59:32,559] at the same time do not achieve this
+[00:59:29,280 --> 00:59:34,799] entropy collapse. So later answers all
+[00:59:32,559 --> 00:59:38,960] correct still diverse being able to
+[00:59:34,799 --> 00:59:41,200] explore uh but uh uh ideally for every
+[00:59:38,960 --> 00:59:43,680] question I'm able to come up with five
+[00:59:41,200 --> 00:59:47,440] different correct answers that's so
+[00:59:43,680 --> 00:59:49,680] fascinating because uh uh even even for
+[00:59:47,440 --> 00:59:51,839] a human it's actually very hard for a
+[00:59:49,680 --> 00:59:54,880] very hard task come up with five
+[00:59:51,839 --> 00:59:56,960] different correct answers.
+[00:59:54,880 --> 01:00:00,480] So uh there has been some observations
+[00:59:56,960 --> 01:00:03,359] in literature. Uh here I talk about uh
+[01:00:00,480 --> 01:00:05,599] uh two approaches people have uh taken
+[01:00:03,359 --> 01:00:08,480] uh in the literature uh to uh to
+[01:00:05,599 --> 01:00:10,960] alleviate this issue. Uh on the left I'm
+[01:00:08,480 --> 01:00:15,119] talking about uh this on policy versus
+[01:00:10,960 --> 01:00:17,440] off policy issue. Okay. So basically uh
+[01:00:15,119 --> 01:00:20,160] I'm I I increase number of training
+[01:00:17,440 --> 01:00:22,880] steps. Now I observe that in terms of
+[01:00:20,160 --> 01:00:26,480] training rewards which is the leftmost
+[01:00:22,880 --> 01:00:29,599] figure uh I observe that for either on
+[01:00:26,480 --> 01:00:31,520] policy or on policy algorithms and the
+[01:00:29,599 --> 01:00:35,040] rewards actually increase uh in a
+[01:00:31,520 --> 01:00:38,319] similar manner which means that uh uh I
+[01:00:35,040 --> 01:00:41,760] do get better and better policies
+[01:00:38,319 --> 01:00:43,920] um precisely by uh on policy I want to
+[01:00:41,760 --> 01:00:47,920] emphasize that it's really exactly
+[01:00:43,920 --> 01:00:52,000] emphas uh uh refers to the setting that
+[01:00:47,920 --> 01:00:53,839] uh whenever I ask the reward model or a
+[01:00:52,000 --> 01:00:57,040] verifier to judge the quality of the
+[01:00:53,839 --> 01:01:00,559] attempts I only judge attempts produced
+[01:00:57,040 --> 01:01:03,520] by the IM itself. So it is called on
+[01:01:00,559 --> 01:01:06,720] policy which means that uh I do not try
+[01:01:03,520 --> 01:01:09,680] to give you rewards or feedback based on
+[01:01:06,720 --> 01:01:12,160] the answers produced by others or
+[01:01:09,680 --> 01:01:14,160] produced by different weights. I really
+[01:01:12,160 --> 01:01:16,640] want to give you feedback produced by
+[01:01:14,160 --> 01:01:19,359] you at this point so that you can really
+[01:01:16,640 --> 01:01:22,559] learn learn the best. So on policy
+[01:01:19,359 --> 01:01:25,280] really means that I want you uh to learn
+[01:01:22,559 --> 01:01:26,880] from your current mistakes not the
+[01:01:25,280 --> 01:01:29,119] answers produced by other people
+[01:01:26,880 --> 01:01:31,200] intuitively uh from the perspective of
+[01:01:29,119 --> 01:01:35,440] human learning. If the answer is
+[01:01:31,200 --> 01:01:37,359] produced by the students then we the
+[01:01:35,440 --> 01:01:39,280] professor give the students very
+[01:01:37,359 --> 01:01:40,960] detailed feedback the student can really
+[01:01:39,280 --> 01:01:43,040] learn the most. But if the student
+[01:01:40,960 --> 01:01:45,040] didn't write on the answer themselves,
+[01:01:43,040 --> 01:01:47,119] copied from somewhere else, you give
+[01:01:45,040 --> 01:01:49,440] feedback, maybe the student can still
+[01:01:47,119 --> 01:01:51,119] try to learn but may not learn as well.
+[01:01:49,440 --> 01:01:53,760] So that's actually intuition we are
+[01:01:51,119 --> 01:01:56,559] trying to borrow here. Showing that if
+[01:01:53,760 --> 01:01:58,319] you use some policy, the cha divergence
+[01:01:56,559 --> 01:02:00,480] between the policy you train to our
+[01:01:58,319 --> 01:02:03,520] original initial policy is small and
+[01:02:00,480 --> 01:02:06,799] also the entropy still stays high. Uh
+[01:02:03,520 --> 01:02:08,799] there's another uh uh yes so so
+[01:02:06,799 --> 01:02:11,359] basically that's uh that is a very
+[01:02:08,799 --> 01:02:13,280] detailed description showing that on
+[01:02:11,359 --> 01:02:17,839] different benchmark
+[01:02:13,280 --> 01:02:20,160] benchmarks that's like math 500 am 2425
+[01:02:17,839 --> 01:02:23,200] on policy generally produces much better
+[01:02:20,160 --> 01:02:26,240] answers. Uh there's a second approach uh
+[01:02:23,200 --> 01:02:29,599] which we call uh balance the update
+[01:02:26,240 --> 01:02:31,920] strength uh called adjusting the uh
+[01:02:29,599 --> 01:02:34,079] clipping threshold or encouraging
+[01:02:31,920 --> 01:02:36,960] exploration. So we're getting a very
+[01:02:34,079 --> 01:02:39,040] technical here uh maybe I wouldn't be
+[01:02:36,960 --> 01:02:45,359] spending too much time here. It is from
+[01:02:39,040 --> 01:02:48,240] the paper double uh um which is specific
+[01:02:45,359 --> 01:02:50,240] uh variants of a gpo uh the precise
+[01:02:48,240 --> 01:02:53,040] formulation is given here. So
+[01:02:50,240 --> 01:02:56,720] intuitively this RIT SATA is basically
+[01:02:53,040 --> 01:03:00,480] the likelihood ratio we use in training.
+[01:02:56,720 --> 01:03:02,640] Uh then generally to make JRPO stable we
+[01:03:00,480 --> 01:03:04,640] need to add clipping to this likelihood
+[01:03:02,640 --> 01:03:07,920] ratio. It's supposed to be fluctuating
+[01:03:04,640 --> 01:03:10,400] around one. You clip at below one minus
+[01:03:07,920 --> 01:03:12,559] epsilon low clip at above one plus
+[01:03:10,400 --> 01:03:14,480] epsilon high. uh one important
+[01:03:12,559 --> 01:03:16,640] observation made by the paper is that
+[01:03:14,480 --> 01:03:19,119] you need to uh decouple those two
+[01:03:16,640 --> 01:03:21,599] epsilons and make the epsilon high even
+[01:03:19,119 --> 01:03:23,359] higher bigger than epsilon low. So
+[01:03:21,599 --> 01:03:25,680] basically idea that you would like to
+[01:03:23,359 --> 01:03:26,960] encourage the model to increase the
+[01:03:25,680 --> 01:03:29,039] probabilities assigned to low
+[01:03:26,960 --> 01:03:32,559] probability tokens. So the model is able
+[01:03:29,039 --> 01:03:34,079] to explore very well. Um as you probably
+[01:03:32,559 --> 01:03:38,000] can see here we are talking about lots
+[01:03:34,079 --> 01:03:39,280] of hacks in the whole system. So uh
+[01:03:38,000 --> 01:03:41,920] that's reason why I want to really
+[01:03:39,280 --> 01:03:44,079] emphasize that different hacks may not
+[01:03:41,920 --> 01:03:46,720] really represent the final state of arts
+[01:03:44,079 --> 01:03:48,559] in particular many years later but I
+[01:03:46,720 --> 01:03:51,039] hope the insight conveyed by the hacks
+[01:03:48,559 --> 01:03:53,839] actually that you if this is uh
+[01:03:51,039 --> 01:03:57,119] motivated by PO uh indeed PO also has
+[01:03:53,839 --> 01:03:58,880] this clipping approach uh here the the
+[01:03:57,119 --> 01:04:00,640] core observations that you actually
+[01:03:58,880 --> 01:04:02,480] wanted to decouple this clipping
+[01:04:00,640 --> 01:04:06,079] thresholds
+[01:04:02,480 --> 01:04:09,839] so somehow indeed uh strikes some people
+[01:04:06,079 --> 01:04:12,400] as as a hack does perform uh uh quite
+[01:04:09,839 --> 01:04:14,799] well in particular uh based on the the
+[01:04:12,400 --> 01:04:16,559] picture I show here uh with the clip
+[01:04:14,799 --> 01:04:18,400] higher you see on the purple line
+[01:04:16,559 --> 01:04:20,240] generally for the performance it's got
+[01:04:18,400 --> 01:04:22,640] higher and in terms of generation
+[01:04:20,240 --> 01:04:25,680] entropy is also it's also high doesn't
+[01:04:22,640 --> 01:04:28,720] really collapse
+[01:04:25,680 --> 01:04:30,319] okay uh another aspect people have
+[01:04:28,720 --> 01:04:32,480] actually considered in the past in terms
+[01:04:30,319 --> 01:04:34,720] of train longer is actually to add a
+[01:04:32,480 --> 01:04:36,720] loss to encourage entropy directly
+[01:04:34,720 --> 01:04:38,720] because we have been talking about uh
+[01:04:36,720 --> 01:04:40,400] this entropy collapse issue when you
+[01:04:38,720 --> 01:04:43,920] train longer the model only learns to
+[01:04:40,400 --> 01:04:45,280] produce one answer is not ideal then
+[01:04:43,920 --> 01:04:47,359] naturally you could also add a loss
+[01:04:45,280 --> 01:04:49,520] function you say that what about I try
+[01:04:47,359 --> 01:04:51,680] to maintain uh the entropy at certain
+[01:04:49,520 --> 01:04:54,000] level and then there also lots of
+[01:04:51,680 --> 01:04:55,520] different tricks in constructing a loss
+[01:04:54,000 --> 01:04:57,839] make sure that the entropy is always
+[01:04:55,520 --> 01:04:59,359] stays high for example you have a
+[01:04:57,839 --> 01:05:02,880] certain entropy level you want to make
+[01:04:59,359 --> 01:05:05,039] sure that the loss uh steers the uh
+[01:05:02,880 --> 01:05:07,520] generation entropy to the particular
+[01:05:05,039 --> 01:05:09,440] level of entropy uh there are many
+[01:05:07,520 --> 01:05:12,799] things you can do uh still lots of
+[01:05:09,440 --> 01:05:15,039] explor explorations um um that's
+[01:05:12,799 --> 01:05:18,160] necessary but uh I hope that the
+[01:05:15,039 --> 01:05:20,559] intuition is actually is clear
+[01:05:18,160 --> 01:05:24,160] so precisely to encourage entropy
+[01:05:20,559 --> 01:05:26,400] directly following this paper uh skywork
+[01:05:24,160 --> 01:05:28,480] or open reasoner uh what they have done
+[01:05:26,400 --> 01:05:31,200] is that they have a a particular like
+[01:05:28,480 --> 01:05:34,000] entropy loss so the loss would actually
+[01:05:31,200 --> 01:05:36,079] encourage you uh to increase entropy
+[01:05:34,000 --> 01:05:38,079] along training so that entropy doesn't
+[01:05:36,079 --> 01:05:40,319] really collapse and hopefully you also
+[01:05:38,079 --> 01:05:43,760] achieve a higher test accuracy as being
+[01:05:40,319 --> 01:05:46,720] shown on the picture on the left.
+[01:05:43,760 --> 01:05:49,839] Okay, so that's uh one aspect of train
+[01:05:46,720 --> 01:05:52,400] longer. Uh there's also another aspect
+[01:05:49,839 --> 01:05:56,799] of uh train on more difficult prompts
+[01:05:52,400 --> 01:05:58,559] and tasks. So uh in the same Andrew B
+[01:05:56,799 --> 01:06:00,880] mechism paper actually along with many
+[01:05:58,559 --> 01:06:03,200] different papers in the community uh
+[01:06:00,880 --> 01:06:07,440] people have been thinking about how to
+[01:06:03,200 --> 01:06:10,000] actually uh capture the aspects uh of u
+[01:06:07,440 --> 01:06:13,440] um of separating the models performance
+[01:06:10,000 --> 01:06:15,200] on hard prompts and on simpler prompts.
+[01:06:13,440 --> 01:06:19,680] So they have a quite interesting plot
+[01:06:15,200 --> 01:06:21,039] here. Uh so basically on the left uh
+[01:06:19,680 --> 01:06:24,960] we'll be talking about what exactly we
+[01:06:21,039 --> 01:06:28,559] are plotting in terms of coarience. So
+[01:06:24,960 --> 01:06:31,280] uh the intuition is that I want to track
+[01:06:28,559 --> 01:06:35,280] something which is related to the
+[01:06:31,280 --> 01:06:39,520] correlation between the generation
+[01:06:35,280 --> 01:06:43,039] likelihood of uh uh of the sequence with
+[01:06:39,520 --> 01:06:45,440] the sequence uh quality uh or uh the
+[01:06:43,039 --> 01:06:49,200] advantage. So basically I would like to
+[01:06:45,440 --> 01:06:52,240] use this uh uh coarience uh between uh
+[01:06:49,200 --> 01:06:53,920] log probability of the whole sequence to
+[01:06:52,240 --> 01:06:55,359] the advantage we use in reinforce
+[01:06:53,920 --> 01:06:57,440] learning. We're getting slightly
+[01:06:55,359 --> 01:06:59,359] technical here but without looking at
+[01:06:57,440 --> 01:07:02,160] too much details it's basically trying
+[01:06:59,359 --> 01:07:05,119] to figure out whether uh I'm able to
+[01:07:02,160 --> 01:07:08,079] align the confidence of generating
+[01:07:05,119 --> 01:07:10,799] certain high quality answers with the
+[01:07:08,079 --> 01:07:12,799] with the final performance. Ideally,
+[01:07:10,799 --> 01:07:15,039] what's supposed to happen is that the
+[01:07:12,799 --> 01:07:16,880] the model is supposed to be very
+[01:07:15,039 --> 01:07:18,960] confident in generating the right
+[01:07:16,880 --> 01:07:20,319] answers. It's supposed to be quite
+[01:07:18,960 --> 01:07:22,880] uncertain in generating the wrong
+[01:07:20,319 --> 01:07:25,039] answers. That would be fantastic because
+[01:07:22,880 --> 01:07:26,480] next time I prompt the model, the model
+[01:07:25,039 --> 01:07:28,880] is more likely to generate the right
+[01:07:26,480 --> 01:07:31,119] answer because it's more confident. So
+[01:07:28,880 --> 01:07:32,799] on the right, I'm showing a picture
+[01:07:31,119 --> 01:07:36,160] basically listing the the training
+[01:07:32,799 --> 01:07:37,599] curves of subsets of of data sets
+[01:07:36,160 --> 01:07:40,400] corresponding to different levels of
+[01:07:37,599 --> 01:07:42,319] accuracy. So basically one can see that
+[01:07:40,400 --> 01:07:44,799] for the curves corresponding to very low
+[01:07:42,319 --> 01:07:46,960] accuracy which is purple curve accuracy
+[01:07:44,799 --> 01:07:51,280] 0.1125
+[01:07:46,960 --> 01:07:53,680] you see that this correlation uh uh
+[01:07:51,280 --> 01:07:56,400] stays very low it really means that the
+[01:07:53,680 --> 01:07:58,960] model is not able to very confidently
+[01:07:56,400 --> 01:08:00,559] generate the right answers. So for the
+[01:07:58,960 --> 01:08:03,200] model for the questions that's actually
+[01:08:00,559 --> 01:08:05,200] very easy uh uh you'll be able to see
+[01:08:03,200 --> 01:08:06,960] generally the collision is higher. So
+[01:08:05,200 --> 01:08:09,599] that's actually also a important metric
+[01:08:06,960 --> 01:08:12,079] we are trying to track. And on the left
+[01:08:09,599 --> 01:08:13,839] uh I have another figure which is also a
+[01:08:12,079 --> 01:08:16,799] very interesting observation made by
+[01:08:13,839 --> 01:08:18,640] people in the past is really about how
+[01:08:16,799 --> 01:08:21,600] you actually construct interesting
+[01:08:18,640 --> 01:08:23,600] training sets. So what this one is is
+[01:08:21,600 --> 01:08:25,040] been has been showing the following. So
+[01:08:23,600 --> 01:08:27,040] I would like to train on multiple
+[01:08:25,040 --> 01:08:30,480] different training sets. I'm I'm showing
+[01:08:27,040 --> 01:08:33,839] a couple data sets double mass GSM8K
+[01:08:30,480 --> 01:08:36,400] yours data yours difficult difficult is
+[01:08:33,839 --> 01:08:37,839] more difficult data set and on the right
+[01:08:36,400 --> 01:08:39,920] I'm basically checking the validation
+[01:08:37,839 --> 01:08:42,480] accuracy on exactly the same validation
+[01:08:39,920 --> 01:08:46,159] sets I'm trying to see by training on
+[01:08:42,480 --> 01:08:48,480] different data sets act what is the the
+[01:08:46,159 --> 01:08:52,319] final validation accuracy
+[01:08:48,480 --> 01:08:54,000] um uh what's the pattern of a evolution
+[01:08:52,319 --> 01:08:57,520] and the paper did observe something very
+[01:08:54,000 --> 01:08:59,279] interesting for example uh GSM8K
+[01:08:57,520 --> 01:09:02,159] actually refers to the the curve at the
+[01:08:59,279 --> 01:09:05,279] very bottom. So what that process shows
+[01:09:02,159 --> 01:09:08,880] that well when we are able to uh tren
+[01:09:05,279 --> 01:09:11,199] this uh we we we found different u data
+[01:09:08,880 --> 01:09:13,839] points corresponding to uh different
+[01:09:11,199 --> 01:09:15,520] entropy uh one trend or clearly when
+[01:09:13,839 --> 01:09:18,080] entropy is higher the final performance
+[01:09:15,520 --> 01:09:20,319] is better which is uh which is a very
+[01:09:18,080 --> 01:09:21,839] good trend but the second thing one
+[01:09:20,319 --> 01:09:24,400] wants to see is that if you only train
+[01:09:21,839 --> 01:09:27,120] on GSM 8K it really appears as your
+[01:09:24,400 --> 01:09:29,120] final valid validation accuracy is low
+[01:09:27,120 --> 01:09:31,359] in some sense it's really because GSM 8K
+[01:09:29,120 --> 01:09:33,440] is too easy. You train these two easy
+[01:09:31,359 --> 01:09:35,520] data sets, you shouldn't really expect a
+[01:09:33,440 --> 01:09:38,000] model to behave very well on some very
+[01:09:35,520 --> 01:09:40,080] challenging tasks. But another really
+[01:09:38,000 --> 01:09:43,279] interesting observation you can make is
+[01:09:40,080 --> 01:09:46,480] that here's a RL data and yours data
+[01:09:43,279 --> 01:09:48,880] difficult. Then looking at the curve
+[01:09:46,480 --> 01:09:51,440] actually the users IO data difficult
+[01:09:48,880 --> 01:09:55,199] also uh is is below the curve of yours
+[01:09:51,440 --> 01:09:57,199] IO data and your data contains the
+[01:09:55,199 --> 01:09:58,880] difficult data set also contains
+[01:09:57,199 --> 01:10:01,360] something that's actually not that
+[01:09:58,880 --> 01:10:02,880] difficult. So somehow it also shows
+[01:10:01,360 --> 01:10:06,239] something about the current learning
+[01:10:02,880 --> 01:10:08,880] paradigm which is that you basically
+[01:10:06,239 --> 01:10:10,320] blindly throw in super hard prompts. You
+[01:10:08,880 --> 01:10:12,159] say that wow I really hope you're able
+[01:10:10,320 --> 01:10:13,920] to learn. I give you very good feedback.
+[01:10:12,159 --> 01:10:16,719] hopefully you'll be able to solve it.
+[01:10:13,920 --> 01:10:18,960] Unfortunately, the IM itself or all the
+[01:10:16,719 --> 01:10:21,120] existing algorithms are not smart enough
+[01:10:18,960 --> 01:10:23,520] to really capture this. It didn't really
+[01:10:21,120 --> 01:10:26,159] learn how to actually do very well. So,
+[01:10:23,520 --> 01:10:30,000] somehow you need to somehow uh combine
+[01:10:26,159 --> 01:10:32,560] very well uh uh different types of data
+[01:10:30,000 --> 01:10:34,560] really make sure it can learn very well.
+[01:10:32,560 --> 01:10:36,800] So, uh many different approaches have
+[01:10:34,560 --> 01:10:38,320] been proposed in the past. Here I'm
+[01:10:36,800 --> 01:10:41,520] talking about one approach proposed in
+[01:10:38,320 --> 01:10:43,760] GRP lead paper which is very intuitive
+[01:10:41,520 --> 01:10:45,840] still strikes some people as hacks but I
+[01:10:43,760 --> 01:10:48,239] think the intuition is interesting uh
+[01:10:45,840 --> 01:10:52,159] has many intuitions one intuition was
+[01:10:48,239 --> 01:10:56,840] basically saying that uh well uh maybe
+[01:10:52,159 --> 01:10:56,840] in order to provide a signal to themsel
+[01:11:04,719 --> 01:11:09,440] prompt you got Right? Maybe I shouldn't
+[01:11:07,360 --> 01:11:11,199] be rewarding rewarding you that much
+[01:11:09,440 --> 01:11:13,760] because it's simple. You're supposed to
+[01:11:11,199 --> 01:11:15,760] have already captured this and there are
+[01:11:13,760 --> 01:11:18,640] many aspects captured by the paper. For
+[01:11:15,760 --> 01:11:21,040] example, there's one answer you got this
+[01:11:18,640 --> 01:11:23,520] question correct but unfortunately you
+[01:11:21,040 --> 01:11:25,679] produced a answer that's too long. I
+[01:11:23,520 --> 01:11:27,360] also would like to penalize you because
+[01:11:25,679 --> 01:11:29,280] uh you're supposed to give a very simple
+[01:11:27,360 --> 01:11:31,920] answer. The question isn't isn't that
+[01:11:29,280 --> 01:11:33,520] hard. uh of course also if you give
+[01:11:31,920 --> 01:11:35,040] something wrong I also give you really
+[01:11:33,520 --> 01:11:38,080] negative answer really a negative
+[01:11:35,040 --> 01:11:40,320] feedback. So many things we can do. So
+[01:11:38,080 --> 01:11:43,600] in the paper it did show that it has
+[01:11:40,320 --> 01:11:45,280] many different uh approaches uh to
+[01:11:43,600 --> 01:11:47,760] actually adjust the corresponding
+[01:11:45,280 --> 01:11:50,000] rewards. One can see that if you really
+[01:11:47,760 --> 01:11:52,480] adjust the the weights for different
+[01:11:50,000 --> 01:11:54,480] samples corresponding to advantage or
+[01:11:52,480 --> 01:11:56,239] corresponding is difficulty then
+[01:11:54,480 --> 01:11:58,159] performance gets improved. you
+[01:11:56,239 --> 01:12:00,800] explicitly penalize a very long
+[01:11:58,159 --> 01:12:03,440] generations many others then the quality
+[01:12:00,800 --> 01:12:06,159] also becomes better so could really give
+[01:12:03,440 --> 01:12:07,920] rise to lots of interesting ideas
+[01:12:06,159 --> 01:12:10,719] uh
+[01:12:07,920 --> 01:12:12,640] okay so that's on the uh on hardware
+[01:12:10,719 --> 01:12:15,600] prompt side very clearly you can see
+[01:12:12,640 --> 01:12:17,199] that's this problem is the open it's
+[01:12:15,600 --> 01:12:18,480] really not clear in the community that
+[01:12:17,199 --> 01:12:20,320] people have figured out the right
+[01:12:18,480 --> 01:12:23,360] approach ultimate approach in solving
+[01:12:20,320 --> 01:12:25,760] this uh there's one last aspect I want
+[01:12:23,360 --> 01:12:27,520] to emphasize which is called sample
+[01:12:25,760 --> 01:12:30,080] That also appears to be a very important
+[01:12:27,520 --> 01:12:32,239] aspect of our algorithm. The whole idea
+[01:12:30,080 --> 01:12:34,320] is that you should sample better so we
+[01:12:32,239 --> 01:12:36,560] can train a more diverse responses with
+[01:12:34,320 --> 01:12:38,400] high quality rewards. Goes back to the
+[01:12:36,560 --> 01:12:42,560] original intuition. If you're not able
+[01:12:38,400 --> 01:12:46,239] to sample lots of diverse queries uh uh
+[01:12:42,560 --> 01:12:48,480] answers with with high quality
+[01:12:46,239 --> 01:12:50,560] then then you'll be in trouble. So two
+[01:12:48,480 --> 01:12:52,000] things I want to talk about on the left
+[01:12:50,560 --> 01:12:54,320] I talk about so-called parallel
+[01:12:52,000 --> 01:12:55,760] reasoning. Ideas could be very simple.
+[01:12:54,320 --> 01:12:57,600] Oh, there are so many variants of this
+[01:12:55,760 --> 01:13:00,480] approach. I'm talking about this paper
+[01:12:57,600 --> 01:13:04,159] called ch select. Uh idea is that uh
+[01:13:00,480 --> 01:13:07,760] well uh so I actually do have this slide
+[01:13:04,159 --> 01:13:10,400] here. So basically uh when you uh
+[01:13:07,760 --> 01:13:12,320] finally ask IM to produce answer you say
+[01:13:10,400 --> 01:13:15,440] that what about you do not just directly
+[01:13:12,320 --> 01:13:17,600] give me answer uh always give you a very
+[01:13:15,440 --> 01:13:19,679] complex prompt on the right maybe ask
+[01:13:17,600 --> 01:13:23,040] you to come up with like 32 different
+[01:13:19,679 --> 01:13:25,280] answers right 32 different answers then
+[01:13:23,040 --> 01:13:27,679] I give the prompt I say that what about
+[01:13:25,280 --> 01:13:30,560] you basically uh select one of the
+[01:13:27,679 --> 01:13:32,480] answers from the 32 then ideally here as
+[01:13:30,560 --> 01:13:34,719] you can see from the answers uh
+[01:13:32,480 --> 01:13:37,760] generally it's uh the final accuracy it
+[01:13:34,719 --> 01:13:41,199] becomes so much better because uh uh the
+[01:13:37,760 --> 01:13:43,440] really is given more time to figure out
+[01:13:41,199 --> 01:13:46,159] uh the right answer is able to pick the
+[01:13:43,440 --> 01:13:48,560] better one. Uh another one I want to
+[01:13:46,159 --> 01:13:51,440] talk about is another recent paper
+[01:13:48,560 --> 01:13:56,080] called promoting algorithm called deep
+[01:13:51,440 --> 01:13:59,600] conf. U so that intuition is also about
+[01:13:56,080 --> 01:14:03,440] uh improving uh majority voting. So uh
+[01:13:59,600 --> 01:14:05,600] the point is that say uh without u this
+[01:14:03,440 --> 01:14:08,960] quite sophisticate sampling method say
+[01:14:05,600 --> 01:14:11,120] you want to sample like 32 times to
+[01:14:08,960 --> 01:14:13,760] produce an answer you just give the same
+[01:14:11,120 --> 01:14:16,719] prompt try 32 times get answer conduct
+[01:14:13,760 --> 01:14:19,440] final majority voting but one potential
+[01:14:16,719 --> 01:14:22,320] issue is that among the 32 times of
+[01:14:19,440 --> 01:14:24,560] sampling maybe certain trajectories of
+[01:14:22,320 --> 01:14:27,040] very low quality maybe you should just
+[01:14:24,560 --> 01:14:29,679] know at very beginning or very early on
+[01:14:27,040 --> 01:14:31,440] that trajectory is just Oh, if you knew
+[01:14:29,679 --> 01:14:33,840] this, you're actually not supposed to
+[01:14:31,440 --> 01:14:35,920] include that in a final majority voting.
+[01:14:33,840 --> 01:14:39,440] You're supposed to only include those
+[01:14:35,920 --> 01:14:41,920] trajectories that uh that's uh that's
+[01:14:39,440 --> 01:14:44,880] actually likely uh to become part of the
+[01:14:41,920 --> 01:14:47,440] right answer. So idea of deep conf is to
+[01:14:44,880 --> 01:14:49,199] say that I would like to track the
+[01:14:47,440 --> 01:14:52,000] generation confidence of these
+[01:14:49,199 --> 01:14:54,400] trajectories for those trajectories with
+[01:14:52,000 --> 01:14:55,920] very low generation confidence. I just
+[01:14:54,400 --> 01:14:57,920] believe that model isn't even sure what
+[01:14:55,920 --> 01:15:00,320] it's doing. when the model isn't even
+[01:14:57,920 --> 01:15:02,719] sure what it's doing, I basically would
+[01:15:00,320 --> 01:15:04,560] uh not include the model or assign a
+[01:15:02,719 --> 01:15:07,360] very low weight in a final majority of
+[01:15:04,560 --> 01:15:08,960] voting so that uh it should be able to
+[01:15:07,360 --> 01:15:10,960] produce a better answer. So on the
+[01:15:08,960 --> 01:15:13,440] right, I'm I'm showing some of the
+[01:15:10,960 --> 01:15:15,840] results. For example, uh on the on the
+[01:15:13,440 --> 01:15:18,400] same model GVD OSS120B,
+[01:15:15,840 --> 01:15:20,560] if you use the deep conf compared to the
+[01:15:18,400 --> 01:15:23,520] consensus, which is basically majority
+[01:15:20,560 --> 01:15:25,920] voting, it actually improves uh because
+[01:15:23,520 --> 01:15:29,600] indeed you are able to discard some of
+[01:15:25,920 --> 01:15:32,800] the uh bad outputs of the model.
+[01:15:29,600 --> 01:15:35,600] So uh that's essentially what I wanted
+[01:15:32,800 --> 01:15:39,360] to talk about. Let me summarize uh the
+[01:15:35,600 --> 01:15:43,040] the uh all the uh the content. Putting
+[01:15:39,360 --> 01:15:44,400] everything together uh in the SFT data
+[01:15:43,040 --> 01:15:47,199] you need to have very good expert
+[01:15:44,400 --> 01:15:49,600] demonstrations. Uh RLI recipe you need
+[01:15:47,199 --> 01:15:53,280] to focus on train longer, simple better,
+[01:15:49,600 --> 01:15:56,640] train harder and ideally uh what
+[01:15:53,280 --> 01:15:58,800] community uh is supposed to be doing is
+[01:15:56,640 --> 01:16:00,400] really to solve everything as a whole.
+[01:15:58,800 --> 01:16:02,400] You want to have a collection where we
+[01:16:00,400 --> 01:16:04,400] curate environments, verifiers, skill up
+[01:16:02,400 --> 01:16:06,480] intelligence. You need to figure out the
+[01:16:04,400 --> 01:16:08,159] best definition what intelligence is.
+[01:16:06,480 --> 01:16:10,640] You need to be able to to be able to
+[01:16:08,159 --> 01:16:13,199] release algorithm to train longer harder
+[01:16:10,640 --> 01:16:15,920] problems with diverse responses.
+[01:16:13,199 --> 01:16:17,520] Uh you want to cross sources
+[01:16:15,920 --> 01:16:19,440] uh community with all the community
+[01:16:17,520 --> 01:16:21,120] efforts. You also want to make sure
+[01:16:19,440 --> 01:16:23,440] analyze the strength and weaknesses of
+[01:16:21,120 --> 01:16:25,920] benchmarks including in the collection.
+[01:16:23,440 --> 01:16:28,080] Everyone can use it and also release
+[01:16:25,920 --> 01:16:30,480] good algorithms for everybody to
+[01:16:28,080 --> 01:16:33,679] experiment on. Uh it's going to be my
+[01:16:30,480 --> 01:16:37,679] final final slide. uh hopefully after
+[01:16:33,679 --> 01:16:39,760] today's lecture uh we have shared some
+[01:16:37,679 --> 01:16:42,800] interesting observations we have made
+[01:16:39,760 --> 01:16:45,120] but uh my real hope is that uh we have
+[01:16:42,800 --> 01:16:46,400] stimulated your interest in this area
+[01:16:45,120 --> 01:16:47,920] because one thing I really want to
+[01:16:46,400 --> 01:16:50,080] emphasize is that this area is still
+[01:16:47,920 --> 01:16:52,480] very immature lots of thing we really
+[01:16:50,080 --> 01:16:54,800] haven't figured out and the general
+[01:16:52,480 --> 01:16:56,480] perspective we have is that we really
+[01:16:54,800 --> 01:16:58,719] want to bridge the gap between human
+[01:16:56,480 --> 01:17:00,640] learning and system learning humans
+[01:16:58,719 --> 01:17:03,199] engage in many different environments
+[01:17:00,640 --> 01:17:05,199] focus on some lessons more than others.
+[01:17:03,199 --> 01:17:08,080] We can explore ourselves or learn from
+[01:17:05,199 --> 01:17:10,719] teachers. Uh we often evaluate the for
+[01:17:08,080 --> 01:17:13,440] our intelligence on different tasks. How
+[01:17:10,719 --> 01:17:17,360] do we exactly do that forms?
+[01:17:13,440 --> 01:17:19,280] Uh in many cases really unclear. So uh
+[01:17:17,360 --> 01:17:22,239] we really would like to encourage
+[01:17:19,280 --> 01:17:25,040] economic efforts to join us uh in this
+[01:17:22,239 --> 01:17:27,520] whole effort to collectively produce the
+[01:17:25,040 --> 01:17:30,000] strongest agentic intelligence. Thank
+[01:17:27,520 --> 01:17:30,000] you.
