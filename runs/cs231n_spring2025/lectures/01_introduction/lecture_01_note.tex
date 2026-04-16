@@ -1,0 +1,192 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{CS231N 2025 第1讲：导论}
+\newcommand{\noteauthors}{Codex Harness Worker 1}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-09-02}
+\newcommand{\videoduration}{1:02:52}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=2fq9wYslV0A}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%% --- 正文内容开始 --- %%
+
+
+\section{课程定位：为什么是视觉，为什么是深度学习}
+计算机视觉（computer vision）在这门课里不是 AI 的一个边缘应用，而是理解智能系统如何从感知输入中提取结构化语义的中心问题。讲者一开始就把课程放进一张同心图里：人工智能（AI）是最大外层，机器学习（machine learning）是当前最有效的方法簇，计算机视觉与深度学习（deep learning）在其中强烈交叠，而 CS231N 的目标是训练学生在这一交叠区域中系统地建模、训练并分析视觉系统。
+
+更重要的是，讲者强调视觉不是“智能系统多一个模态”那么简单，而是智能形成世界模型的基础入口。对于机器人、视觉语言模型、视频理解甚至科学发现，视觉都承担着把连续世界转成可计算表征的作用。因此课程虽然名为 Deep Learning for Computer Vision，但它实际上是以视觉为入口去理解现代机器学习系统的一门方法论课程。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-08.png}
+\caption{课程在 AI、机器学习、计算机视觉与深度学习版图中的位置。这张图奠定了全课的问题边界：CS231N 不追求覆盖全部 AI，而是聚焦“用深度学习解决视觉理解”。}
+\end{figure}
+
+\begin{knowledgebox}{这一讲最重要的元结论}
+如果把整门课当作一个知识图谱，那么“视觉任务”只是表层节点，真正持续贯穿的是三件事：表示（representation）、学习（learning）和泛化（generalization）。后面所有章节，无论讲分类、检测、视频、视觉语言还是机器人学习，本质上都在重新回答这三个问题。
+\end{knowledgebox}
+
+这一节说明了 CS231N 的问题边界：它关心的是如何用深度学习构造视觉表征、训练视觉模型并分析其泛化能力。
+读者应把后续章节理解为同一方法论在不同视觉任务上的展开，而不是彼此割裂的专题。
+\subsection{本章小结}
+
+\section{从经典视觉到深度学习：研究脉络}
+导论的大量篇幅都在讲历史，这不是背景材料，而是在解释今天的方法为何长成现在这样。早期视觉研究先后经历了几条主线：一条来自生物视觉与神经科学，例如 Hubel 与 Wiesel 对简单细胞、复杂细胞的研究；一条来自几何与结构主义传统，例如边缘、角点、部件、分组、匹配；还有一条来自模式识别与机器学习传统，例如感知机（Perceptron）、统计学习与后来的大规模数据驱动方法。
+
+这些路线并不互相替代，而是在不同历史阶段提供了不同的“归纳偏置（inductive bias）”。例如 David Marr 的视觉阶段理论强调从 2.5D sketch 到三维结构的分层表示，Canny 边缘检测强调局部结构的稳定提取，SIFT 与 PASCAL VOC 则把“可复现 benchmark + 明确评价协议”引入视觉研究。讲者借由这些节点提醒读者：现代深度学习不是否定过去，而是吸收了过去关于层级结构、局部特征和可学习表示的许多思想。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-40.png}
+\caption{从 Neocognitron、Backprop 到 LeNet 的里程碑节点。它说明现代卷积网络并非凭空出现，而是长期积累后在训练算法与数据条件成熟时爆发。}
+\end{figure}
+
+讲义中特别值得注意的两个过渡节点是：第一，Minsky 与 Papert 对感知机能力边界的批评，暴露了线性模型与浅层模型的限制；第二，Rumelhart、Hinton 与 Williams 对反向传播（backpropagation）的推广，以及 LeCun 等人把它与类卷积结构结合，形成可训练的卷积网络。前者让研究者意识到“模型结构不够”，后者则提供了“如何训练更强结构”的答案。
+
+历史回顾的作用不是背年代，而是理解现代视觉方法的来龙去脉。
+边缘、部件、分组、匹配、感知机、反向传播与卷积网络，共同构成了深度视觉的前史。
+\subsection{本章小结}
+
+\section{2012 年之后：深度学习成为视觉主线}
+导论的第二条核心线索是 2012 年前后的“范式切换”。在 ImageNet 这样的数据集、GPU 这样的算力平台以及更深网络可训练这三个条件同时满足后，视觉研究开始从“手工设计特征 + 轻量分类器”转向“端到端学习特征 + 端到端优化目标”。
+
+这里的关键不是 AlexNet 作为某一篇论文，而是一个完整工作流的确立：给出大规模带标签数据，构造足够深的模型，使用反向传播配合随机优化，在统一 benchmark 上比较结果。自此之后，图像分类、检测、分割、检索、生成、视频理解等任务开始共享同一套底层表示学习框架。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-50.png}
+\caption{2012 年之后深度学习在图像分类、检索与生成等任务中的扩散。讲者用它强调“视觉已从单点任务演化为基础能力层”。}
+\end{figure}
+
+讲者还特意把当代视觉的扩张方向并列摆出：图像生成、文本到图像、三维重建、视频模型、视觉语言与机器人。对今天的读者来说，这一点尤其重要，因为它说明视觉已经不再只是“识别照片里的猫狗”，而是逐渐成为 foundation models、world models 与 embodied AI 的感知支柱。
+
+2012 年之后的深度学习革命，本质上是数据、算力、可训练深模型三者合流的结果。
+视觉研究的统一框架由此形成，并扩展到生成、多模态与机器人学习。
+\subsection{本章小结}
+
+\section{课程全景：从视觉基础到前沿专题}
+Lecture 1 的后半部分实际上在回答一个很实际的问题：这门课会把你带到哪里。课程结构从最基础的图像分类与优化出发，依次进入卷积网络、检测与分割、视频理解、自监督学习、生成模型、三维视觉、视觉语言（vision and language）以及机器人学习（robot learning）。这个编排说明课程并不把“分类”当成终点，而是把它当成理解视觉表征和训练机制的起点。
+
+从教材化角度看，这种组织方式有一个非常重要的教学含义：前几讲讲的线性分类器、损失函数、正则化、反向传播、卷积、优化器，并不是局部技能，而是后续所有专题的共享底层语言。到了视觉语言或机器人学习部分，任务接口换了，但训练、表示、归纳偏置和泛化这些问题仍然完全成立。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-80.png}
+\caption{课程后半段的任务地图，覆盖感知、生成、三维、视频、视觉语言与机器人学习。它解释了为什么导论要先给出一张“全景图”。}
+\end{figure}
+
+因此，读这门课最有效的方式不是把每讲都看成孤立专题，而是持续追问三个问题：这一讲的输入输出是什么？模型学到的表示是什么？训练目标如何把表示与任务连接起来？如果读者能始终带着这三个问题往下走，后面即使进入更复杂的多模态与具身系统，也不会失去主线。
+
+课程版图从基础视觉到前沿多模态与机器人，是一条连续的技术谱系。
+前几讲的基础工具会在后续所有章节中反复出现，因此必须从一开始就学扎实。
+\subsection{本章小结}
+
+\section{如何使用这门课：把 lecture 当作教材而不是速记}
+虽然导论里包含部分课程组织信息，但真正值得保留下来的，是讲者对学习方式的建议。首先，这门课默认学生会在数学、编程和实验之间来回切换；你不能只会“看懂 slide”，还要能把优化目标写出来、把梯度链路画出来、把模型实现跑起来。其次，这门课非常强调跨学科应用，视觉不是封闭领域，而是医学、机器人、科学计算、教育和人机交互等方向的基础能力。
+
+对自学者来说，这意味着最有效的阅读方式不是做一个越来越长的摘要，而是把每一讲都整理成可反复检索的知识章节：定义清楚，公式讲清，图像与案例对应明确，知道哪些部分是普适方法，哪些只是某个历史阶段的具体实例。下面几讲开始，讲义会严格按照这个标准展开。
+
+把课程当作教材来读，要求我们在概念、公式、图像、实验和工程实现之间建立稳定映射。
+这也是本次 harness run 选择“逐讲成章、最后再合并成教材”的原因。
+\subsection{本章小结}
+
+\section{总结与延伸}
+这一讲完成了两件事。第一，它给出了整门课的坐标系：视觉位于 AI 的核心，深度学习是当代视觉的主流技术语言。第二，它通过历史回顾说明了今天的模型为何会强调层级表示、可学习特征、统一 benchmark 与端到端训练。
+
+如果把后面的 17 讲看成一本教材，那么这篇导论就是序章：它既交代研究问题，也交代技术谱系，还给出课程的未来走向。对今天尤其相关的是，课程后段明确进入视觉语言与机器人学习，这意味着 CS231N 已经从经典 CV 课程演化为理解 foundation models、VLA 与 world models 的重要入门路径。
+
+\subsection{拓展阅读}
+本讲没有在官方 schedule 中列出单独 readings，但建议在继续后续讲次前，先熟悉 ImageNet 时代的几篇代表性工作与课程主页对后续 lecture 的整体安排。读者若想把历史脉络补得更扎实，可以把本讲提到的 Perceptron、Backprop、LeNet、AlexNet、ImageNet、ViT 和多模态模型视为一条连续线索，后续每学到一种新模型，都回过头问一句：它相较于前一代，到底改变了什么归纳偏置、训练方式或计算分配。
+
+
+%% --- 正文内容结束 --- %%
+
+\end{document}

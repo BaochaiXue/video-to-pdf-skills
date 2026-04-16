@@ -1,0 +1,236 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{CS231N 2025 第2讲：线性分类与图像分类基础}
+\newcommand{\noteauthors}{Codex Harness Worker 1}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-09-02}
+\newcommand{\videoduration}{1:07:01}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=pdqofxJeBN8}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%% --- 正文内容开始 --- %%
+
+
+\section{图像分类：从像素到语义}
+图像分类（image classification）的定义看起来简单：输入一张图像，输出一个来自固定类别集合的标签。但这一任务之所以值得放在整门课前面，是因为它把视觉建模中最核心的困难压缩到了最小形式。对计算机来说，图像只是一个三维张量；对人来说，图像却天然携带对象、场景、属性与上下文含义。如何从像素数组走到语义标签，这就是所谓语义鸿沟（semantic gap）。
+
+讲者反复强调，后续的目标检测、图像分割、视频理解乃至视觉语言，并不是和分类完全无关的新问题，而是在分类的基础上继续追问“对象在哪里”“边界是什么”“时间上如何变化”“语言如何对齐”等结构。因此，把分类任务真正学透，等于为后面一整个视觉课程打地基。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-08.png}
+\caption{“语义鸿沟（semantic gap）”示意：人看到的是物体与场景，计算机看到的是像素张量。图像分类的全部建模工作，本质上都在弥合这一鸿沟。}
+\end{figure}
+
+\begin{importantbox}{教材化理解}
+把图像分类当成一个完整系统，而不是一个 benchmark。它至少包含五个组件：输入表示、训练数据、打分函数、损失函数和评估协议。后面所有深模型都只是把这些组件做得更强、更复杂，而不是抛弃这套框架。
+\end{importantbox}
+
+图像分类是视觉中的基础任务，因为它把表示、决策与泛化问题压缩到了最小形式。
+语义鸿沟提醒我们：视觉模型必须学到比像素更抽象的中间表示。
+\subsection{本章小结}
+
+\section{数据驱动范式：训练集、验证集与测试集}
+这一讲的第一个方法论转折，是从“手写规则”转向“数据驱动（data-driven）”。如果视觉世界中的变化来自视角、光照、遮挡、背景、类内形变与上下文，那么与其为每种变化单独写规则，不如让模型直接从带标签数据中学习哪些变化是重要的、哪些变化应该被忽略。
+
+这就引出标准的监督学习设置：给定训练集学习参数，使用验证集选择超参数（hyperparameters），最后只在测试集上报告一次最终性能。这里验证集的角色尤其关键，因为很多初学者会不自觉地用测试集反复调参，最终得到被“测试集信息泄漏”污染的结果。课程在这里的态度非常明确：验证集用来做选择，测试集用来做最后的外部评估。
+
+从工程角度看，这对应三层完全不同的问题：训练集解决“能否拟合”；验证集解决“该选哪个 $K$、哪种正则化、什么学习率”；测试集解决“这个模型是否真的能泛化到未见数据”。如果三者混用，那么你看到的不是模型能力，而是评估协议的错误。
+
+数据驱动方法的核心不是“有数据就行”，而是配套的训练/验证/测试协议。
+验证集负责超参数选择，测试集必须保留为一次性最终评估。
+\subsection{本章小结}
+
+\section{kNN：从记忆训练集到投票决策}
+最直接的数据驱动分类器是最近邻（Nearest Neighbor）与 k 近邻（k-Nearest Neighbors, kNN）。它不学习显式参数，而是把训练集整个记住：测试时先计算测试图像与每个训练样本的距离，再把最近的一个或若干个样本的标签作为预测结果。
+
+如果使用 $L_1$ 或 $L_2$ 距离，最简单的分类规则可以写成
+\[
+\hat{y} = y_{\arg\min_i d(x, x_i)}, \qquad
+ d_{L_1}(x, x_i) = \sum_j |x_j - x_{i,j}|, \qquad
+ d_{L_2}(x, x_i) = \sqrt{\sum_j (x_j - x_{i,j})^2}.
+\]
+其中，$x$ 是测试图像的像素向量，$x_i$ 是第 $i$ 个训练样本，$d(\cdot,\cdot)$ 是距离函数，$\hat{y}$ 是最终预测标签。符号解释非常重要：它说明 kNN 的“模型”并不在参数里，而是在训练样本与距离度量共同定义的邻域结构里。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-30.png}
+\caption{不同 K 值下 kNN 决策边界的变化。它说明惰性学习方法靠“邻居结构”工作，模型复杂度主要体现在存储与检索，而不是显式参数。}
+\end{figure}
+
+这种方法的优点是零训练成本、概念直观；缺点也同样明显：需要存储整个训练集，推理时需要与所有样本比较，并且在高维像素空间里距离常常不再可靠。$K$ 太小，边界极其锯齿化，容易过拟合；$K$ 太大，边界又会被过度平滑。因此 kNN 更像一个帮助我们理解“什么叫数据驱动分类”的教学基线，而不是现代视觉系统的终点。
+
+kNN 通过“距离 + 投票”完成分类，但它把复杂度留给了存储与检索。
+它教会我们的不是如何构建最强模型，而是什么叫做数据驱动决策边界。
+\subsection{本章小结}
+
+\section{线性分类器的三种视角}
+为了摆脱 kNN 的存储和推理负担，我们需要参数化模型（parametric model）。线性分类器把图像映射到类别分数：
+\[
+ f(x, W, b) = Wx + b.
+\]
+其中，$x \in \mathbb{R}^D$ 是展开后的图像向量，$W \in \mathbb{R}^{C \times D}$ 是权重矩阵，$b \in \mathbb{R}^C$ 是偏置，$C$ 为类别数。输出向量中每一维都是一个类别分数（score）。其中，$W$ 的每一行都可以被看成某一类的线性模板。
+
+讲者要求学生同时从三个角度理解这个式子。第一是代数视角：它只是矩阵乘法。第二是视觉视角：把 $W$ 的每一行重新 reshape 成图像后，会发现模型实际上为每个类别学到了一张模板。第三是几何视角：每个类别之间的比较对应输入空间里的超平面，分类边界是若干超平面的组合。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-62.png}
+\caption{把线性分类器权重重新可视化为模板后，可以直观看到每个类别在“喜欢”怎样的像素模式。}
+\end{figure}
+
+这里必须注意，线性分类器的能力与其参数量并不等价。即便参数很多，它依然只能表达线性可分的模式，无法自然捕捉部件组合、层级结构或复杂非线性形变。这正是下一讲神经网络登场的原因。
+
+线性分类器是第一个真正可训练、可部署的参数化分类器。
+但它的表达能力受限于线性结构，因此只能作为深模型的起点。
+\subsection{本章小结}
+
+\section{损失函数：Softmax 与 SVM}
+有了打分函数之后，还需要一个损失函数（loss function）来回答“当前参数好不好”。本讲重点介绍两类经典选择：Softmax 交叉熵和多类 SVM hinge loss。
+
+Softmax 先把分数变成概率：
+\[
+ p(y=c\mid x) = \frac{e^{s_c}}{\sum_j e^{s_j}}, \qquad s = Wx + b.
+\]
+对应的交叉熵损失写成
+\[
+ L_i = -\log p(y=y_i\mid x_i).
+\]
+其中，$s_c$ 是第 $c$ 类分数，$p(y=c\mid x)$ 是预测概率，$y_i$ 是样本 $x_i$ 的真实标签。这个损失鼓励正确类概率尽可能大，因此它更容易给出“概率化解释”。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-70.png}
+\caption{Softmax 把原始分数转成归一化概率分布，是从“打分器”走向“概率模型”的关键一步。}
+\end{figure}
+
+多类 SVM 则关心 margin：正确类分数至少要比错误类高一个边际。其常见形式是
+\[
+ L_i = \sum_{j \neq y_i} \max\bigl(0, s_j - s_{y_i} + \Delta\bigr).
+\]
+其中，$s_{y_i}$ 是真实类别分数，$s_j$ 是任一错误类别分数，$\Delta$ 是期望间隔，通常取 $1$。如果真实类已经比所有错误类至少高出 $\Delta$，该样本损失为零。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-83.png}
+\caption{多类 SVM hinge loss 用 margin 约束“正确类比分错类高多少”，强调判别边界而非概率解释。}
+\end{figure}
+
+两者都能训练出有效分类器，但强调点不同：Softmax 更像概率建模，SVM 更像 margin 驱动的判别学习。课程真正要学生掌握的，不是“哪一个永远更好”，而是：损失函数决定了参数更新到底在推动什么样的判别结构。
+
+Softmax 把分数转成概率并最大化正确类对数概率。
+SVM 强调真实类与错误类之间的 margin。两种损失都在为后续神经网络做准备。
+\subsection{本章小结}
+
+\section{从线性模型走向神经网络}
+把 Lecture 2 当成一章教材来读，最重要的收获不是记住几个公式，而是理解一条技术演化路径：从惰性记忆的 kNN，到显式参数化的线性分类器，再到需要更强表达能力的非线性模型。课程之所以接着讲神经网络，不是因为线性分类器“过时”，而是因为我们已经清楚看见了它的结构性边界。
+
+换句话说，本讲真正完成的是问题设定的搭建：输入是什么，标签是什么，训练协议是什么，损失如何定义，评价如何进行。下一讲开始，课程将把注意力转向如何在保留这些训练协议的同时，大幅增强模型表示能力。
+
+Lecture 2 完成了图像分类问题的最小数学闭环。
+后续所有深模型都可以被视为在线性分类器基础上的表示能力升级。
+\subsection{本章小结}
+
+\section{总结与延伸}
+这一讲把图像分类从任务定义一路推进到可训练目标函数。我们看到，kNN 提供了最直接的数据驱动基线，线性分类器提供了可学习参数化模型，而 Softmax 与 SVM 则把“什么叫做好模型”具体化为可优化的损失。
+
+从教材视角看，这一讲最重要的不是某个单独公式，而是它建立了现代深度学习的统一接口：输入 $x$，参数化打分 $f(x;\theta)$，损失 $L$，训练/验证/测试协议。下一讲关于正则化与优化，实际上就是在回答：给定这个接口，怎样才能把参数学出来，并且学得稳、学得能泛化。
+
+\subsection{拓展阅读}
+\begin{itemize}
+\item \href{https://cs231n.github.io/classification/}{Image Classification Problem}
+\item \href{https://cs231n.github.io/linear-classify/}{Linear Classification}
+\end{itemize}
+
+
+%% --- 正文内容结束 --- %%
+
+\end{document}

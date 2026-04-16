@@ -1,0 +1,2359 @@
+Lecture 2:
+
+Image Classification with Linear Classifiers
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 1
+
+April 3, 2025
+
+Administrative: Assignment 1
+Will be out Wednesday 4/9, due 4/23 by 11:59 PM
+- K-Nearest Neighbor
+- Linear classifiers: Softmax
+- Two-layer neural network
+- Image features
+- Deep neural network and optimizers
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 2
+
+April 3, 2025
+
+Administrative: Course Project
+Project proposal due 4/25 (Friday) 11:59 pm
+Contact us on Ed, each project team will have a TA assigned to them for future
+questions
+your assigned TA for initial guidance (Canvas -> People -> Groups)
+Use the Google Form to find project partners (will be posted later today)
+“Is X a valid project for 231n?” --- Ed private post / TA Office Hours
+More info on the website
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 3
+
+April 3, 2025
+
+Administrative: Discussion Sections
+This Friday 12:30 pm-1:20 pm, in person at NVIDIA Auditorium, remote on Zoom
+(recording will be made available)
+Python / Numpy, Google Colab
+Presenter: Emily Jin (TA) with Assistance from Matthew Jin (TA)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 4
+
+April 3, 2025
+
+Syllabus
+Deep Learning Basics
+
+Perceiving and Understanding
+the Visual World
+
+Reconstructing and Interacting
+with the Visual World
+
+Transfer Learning
+Optimizers
+Convolutions
+PyTorch
+RNNs / Attention / Transformers
+Normalization Layers
+Architecture Design
+Video Understanding
+Vision and Language
+3D Vision
+Object Detection and Segmentation
+
+Style Transfer
+Generative Models
+Self-supervised Learning
+Image Generation
+Robotics and Embodied AI
+
+Data-driven approaches
+Linear classification
+K-Nearest Neighbor
+Loss Functions
+Optimization
+Backpropagation
+Multi-layer Perceptrons
+Neural Networks
+Activation Functions
+Data Augmentation
+
+Stanford CS231n 10 th Anniversary
+
+Human-centered AI
+Fairness & Ethics
+
+Lecture 2 - 5
+
+April 3, 2025
+
+Image Classification
+A Core Task in Computer Vision
+
+Today:
+● The image classification task
+● Two basic data-driven approaches to image classification
+○ K-nearest neighbor and linear classifier
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 6
+
+April 3, 2025
+
+Image Classification: A core task in Computer Vision
+(assume given a set of possible labels)
+{dog, cat, truck, plane, ...}
+
+cat
+
+This image by Nikita is
+licensed under CC-BY 2.0
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 7
+
+April 3, 2025
+
+The Problem: Semantic Gap
+
+What the computer sees
+An image is a tensor of integers
+between [0, 255]:
+This image by Nikita is
+licensed under CC-BY 2.0
+
+Stanford CS231n 10 th Anniversary
+
+e.g. 800 x 600 x 3
+(3 channels RGB)
+Lecture 2 - 8
+
+April 3, 2025
+
+Challenges: Viewpoint variation
+
+All pixels change when
+the camera moves!
+
+This image by Nikita is
+licensed under CC-BY 2.0
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 9
+
+April 3, 2025
+
+Challenges: Illumination
+
+This image is CC0 1.0 public domain
+
+This image is CC0 1.0 public domain
+
+Stanford CS231n 10 th Anniversary
+
+This image is CC0 1.0 public domain
+
+Lecture 2 - 10
+
+This image is CC0 1.0 public domain
+
+April 3, 2025
+
+Challenges: Background Clutter
+
+This image is CC0 1.0 public domain
+
+Stanford CS231n 10 th Anniversary
+
+This image is CC0 1.0 public domain
+
+Lecture 2 - 11
+
+April 3, 2025
+
+Challenges: Occlusion
+
+This image is CC0 1.0 public domain
+
+Stanford CS231n 10 th Anniversary
+
+This image by jonsson is licensed
+under CC-BY 2.0
+
+This image is CC0 1.0 public domain
+
+Lecture 2 - 12
+
+April 3, 2025
+
+Challenges: Deformation
+
+This image by Umberto Salvagnin is
+licensed under CC-BY 2.0
+
+This image by Umberto Salvagnin is
+licensed under CC-BY 2.0
+
+Stanford CS231n 10 th Anniversary
+
+This image by sare bear is
+licensed under CC-BY 2.0
+
+Lecture 2 - 13
+
+This image by Tom Thai is licensed
+under CC-BY 2.0
+
+April 3, 2025
+
+Challenges: Intraclass variation
+
+This image is CC0 1.0 public domain
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 14
+
+April 3, 2025
+
+Challenges: Context
+
+Image source: https://www.linkedin.com/posts/ralph-aboujaoude-diaz-40838313_technology-artificialintelligence-computervision-activity6912446088364875776-h-Iq?utm_source=linkedin_share&utm_medium=member_desktop_web
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 15
+
+April 3, 2025
+
+Modern computer vision algorithms
+
+This image is CC0 1.0 public domain
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 16
+
+April 3, 2025
+
+An image classifier
+
+Unlike e.g. sorting a list of numbers,
+no obvious way to hard-code the algorithm for
+recognizing a cat, or other classes.
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 17
+
+April 3, 2025
+
+Attempts have been made
+
+Find edges
+
+Find corners
+
+?
+John Canny, “A Computational Approach to Edge Detection”, IEEE TPAMI 1986
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 18
+
+April 3, 2025
+
+Machine Learning: Data-Driven Approach
+1. Collect a dataset of images and labels
+2. Use Machine Learning algorithms to train a classifier
+3. Evaluate the classifier on new images
+Example training set
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 19
+
+April 3, 2025
+
+Nearest Neighbor Classifier
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 20
+
+April 3, 2025
+
+First classifier: Nearest Neighbor
+Memorize all data
+and labels
+Predict the label of
+the most similar
+training image
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 21
+
+April 3, 2025
+
+First classifier: Nearest Neighbor
+?
+
+deer
+
+bird
+
+plane
+
+cat
+
+car
+
+Training data with labels
+query data
+
+Distance Metric
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 22
+
+April 3, 2025
+
+Distance Metric to compare images
+L1 distance:
+
+add
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 23
+
+April 3, 2025
+
+Nearest Neighbor classifier
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 24
+
+April 3, 2025
+
+Nearest Neighbor classifier
+
+Memorize training data
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 25
+
+April 3, 2025
+
+Nearest Neighbor classifier
+
+For each test image:
+Find closest train image
+Predict label of nearest image
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 26
+
+April 3, 2025
+
+Nearest Neighbor classifier
+
+Q: With N examples, how
+fast are training and
+prediction?
+Ans: Train O(1),
+predict O(N)
+
+This is bad: we want
+classifiers that are fast at
+prediction; slow for
+training is ok
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 27
+
+April 3, 2025
+
+Nearest Neighbor classifier
+
+Many methods exist for fast /
+approximate nearest
+neighbor (beyond the scope
+of 231N!)
+A good implementation:
+
+https://github.com/facebookresearch/faiss
+
+Johnson et al, “Billion-scale similarity search with
+GPUs”, arXiv 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 28
+
+April 3, 2025
+
+What does this look like?
+
+1-nearest neighbor
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 29
+
+April 3, 2025
+
+K-Nearest Neighbors
+Instead of copying label from nearest neighbor,
+take majority vote from K closest points
+
+K=1
+
+Stanford CS231n 10 th Anniversary
+
+K=3
+
+K=5
+
+Lecture 2 - 30
+
+April 3, 2025
+
+K-Nearest Neighbors: Distance Metric
+L1 (Manhattan) distance
+
+Stanford CS231n 10 th Anniversary
+
+L2 (Euclidean) distance
+
+Lecture 2 - 31
+
+April 3, 2025
+
+K-Nearest Neighbors: Distance Metric - Example
+L1 Distance: Measures distance by moving along
+grid lines (like walking in a city with square blocks).
+
+L2 Distance: Measures the straight-line
+distance (as the crow flies).
+
+B(1/√2, 1/√2)
+
+B(0.5, 0.5)
+
+O(0,0)
+
+A(1, 0)
+
+O(0,0)
+
+A(1, 0)
+
+d1(O,A) = |0-1| + |0-0| = 1
+
+d2(O,A) = sqrt((0-1)2 + (0-0)2) = sqrt(12) = 1
+
+d1(O,B) = |0-0.5| + |0-0.5| = 0.5 + 0.5 = 1
+
+d2(O,B) = sqrt((0-1/√2)2 + (0-1/√2)2) = sqrt(1/2+1/2) = sqrt(1) = 1
+
+d1(O,A) = d1(O,B) = 1
+
+d2(O,A) = d2(O,A) = 1
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 -33
+
+April 3, 2025
+
+K-Nearest Neighbors: Distance Metric
+L1 (Manhattan) distance
+
+K=1
+Stanford CS231n 10 th Anniversary
+
+L2 (Euclidean) distance
+
+K=1
+Lecture 2 - 34
+
+April 3, 2025
+
+K-Nearest Neighbors: try it yourself!
+
+http://vision.stanford.edu/teaching/cs231n-demos/knn/
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 35
+
+April 3, 2025
+
+Hyperparameters
+
+What is the best value of k to use?
+What is the best distance to use?
+These are hyperparameters: choices about the
+algorithms themselves.
+Very problem/dataset-dependent.
+Must try them all out and see what works best.
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 36
+
+April 3, 2025
+
+Setting Hyperparameters
+Idea #1: Choose hyperparameters that
+work best on the training data
+train
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 37
+
+April 3, 2025
+
+Setting Hyperparameters
+Idea #1: Choose hyperparameters that
+work best on the training data
+
+BAD: K = 1 always works
+perfectly on training data
+
+train
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 38
+
+April 3, 2025
+
+Setting Hyperparameters
+Idea #1: Choose hyperparameters that
+work best on the training data
+
+BAD: K = 1 always works
+perfectly on training data
+
+train
+Idea #2: choose hyperparameters
+that work best on test data
+train
+
+Stanford CS231n 10 th Anniversary
+
+test
+
+Lecture 2 - 39
+
+April 3, 2025
+
+Setting Hyperparameters
+Idea #1: Choose hyperparameters that
+work best on the training data
+
+BAD: K = 1 always works
+perfectly on training data
+
+train
+Idea #2: choose hyperparameters
+that work best on test data
+
+BAD: No idea how algorithm
+will perform on new data
+
+train
+
+test
+
+Never do this!
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 40
+
+April 3, 2025
+
+Setting Hyperparameters
+Idea #1: Choose hyperparameters that
+work best on the training data
+
+BAD: K = 1 always works
+perfectly on training data
+
+train
+Idea #2: choose hyperparameters
+that work best on test data
+
+BAD: No idea how algorithm
+will perform on new data
+
+train
+
+Idea #3: Split data into train, val; choose
+hyperparameters on val and evaluate on test
+train
+Stanford CS231n 10 th Anniversary
+
+test
+Better!
+
+validation
+Lecture 2 - 41
+
+test
+April 3, 2025
+
+Setting Hyperparameters
+train
+Idea #4: Cross-Validation: Split data into folds, try
+each fold as validation and average the results
+fold 1
+
+fold 2
+
+fold 3
+
+fold 4
+
+fold 5
+
+fold 1
+
+fold 2
+
+fold 3
+
+fold 4
+
+fold 5
+
+fold 1
+
+fold 2
+
+fold 3
+
+fold 4
+
+fold 5
+
+fold 1
+
+fold 2
+
+fold 3
+
+fold 4
+
+fold 5
+
+fold 1
+
+fold 2
+
+fold 3
+
+fold 4
+
+fold 5
+
+test
+
+Useful for small datasets, but not used too frequently in deep learning
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 42
+
+April 3, 2025
+
+Example Dataset: CIFAR10
+10 classes
+50,000 training images
+10,000 testing images
+
+Alex Krizhevsky, “Learning Multiple Layers of Features from Tiny I mages”, Technical Report, 2009.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 43
+
+April 3, 2025
+
+Example Dataset: CIFAR10
+10 classes
+50,000 training images
+10,000 testing images
+
+Test images and nearest neighbors
+
+Alex Krizhevsky, “Learning Multiple Layers of Features from Tiny I mages”, Technical Report, 2009.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 44
+
+April 3, 2025
+
+Setting Hyperparameters
+
+Example of
+5-fold cross-validation
+for the value of k.
+Each point: single
+outcome.
+
+The line goes
+through the mean, bars
+indicated standard
+deviation
+(Seems that k ~= 7 works best
+for this data)
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 45
+
+April 3, 2025
+
+What does this look like?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 46
+
+April 3, 2025
+
+What does this look like?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 47
+
+April 3, 2025
+
+k-Nearest Neighbor with pixel distance never used.
+- Distance metrics on pixels are not informative
+Original image is CC0
+public domain
+
+Original
+
+Occluded
+
+Shifted (1 pixel)
+
+Tinted
+
+(All three images on the right have the same pixel distances to the one on the left)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 48
+
+April 3, 2025
+
+K-Nearest Neighbors: Summary
+In image classification we start with a training set of images and labels, and must
+predict labels on the test set
+The K-Nearest Neighbors classifier predicts labels based on the K nearest training
+examples
+Distance metric and K are hyperparameters
+Choose hyperparameters using the validation set
+Only run on the test set once at the very end!
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 50
+
+April 3, 2025
+
+Linear Classifier
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 51
+
+April 3, 2025
+
+Parametric Approach
+Image
+
+f(x,W)
+Array of 32x32x3 numbers
+(3072 numbers total)
+
+10 numbers giving
+class scores
+
+W
+
+parameters
+or weights
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 52
+
+April 3, 2025
+
+Parametric Approach: Linear Classifier
+Image
+
+f(x,W) = W x
+f(x,W)
+
+Array of 32x32x3 numbers
+(3072 numbers total)
+
+10 numbers giving
+class scores
+
+W
+
+parameters
+or weights
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 53
+
+April 3, 2025
+
+Parametric Approach: Linear Classifier
+3072x1
+
+Image
+
+f(x,W) = W x
+10x1
+
+10x3072
+
+f(x,W)
+Array of 32x32x3 numbers
+(3072 numbers total)
+
+10 numbers giving
+class scores
+
+W
+
+parameters
+or weights
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 54
+
+April 3, 2025
+
+Parametric Approach: Linear Classifier
+3072x1
+
+Image
+
+f(x,W) = W x + b 10x1
+10x1
+
+10x3072
+
+f(x,W)
+Array of 32x32x3 numbers
+(3072 numbers total)
+
+10 numbers giving
+class scores
+
+W
+
+parameters
+or weights
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 55
+
+April 3, 2025
+
+Neural Network
+
+Linear
+classifiers
+
+This image is CC0 1.0 public domain
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 56
+
+April 3, 2025
+
+[Krizhevsky et al. 2012]
+
+Linear layers
+
+[He et al. 2015]
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 57
+
+April 3, 2025
+
+Recall CIFAR10
+
+50,000 training images
+each image is 32x32x3
+10,000 test images.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 58
+
+April 3, 2025
+
+Example with an image with 4 pixels, and 3 classes (cat/dog/ship)
+Flatten tensors into a vector
+
+56
+56
+
+231
+
+24
+
+2
+
+Input image
+
+Stanford CS231n 10 th Anniversary
+
+231
+24
+2
+
+Lecture 2 - 59
+
+April 3, 2025
+
+Example with an image with 4 pixels, and 3 classes (cat/dog/ship)
+Algebraic Viewpoint
+Flatten tensors into a vector
+
+56
+56
+
+231
+
+24
+
+2
+
+Input image
+
+0.2
+
+-0.5
+
+0.1
+
+2.0
+
+1.1
+
+-96.8
+
+Cat score
+
+437.9
+
+Dog score
+
+61.95
+
+Ship score
+
+231
+1.5
+
+1.3
+
+2.1
+
+0.0
+
+0
+
+0.25
+
+0.2
+
+-0.3
+
+W
+Stanford CS231n 10 th Anniversary
+
+3.2
++
+=
+24
+-1.2
+2
+
+b
+Lecture 2 - 60
+
+April 3, 2025
+
+Interpreting a Linear Classifier
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 61
+
+April 3, 2025
+
+Interpreting a Linear Classifier: Visual Viewpoint
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 62
+
+April 3, 2025
+
+Interpreting a Linear Classifier: Geometric Viewpoint
+
+f(x,W) = Wx + b
+
+Array of 32x32x3 numbers
+(3072 numbers total)
+
+Plot created using Wolfram Cloud
+
+Stanford CS231n 10 th Anniversary
+
+Cat image by Nikita is licensed under CC-BY 2.0
+
+Lecture 2 - 63
+
+April 3, 2025
+
+Hard cases for a linear classifier
+Class 1:
+First and third quadrants
+
+Class 1:
+1 <= L2 norm <= 2
+
+Class 1:
+Three modes
+
+Class 2:
+Second and fourth quadrants
+
+Class 2:
+Everything else
+
+Class 2:
+Everything else
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 64
+
+April 3, 2025
+
+Linear Classifier – Choose a good W
+
+1. Define a loss function that quantifies
+our unhappiness with the scores
+across the training data.
+2. Come up with a way of efficiently
+finding the parameters that minimize
+the loss function. (optimization)
+
+Cat image by Nikita is licensed under CC-BY 2.0; Car image is CC0 1.0 public domain; Frog image is in the public domain
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 65
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+Lecture 2 - 66
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+A loss function tells how good
+our current classifier is
+
+2.2
+2.5
+-3.1
+Lecture 2 -67
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+A loss function tells how good
+our current classifier is
+Given a dataset of examples
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+
+Where
+
+Lecture 2 -68
+
+is image and
+is (integer) label
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+A loss function tells how good
+our current classifier is
+Given a dataset of examples
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+
+Where
+
+is image and
+is (integer) label
+
+Loss over the dataset is a average
+of loss over examples:
+
+Lecture 2 -69
+
+April 3, 2025
+
+Softmax classifier
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 70
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 71
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 72
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+
+Probabilities
+must be >= 0
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+24.5
+exp
+164.0
+0.18
+unnormalized
+probabilities
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 73
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+
+Probabilities
+must be >= 0
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+Probabilities
+must sum to 1
+
+24.5
+0.13
+exp
+normalize
+164.0
+0.87
+0.18
+0.00
+unnormalized
+probabilities
+
+Stanford CS231n 10 th Anniversary
+
+probabilities
+Lecture 2 - 74
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+
+Probabilities
+must be >= 0
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+Unnormalized logprobabilities / logits
+
+Probabilities
+must sum to 1
+
+24.5
+0.13
+exp
+normalize
+164.0
+0.87
+0.18
+0.00
+unnormalized
+probabilities
+
+Stanford CS231n 10 th Anniversary
+
+probabilities
+Lecture 2 - 75
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+
+Probabilities
+must be >= 0
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+Unnormalized logprobabilities / logits
+
+Probabilities
+must sum to 1
+
+24.5
+0.13
+exp
+normalize
+164.0
+0.87
+0.18
+0.00
+unnormalized
+probabilities
+
+Stanford CS231n 10 th Anniversary
+
+Li = -log(0.13)
+= 2.04
+
+probabilities
+Lecture 2 - 76
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+
+Probabilities
+must be >= 0
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+Unnormalized logprobabilities / logits
+
+Probabilities
+must sum to 1
+
+24.5
+0.13
+exp
+normalize
+164.0
+0.87
+0.18
+0.00
+unnormalized
+probabilities
+
+Stanford CS231n 10 th Anniversary
+
+probabilities
+
+Li = -log(0.13)
+= 2.04
+Maximum Likelihood Estimation
+Choose weights to maximize the
+likelihood of the observed data
+(See CS 229 for details)
+
+Lecture 2 - 77
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+
+Probabilities
+must be >= 0
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+Unnormalized logprobabilities / logits
+
+Probabilities
+must sum to 1
+
+24.5
+0.13
+exp
+normalize
+164.0
+0.87
+0.18
+0.00
+unnormalized
+probabilities
+
+Stanford CS231n 10 th Anniversary
+
+probabilities
+Lecture 2 - 78
+
+compare
+
+1.00
+0.00
+0.00
+Correct
+probs
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+
+Probabilities
+must be >= 0
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+Unnormalized logprobabilities / logits
+
+Probabilities
+must sum to 1
+
+24.5
+0.13
+exp
+normalize
+164.0
+0.87
+0.18
+0.00
+unnormalized
+probabilities
+
+Stanford CS231n 10 th Anniversary
+
+compare
+Kullback–Leibler
+divergence
+
+probabilities
+Lecture 2 - 79
+
+1.00
+0.00
+0.00
+Correct
+probs
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+
+Probabilities
+must be >= 0
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+Unnormalized logprobabilities / logits
+
+Probabilities
+must sum to 1
+
+24.5
+0.13
+exp
+normalize
+164.0
+0.87
+0.18
+0.00
+unnormalized
+probabilities
+
+Stanford CS231n 10 th Anniversary
+
+compare
+Cross Entropy
+
+probabilities
+Lecture 2 - 80
+
+1.00
+0.00
+0.00
+Correct
+probs
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+Maximize probability of correct class
+
+cat
+car
+
+frog
+
+Putting it all together:
+
+3.2
+5.1
+-1.7
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 81
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+Maximize probability of correct class
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+Putting it all together:
+
+Q1: What is the min/max possible softmax loss Li?
+Q2: At initialization all sj will be approximately equal;
+what is the softmax loss Li, assuming C classes?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 82
+
+April 3, 2025
+
+Softmax Classifier (Multinomial Logistic Regression)
+Want to interpret raw classifier scores as probabilities
+Softmax
+Function
+Maximize probability of correct class
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+Putting it all together:
+
+Q2: At initialization all s will be
+approximately equal; what is the loss?
+A: -log(1/C) = log(C),
+If C = 10, then L i = log(10) ≈ 2.3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 83
+
+April 3, 2025
+
+Coming up:
+
+f(x,W) = Wx + b
+
+- Regularization
+- Optimization
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 84
+
+April 3, 2025
+
+Reading Assignment – SVM Loss
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 85
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+
+the SVM loss has the form:
+
+Lecture 2 -86
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Interpreting Multiclass SVM loss:
+Given an example
+where
+is the image and
+Loss
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+
+difference in
+scores between
+correct and
+the SVM loss has the form:
+incorrect class
+
+Lecture 2 -87
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Interpreting Multiclass SVM loss:
+Given an example
+where
+is the image and
+Loss
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+
+difference in
+scores between
+correct and
+the SVM loss has the form:
+incorrect class
+
+Lecture 2 -88
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Interpreting Multiclass SVM loss:
+Given an example
+where
+is the image and
+Loss
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+
+difference in
+scores between
+correct and
+the SVM loss has the form:
+incorrect class
+
+Lecture 2 -89
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+
+3.2
+5.1
+-1.7
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+
+the SVM loss has the form:
+
+Lecture 2 -90
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+Losses:
+
+3.2
+5.1
+-1.7
+2.9
+
+1.3
+4.9
+2.0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+
+the SVM loss has the form:
+
+= max(0, 5.1 - 3.2 + 1)
++max(0, -1.7 - 3.2 + 1)
+= max(0, 2.9) + max(0, -3.9)
+= 2.9 + 0
+= 2.9
+Lecture 2 -91
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+Losses:
+
+3.2
+5.1
+-1.7
+2.9
+
+1.3
+4.9
+2.0
+0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+
+the SVM loss has the form:
+
+= max(0, 1.3 - 4.9 + 1)
++max(0, 2.0 - 4.9 + 1)
+= max(0, -2.6) + max(0, -1.9)
+=0+0
+=0
+Lecture 2 -92
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+Losses:
+
+3.2
+5.1
+-1.7
+2.9
+
+1.3
+4.9
+2.0
+0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+12.9
+
+the SVM loss has the form:
+
+= max(0, 2.2 - (-3.1) + 1)
++max(0, 2.5 - (-3.1) + 1)
+= max(0, 6.3) + max(0, 6.6)
+= 6.3 + 6.6
+= 12.9
+Lecture 2 -93
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+Losses:
+
+3.2
+5.1
+-1.7
+2.9
+
+1.3
+4.9
+2.0
+0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+12.9
+
+the SVM loss has the form:
+
+Loss over full dataset is average:
+
+L = (2.9 + 0 + 12.9)/3
+= 5.27
+Lecture 2 -94
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+
+Q1: What happens to loss if car
+scores decrease by 0.5 for this
+training example?
+
+cat
+car
+
+frog
+Losses:
+
+1.3
+4.9
+2.0
+0
+
+Stanford CS231n 10 th Anniversary
+
+Q2: what is the min/max possible
+SVM loss Li?
+Q3: At initialization W is small so all
+s ≈ 0. What is the loss Li, assuming N
+examples and C classes?
+Lecture 2 -95
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+Losses:
+
+3.2
+5.1
+-1.7
+2.9
+
+1.3
+4.9
+2.0
+0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+12.9
+
+the SVM loss has the form:
+
+Q4: What if the sum
+was over all classes?
+(including j = y_i)
+Lecture 2 -96
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+Losses:
+
+3.2
+5.1
+-1.7
+2.9
+
+1.3
+4.9
+2.0
+0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+12.9
+
+the SVM loss has the form:
+
+Q5: What if we used
+mean instead of sum?
+
+Lecture 2 -97
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+Losses:
+
+3.2
+5.1
+-1.7
+2.9
+
+1.3
+4.9
+2.0
+0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+12.9
+
+the SVM loss has the form:
+
+Q6: What if we used
+
+Lecture 2 -98
+
+April 3, 2025
+
+Suppose: 3 training examples, 3 classes.
+With some W the scores
+are:
+
+Multiclass SVM loss:
+Given an example
+where
+is the image and
+Loss
+where is the (integer) label,
+and using the shorthand for the scores
+vector:
+
+cat
+car
+
+frog
+Losses:
+
+3.2
+5.1
+-1.7
+2.9
+
+1.3
+4.9
+2.0
+0
+
+Stanford CS231n 10 th Anniversary
+
+2.2
+2.5
+-3.1
+12.9
+
+difference in
+scores between
+correct and
+the SVM loss has the form:
+incorrect class
+
+Q6: What if we used
+
+Lecture 2 -99
+
+April 3, 2025
+
+Multiclass SVM Loss: Example code
+
+# First calculate scores
+# Then calculate the margins sj - syi + 1
+# only sum j is not yi, so when j = yi, set to zero.
+# sum across all j
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 100
+
+April 3, 2025
+
+Softmax vs. SVM
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 101
+
+April 3, 2025
+
+Softmax vs. SVM
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 2 - 102
+
+April 3, 2025
+
+Softmax vs. SVM
+
+assume scores:
+[10, -2, 3]
+[10, 9, 9]
+[10, -100, -100]
+and
+Stanford CS231n 10 th Anniversary
+
+Q: What is the softmax loss and the
+SVM loss?
+
+Lecture 2 - 103
+
+April 3, 2025
+
+Softmax vs. SVM
+
+assume scores:
+[20, -2, 3]
+[20, 9, 9]
+[20, -100, -100]
+and
+Stanford CS231n 10 th Anniversary
+
+Q: What is the softmax loss and the
+SVM loss if I double the correct
+class score from 10 -> 20?
+
+Lecture 2 - 104
+
+April 3, 2025
+
+

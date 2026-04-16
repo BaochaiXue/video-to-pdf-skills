@@ -1,0 +1,177 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newcommand{\notetitle}{CS231n Lecture 10: Video Understanding}
+\newcommand{\noteauthors}{Codex Harness}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online / CS231n}
+\newcommand{\videopublishdate}{2025-05-01}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=wElqklprhPE}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{为什么视频理解比图像理解更难}
+% source_units: cu_10_01, cu_10_02
+本讲一开始就把一个非常朴素但关键的事实讲透了：\textbf{视频不是“很多张图像简单堆起来”。} 一段视频至少比单张图像多出三类困难：
+\begin{itemize}
+\item \textbf{时间维}：动作和事件往往依赖帧与帧之间的变化，而不是单帧内容。
+\item \textbf{数据规模}：视频帧数远大于图像像素通道数带来的常规模型输入规模。
+\item \textbf{任务形式}：可能是 clip 级分类，也可能是逐帧标签、时序定位、时空检测，甚至音视频联合理解。
+\end{itemize}
+
+因此，课程很早就强调了一个工程事实：训练通常不会把整段视频一次性送进网络，而是以 \textbf{clips} 为单位做采样。clip 既是可计算性约束，也是建模假设的一部分。
+
+\subsection{本章小结}
+视频理解的真正难点，不在于多了一个输入轴，而在于时间、计算与任务定义都变得更加复杂。
+
+\section{从 2D baseline 到 3D CNN}
+% source_units: cu_10_03, cu_10_04
+课程先按时间顺序回顾了几类经典 baseline：
+\begin{itemize}
+\item \textbf{single-frame CNN}：每次只看一帧，本质上忽略运动。
+\item \textbf{late fusion}：先独立编码多帧，再在高层做 pooling 或融合。
+\item \textbf{early fusion}：把多帧在输入通道上拼接，尽早让网络看到时间上下文。
+\end{itemize}
+
+这些方法都能工作，但都存在明显局限。single-frame CNN 几乎看不到运动；late fusion 难以建模细粒度时序交互；early fusion 又把时间信息粗暴塞进 2D 卷积里。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-21.png}
+\caption{3D CNN 直接在时空体上卷积，比 early/late fusion 更自然地统一建模空间与时间。}
+\end{figure}
+
+所以，3D CNN 的出现是顺理成章的：把卷积核从 $(H, W)$ 扩成 $(T, H, W)$，让网络直接学习时空局部模式。课程用 C3D 作为代表性模型，强调它在视频里扮演的角色类似图像中的 VGG：结构规整，便于理解和扩展。
+
+\subsection{本章小结}
+3D CNN 的意义在于把“时间”从后处理对象变成卷积运算的内生维度。
+
+\section{运动信息: Optical Flow 与 Two-Stream}
+% source_units: cu_10_05
+仅靠 RGB 帧并不总能可靠识别动作，因为外观和运动往往混在一起。课程于是引出 optical flow：它不是直接描述“画面长什么样”，而是描述“像素往哪里动”。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-47.png}
+\caption{Two-stream networks 把 appearance 与 motion 分别建模，再在更高层融合。}
+\end{figure}
+
+two-stream network 的想法因此很直白：
+\begin{itemize}
+\item 空间流（spatial stream）处理 RGB appearance。
+\item 时间流（temporal stream）处理 optical flow。
+\item 在高层把两者融合，得到更稳健的动作表征。
+\end{itemize}
+
+这条路线的教学价值很高，因为它说明视频理解并不总是追求“一个更大更统一的模型”；在很多阶段，\textbf{把外观和运动分开建模}本身就是重要归纳偏置。
+
+\subsection{本章小结}
+optical flow 和 two-stream 的贡献，是把“运动”从隐含因素提升成显式表征对象。
+
+\section{更长时间尺度: RNN、Non-local 与 I3D}
+% source_units: cu_10_06, cu_10_07, cu_10_08
+局部 3D 卷积虽然能看见短时间窗口，但它仍然难以捕捉更长程的时序结构。课程因此回顾了两类延伸路径。
+
+第一类是把局部特征交给 RNN/LSTM 或 recurrent convolutional network 继续沿时间聚合。这条路线本质上是“先做短时视觉编码，再做长时序列建模”。
+
+第二类则来自注意力思想：non-local block / spatio-temporal self-attention 允许模型直接在远距离时空位置之间建立连接，而不必把信息沿局部卷积层层传递。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-65.png}
+\caption{Non-local / spatio-temporal self-attention 为视频提供了长距离依赖建模能力。}
+\end{figure}
+
+I3D（Inflated 3D ConvNet）则体现了另一种很聪明的工程路线：既然 2D 图像网络已经非常成熟，不如把 2D kernels inflation 成 3D kernels，在视频上复用这些设计经验和初始化思路。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-75.png}
+\caption{I3D 通过 kernel inflation 把 2D 架构平滑迁移到视频场景。}
+\end{figure}
+
+\subsection{本章小结}
+面对长时依赖，课程给出的答案不是唯一的：可以用 recurrence、attention，也可以通过 I3D 这样的架构迁移延续卷积路线。
+
+\section{视频 Transformer、时序定位与多模态扩展}
+% source_units: cu_10_09, cu_10_10, cu_10_11
+随着上一讲 Transformer 的铺垫完成，本讲很自然地把视频建模继续推进到 ViViT、Video Transformer、VideoMAE 等模型。它们的共同点是：不再把时间维只看成卷积扩展，而是把视频拆成 token，再通过 attention 建模全局关系。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-77.png}
+\caption{Video Transformer 把视频的时空块 token 化，用 attention 统一处理长距离依赖。}
+\end{figure}
+
+与此同时，课程也提醒读者不要把目标局限在 short clip classification。真实任务还包括：
+\begin{itemize}
+\item \textbf{Temporal Action Localization}：动作在长视频里什么时候发生。
+\item \textbf{Spatio-temporal Detection}：不仅要知道什么时候发生，还要知道在画面哪里发生。
+\item \textbf{Audio-Visual Understanding}：联合声音和视觉做 source separation、事件理解。
+\item \textbf{Egocentric \& Video + LLM}：把第一视角视频、语言和高层推理结合起来。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-102.png}
+\caption{Video understanding 与 LLM 的结合，代表了课程对未来多模态视频系统的指向。}
+\end{figure}
+
+\begin{warningbox}{效率始终是视频任务的硬约束}
+视频长度、分辨率和模态数一旦同时上升，计算成本会迅速失控。因此高质量视频模型几乎总要和 clip sampling、sparse processing、预训练或多模态压缩一起讨论。
+\end{warningbox}
+
+\subsection{本章小结}
+视频理解不再只是“视频分类”问题，而是一个覆盖时序定位、检测、多模态融合和语言推理的任务族。
+
+\section{总结与延伸}
+本讲把视频理解从最基础的时间维扩展讲到了现代多模态方向。核心脉络非常清楚：
+\begin{itemize}
+\item 用 clips 和 baseline 明确问题边界；
+\item 用 3D CNN 与 two-stream 建立时空与运动建模的经典方案；
+\item 用 RNN、non-local 和 I3D 扩展长时间尺度；
+\item 用 video transformers 和多模态系统把问题推向更大范围。
+\end{itemize}
+
+如果说图像模型的难点主要是空间表征，那么视频模型真正多出来的，是\textbf{时空范围、推理成本和模态协同}三重压力。后面的课程走向大规模训练与基础模型时，这三个压力会进一步放大。
+
+\end{document}

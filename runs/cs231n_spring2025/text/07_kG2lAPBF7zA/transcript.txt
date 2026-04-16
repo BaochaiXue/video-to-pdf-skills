@@ -1,0 +1,1609 @@
+[00:00:05,560 --> 00:00:07,020] So hello everyone.
+[00:00:07,020 --> 00:00:09,360] Welcome to lecture 7.
+[00:00:09,360 --> 00:00:12,205] I also wanted to go over some clarifications from last time.
+[00:00:12,205 --> 00:00:13,580] So when I gave lecture last time,
+[00:00:13,580 --> 00:00:17,360] there were two ed posts that I think were good that you all
+[00:00:17,360 --> 00:00:18,780] might want to check out.
+[00:00:18,780 --> 00:00:19,760] But in case you haven't seen it, I'll
+[00:00:19,760 --> 00:00:21,260] just go through it really quickly.
+[00:00:21,260 --> 00:00:23,760] I think when describing dropout, how
+[00:00:23,760 --> 00:00:26,220] to scale probabilities at test time during lecture,
+[00:00:26,220 --> 00:00:28,520] there was a bit of confusion.
+[00:00:28,520 --> 00:00:32,680] Basically, what I said in the slide had a mismatch.
+[00:00:32,680 --> 00:00:36,040] So in each forward pass for dropout
+[00:00:36,040 --> 00:00:38,960] we have this hyperparameter p, which is either
+[00:00:38,960 --> 00:00:41,120] the amount of neurons you're dropping out
+[00:00:41,120 --> 00:00:43,080] or it's the amount of neurons that you're
+[00:00:43,080 --> 00:00:45,320] keeping depending on which implementation
+[00:00:45,320 --> 00:00:46,500] dropout you're using.
+[00:00:46,500 --> 00:00:47,620] Generally they do.
+[00:00:47,620 --> 00:00:50,400] It's the number of the ones you drop out.
+[00:00:50,400 --> 00:00:52,940] So in most libraries that's what p means.
+[00:00:52,940 --> 00:00:54,860] But the basic idea is that at test time,
+[00:00:54,860 --> 00:00:58,480] you want the expected output to be the same as at training time.
+[00:00:58,480 --> 00:01:03,020] So this means that if you dropped 25% of your activations
+[00:01:03,020 --> 00:01:07,020] during training time, at test time, you would scale by 0.75,
+[00:01:07,020 --> 00:01:09,068] so that the expected output is the same.
+[00:01:09,068 --> 00:01:10,860] And so I think there was a bit of confusion
+[00:01:10,860 --> 00:01:14,020] because in this slide the implementation uses p
+[00:01:14,020 --> 00:01:17,840] as the probability of keeping a unit active.
+[00:01:17,840 --> 00:01:20,200] So a bit of a mismatch there.
+[00:01:20,200 --> 00:01:21,900] Just to clarify.
+[00:01:21,900 --> 00:01:25,020] There was also a question in class from last time about how
+[00:01:25,020 --> 00:01:26,760] normalization can be useful.
+[00:01:26,760 --> 00:01:28,220] And maybe resolve the issues that
+[00:01:28,220 --> 00:01:31,280] arise when you have weights that are initialized incorrectly.
+[00:01:31,280 --> 00:01:34,340] But we have this choice setting where we have 2D inputs
+[00:01:34,340 --> 00:01:37,380] to our model, and a two layer neural network with ReLU.
+[00:01:37,380 --> 00:01:40,160] It's outputting basically this quadrant function.
+[00:01:40,160 --> 00:01:43,580] So if the point lies in the top right, it'll output 1 or 2
+[00:01:43,580 --> 00:01:47,500] or 3 or 4, depending on which quadrant the point lies in.
+[00:01:47,500 --> 00:01:51,300] And we plot the different training losses and test losses
+[00:01:51,300 --> 00:01:54,760] for good initialization using the Kaiming initialization
+[00:01:54,760 --> 00:01:57,020] we discussed last time and bad initialization
+[00:01:57,020 --> 00:01:59,280] where the standard deviation is too high.
+[00:01:59,280 --> 00:02:02,400] And the blue plot here represents bad,
+[00:02:02,400 --> 00:02:05,200] and the green represents bad initialization with LayerNorm.
+[00:02:05,200 --> 00:02:07,700] So you can see it actually does resolve a lot of the issues.
+[00:02:07,700 --> 00:02:09,120] But to get the best performance you still
+[00:02:09,120 --> 00:02:10,703] need good weight initialization, which
+[00:02:10,703 --> 00:02:12,460] are the two lines afterwards.
+[00:02:12,460 --> 00:02:13,860] So you can go dive in.
+[00:02:13,860 --> 00:02:15,840] And also, whether or not LayerNorm help
+[00:02:15,840 --> 00:02:18,080] depends on the problem.
+[00:02:18,080 --> 00:02:20,960] So in this quadrant I, you can imagine that you don't need
+[00:02:20,960 --> 00:02:23,963] to know the exact 2D position of each point.
+[00:02:23,963 --> 00:02:25,380] So LayerNorm was actually helping.
+[00:02:25,380 --> 00:02:28,100] But for some of the other functions that are in the code,
+[00:02:28,100 --> 00:02:30,037] you can check out, where you need
+[00:02:30,037 --> 00:02:32,620] to know the exact coordinate in order to get the right output,
+[00:02:32,620 --> 00:02:34,465] LayerNorm actually hurts performance
+[00:02:34,465 --> 00:02:35,840] because you lose some information
+[00:02:35,840 --> 00:02:38,060] about the exact spatial location of your input
+[00:02:38,060 --> 00:02:39,935] when you're doing the subtraction of the mean
+[00:02:39,935 --> 00:02:42,040] and dividing by the standard deviation.
+[00:02:42,040 --> 00:02:44,480] So just some notes here.
+[00:02:44,480 --> 00:02:47,740] Basically at a high level, it does help with the issue,
+[00:02:47,740 --> 00:02:48,873] but a gap remains.
+[00:02:48,873 --> 00:02:51,040] So you can't get by this weight initialization issue
+[00:02:51,040 --> 00:02:52,380] with just normalization.
+[00:02:55,040 --> 00:02:57,260] And as I mentioned, it may not always
+[00:02:57,260 --> 00:03:00,380] make sense depending on what you're trying to model.
+[00:03:00,380 --> 00:03:02,840] So I think just to recap also from last time,
+[00:03:02,840 --> 00:03:05,700] we've been mainly talking about these sort of vanilla, standard,
+[00:03:05,700 --> 00:03:07,860] non-recurrent neural networks so far.
+[00:03:07,860 --> 00:03:12,260] So this is a fixed size input and a fixed size output.
+[00:03:12,260 --> 00:03:15,020] You have this one time setup where you set your activation
+[00:03:15,020 --> 00:03:15,880] functions.
+[00:03:15,880 --> 00:03:17,980] You do data pre-processing according
+[00:03:17,980 --> 00:03:21,540] to some fixed mean and standard deviation for the images,
+[00:03:21,540 --> 00:03:22,580] the image channels.
+[00:03:22,580 --> 00:03:25,140] You have your weight initialization
+[00:03:25,140 --> 00:03:27,660] and normalization functions that you use,
+[00:03:27,660 --> 00:03:30,520] as well as transfer learning.
+[00:03:30,520 --> 00:03:33,460] So if you pre-train on one data set, like ImageNet
+[00:03:33,460 --> 00:03:35,560] or some other large scale internet data set,
+[00:03:35,560 --> 00:03:37,935] you can get better results if you initialize your weights
+[00:03:37,935 --> 00:03:38,740] to those values.
+[00:03:38,740 --> 00:03:40,573] We also talked about training dynamics,
+[00:03:40,573 --> 00:03:42,740] how you can babysit the learning process in choosing
+[00:03:42,740 --> 00:03:44,340] a good learning rate, how you want
+[00:03:44,340 --> 00:03:46,560] to update your different hyperparameters,
+[00:03:46,560 --> 00:03:48,980] and also how to optimize those based on the validation
+[00:03:48,980 --> 00:03:51,860] performance as well as test time augmentation
+[00:03:51,860 --> 00:03:53,640] to improve performance further.
+[00:03:53,640 --> 00:03:56,500] So a really good tool for points 2 and 3
+[00:03:56,500 --> 00:03:59,600] here is something I use in basically all my projects called
+[00:03:59,600 --> 00:04:00,540] weights and biases.
+[00:04:00,540 --> 00:04:01,980] So you might find this useful.
+[00:04:01,980 --> 00:04:05,280] It's a really neat way that you can essentially
+[00:04:05,280 --> 00:04:07,760] look at different-- you set different runs
+[00:04:07,760 --> 00:04:09,060] with different hyperparameters.
+[00:04:09,060 --> 00:04:12,060] In this case, they show a dropout column here.
+[00:04:12,060 --> 00:04:14,200] So these are all the different values of dropout.
+[00:04:14,200 --> 00:04:15,700] The color coding is really nice.
+[00:04:15,700 --> 00:04:18,160] So you can see that generally the lower values of dropout
+[00:04:18,160 --> 00:04:20,100] will achieve higher accuracy.
+[00:04:20,100 --> 00:04:24,800] And so you can visualize these different validation--
+[00:04:24,800 --> 00:04:26,400] sorry, these different hyperparameters
+[00:04:26,400 --> 00:04:28,680] based on validation set performance.
+[00:04:28,680 --> 00:04:33,000] And you can see based on many runs
+[00:04:33,000 --> 00:04:35,445] get an idea of which hyperparameters work best.
+[00:04:35,445 --> 00:04:36,320] So I always use this.
+[00:04:36,320 --> 00:04:37,260] I think it's great.
+[00:04:37,260 --> 00:04:38,840] Especially if you have the compute where you can just
+[00:04:38,840 --> 00:04:39,880] run something over and over again
+[00:04:39,880 --> 00:04:41,160] to improve performance more, this
+[00:04:41,160 --> 00:04:42,500] is a really neat way of visualizing it.
+[00:04:42,500 --> 00:04:43,500] I think they do it well.
+[00:04:43,500 --> 00:04:45,360] There are other tools like TensorBoard.
+[00:04:45,360 --> 00:04:49,640] But this is personally the one that I like.
+[00:04:49,640 --> 00:04:52,700] OK, so for the rest of lecture today,
+[00:04:52,700 --> 00:04:55,140] we'll be discussing sequence modeling.
+[00:04:55,140 --> 00:04:59,060] So this is, in contrast to a fixed sized input
+[00:04:59,060 --> 00:05:00,860] as input to our model, what if we have
+[00:05:00,860 --> 00:05:03,100] a sequence of variable length.
+[00:05:03,100 --> 00:05:05,380] And also, we'll be discussing what
+[00:05:05,380 --> 00:05:07,380] are the simple neural networks that people
+[00:05:07,380 --> 00:05:09,880] use before the era of transformers,
+[00:05:09,880 --> 00:05:13,300] which mainly consists of RNNs and some variants of RNNs.
+[00:05:13,300 --> 00:05:15,580] And then I'll also relate in one slide
+[00:05:15,580 --> 00:05:20,620] how RNNs actually are similar to a lot of, and inspire a lot of,
+[00:05:20,620 --> 00:05:23,060] the modern type of language models
+[00:05:23,060 --> 00:05:24,785] that you see called state space models.
+[00:05:24,785 --> 00:05:26,160] So you might have heard of Mamba.
+[00:05:26,160 --> 00:05:28,785] There's some other ones too that we'll talk about in the slide,
+[00:05:28,785 --> 00:05:31,500] but the basic idea is the key concepts from RNNs
+[00:05:31,500 --> 00:05:32,760] are still being used today.
+[00:05:32,760 --> 00:05:34,437] They're not just used in the past,
+[00:05:34,437 --> 00:05:36,020] and they have a lot of nice advantages
+[00:05:36,020 --> 00:05:39,500] over transformers that will go into.
+[00:05:39,500 --> 00:05:43,100] Cool, so to specifically formulate this sequence modeling
+[00:05:43,100 --> 00:05:45,780] task, you can imagine, we have a vanilla neural network
+[00:05:45,780 --> 00:05:48,700] where we have one fixed size input to one fixed size
+[00:05:48,700 --> 00:05:51,680] output, which is what we've discussed in the course so far.
+[00:05:51,680 --> 00:05:55,760] In contrast, you could have a one to many sequence modeling
+[00:05:55,760 --> 00:05:56,260] task.
+[00:05:56,260 --> 00:05:59,300] So here we still have a fixed size input like say an image,
+[00:05:59,300 --> 00:06:01,780] but we want to output a sequence of variable length.
+[00:06:01,780 --> 00:06:04,180] So one common example is image captioning.
+[00:06:04,180 --> 00:06:06,680] So we input an image and we want to output
+[00:06:06,680 --> 00:06:08,480] a sequence of words or characters
+[00:06:08,480 --> 00:06:11,980] or however you're modeling the language or encoding it,
+[00:06:11,980 --> 00:06:14,360] but the goal is to have a variable length caption
+[00:06:14,360 --> 00:06:17,800] output for what's happening in the image.
+[00:06:17,800 --> 00:06:21,200] You could also have a many to one sequence modeling task.
+[00:06:21,200 --> 00:06:25,400] So here we could imagine our inputs are, say, a video
+[00:06:25,400 --> 00:06:27,960] and we're trying to classify what is this a video of.
+[00:06:27,960 --> 00:06:30,500] So we give it a sequence of video frames.
+[00:06:30,500 --> 00:06:33,800] And the output is one single class label similar to the image
+[00:06:33,800 --> 00:06:34,853] classification case.
+[00:06:34,853 --> 00:06:36,520] But now we have multiple frames as input
+[00:06:36,520 --> 00:06:38,600] rather than just a single image.
+[00:06:38,600 --> 00:06:41,200] So this is an example of many to one.
+[00:06:41,200 --> 00:06:42,940] And then you also have many to many.
+[00:06:42,940 --> 00:06:48,860] So the number of inputs and outputs in the sequences
+[00:06:48,860 --> 00:06:51,300] don't need to match, so you could have your input
+[00:06:51,300 --> 00:06:54,617] as a variable number of frames, and your output in this case
+[00:06:54,617 --> 00:06:56,200] could be a caption of variable length,
+[00:06:56,200 --> 00:06:58,380] and they don't need to necessarily match,
+[00:06:58,380 --> 00:06:59,760] but they could match.
+[00:06:59,760 --> 00:07:02,540] So for every single input you have one output.
+[00:07:02,540 --> 00:07:04,460] And for discussing RNNs we'll mainly
+[00:07:04,460 --> 00:07:06,400] be focusing on this setting on the far right.
+[00:07:06,400 --> 00:07:08,740] But there are basically a lot of small changes
+[00:07:08,740 --> 00:07:12,180] you can make to change and reformulate the problem to apply
+[00:07:12,180 --> 00:07:14,847] to the other settings, but this is the most straightforward one.
+[00:07:14,847 --> 00:07:16,805] Every time there's an input, there's an output,
+[00:07:16,805 --> 00:07:18,980] and we'll be using it for the beginning of class
+[00:07:18,980 --> 00:07:22,460] to talk about how RNNs work.
+[00:07:22,460 --> 00:07:24,260] And a canonical example problem here
+[00:07:24,260 --> 00:07:26,052] would be video classification, where you're
+[00:07:26,052 --> 00:07:28,820] classifying every single frame.
+[00:07:28,820 --> 00:07:31,060] OK, so what is an RNN?
+[00:07:31,060 --> 00:07:36,020] The basic idea is you have an input sequence x, and an output
+[00:07:36,020 --> 00:07:37,340] sequence y.
+[00:07:37,340 --> 00:07:41,180] And what makes an RNN an RNN is this recurrent nature.
+[00:07:41,180 --> 00:07:44,020] So often people will diagram it by this arrow that's
+[00:07:44,020 --> 00:07:46,180] feeding back into the block.
+[00:07:46,180 --> 00:07:48,490] This is how you know it's a recurrent layer when you're
+[00:07:48,490 --> 00:07:50,190] reading different diagrams.
+[00:07:50,190 --> 00:07:52,530] But what it actually means is that RNNs
+[00:07:52,530 --> 00:07:55,510] have this internal state or a hidden state,
+[00:07:55,510 --> 00:07:57,570] as it's often called, that is updated
+[00:07:57,570 --> 00:07:59,190] as a sequence is processed.
+[00:07:59,190 --> 00:08:01,910] So every time there's a new input to the model,
+[00:08:01,910 --> 00:08:04,570] we process that and we calculate a new hidden state
+[00:08:04,570 --> 00:08:05,910] or internal state.
+[00:08:05,910 --> 00:08:07,790] So there's a hidden state, it updates,
+[00:08:07,790 --> 00:08:11,170] and it depends on the new inputs as well as the previous internal
+[00:08:11,170 --> 00:08:14,050] or hidden state.
+[00:08:14,050 --> 00:08:16,118] I think this diagram is sometimes a bit confusing
+[00:08:16,118 --> 00:08:18,410] when you're trying to think about how the gradients are
+[00:08:18,410 --> 00:08:21,190] actually calculated and what are the order of operations.
+[00:08:21,190 --> 00:08:25,850] So people will often do this diagram of an unrolled RNN.
+[00:08:25,850 --> 00:08:28,850] And so here it's basically the same as before,
+[00:08:28,850 --> 00:08:32,370] but we're explicitly showing that the current hidden state
+[00:08:32,370 --> 00:08:35,370] calculation is dependent on our input at that time step
+[00:08:35,370 --> 00:08:38,669] as well as the previous RNN state.
+[00:08:38,669 --> 00:08:41,409] So we're more explicitly modeling what is exactly
+[00:08:41,409 --> 00:08:43,890] needed to calculate each output, and each
+[00:08:43,890 --> 00:08:48,830] RNN you move backwards in the computational graph.
+[00:08:48,830 --> 00:08:51,330] So I've been speaking with words so far.
+[00:08:51,330 --> 00:08:53,990] So let's formulate this with mathematical equations now.
+[00:08:53,990 --> 00:08:57,670] So the basic idea is we're trying to process
+[00:08:57,670 --> 00:08:59,230] a sequence of vectors, x.
+[00:08:59,230 --> 00:09:01,430] And we're applying this recurrence formula
+[00:09:01,430 --> 00:09:03,310] at every single time step.
+[00:09:03,310 --> 00:09:06,910] So we have our new hidden state as a function
+[00:09:06,910 --> 00:09:10,670] of the old hidden state and the input vector at some time step
+[00:09:10,670 --> 00:09:14,350] as well as we have a function with normally with an activation
+[00:09:14,350 --> 00:09:15,910] function along with some parameters,
+[00:09:15,910 --> 00:09:17,630] W. So you can think of this as this
+[00:09:17,630 --> 00:09:21,110] very similar to the initial neural network
+[00:09:21,110 --> 00:09:23,750] layers we were learning where it's a weight matrix,
+[00:09:23,750 --> 00:09:27,650] multiply by and then you follow it up by an activation function.
+[00:09:27,650 --> 00:09:29,070] This is the same thing here.
+[00:09:29,070 --> 00:09:31,970] The only change is that it's now a recurrence formula.
+[00:09:31,970 --> 00:09:39,150] So we're using the same set of W's and the same activation
+[00:09:39,150 --> 00:09:43,410] function each time we're computing the hidden state.
+[00:09:43,410 --> 00:09:48,450] So basically, as I mentioned, this is a recurrence formula.
+[00:09:48,450 --> 00:09:50,370] And to get the actual output, so how do we
+[00:09:50,370 --> 00:09:51,710] calculate this blue block?
+[00:09:51,710 --> 00:09:55,370] We have a separate function that depends
+[00:09:55,370 --> 00:09:57,850] on a separate set of parameters that
+[00:09:57,850 --> 00:10:02,810] convert our hidden dimension state into the dimension
+[00:10:02,810 --> 00:10:03,550] of our output.
+[00:10:03,550 --> 00:10:06,410] And also is a set of weights to convert the hidden state
+[00:10:06,410 --> 00:10:07,350] to the output.
+[00:10:07,350 --> 00:10:08,710] So this does two and one.
+[00:10:08,710 --> 00:10:10,530] It changes the dimension of our vectors
+[00:10:10,530 --> 00:10:12,613] from the dimension size of our hidden state, which
+[00:10:12,613 --> 00:10:15,150] can be whatever we want to the dimension size of our output.
+[00:10:15,150 --> 00:10:18,330] And then also it provides a transformation there.
+[00:10:18,330 --> 00:10:23,050] So W hy is a weight matrix that you will multiply by your hidden
+[00:10:23,050 --> 00:10:24,910] state to get the--
+[00:10:24,910 --> 00:10:25,847] so it does two things.
+[00:10:25,847 --> 00:10:28,430] It converts your hidden state to the dimension of your output.
+[00:10:28,430 --> 00:10:31,013] So your hidden state and output could be different dimensions.
+[00:10:31,013 --> 00:10:35,070] And then also, it's a weight matrix that you learn.
+[00:10:35,070 --> 00:10:36,950] So not only does it do this dimension change,
+[00:10:36,950 --> 00:10:38,930] but also it applies a transformation
+[00:10:38,930 --> 00:10:40,120] to your hidden state.
+[00:10:40,120 --> 00:10:41,870] So it's how you convert your hidden states
+[00:10:41,870 --> 00:10:45,390] to your outputs, what W hy is.
+[00:10:45,390 --> 00:10:48,870] So the previous slide was how we calculate the new hidden state.
+[00:10:48,870 --> 00:10:51,190] So it's essentially the same idea
+[00:10:51,190 --> 00:10:53,493] where you're doing this recursively with the same set
+[00:10:53,493 --> 00:10:54,910] of parameters, but we have one set
+[00:10:54,910 --> 00:10:56,830] of parameters and one function for calculating
+[00:10:56,830 --> 00:10:57,620] the hidden state.
+[00:10:57,620 --> 00:10:59,870] We have another set of parameters and another function
+[00:10:59,870 --> 00:11:02,430] for calculating the output depending on what type of task
+[00:11:02,430 --> 00:11:06,590] it is, and how we want to model the RNN.
+[00:11:06,590 --> 00:11:09,867] Yeah, so they still share the same weights for each time step,
+[00:11:09,867 --> 00:11:11,450] but there's two different things here.
+[00:11:11,450 --> 00:11:13,710] One is to calculate basically how do you-- maybe
+[00:11:13,710 --> 00:11:16,210] it'll be more clear as we go through more concrete examples.
+[00:11:16,210 --> 00:11:19,010] But how do you actually calculate the new hidden state,
+[00:11:19,010 --> 00:11:20,755] which is this internal state of the RNN.
+[00:11:20,755 --> 00:11:22,630] And then how do you convert that hidden state
+[00:11:22,630 --> 00:11:26,390] to the output, which is this slide.
+[00:11:26,390 --> 00:11:31,830] So looking through this unrolled diagram here,
+[00:11:31,830 --> 00:11:35,670] we can see that you need to initialize your hidden state
+[00:11:35,670 --> 00:11:36,730] to some value.
+[00:11:36,730 --> 00:11:40,890] So we usually call this h,0 and you can initialize it
+[00:11:40,890 --> 00:11:42,070] to whatever you want.
+[00:11:42,070 --> 00:11:47,170] In principle, usually this is a learned input vector,
+[00:11:47,170 --> 00:11:50,250] but now we'll specifically go into each step
+[00:11:50,250 --> 00:11:53,195] of this unrolled recurrent RNN and actually
+[00:11:53,195 --> 00:11:55,570] go through a concrete example for what it looks like when
+[00:11:55,570 --> 00:11:58,170] you're doing the forward pass.
+[00:11:58,170 --> 00:12:00,730] So one thing to note that already came up
+[00:12:00,730 --> 00:12:02,890] with some of the questions is that we're
+[00:12:02,890 --> 00:12:05,110] processing the sequence of vectors x,
+[00:12:05,110 --> 00:12:07,610] and we're applying this recurrence formula at each time
+[00:12:07,610 --> 00:12:08,410] step.
+[00:12:08,410 --> 00:12:12,142] So you really do notice how the same function and the same set
+[00:12:12,142 --> 00:12:13,850] of parameters are used at every time step
+[00:12:13,850 --> 00:12:15,397] when computing the hidden state.
+[00:12:15,397 --> 00:12:17,730] And a separate function and a separate set of parameters
+[00:12:17,730 --> 00:12:19,290] are always used at each time step
+[00:12:19,290 --> 00:12:22,850] when predicting the output from the hidden state.
+[00:12:22,850 --> 00:12:25,850] Yeah, so can old values of y affect the new hidden state?
+[00:12:25,850 --> 00:12:27,088] Under some formulations, yes.
+[00:12:27,088 --> 00:12:29,630] And we'll actually go through one example of why that's used.
+[00:12:29,630 --> 00:12:33,770] It's most commonly used if you want to predict the next--
+[00:12:33,770 --> 00:12:36,055] if you're doing a language modeling or autoregressive
+[00:12:36,055 --> 00:12:37,430] modeling task where you're trying
+[00:12:37,430 --> 00:12:40,030] to predict one value given the previous values,
+[00:12:40,030 --> 00:12:43,055] people will just use the previous values as the input.
+[00:12:43,055 --> 00:12:44,430] So that's generally how people do
+[00:12:44,430 --> 00:12:47,150] that explicit formulation of how can y
+[00:12:47,150 --> 00:12:49,430] affect the next hidden state.
+[00:12:49,430 --> 00:12:53,390] What is the difference between h and x at the first time step?
+[00:12:53,390 --> 00:12:57,190] So they use basically different weights.
+[00:12:57,190 --> 00:13:02,190] So the h,0 is using all of-- it's using the weights that are
+[00:13:02,190 --> 00:13:06,243] used to update every hidden state to the next one.
+[00:13:06,243 --> 00:13:08,410] We'll go through exactly what the weights look like,
+[00:13:08,410 --> 00:13:10,327] but basically they're using different weights,
+[00:13:10,327 --> 00:13:12,290] is the short answer.
+[00:13:12,290 --> 00:13:15,270] So when people say Vanilla RNN, they usually
+[00:13:15,270 --> 00:13:18,470] are almost exactly referring to this type of model
+[00:13:18,470 --> 00:13:21,990] where we have our hidden state t, which
+[00:13:21,990 --> 00:13:26,550] uses tanh or hyperbolic tangent as an activation function.
+[00:13:26,550 --> 00:13:28,770] This is nice because it's bounded between 1
+[00:13:28,770 --> 00:13:30,070] and negative 1.
+[00:13:30,070 --> 00:13:32,930] So as you do the operation over and over again,
+[00:13:32,930 --> 00:13:35,410] your values will stay within this range.
+[00:13:35,410 --> 00:13:36,870] So this is a nice property to have.
+[00:13:36,870 --> 00:13:38,090] It's also zero centered and you can
+[00:13:38,090 --> 00:13:40,030] represent both positive and negative values.
+[00:13:40,030 --> 00:13:43,410] This is why people use tanh.
+[00:13:43,410 --> 00:13:48,430] Also we sometimes have an output function fy here,
+[00:13:48,430 --> 00:13:50,890] but in the simplest case your output yt
+[00:13:50,890 --> 00:13:53,830] could just be a matrix multiplied by your hidden state.
+[00:13:53,830 --> 00:13:57,410] So this is really the most simple formulation of an RNN.
+[00:13:57,410 --> 00:14:00,530] And what we'll specifically go in our concrete example
+[00:14:00,530 --> 00:14:05,490] today in lecture is this idea of just manually creating
+[00:14:05,490 --> 00:14:06,983] a recurrent neural network.
+[00:14:06,983 --> 00:14:09,650] So we're not going to learn this through gradient descent or all
+[00:14:09,650 --> 00:14:10,750] these different methods.
+[00:14:10,750 --> 00:14:15,030] I'm just going to show you how you could construct one by hand.
+[00:14:15,030 --> 00:14:16,490] And we'll go through it and you'll
+[00:14:16,490 --> 00:14:18,010] understand the forward pass, what
+[00:14:18,010 --> 00:14:20,550] each of the different weight matrices are doing,
+[00:14:20,550 --> 00:14:23,610] as well as how the output is calculated.
+[00:14:23,610 --> 00:14:25,290] So in this really toy example because it
+[00:14:25,290 --> 00:14:26,450] needs to be pretty simple, if we're just
+[00:14:26,450 --> 00:14:28,690] going to be going through all the different weights.
+[00:14:28,690 --> 00:14:32,330] You're given sequences of 0's and 1's, and your goal
+[00:14:32,330 --> 00:14:36,730] is to output a 1 when there's two repeated 1's in a row.
+[00:14:36,730 --> 00:14:39,750] So you're basically detecting repeated 1's and you'll
+[00:14:39,750 --> 00:14:41,250] output a 0 otherwise.
+[00:14:41,250 --> 00:14:45,430] So you can see this input sequence coming in 0, 1, 0, 1.
+[00:14:45,430 --> 00:14:47,050] So far, there's been no repeated ones.
+[00:14:47,050 --> 00:14:48,590] But now we have a repeated one, and we
+[00:14:48,590 --> 00:14:50,840] have another repeated one because there's two in a row
+[00:14:50,840 --> 00:14:52,110] here and so on.
+[00:14:52,110 --> 00:14:54,443] So this is the type of model we're building.
+[00:14:54,443 --> 00:14:55,610] It's trying to do this task.
+[00:14:55,610 --> 00:14:58,430] This is specifically the many to many sequence modeling tasks
+[00:14:58,430 --> 00:15:01,910] where we have one output for every input.
+[00:15:01,910 --> 00:15:04,610] And so we've been talking high level so far,
+[00:15:04,610 --> 00:15:07,310] but if you're trying to create an RNN to do this,
+[00:15:07,310 --> 00:15:11,265] what information should be captured in the hidden state?
+[00:15:11,265 --> 00:15:13,390] So you have this internal state of your model, what
+[00:15:13,390 --> 00:15:17,670] information needs to be captured there in order to do this task?
+[00:15:17,670 --> 00:15:20,077] Yeah, so the input to the previous time step.
+[00:15:20,077 --> 00:15:22,410] And if our output is only dependent on the hidden state,
+[00:15:22,410 --> 00:15:23,690] what else do we need to know?
+[00:15:23,690 --> 00:15:24,630] And the current--
+[00:15:24,630 --> 00:15:26,070] Yeah, exactly.
+[00:15:26,070 --> 00:15:28,030] So this is the information that we need
+[00:15:28,030 --> 00:15:29,770] to capture in our hidden state.
+[00:15:29,770 --> 00:15:34,190] So previous input and the current value for x, so 0 or 1.
+[00:15:34,190 --> 00:15:36,410] And the way I'll do this is I'll just
+[00:15:36,410 --> 00:15:38,830] set the hidden state t to be a three dimensional vector.
+[00:15:38,830 --> 00:15:41,247] The reason why it's 3, is this one will come in handy when
+[00:15:41,247 --> 00:15:44,190] we're trying to do the output stage calculation,
+[00:15:44,190 --> 00:15:47,770] but you could probably construct one without a 1 here.
+[00:15:47,770 --> 00:15:49,730] This is just to make the math easy and simple
+[00:15:49,730 --> 00:15:51,952] for the purposes of the lecture today.
+[00:15:51,952 --> 00:15:53,910] And the other information is the current value.
+[00:15:53,910 --> 00:15:57,130] So this will either be 0 or 1 along with the previous values
+[00:15:57,130 --> 00:15:58,110] 0 or 1.
+[00:15:58,110 --> 00:16:00,610] And we'll initialize it to be 001,
+[00:16:00,610 --> 00:16:03,970] so that we're basically assuming it's basically seeing two zeros
+[00:16:03,970 --> 00:16:06,890] in a row before at this point.
+[00:16:06,890 --> 00:16:09,970] Yeah, so this is how we will do.
+[00:16:09,970 --> 00:16:11,840] This will be the type of variables
+[00:16:11,840 --> 00:16:13,590] we're trying to track in our hidden state.
+[00:16:13,590 --> 00:16:15,190] And this is how we'll initialize h,0.
+[00:16:15,190 --> 00:16:16,570] So I talked about how you can initialize it
+[00:16:16,570 --> 00:16:19,030] to very different strategies, or you could learn it.
+[00:16:19,030 --> 00:16:21,450] This is what we'll initialize it to
+[00:16:21,450 --> 00:16:24,050] OK, now let's walk through the code
+[00:16:24,050 --> 00:16:25,510] and I'll do it step by step.
+[00:16:25,510 --> 00:16:28,210] So I'm just putting it on screen here right now.
+[00:16:28,210 --> 00:16:32,050] But we'll also do ReLU, I guess, sorry, one other thing
+[00:16:32,050 --> 00:16:33,550] I missed on this slide is that we're
+[00:16:33,550 --> 00:16:35,383] setting our activation functions to be ReLU,
+[00:16:35,383 --> 00:16:36,610] just to make the math easy.
+[00:16:36,610 --> 00:16:39,387] So it'll just be max of 0 or whatever the value is.
+[00:16:39,387 --> 00:16:41,470] We're only dealing essentially with zeros and ones
+[00:16:41,470 --> 00:16:42,090] in this case.
+[00:16:42,090 --> 00:16:44,490] So it makes it pretty simple to think about.
+[00:16:44,490 --> 00:16:44,990] Yeah,
+[00:16:44,990 --> 00:16:48,190] You probably could construct it so that it works with tanh.
+[00:16:48,190 --> 00:16:49,630] But this is just something that I
+[00:16:49,630 --> 00:16:52,050] created as an example for how to run it.
+[00:16:52,050 --> 00:16:55,390] And so just to make the math really easy, we'll just do ReLU.
+[00:16:55,390 --> 00:16:57,350] But yeah, you could conceivably make a model
+[00:16:57,350 --> 00:16:59,430] that could do this with tanh.
+[00:16:59,430 --> 00:17:02,830] Yeah, cool.
+[00:17:02,830 --> 00:17:04,569] So we have ReLU.
+[00:17:04,569 --> 00:17:06,890] We have two specific weights here.
+[00:17:06,890 --> 00:17:10,390] We have the first weight, which converts
+[00:17:10,390 --> 00:17:13,790] our previous hidden state.
+[00:17:13,790 --> 00:17:16,869] It applies a transformation to the previous hidden state
+[00:17:16,869 --> 00:17:20,130] onto to calculate the next one.
+[00:17:20,130 --> 00:17:21,849] And then we have this weight here,
+[00:17:21,849 --> 00:17:25,869] which converts our input x to the dimension of our hidden
+[00:17:25,869 --> 00:17:28,290] state, as well as applies a transformation.
+[00:17:28,290 --> 00:17:31,030] So we are setting this second one.
+[00:17:31,030 --> 00:17:32,890] So our current hidden state is a function
+[00:17:32,890 --> 00:17:36,610] of the previous hidden state, along with the current time
+[00:17:36,610 --> 00:17:37,490] step.
+[00:17:37,490 --> 00:17:41,250] And so when we're trying to calculate this hidden state
+[00:17:41,250 --> 00:17:46,010] at time step t, we're looking to calculate this current value
+[00:17:46,010 --> 00:17:46,670] first.
+[00:17:46,670 --> 00:17:49,470] So we'll use the x value here.
+[00:17:49,470 --> 00:17:55,250] We'll set the weight to be a 3 by 1 column vector with values
+[00:17:55,250 --> 00:18:00,790] 1, 0, 0, such that when x is 0 and we do the matrix multiply,
+[00:18:00,790 --> 00:18:06,292] we get a 0 vector, and when x is 1, we'll get 1, 0, 0.
+[00:18:06,292 --> 00:18:07,750] And we'll add this to another term,
+[00:18:07,750 --> 00:18:09,667] but basically, this is going to be calculating
+[00:18:09,667 --> 00:18:11,030] what is the current value here.
+[00:18:11,030 --> 00:18:15,110] So it'll be either a zero on top or a one on top.
+[00:18:15,110 --> 00:18:18,490] And it's calculated based on this first operation here.
+[00:18:21,770 --> 00:18:23,970] So that's how we're calculating the current value
+[00:18:23,970 --> 00:18:26,790] based on the input.
+[00:18:26,790 --> 00:18:31,390] Now we'll talk about, how are we doing this hidden state
+[00:18:31,390 --> 00:18:32,310] transformation.
+[00:18:32,310 --> 00:18:35,550] So we want to just use the current value for this top value
+[00:18:35,550 --> 00:18:36,050] here.
+[00:18:36,050 --> 00:18:38,750] So in our weight matrix, we'll just have zeros in the top row.
+[00:18:38,750 --> 00:18:40,230] This means that when we multiply it
+[00:18:40,230 --> 00:18:41,750] with the previous hidden state we'll
+[00:18:41,750 --> 00:18:43,930] get a 0 value here for the top.
+[00:18:43,930 --> 00:18:46,270] So it'll be 0 plus whatever value the right hand
+[00:18:46,270 --> 00:18:47,490] side contains.
+[00:18:47,490 --> 00:18:50,270] So that's how we're going to maintain this not changing based
+[00:18:50,270 --> 00:18:51,870] on the previous hidden state.
+[00:18:51,870 --> 00:18:55,550] And we'll set it to be 1, 0, 0 for the next row.
+[00:18:55,550 --> 00:18:56,510] Why we do this?
+[00:18:56,510 --> 00:18:58,390] Is you can imagine we have the hidden
+[00:18:58,390 --> 00:19:00,670] state from the previous time step here.
+[00:19:00,670 --> 00:19:05,070] And we want to set the now previous
+[00:19:05,070 --> 00:19:06,890] to be the former current time step.
+[00:19:06,890 --> 00:19:08,490] So we have a 1, 0, 0.
+[00:19:08,490 --> 00:19:10,930] What this will do is it'll multiply by h,t minus 1.
+[00:19:10,930 --> 00:19:14,630] We'll set the current value over to now the previous value
+[00:19:14,630 --> 00:19:16,810] for this time step.
+[00:19:16,810 --> 00:19:19,650] So basically this term will be a zero on top,
+[00:19:19,650 --> 00:19:22,870] and it will be whatever the previous time step input
+[00:19:22,870 --> 00:19:24,650] value was as the second term.
+[00:19:24,650 --> 00:19:27,730] And then this final bit here just maintains the one
+[00:19:27,730 --> 00:19:31,170] so that we're keeping this one across all calculations.
+[00:19:31,170 --> 00:19:33,290] So just to recap, we have zeros here
+[00:19:33,290 --> 00:19:36,130] because we want the right hand side term to be
+[00:19:36,130 --> 00:19:39,230] tracking this current value.
+[00:19:39,230 --> 00:19:42,050] We have a one here to copy over the current from the former time
+[00:19:42,050 --> 00:19:43,930] step to be the previous--
+[00:19:43,930 --> 00:19:46,810] sorry to copy the current of the former time step
+[00:19:46,810 --> 00:19:50,130] to be the previous of the current time step.
+[00:19:50,130 --> 00:19:52,330] So we're just doing h--
+[00:19:52,330 --> 00:19:57,230] maybe it's easy in the code but h,t previous is equal to h,t,
+[00:19:57,230 --> 00:20:00,090] and we want to also move the corresponding value down one
+[00:20:00,090 --> 00:20:01,290] here.
+[00:20:01,290 --> 00:20:03,682] And then this is just a copy of the one.
+[00:20:03,682 --> 00:20:05,390] So how do we actually get our output now?
+[00:20:05,390 --> 00:20:10,010] So we basically talked about how we can track these values given
+[00:20:10,010 --> 00:20:15,010] the weight matrices I talked about, so Whh and Wxh
+[00:20:15,010 --> 00:20:17,250] So if we have a weight matrix to convert
+[00:20:17,250 --> 00:20:20,110] our hidden state into the output dimension,
+[00:20:20,110 --> 00:20:23,010] we want it to be 1 by 3.
+[00:20:23,010 --> 00:20:26,350] So it's a single value that's being output when we have
+[00:20:26,350 --> 00:20:28,050] this hidden dimension as input.
+[00:20:28,050 --> 00:20:31,870] And this is a dot product between the values here
+[00:20:31,870 --> 00:20:32,930] and the values here.
+[00:20:32,930 --> 00:20:35,830] So what this will correspond to is the current
+[00:20:35,830 --> 00:20:39,750] plus the previous minus 1 because we multiply the minus 1
+[00:20:39,750 --> 00:20:40,250] here.
+[00:20:40,250 --> 00:20:42,710] This is where the one became useful,
+[00:20:42,710 --> 00:20:46,570] and the current associated here with a one.
+[00:20:46,570 --> 00:20:49,150] And then also the previous associated here with the one
+[00:20:49,150 --> 00:20:51,110] as well.
+[00:20:51,110 --> 00:20:52,450] So that's how we actually do it.
+[00:20:52,450 --> 00:20:57,570] And if you think about it, this general formula will work.
+[00:20:57,570 --> 00:21:02,070] So if say we're looking here, we have the current plus
+[00:21:02,070 --> 00:21:06,350] the previous is 2 minus 1 is 1 for this left hand
+[00:21:06,350 --> 00:21:07,690] term inside the ReLU.
+[00:21:07,690 --> 00:21:09,670] So the max of 1 and 0 is 1.
+[00:21:09,670 --> 00:21:13,390] And if these are both 0, you'll have a minus 1, so we'll get 0.
+[00:21:13,390 --> 00:21:14,890] These are a 1 and a 0.
+[00:21:14,890 --> 00:21:16,510] Then you'll still get 0.
+[00:21:16,510 --> 00:21:19,770] So these are how you can construct these weight matrices.
+[00:21:19,770 --> 00:21:23,650] But I actually wanted to pause briefly and talk about
+[00:21:23,650 --> 00:21:26,450] if there were any questions about any step
+[00:21:26,450 --> 00:21:29,865] among this calculation, because this is the only example we'll
+[00:21:29,865 --> 00:21:32,490] go through in class, where we're literally doing all the matrix
+[00:21:32,490 --> 00:21:34,290] and vector multiplications, and the rest
+[00:21:34,290 --> 00:21:37,770] will be more high level explanations for how people tend
+[00:21:37,770 --> 00:21:39,630] to put these layers together.
+[00:21:39,630 --> 00:21:43,610] So I just want to pause and see if there's a question about how
+[00:21:43,610 --> 00:21:46,170] the matrices and vectors are tracked and multiplied
+[00:21:46,170 --> 00:21:47,790] and updated.
+[00:21:47,790 --> 00:21:49,290] Yeah, so the question is, how do you
+[00:21:49,290 --> 00:21:51,950] go about constructing the weight matrices?
+[00:21:51,950 --> 00:21:53,560] Which is a really great question,
+[00:21:53,560 --> 00:21:55,310] and I thought to put it in the slide here.
+[00:21:55,310 --> 00:21:56,848] So how would you actually do this?
+[00:21:56,848 --> 00:21:58,890] It's the same way we're always finding the weight
+[00:21:58,890 --> 00:21:59,830] matrices in this class.
+[00:21:59,830 --> 00:22:01,150] We're going to be using gradient descent.
+[00:22:01,150 --> 00:22:03,570] And we'll talk about how you do gradient descent when
+[00:22:03,570 --> 00:22:05,410] you have multiple time steps, and maybe you
+[00:22:05,410 --> 00:22:07,550] have losses computed at each time step as well.
+[00:22:07,550 --> 00:22:10,710] So that'll be a lot of what we go into right next.
+[00:22:10,710 --> 00:22:13,850] So it's a great question and very relevant to the lecture.
+[00:22:13,850 --> 00:22:16,450] So this is just an example, so you
+[00:22:16,450 --> 00:22:20,880] can see how all of the weight matrices are multiplied.
+[00:22:20,880 --> 00:22:22,728] Basically, if you were trying to change--
+[00:22:22,728 --> 00:22:24,520] if you were trying to initialize with this,
+[00:22:24,520 --> 00:22:26,320] and then train it to do another task,
+[00:22:26,320 --> 00:22:29,840] that would be transfer learning where you're initializing
+[00:22:29,840 --> 00:22:31,880] the weights with this.
+[00:22:31,880 --> 00:22:35,412] But in practice, I don't think it would work very well at all,
+[00:22:35,412 --> 00:22:37,120] because your hidden state is really small
+[00:22:37,120 --> 00:22:40,022] and people normally do much larger hidden states.
+[00:22:40,022 --> 00:22:42,480] I just wanted to do something that I could fit in the slide
+[00:22:42,480 --> 00:22:43,640] here.
+[00:22:43,640 --> 00:22:46,160] Yeah, OK, I'll go over the second row again.
+[00:22:46,160 --> 00:22:51,280] So if you imagine we have h,t minus 1 as a column vector here,
+[00:22:51,280 --> 00:22:55,560] when you do the matrix multiply, to get the value of the left
+[00:22:55,560 --> 00:22:59,520] hand side here, what this second row is doing is you're taking
+[00:22:59,520 --> 00:23:02,840] the value, and then you're rotating it and doing the dot
+[00:23:02,840 --> 00:23:04,540] product with the values here.
+[00:23:04,540 --> 00:23:08,680] So for the second row that gets calculated,
+[00:23:08,680 --> 00:23:12,940] the entry here will be equal to the top of the vector here.
+[00:23:12,940 --> 00:23:16,200] So this is how we move the current down to the previous
+[00:23:16,200 --> 00:23:17,560] is in this step here.
+[00:23:17,560 --> 00:23:20,420] So the end result of this matrix multiply
+[00:23:20,420 --> 00:23:27,100] will be such that the second value is the current value
+[00:23:27,100 --> 00:23:30,140] from t minus 1.
+[00:23:30,140 --> 00:23:33,060] So we do the matrix multiply with t minus 1 here,
+[00:23:33,060 --> 00:23:36,660] and so the second row of this operation and this operation
+[00:23:36,660 --> 00:23:40,220] are both giving us vectors of the size of our hidden state.
+[00:23:40,220 --> 00:23:42,700] And so we're adding them together.
+[00:23:42,700 --> 00:23:45,540] Yeah, the left is doing the previous carryover
+[00:23:45,540 --> 00:23:47,760] and the right is doing the current.
+[00:23:47,760 --> 00:23:51,780] And that's also of how it works for RNNs when you are doing it
+[00:23:51,780 --> 00:23:55,060] beyond this toy example, where this weight matrix is being
+[00:23:55,060 --> 00:23:57,620] multiplied by the current input, and this other weight matrix
+[00:23:57,620 --> 00:24:00,680] is being multiplied by the previous hidden state.
+[00:24:00,680 --> 00:24:03,460] So that's what these weight matrices track more generally
+[00:24:03,460 --> 00:24:06,540] than the specific problem as well.
+[00:24:06,540 --> 00:24:11,280] So how do you actually compute the gradients?
+[00:24:11,280 --> 00:24:13,080] Let's look at the computational graph.
+[00:24:13,080 --> 00:24:16,720] So just to draw a little bit more explicitly than before,
+[00:24:16,720 --> 00:24:19,580] we have these x1 coming in and x2,
+[00:24:19,580 --> 00:24:20,940] and we have a sequence of x's.
+[00:24:20,940 --> 00:24:23,480] We're calculating a hidden state at each time step,
+[00:24:23,480 --> 00:24:27,120] and we're specifically using the same W's, same weight
+[00:24:27,120 --> 00:24:30,380] matrices for each of these calculations as well.
+[00:24:30,380 --> 00:24:31,880] So we need to be thinking about this
+[00:24:31,880 --> 00:24:35,440] when we're thinking about how we're computing the gradients,
+[00:24:35,440 --> 00:24:37,580] and let's start with the many to many scenario.
+[00:24:37,580 --> 00:24:40,520] So we have an output for each input.
+[00:24:40,520 --> 00:24:43,727] And in this scenario, you can often also calculate
+[00:24:43,727 --> 00:24:45,560] a loss for each output, which is how correct
+[00:24:45,560 --> 00:24:47,100] is the output at that stage.
+[00:24:47,100 --> 00:24:53,000] So if we're doing this setting you have a loss at each step,
+[00:24:53,000 --> 00:24:55,875] and you can sum them all together to get your total loss.
+[00:24:55,875 --> 00:24:58,000] And this would be your loss across the entire input
+[00:24:58,000 --> 00:24:59,640] sequence.
+[00:24:59,640 --> 00:25:07,303] And when we do backprop basically,
+[00:25:07,303 --> 00:25:08,720] when we compute our final loss, we
+[00:25:08,720 --> 00:25:11,040] can then calculate the loss per time step
+[00:25:11,040 --> 00:25:14,280] as well or depending on the formulation.
+[00:25:14,280 --> 00:25:16,720] So if we're calculating a loss per time step,
+[00:25:16,720 --> 00:25:18,340] you can treat them independently.
+[00:25:18,340 --> 00:25:20,460] Sometimes you have an overall loss based
+[00:25:20,460 --> 00:25:23,180] on the loss per time step too.
+[00:25:23,180 --> 00:25:28,020] We can also get basically the final gradients for each
+[00:25:28,020 --> 00:25:29,180] of these W's.
+[00:25:29,180 --> 00:25:32,380] You can calculate the gradient for each time step separately,
+[00:25:32,380 --> 00:25:34,400] and then you're going to sum them all together.
+[00:25:34,400 --> 00:25:36,560] So this is how it works in practice.
+[00:25:36,560 --> 00:25:39,980] You could imagine if it were different W's at each time step.
+[00:25:39,980 --> 00:25:43,800] You could pretty probably easily see how the computational graph
+[00:25:43,800 --> 00:25:46,300] could be structured such that you're calculating a different
+[00:25:46,300 --> 00:25:48,800] gradient for each of these different W's.
+[00:25:48,800 --> 00:25:51,620] And so we're essentially treating our single W
+[00:25:51,620 --> 00:25:57,302] for computational purposes as a set of different W's, but then
+[00:25:57,302 --> 00:25:59,260] at the end, we merge all the gradients together
+[00:25:59,260 --> 00:26:00,635] because it's just the same weight
+[00:26:00,635 --> 00:26:02,040] matrix that's being multiplied.
+[00:26:02,040 --> 00:26:06,260] So conceptually, you can think of it as you're just calculating
+[00:26:06,260 --> 00:26:08,740] it for each time step, almost treating it in your head
+[00:26:08,740 --> 00:26:10,560] like it's a different W being used,
+[00:26:10,560 --> 00:26:12,740] but because it's the same value of the weights,
+[00:26:12,740 --> 00:26:15,240] you just need to sum all the gradients that you calculate
+[00:26:15,240 --> 00:26:18,000] at each time step together.
+[00:26:18,000 --> 00:26:20,000] In the many to one scenario, you'll
+[00:26:20,000 --> 00:26:24,080] just have a single loss calculated here.
+[00:26:24,080 --> 00:26:28,107] And sometimes you'll only use the final hidden state
+[00:26:28,107 --> 00:26:30,440] to calculate the value depending on the problem setting.
+[00:26:30,440 --> 00:26:32,420] Say you're trying to do video classification,
+[00:26:32,420 --> 00:26:35,420] it may make sense to use the hidden state from every step,
+[00:26:35,420 --> 00:26:37,503] because you might have information about the video
+[00:26:37,503 --> 00:26:40,170] throughout the entire course of the video during classification.
+[00:26:40,170 --> 00:26:42,720] You're going to do some pooling, like average pooling or max
+[00:26:42,720 --> 00:26:46,520] pooling or something like that to compute your y value.
+[00:26:46,520 --> 00:26:51,800] And then if you have this one to many mapping like in image
+[00:26:51,800 --> 00:26:56,073] classification or sorry, in image captioning,
+[00:26:56,073 --> 00:26:58,240] there was a question about how you could incorporate
+[00:26:58,240 --> 00:26:59,620] the previous y's.
+[00:26:59,620 --> 00:27:04,640] So you still need to have an input to your f,w
+[00:27:04,640 --> 00:27:07,460] because it's two different of these weight matrices,
+[00:27:07,460 --> 00:27:09,840] one that's expecting input vector x,
+[00:27:09,840 --> 00:27:14,100] and the other that's expecting the previous time steps hidden
+[00:27:14,100 --> 00:27:14,600] state.
+[00:27:14,600 --> 00:27:19,080] So you can imagine that you can put a lot of values in here.
+[00:27:19,080 --> 00:27:24,940] You could just put zeros or you could put the previous output
+[00:27:24,940 --> 00:27:26,820] here.
+[00:27:26,820 --> 00:27:30,480] So I explained at a high level how you do the back propagation.
+[00:27:30,480 --> 00:27:32,500] But there's actually some specific issues
+[00:27:32,500 --> 00:27:35,283] that you'll run into when you're trying this conceptual--
+[00:27:35,283 --> 00:27:37,700] when you're looking through this conceptual framework that
+[00:27:37,700 --> 00:27:40,842] are very practical in terms of running out of GPU memory, which
+[00:27:40,842 --> 00:27:43,300] is always the cause of basically all the issues when you're
+[00:27:43,300 --> 00:27:46,360] trying to train a neural network that and,
+[00:27:46,360 --> 00:27:47,880] I guess, NaN loss string training.
+[00:27:47,880 --> 00:27:53,180] So when you're computing, say, a loss at each time step,
+[00:27:53,180 --> 00:27:56,668] and you have an extremely long input sequence,
+[00:27:56,668 --> 00:27:57,960] it's really easy to understand.
+[00:27:57,960 --> 00:28:00,580] You need to be keeping the activations and the gradients
+[00:28:00,580 --> 00:28:03,880] at each time step in memory and then summing them all together.
+[00:28:03,880 --> 00:28:07,180] This is going to get extremely large as your input sequence
+[00:28:07,180 --> 00:28:07,920] increases.
+[00:28:07,920 --> 00:28:11,840] So what can you do practically to resolve this issue?
+[00:28:11,840 --> 00:28:13,740] This is called backpropagation through time,
+[00:28:13,740 --> 00:28:16,080] by the way, when you have the same weight matrix that's
+[00:28:16,080 --> 00:28:18,620] being applied in multiple different time steps,
+[00:28:18,620 --> 00:28:21,040] and then you're summing the gradient at each time step
+[00:28:21,040 --> 00:28:22,520] together.
+[00:28:22,520 --> 00:28:24,593] So what you can do is, it's called
+[00:28:24,593 --> 00:28:26,260] truncated back propagation through time.
+[00:28:26,260 --> 00:28:28,640] So you basically fix a time window,
+[00:28:28,640 --> 00:28:31,680] and you can look at basically pretending
+[00:28:31,680 --> 00:28:35,400] that this is all the model was trained on so far.
+[00:28:35,400 --> 00:28:37,480] We start with our h,0.
+[00:28:37,480 --> 00:28:41,200] We calculate based on the input at time step 1,
+[00:28:41,200 --> 00:28:43,300] and our previous h value.
+[00:28:43,300 --> 00:28:47,258] We can calculate what is the current hidden state at h,1,
+[00:28:47,258 --> 00:28:49,300] and then we can use that to calculate our output.
+[00:28:49,300 --> 00:28:50,640] We'll have our loss.
+[00:28:50,640 --> 00:28:52,580] And we can run this for each of our examples.
+[00:28:52,580 --> 00:28:54,247] And you can imagine how in this setting,
+[00:28:54,247 --> 00:28:57,560] it's relatively easy to see how you just treat the beginning
+[00:28:57,560 --> 00:29:00,800] sequence as if this is all we're seeing during training.
+[00:29:00,800 --> 00:29:03,620] And moving to the next block, now essentially,
+[00:29:03,620 --> 00:29:06,460] you're starting your h,0 with now it's the output
+[00:29:06,460 --> 00:29:08,380] of your previous step here.
+[00:29:08,380 --> 00:29:11,153] So we're initializing the hidden state with whatever the output
+[00:29:11,153 --> 00:29:12,820] was in our final step, but the gradients
+[00:29:12,820 --> 00:29:14,400] are no longer carrying over.
+[00:29:14,400 --> 00:29:16,900] So we're basically batching the computational graph such
+[00:29:16,900 --> 00:29:19,780] that we're only looking at the loss in the neighborhood
+[00:29:19,780 --> 00:29:21,600] of these time steps at a time.
+[00:29:21,600 --> 00:29:23,760] This is a fixed window size that you set.
+[00:29:23,760 --> 00:29:29,820] So this is how you get around this relatively, I would say,
+[00:29:29,820 --> 00:29:32,460] common issue, especially as you have really long input
+[00:29:32,460 --> 00:29:34,260] sequences.
+[00:29:34,260 --> 00:29:37,500] And so yeah, you basically are batching it out,
+[00:29:37,500 --> 00:29:42,380] and you can just keep doing this for the entire input sequence.
+[00:29:42,380 --> 00:29:46,375] So one other thing is that you might ask,
+[00:29:46,375 --> 00:29:48,500] how does this work, if we have just a single output
+[00:29:48,500 --> 00:29:50,500] at the very end?
+[00:29:50,500 --> 00:29:54,320] So you can still calculate the gradients at each time step,
+[00:29:54,320 --> 00:29:59,540] but you will no longer have this loss that's
+[00:29:59,540 --> 00:30:02,420] dependent on the time step itself,
+[00:30:02,420 --> 00:30:04,040] the output of the time step itself,
+[00:30:04,040 --> 00:30:06,333] rather you'll be relying on upstream gradients.
+[00:30:06,333 --> 00:30:09,000] So you can imagine we're looking at the far right of the diagram
+[00:30:09,000 --> 00:30:11,120] here, and we have our loss that we
+[00:30:11,120 --> 00:30:13,800] calculate based on the output of the final time step.
+[00:30:13,800 --> 00:30:16,640] We can calculate what is the gradient with respect
+[00:30:16,640 --> 00:30:19,680] to our current hidden state at the end.
+[00:30:19,680 --> 00:30:23,800] And then we have our Whh matrix to help us understand
+[00:30:23,800 --> 00:30:27,480] how did the previous hidden state contribute
+[00:30:27,480 --> 00:30:30,420] to the final hidden state.
+[00:30:30,420 --> 00:30:34,240] And we can use that to calculate the gradient
+[00:30:34,240 --> 00:30:36,680] and understanding based on the previous hidden state
+[00:30:36,680 --> 00:30:37,700] and the weight matrix.
+[00:30:37,700 --> 00:30:42,000] How can we change this transformation matrix Whh such
+[00:30:42,000 --> 00:30:44,880] that we would be changing our loss?
+[00:30:44,880 --> 00:30:49,778] And then basically just applying the gradient rule to Whh
+[00:30:49,778 --> 00:30:50,820] over and over again here.
+[00:30:50,820 --> 00:30:53,112] And you're only looking at how the hidden state changed
+[00:30:53,112 --> 00:30:56,720] the next hidden state, and how that contributed to the loss.
+[00:30:56,720 --> 00:30:59,100] So you look at the final example here.
+[00:30:59,100 --> 00:31:01,080] This tells you how changing the hidden state
+[00:31:01,080 --> 00:31:04,040] depends on the loss, and then how the previous hidden states,
+[00:31:04,040 --> 00:31:06,020] how they change, how that affected
+[00:31:06,020 --> 00:31:10,220] the current hidden state which is given by this Whh matrix.
+[00:31:10,220 --> 00:31:14,100] So using different W's at each time step
+[00:31:14,100 --> 00:31:17,340] would essentially mean that you're no longer modeling it
+[00:31:17,340 --> 00:31:18,520] as a recurrence relation.
+[00:31:18,520 --> 00:31:22,300] So basically you can think of it as one layer
+[00:31:22,300 --> 00:31:24,900] for each different possible time step.
+[00:31:24,900 --> 00:31:28,580] So you would probably see worse performance
+[00:31:28,580 --> 00:31:33,860] because if you are no longer modeling it as a sequence
+[00:31:33,860 --> 00:31:35,923] recursively, you're just--
+[00:31:35,923 --> 00:31:37,340] imagine you train a neural network
+[00:31:37,340 --> 00:31:38,640] where you have a series of inputs,
+[00:31:38,640 --> 00:31:40,720] each one has a separate weight that it goes to--
+[00:31:40,720 --> 00:31:41,420] Independently.
+[00:31:41,420 --> 00:31:42,360] Yeah, independently.
+[00:31:42,360 --> 00:31:43,818] That would make sense for a problem
+[00:31:43,818 --> 00:31:45,960] where it's not a sequence modeling problem,
+[00:31:45,960 --> 00:31:49,740] you just have a set of things that you want to classify.
+[00:31:49,740 --> 00:31:52,920] You will need to know the amount of the sequence ahead of time.
+[00:31:52,920 --> 00:31:54,920] So I think it could work if it's not a sequence,
+[00:31:54,920 --> 00:31:59,300] but for sequences of variable length,
+[00:31:59,300 --> 00:32:03,440] I think it would not work very well because you're--
+[00:32:03,440 --> 00:32:06,663] I mean I'm trying to think of a simple way to explain it,
+[00:32:06,663 --> 00:32:08,080] but it's like you're just training
+[00:32:08,080 --> 00:32:10,660] one neural network for each time step,
+[00:32:10,660 --> 00:32:13,800] so it's not the way to formulate it.
+[00:32:13,800 --> 00:32:15,300] So how does this work with chunking?
+[00:32:15,300 --> 00:32:18,960] So we have our--
+[00:32:18,960 --> 00:32:21,560] do you understand how to this point, at the point
+[00:32:21,560 --> 00:32:24,800] right here where the red dot, we can calculate
+[00:32:24,800 --> 00:32:27,160] the gradient of the loss with respect
+[00:32:27,160 --> 00:32:29,000] to our final hidden state?
+[00:32:29,000 --> 00:32:32,240] So if we can do that, then we can calculate the gradient
+[00:32:32,240 --> 00:32:35,460] of our loss with respect to our second to final hidden state.
+[00:32:35,460 --> 00:32:37,280] Because we know our final hidden state
+[00:32:37,280 --> 00:32:40,160] is dependent on our previous hidden state times this weight
+[00:32:40,160 --> 00:32:42,300] matrix W.
+[00:32:42,300 --> 00:32:45,200] So we can do this and we can go back and forth until here.
+[00:32:45,200 --> 00:32:50,660] And at this point, all we need to save is this final step here.
+[00:32:50,660 --> 00:32:56,040] So what is the gradient of this very final or finals--
+[00:32:56,040 --> 00:32:57,580] maybe over using the word final.
+[00:32:57,580 --> 00:33:01,980] But what is the gradient of this initial hidden state
+[00:33:01,980 --> 00:33:05,320] within our truncated batch, with respect to the loss?
+[00:33:05,320 --> 00:33:07,280] And then when we're calculating backwards,
+[00:33:07,280 --> 00:33:10,420] we just use that value to calculate all the previous time
+[00:33:10,420 --> 00:33:11,140] steps.
+[00:33:11,140 --> 00:33:13,200] So that's the overall process.
+[00:33:13,200 --> 00:33:17,220] You're only looking at how the hidden state transforms
+[00:33:17,220 --> 00:33:19,820] to form the new hidden state, and that's the only value
+[00:33:19,820 --> 00:33:21,200] that's getting updated here.
+[00:33:23,940 --> 00:33:28,000] Yeah, and also how the input changes the hidden state.
+[00:33:28,000 --> 00:33:30,860] So you're looking at two values, both how the input affects it,
+[00:33:30,860 --> 00:33:33,380] and how the input affects the next hidden state
+[00:33:33,380 --> 00:33:36,240] and the previous hidden state.
+[00:33:36,240 --> 00:33:38,580] Sorry, there's two values, yeah.
+[00:33:38,580 --> 00:33:41,500] So the learning still occurs for all the batches.
+[00:33:41,500 --> 00:33:44,300] So you have your loss with respect
+[00:33:44,300 --> 00:33:49,080] to each of your parameters in W here.
+[00:33:49,080 --> 00:33:53,660] And then when you're calculating it for the previous time step,
+[00:33:53,660 --> 00:33:57,440] you basically keep this one value.
+[00:33:57,440 --> 00:33:59,580] If you change the initial hidden state here,
+[00:33:59,580 --> 00:34:00,460] how does that change the loss?
+[00:34:00,460 --> 00:34:01,960] You can calculate that, and then you
+[00:34:01,960 --> 00:34:04,722] can see how all the variables feeding into this, namely
+[00:34:04,722 --> 00:34:06,680] this original hidden state and the current time
+[00:34:06,680 --> 00:34:08,900] step, how will that affect the variable?
+[00:34:08,900 --> 00:34:11,580] But then when you're actually moving to the next chunk over,
+[00:34:11,580 --> 00:34:14,679] you only need to look at how does this hidden state here
+[00:34:14,679 --> 00:34:17,620] affect the hidden state on in the next chunk.
+[00:34:17,620 --> 00:34:19,659] So you're looking at this division boundary.
+[00:34:19,659 --> 00:34:21,320] The one variable you need to track over
+[00:34:21,320 --> 00:34:24,960] is what is the gradient of the hidden state that
+[00:34:24,960 --> 00:34:27,560] occurs after the chunk.
+[00:34:27,560 --> 00:34:29,199] And then you can use that to calculate
+[00:34:29,199 --> 00:34:31,157] the gradient of the current hidden state, which
+[00:34:31,157 --> 00:34:33,741] is dependent on the input x and the previous.
+[00:34:33,741 --> 00:34:35,699] So there's different ways you can formulate it,
+[00:34:35,699 --> 00:34:38,120] but you can imagine we just apply
+[00:34:38,120 --> 00:34:41,860] the update to all the weights here and we zero out the memory.
+[00:34:41,860 --> 00:34:46,620] The only thing we're tracking is this gradient right here.
+[00:34:46,620 --> 00:34:49,440] So you can apply, you can do gradient apply step
+[00:34:49,440 --> 00:34:51,550] where you apply all the gradients to the weights
+[00:34:51,550 --> 00:34:53,800] depend on the learning rate and your optimizer and all
+[00:34:53,800 --> 00:34:54,500] this stuff.
+[00:34:54,500 --> 00:34:56,739] And then you move on to calculating the next batch.
+[00:34:56,739 --> 00:34:59,020] So the reason why this isn't a perfect calculation
+[00:34:59,020 --> 00:35:03,380] is because you're calculating these independently rather than
+[00:35:03,380 --> 00:35:04,340] all at once.
+[00:35:04,340 --> 00:35:07,380] So you have three different updates rather than
+[00:35:07,380 --> 00:35:10,620] just one update at a time, but it should be--
+[00:35:10,620 --> 00:35:14,620] you still calculating the gradient for each step here.
+[00:35:14,620 --> 00:35:16,340] You keep one thing in memory, which
+[00:35:16,340 --> 00:35:19,670] is how does this hidden state-- the first one in the batch.
+[00:35:22,220 --> 00:35:24,580] How can you update the hidden state here
+[00:35:24,580 --> 00:35:26,920] to determine the loss?
+[00:35:26,920 --> 00:35:29,460] And we throw out all the other ones.
+[00:35:29,460 --> 00:35:31,500] So you have the weights in memory.
+[00:35:31,500 --> 00:35:34,580] You can apply the gradient, you do your learning rate multiply
+[00:35:34,580 --> 00:35:36,500] and you apply it to the weights.
+[00:35:36,500 --> 00:35:41,080] You'll also see a similar thing if you do distributed learning.
+[00:35:41,080 --> 00:35:43,740] So if you have a gradient calculated on each GPU
+[00:35:43,740 --> 00:35:47,140] separately, they will apply them all to the same set of weights
+[00:35:47,140 --> 00:35:49,320] even though they're calculated independently.
+[00:35:49,320 --> 00:35:52,720] So I think we have a lecture on distributed learning coming up.
+[00:35:52,720 --> 00:35:55,320] So it's a similar thing where you're not tracking it
+[00:35:55,320 --> 00:35:57,460] all in the same memory at the same time,
+[00:35:57,460 --> 00:36:01,140] and you're applying it to the weights one at a time.
+[00:36:01,140 --> 00:36:03,598] Yeah, it would be better if you could fit it all in memory.
+[00:36:03,598 --> 00:36:06,057] Yeah, it would be better if you could fit it all in memory.
+[00:36:06,057 --> 00:36:07,160] I mean, this is mainly--
+[00:36:07,160 --> 00:36:09,340] for this one, it's essentially the same.
+[00:36:09,340 --> 00:36:11,400] But in this setting maybe it's more clear
+[00:36:11,400 --> 00:36:14,080] how you're explicitly losing information.
+[00:36:14,080 --> 00:36:19,600] So here, you're only looking at some of the outputs at a time.
+[00:36:19,600 --> 00:36:22,760] So it's really clear how we're not
+[00:36:22,760 --> 00:36:26,640] looking at the entire set of the losses
+[00:36:26,640 --> 00:36:28,520] when we're calculating, because there's
+[00:36:28,520 --> 00:36:30,020] losses at each time step.
+[00:36:30,020 --> 00:36:32,620] So you lose information here, but in this case,
+[00:36:32,620 --> 00:36:34,880] you wouldn't lose information.
+[00:36:34,880 --> 00:36:37,240] I think one more practical example where
+[00:36:37,240 --> 00:36:39,560] we can't fit the whole RNN on the slide
+[00:36:39,560 --> 00:36:42,040] is this idea of a character level language model.
+[00:36:42,040 --> 00:36:43,960] And it's really funny because these
+[00:36:43,960 --> 00:36:48,480] were shown to be quite effective 10 years ago.
+[00:36:48,480 --> 00:36:50,160] And it's really funny because you
+[00:36:50,160 --> 00:36:53,150] can see how the current wave of language models
+[00:36:53,150 --> 00:36:56,230] are a build up of this really simple approach of just
+[00:36:56,230 --> 00:36:58,830] predicting characters with RNNs.
+[00:36:58,830 --> 00:37:01,330] So usually when you do a model like this,
+[00:37:01,330 --> 00:37:05,070] you will input your characters, and then people
+[00:37:05,070 --> 00:37:10,750] call this a one hot encoding where you basically have one--
+[00:37:10,750 --> 00:37:12,750] you have a one in your vector and zeros
+[00:37:12,750 --> 00:37:14,370] in every other location.
+[00:37:14,370 --> 00:37:16,790] So it's the index here.
+[00:37:16,790 --> 00:37:18,910] You can encode this as the index,
+[00:37:18,910 --> 00:37:22,010] and then we can use these as inputs.
+[00:37:22,010 --> 00:37:23,630] And we can calculate our hidden layers
+[00:37:23,630 --> 00:37:25,510] based on the previous hidden layer as well
+[00:37:25,510 --> 00:37:28,550] as the current input.
+[00:37:28,550 --> 00:37:30,510] And then we have our output layer the same
+[00:37:30,510 --> 00:37:33,630] where now we can look at, what is
+[00:37:33,630 --> 00:37:37,390] the output for the corresponding correct value
+[00:37:37,390 --> 00:37:39,290] here, which is taken as the next time step.
+[00:37:39,290 --> 00:37:42,590] So we want the output for example to be e,
+[00:37:42,590 --> 00:37:45,012] we map it over here we look at--
+[00:37:45,012 --> 00:37:46,970] you can imagine this is something like softmax,
+[00:37:46,970 --> 00:37:50,050] and we have the logits, so these are the scores.
+[00:37:50,050 --> 00:37:52,670] 2.2, it's lower than 4.1.
+[00:37:52,670 --> 00:37:57,290] So yeah, we have-- this is maybe not
+[00:37:57,290 --> 00:37:59,290] so great of an output at this time step,
+[00:37:59,290 --> 00:38:00,550] and so on and so forth.
+[00:38:00,550 --> 00:38:03,650] So you can really view this as a time step wise classification
+[00:38:03,650 --> 00:38:04,310] problem.
+[00:38:04,310 --> 00:38:09,210] And that's exactly what in general, these language models
+[00:38:09,210 --> 00:38:14,490] are doing, is time step wise classification based on softmax.
+[00:38:14,490 --> 00:38:17,410] So at test time, the basic idea is
+[00:38:17,410 --> 00:38:19,668] we need to also sample characters one at a time
+[00:38:19,668 --> 00:38:21,210] and just feed it back into the model,
+[00:38:21,210 --> 00:38:25,170] so it sees what it generated at the previous time step,
+[00:38:25,170 --> 00:38:29,590] so on and so forth, repeating until we generate the words.
+[00:38:29,590 --> 00:38:36,930] So you can actually create RNNs to do this basic language
+[00:38:36,930 --> 00:38:39,110] modeling task by operating at a character level,
+[00:38:39,110 --> 00:38:40,570] and it works quite well.
+[00:38:40,570 --> 00:38:44,570] One thing to note is that in terms of this input layer,
+[00:38:44,570 --> 00:38:47,450] usually we don't actually input one hot embeddings
+[00:38:47,450 --> 00:38:49,110] into the model, and instead we'll
+[00:38:49,110 --> 00:38:52,310] have something called an embedding layer where
+[00:38:52,310 --> 00:38:57,310] this is essentially just a giant matrix, which is the dimensions.
+[00:38:57,310 --> 00:39:00,290] It's D by D, where D is the number of different inputs
+[00:39:00,290 --> 00:39:01,710] you have to your model.
+[00:39:01,710 --> 00:39:04,390] And what you do is you can imagine
+[00:39:04,390 --> 00:39:08,165] this as a matrix multiply where we grab the first row,
+[00:39:08,165 --> 00:39:09,790] or in this case, we grab the second row
+[00:39:09,790 --> 00:39:14,410] of our embedding matrix based on what our input sample is here.
+[00:39:14,410 --> 00:39:17,710] And we just use this as a matrix multiply.
+[00:39:17,710 --> 00:39:19,972] This is incorrect, actually, this one
+[00:39:19,972 --> 00:39:21,430] should be higher probability, yeah.
+[00:39:23,737 --> 00:39:26,070] It's Funny, We've had these slides for quite a few years
+[00:39:26,070 --> 00:39:29,350] and I guess no one noticed it.
+[00:39:29,350 --> 00:39:34,350] Anyway, so we have E here as our target character.
+[00:39:34,350 --> 00:39:37,168] And so in this case, you're correct that the model is
+[00:39:37,168 --> 00:39:38,710] actually getting it wrong, so we will
+[00:39:38,710 --> 00:39:40,585] want to penalize it heavy for this time step.
+[00:39:40,585 --> 00:39:43,150] Yeah, that's a good question.
+[00:39:43,150 --> 00:39:45,990] Yeah, so one of the nice things about this implementation
+[00:39:45,990 --> 00:39:47,230] is also it's really simple.
+[00:39:47,230 --> 00:39:49,710] So it's 112 lines of Python code,
+[00:39:49,710 --> 00:39:52,870] and you can train these models on a variety of different tasks.
+[00:39:52,870 --> 00:39:56,150] So this is the pre-LLM era of what you could do.
+[00:39:56,150 --> 00:39:58,590] You can train it on sonnets by William Shakespeare.
+[00:39:58,590 --> 00:40:00,410] And as I mentioned, there's a blog post
+[00:40:00,410 --> 00:40:03,330] by former instructor of this course, Andrej Karpathy, back
+[00:40:03,330 --> 00:40:07,850] in 2015, which talked about how these RNNs are unreasonably
+[00:40:07,850 --> 00:40:09,930] effective at what they do in generating text.
+[00:40:09,930 --> 00:40:10,430] Yeah?
+[00:40:10,430 --> 00:40:14,570] Could you explain again, why you use an embedding layer?
+[00:40:14,570 --> 00:40:16,610] Yeah, so the basic idea for an embedding layer
+[00:40:16,610 --> 00:40:19,290] is that generally it's better to have vectors as input
+[00:40:19,290 --> 00:40:20,620] to our models.
+[00:40:20,620 --> 00:40:22,870] And you can learn what these embedding layers are too.
+[00:40:22,870 --> 00:40:26,810] So we tend to favor spread out weights in general
+[00:40:26,810 --> 00:40:28,540] when we're trying to learn these.
+[00:40:28,540 --> 00:40:30,290] So you can initialize your embedding layer
+[00:40:30,290 --> 00:40:34,217] to this very small zero values with something like the Kaiming
+[00:40:34,217 --> 00:40:35,550] initialization, we talked about.
+[00:40:35,550 --> 00:40:37,050] And then you're just looking at one row of it
+[00:40:37,050 --> 00:40:38,730] at a time as your input vector, rather
+[00:40:38,730 --> 00:40:41,890] than it being a number as input, how
+[00:40:41,890 --> 00:40:43,930] you would have to represent that is basically
+[00:40:43,930 --> 00:40:47,830] a one with a bunch of zeros and optimization only the embedding
+[00:40:47,830 --> 00:40:48,610] works better.
+[00:40:53,415 --> 00:40:55,790] So yeah, you can do it in 112 lines of python code, which
+[00:40:55,790 --> 00:40:56,950] is pretty neat.
+[00:40:56,950 --> 00:40:59,070] You can train it on Sonnets by William Shakespeare
+[00:40:59,070 --> 00:41:00,998] and it'll actually output reasonable text.
+[00:41:00,998 --> 00:41:02,290] We'll go through some examples.
+[00:41:02,290 --> 00:41:03,990] So one of the cool things is you can
+[00:41:03,990 --> 00:41:05,448] see as you train the model more, it
+[00:41:05,448 --> 00:41:06,910] becomes more and more coherent.
+[00:41:06,910 --> 00:41:09,190] So at the beginning, it's basically just gibberish
+[00:41:09,190 --> 00:41:11,750] because it hasn't learned proper values for W.
+[00:41:11,750 --> 00:41:15,230] And then as you train it more and more, it becomes more
+[00:41:15,230 --> 00:41:17,790] like the stage III, looks like English, at least some
+[00:41:17,790 --> 00:41:19,085] of the words are there.
+[00:41:19,085 --> 00:41:20,710] And then as you train more, it actually
+[00:41:20,710 --> 00:41:22,750] starts working really well, which
+[00:41:22,750 --> 00:41:25,230] this is I guess was a bit of foreshadowing
+[00:41:25,230 --> 00:41:30,310] for what was to come in the era of AI, which is pretty cool.
+[00:41:30,310 --> 00:41:32,550] You can see full on, it learns things
+[00:41:32,550 --> 00:41:36,510] about the style, how you should have someone's name,
+[00:41:36,510 --> 00:41:40,435] and how something that seems fairly plausible as you
+[00:41:40,435 --> 00:41:41,810] have it generating more and more,
+[00:41:41,810 --> 00:41:43,352] it starts making less and less sense,
+[00:41:43,352 --> 00:41:45,930] but it's pretty cool to see.
+[00:41:45,930 --> 00:41:50,110] You can train it on code, like I think in this example,
+[00:41:50,110 --> 00:41:51,480] they trained it on Linux.
+[00:41:51,480 --> 00:41:53,230] So there's just the source code for Linux.
+[00:41:53,230 --> 00:41:55,188] They trained one of these character level RNNs,
+[00:41:55,188 --> 00:41:59,332] and you can see it generating C code, which looks pretty good.
+[00:41:59,332 --> 00:42:00,790] I don't know if this would compile,
+[00:42:00,790 --> 00:42:03,410] but it looks reasonable just looking at it.
+[00:42:03,410 --> 00:42:07,950] And this idea has really taken off over the past few years.
+[00:42:07,950 --> 00:42:12,570] So I mean, I'm sure you all know it especially since a lot of you
+[00:42:12,570 --> 00:42:14,850] work in computer science or coding or your students
+[00:42:14,850 --> 00:42:18,370] in this area, but there's all of these different programming
+[00:42:18,370 --> 00:42:20,410] tools now for these language models
+[00:42:20,410 --> 00:42:22,770] that were essentially trained on a similar task
+[00:42:22,770 --> 00:42:26,850] where they consumed a bunch of this training data
+[00:42:26,850 --> 00:42:29,513] that's just existing code, and instead of trying to predict
+[00:42:29,513 --> 00:42:30,930] the next character, they're trying
+[00:42:30,930 --> 00:42:33,950] to predict the next token, which is a group of characters.
+[00:42:33,950 --> 00:42:35,950] And how they define tokens depends on the model,
+[00:42:35,950 --> 00:42:37,670] and there's a lot of details we could get into there.
+[00:42:37,670 --> 00:42:39,430] But at a high level, it's a really similar thing,
+[00:42:39,430 --> 00:42:41,263] they're just predicting groups of characters
+[00:42:41,263 --> 00:42:43,113] autoregressively one after the next.
+[00:42:43,113 --> 00:42:45,030] And it's really seen a blow up in recent years
+[00:42:45,030 --> 00:42:46,850] with all these existing tools.
+[00:42:46,850 --> 00:42:47,350] Yeah?
+[00:42:51,030 --> 00:42:52,650] What is the input to the model?
+[00:42:52,650 --> 00:42:54,030] Is It like a trigger.
+[00:42:54,030 --> 00:42:55,530] Oh, what like for this?
+[00:42:55,530 --> 00:42:56,030] Yeah.
+[00:42:56,030 --> 00:42:58,990] You could have the input be--
+[00:42:58,990 --> 00:43:01,450] you just-- maybe you start with a random character.
+[00:43:01,450 --> 00:43:03,150] Could be one way to do it, but you
+[00:43:03,150 --> 00:43:05,230] would need some initial input.
+[00:43:05,230 --> 00:43:08,550] There could be-- usually with language models
+[00:43:08,550 --> 00:43:11,353] they have a start token as a predetermined.
+[00:43:11,353 --> 00:43:13,770] This is always what you see at the start of your sequence.
+[00:43:13,770 --> 00:43:15,490] So you could do a similar things with RNNs.
+[00:43:15,490 --> 00:43:17,573] I don't know in this exact scenario what they did.
+[00:43:17,573 --> 00:43:20,288] Maybe they just did a character, but it's hard to know.
+[00:43:20,288 --> 00:43:21,830] So the question is, how does labeling
+[00:43:21,830 --> 00:43:22,930] work with language models?
+[00:43:22,930 --> 00:43:25,750] And the neat thing about these pure language
+[00:43:25,750 --> 00:43:28,250] models, all they're doing is just predicting the next token.
+[00:43:28,250 --> 00:43:29,470] You don't need to label it, you just
+[00:43:29,470 --> 00:43:30,970] need to give it a lot of text.
+[00:43:30,970 --> 00:43:32,490] That's why these models are so good,
+[00:43:32,490 --> 00:43:35,950] is because they scrape the internet for essentially all
+[00:43:35,950 --> 00:43:38,610] available text, and then they train the model on all of it.
+[00:43:38,610 --> 00:43:40,848] So that's why they're so good.
+[00:43:40,848 --> 00:43:42,890] It's because it's just generating the next token,
+[00:43:42,890 --> 00:43:44,182] and you don't need to label it.
+[00:43:44,182 --> 00:43:46,610] So that's why language models are so good.
+[00:43:46,610 --> 00:43:49,170] So the question is, if we're always
+[00:43:49,170 --> 00:43:53,130] taking the maximum probability output at each time step,
+[00:43:53,130 --> 00:43:56,577] we always just be generating the same thing over and over again.
+[00:43:56,577 --> 00:43:57,910] And the answer is yes, actually.
+[00:43:57,910 --> 00:44:01,490] So if you just took the maximum probability,
+[00:44:01,490 --> 00:44:03,790] I guess this example is not so good.
+[00:44:03,790 --> 00:44:05,770] But imagine the probabilities are correct here
+[00:44:05,770 --> 00:44:08,270] and you just took the maximum probability at each time step.
+[00:44:08,270 --> 00:44:10,062] You would always be getting the same output
+[00:44:10,062 --> 00:44:11,070] given the same input.
+[00:44:11,070 --> 00:44:12,570] In practice what people do, is they
+[00:44:12,570 --> 00:44:14,693] don't do this is called greedy decoding,
+[00:44:14,693 --> 00:44:16,610] you're always picking the maximum probability.
+[00:44:16,610 --> 00:44:18,967] In practice, they sample based on a distribution,
+[00:44:18,967 --> 00:44:21,050] the distribution given by the probabilities output
+[00:44:21,050 --> 00:44:22,107] by your softmax.
+[00:44:22,107 --> 00:44:23,690] So you won't pick the max probability,
+[00:44:23,690 --> 00:44:28,790] you would pick say in this case probability 0.84 for this one,
+[00:44:28,790 --> 00:44:32,710] or probability 0.13 for this other output variable.
+[00:44:32,710 --> 00:44:34,910] And then you would run that for each sequence.
+[00:44:34,910 --> 00:44:37,243] And there's a bunch of different ways you can do it too.
+[00:44:37,243 --> 00:44:38,210] You can search ahead.
+[00:44:38,210 --> 00:44:39,750] It's called beam searching, where you're
+[00:44:39,750 --> 00:44:41,333] trying different ones and seeing which
+[00:44:41,333 --> 00:44:43,930] one has the highest overall probability for the sequence.
+[00:44:43,930 --> 00:44:46,810] So there's a lot of-- this is a whole active area of research,
+[00:44:46,810 --> 00:44:48,490] how do you sample from these models?
+[00:44:48,490 --> 00:44:50,350] But the simple answer is you don't always
+[00:44:50,350 --> 00:44:52,430] pick the highest probability.
+[00:44:52,430 --> 00:44:55,390] Yeah, so the question is in the case where we have many to one
+[00:44:55,390 --> 00:44:57,670] outputs, are we outputting something each time
+[00:44:57,670 --> 00:44:59,410] or do we have something to look at here?
+[00:44:59,410 --> 00:45:01,310] So I think in practice to save compute
+[00:45:01,310 --> 00:45:03,730] you wouldn't want to output something that's never used.
+[00:45:03,730 --> 00:45:05,880] But you could feasibly output at each time step.
+[00:45:05,880 --> 00:45:08,130] And it might be interesting depending on your problem,
+[00:45:08,130 --> 00:45:10,872] to look at that and understand, is the output converging
+[00:45:10,872 --> 00:45:12,330] over the course of training or not?
+[00:45:12,330 --> 00:45:13,163] Something like that.
+[00:45:13,163 --> 00:45:15,250] So it might be useful to look at,
+[00:45:15,250 --> 00:45:17,930] but generally people wouldn't do it just to save compute.
+[00:45:17,930 --> 00:45:19,630] But it could be useful, actually yeah.
+[00:45:19,630 --> 00:45:21,370] It could help you understand the way your model works.
+[00:45:21,370 --> 00:45:23,590] If there's certain triggers or things that help
+[00:45:23,590 --> 00:45:27,630] it predict the correct answer.
+[00:45:27,630 --> 00:45:30,730] Cool, good questions.
+[00:45:30,730 --> 00:45:34,110] So we'll keep on chugging along.
+[00:45:34,110 --> 00:45:36,090] We talked about these RNNs, how good they
+[00:45:36,090 --> 00:45:37,533] are at generating characters.
+[00:45:37,533 --> 00:45:39,450] We related them to some of these modern coding
+[00:45:39,450 --> 00:45:41,050] tools, which are really neat.
+[00:45:41,050 --> 00:45:42,970] One of the cool things also about RNNs
+[00:45:42,970 --> 00:45:46,905] is you can look at the activation values,
+[00:45:46,905 --> 00:45:48,530] and they'll actually sometimes tell you
+[00:45:48,530 --> 00:45:50,697] interesting things about what the model is tracking.
+[00:45:50,697 --> 00:45:55,010] So in our little toy example, we looked at the output activations
+[00:45:55,010 --> 00:45:57,810] , and you would see it's the current value and the previous
+[00:45:57,810 --> 00:45:58,310] value.
+[00:45:58,310 --> 00:46:02,090] That was what the RNN states or cells were tracking.
+[00:46:02,090 --> 00:46:05,722] What you can also do is give it basically a sequence here.
+[00:46:05,722 --> 00:46:07,430] And the models I'll show in these slides,
+[00:46:07,430 --> 00:46:11,970] it's using a tanh activation, so this is from 1 to minus 1,
+[00:46:11,970 --> 00:46:16,090] and minus 1 means it's visualized as red here, and very
+[00:46:16,090 --> 00:46:18,450] close to one would be blue.
+[00:46:18,450 --> 00:46:20,050] We get the whole spectrum here.
+[00:46:20,050 --> 00:46:21,730] And you can look at--
+[00:46:21,730 --> 00:46:23,250] for each character coming in, what
+[00:46:23,250 --> 00:46:26,500] is the activation of that cell at that time step?
+[00:46:26,500 --> 00:46:28,750] And so that's how their color coding these plots here.
+[00:46:28,750 --> 00:46:30,470] This one's not really showing anything, it's random.
+[00:46:30,470 --> 00:46:32,070] A lot of them won't be interpretable.
+[00:46:32,070 --> 00:46:34,750] But some of them have pretty cool things that you can track.
+[00:46:34,750 --> 00:46:37,410] For example, this one's a quote detector,
+[00:46:37,410 --> 00:46:40,110] so it turns on basically as soon as the quote starts
+[00:46:40,110 --> 00:46:42,410] and it ends when the quote ends.
+[00:46:42,410 --> 00:46:44,610] So this is basically something in the RNN tracking,
+[00:46:44,610 --> 00:46:46,750] we need to have an end quote at some point.
+[00:46:46,750 --> 00:46:50,550] And when to put it is something the model
+[00:46:50,550 --> 00:46:53,190] is trying to figure out, but it's tracking it.
+[00:46:53,190 --> 00:46:57,650] Another cool thing is the line length tracking cell.
+[00:46:57,650 --> 00:47:02,930] So it starts very high value.
+[00:47:02,930 --> 00:47:05,010] And then it becomes a very low value as you
+[00:47:05,010 --> 00:47:06,510] near where the model thinks there'll
+[00:47:06,510 --> 00:47:08,190] be a new line character.
+[00:47:08,190 --> 00:47:13,370] So this is also cool as a way to look at this other value.
+[00:47:13,370 --> 00:47:15,430] And these are, again, just single activations
+[00:47:15,430 --> 00:47:18,910] in a layer of this model that we're looking at, and mapping it
+[00:47:18,910 --> 00:47:20,690] to each character.
+[00:47:20,690 --> 00:47:23,270] So it's highly interpretable.
+[00:47:23,270 --> 00:47:25,450] They have this if statement cell.
+[00:47:25,450 --> 00:47:27,150] So anything within an if statement
+[00:47:27,150 --> 00:47:29,670] is being tracked here, which is also pretty cool.
+[00:47:29,670 --> 00:47:33,290] And even things like detecting quotes or comments
+[00:47:33,290 --> 00:47:36,850] because it needs to know to output the end of comment
+[00:47:36,850 --> 00:47:37,670] character here.
+[00:47:37,670 --> 00:47:39,750] So it's something it needs to track.
+[00:47:39,750 --> 00:47:42,310] And so you have this nice interpretable cell as well.
+[00:47:42,310 --> 00:47:44,710] And then finally this code depth cell.
+[00:47:44,710 --> 00:47:47,870] So as you have nesting in your code,
+[00:47:47,870 --> 00:47:51,610] it activates more and more at each time step,
+[00:47:51,610 --> 00:47:53,690] at each not time step, at each step
+[00:47:53,690 --> 00:47:58,170] into the indentation into your code hierarchy.
+[00:47:58,170 --> 00:47:59,750] So yeah, this is pretty neat.
+[00:47:59,750 --> 00:48:01,530] You can actually look at the activations
+[00:48:01,530 --> 00:48:03,130] and directly map them onto the inputs
+[00:48:03,130 --> 00:48:06,770] without needing to do any fancy tricks, which is actually pretty
+[00:48:06,770 --> 00:48:08,490] incredible, if you think about how
+[00:48:08,490 --> 00:48:10,953] interpretable some of these hidden states are in the RNN.
+[00:48:10,953 --> 00:48:13,370] It's actually somewhat similar to what we were doing where
+[00:48:13,370 --> 00:48:14,830] we were manually assigning it.
+[00:48:14,830 --> 00:48:19,410] But the RNN is internally doing a very similar process.
+[00:48:19,410 --> 00:48:22,050] Cool, so I'll talk about now some of the trade
+[00:48:22,050 --> 00:48:25,530] offs why you might want to use an RNN, when is it helpful.
+[00:48:25,530 --> 00:48:29,390] So the nice thing is they can process any length of input.
+[00:48:29,390 --> 00:48:31,563] So a lot of these modern language models
+[00:48:31,563 --> 00:48:33,230] that rely on transformers have something
+[00:48:33,230 --> 00:48:36,070] called a context length or context window, maximum context
+[00:48:36,070 --> 00:48:37,510] window.
+[00:48:37,510 --> 00:48:38,530] RNNs don't have this.
+[00:48:38,530 --> 00:48:40,890] They can just take a sequence of infinite length,
+[00:48:40,890 --> 00:48:43,710] essentially, as long as you can keep running the model on it.
+[00:48:43,710 --> 00:48:46,350] So there's no context length limit.
+[00:48:46,350 --> 00:48:50,030] The computation for the time step, t
+[00:48:50,030 --> 00:48:52,190] can, in theory, use information from many steps
+[00:48:52,190 --> 00:48:54,470] back if it's captured in the hidden state.
+[00:48:54,470 --> 00:48:56,430] So if your model is effectively capturing
+[00:48:56,430 --> 00:48:58,030] all of the dynamics of your input
+[00:48:58,030 --> 00:48:59,670] sequence in the hidden state, in theory
+[00:48:59,670 --> 00:49:02,350] it can use values from an extremely long time ago.
+[00:49:02,350 --> 00:49:04,750] But in practice, there might be some issues
+[00:49:04,750 --> 00:49:08,990] with this, which we'll go into some details there.
+[00:49:08,990 --> 00:49:13,490] Also, the model size does not increase for a longer input.
+[00:49:13,490 --> 00:49:16,230] So we had an example where, what if you just
+[00:49:16,230 --> 00:49:20,170] had a different layer for each input time step?
+[00:49:20,170 --> 00:49:22,230] You don't have this issue, which is nice.
+[00:49:22,230 --> 00:49:25,130] And then we're applying the same weights at each time step.
+[00:49:25,130 --> 00:49:27,325] So basically, we know the update rule
+[00:49:27,325 --> 00:49:29,950] for how we calculate the outputs is the same every single time.
+[00:49:29,950 --> 00:49:32,848] So there's some nice symmetry here.
+[00:49:32,848 --> 00:49:35,390] And also, just when you think conceptually about the problem,
+[00:49:35,390 --> 00:49:36,290] you're always doing the same thing
+[00:49:36,290 --> 00:49:38,930] at every single time step, which is nice conceptually
+[00:49:38,930 --> 00:49:42,570] and also helps with some implementation as well.
+[00:49:42,570 --> 00:49:44,270] So what are the main disadvantages?
+[00:49:44,270 --> 00:49:48,690] So you need to compute the previous hidden state to compute
+[00:49:48,690 --> 00:49:50,970] the next one every single time.
+[00:49:50,970 --> 00:49:55,830] So this can be slow if you need to.
+[00:49:55,830 --> 00:49:58,930] Each hidden state is determined and is conditioned
+[00:49:58,930 --> 00:50:02,410] on all the previous ones, then this recurrence computation
+[00:50:02,410 --> 00:50:05,550] can actually end up taking a lot of time.
+[00:50:05,550 --> 00:50:08,690] So although this is not an issue during inference time
+[00:50:08,690 --> 00:50:10,750] when you're always-- like for a transformer,
+[00:50:10,750 --> 00:50:12,570] also you have this issue where you
+[00:50:12,570 --> 00:50:16,150] need to output the next token or character every single time,
+[00:50:16,150 --> 00:50:17,970] but at training time, it's actually
+[00:50:17,970 --> 00:50:21,890] difficult to batch all of these together and during training
+[00:50:21,890 --> 00:50:24,470] because in order to calculate the loss,
+[00:50:24,470 --> 00:50:27,440] you need to calculate the previous hidden states.
+[00:50:27,440 --> 00:50:32,400] So this can pose challenges for scaling up to a lot of data.
+[00:50:32,400 --> 00:50:34,800] And then in practice, it's actually
+[00:50:34,800 --> 00:50:37,400] difficult to access information many time steps back
+[00:50:37,400 --> 00:50:40,120] because we have a fixed size hidden state,
+[00:50:40,120 --> 00:50:42,730] and we're trying to cram all the information into it.
+[00:50:42,730 --> 00:50:44,480] So you'll eventually lose some information
+[00:50:44,480 --> 00:50:46,270] as your sequence goes longer and longer.
+[00:50:49,160 --> 00:50:52,560] Cool, I'll talk about some applications more specific
+[00:50:52,560 --> 00:50:56,200] to computer vision, where RNNs have seen success now.
+[00:50:56,200 --> 00:50:58,103] So one of them is image captioning,
+[00:50:58,103 --> 00:50:59,020] which we talked about.
+[00:50:59,020 --> 00:51:02,040] So the basic thing here is we mentioned
+[00:51:02,040 --> 00:51:05,000] there's this start token or start character which
+[00:51:05,000 --> 00:51:06,300] begins the sequence.
+[00:51:06,300 --> 00:51:08,800] And then you will terminate when you have this end character
+[00:51:08,800 --> 00:51:09,940] or end token.
+[00:51:09,940 --> 00:51:13,040] In this case, it seems like it's word level tokens.
+[00:51:13,040 --> 00:51:16,840] So you could have a model like this.
+[00:51:16,840 --> 00:51:19,080] The most basic way to do it is you
+[00:51:19,080 --> 00:51:22,080] essentially have a CNN or something that encodes,
+[00:51:22,080 --> 00:51:24,580] a visual encoder, that encodes the image,
+[00:51:24,580 --> 00:51:28,780] and we use that as input to our recurrent neural network
+[00:51:28,780 --> 00:51:32,220] as well as the previous text that was generated.
+[00:51:32,220 --> 00:51:33,840] So we have two stages here.
+[00:51:33,840 --> 00:51:36,180] And very more concretely, how would you
+[00:51:36,180 --> 00:51:37,680] combine the CNN and RNN?
+[00:51:37,680 --> 00:51:39,680] You can imagine you have this test image.
+[00:51:39,680 --> 00:51:43,780] It comes in, so your model's going downwards here,
+[00:51:43,780 --> 00:51:45,580] starting at the first layers at the top
+[00:51:45,580 --> 00:51:47,020] and then moving downwards.
+[00:51:47,020 --> 00:51:49,140] You can imagine this is something that was trained
+[00:51:49,140 --> 00:51:51,420] on ImageNet or something.
+[00:51:51,420 --> 00:51:53,960] And so we're not going to use the class labels,
+[00:51:53,960 --> 00:51:56,120] but we're going to use this second to last layer.
+[00:51:56,120 --> 00:51:58,220] This is the common strategy we saw
+[00:51:58,220 --> 00:52:00,180] for transfer learning as well, or this
+[00:52:00,180 --> 00:52:04,420] getting good visual representations of images.
+[00:52:04,420 --> 00:52:06,820] So we use the second to last layer.
+[00:52:06,820 --> 00:52:11,560] And then we can start using this as input to our hidden state.
+[00:52:11,560 --> 00:52:13,660] And now our hidden state is also a function
+[00:52:13,660 --> 00:52:18,680] of this Wih value here.
+[00:52:18,680 --> 00:52:23,340] So we don't necessarily have just a hidden state,
+[00:52:23,340 --> 00:52:27,100] we're also tracking the visual components here.
+[00:52:27,100 --> 00:52:28,760] But I won't spend too much time on this
+[00:52:28,760 --> 00:52:31,860] because this won't be in any of the assignments,
+[00:52:31,860 --> 00:52:33,640] but just to give you a flavor of here's
+[00:52:33,640 --> 00:52:35,740] how RNNs were used historically with CNNs,
+[00:52:35,740 --> 00:52:37,820] where we're taking a CNN pre-trained on ImageNet,
+[00:52:37,820 --> 00:52:39,487] and now we're including this information
+[00:52:39,487 --> 00:52:41,680] into the hidden state as well.
+[00:52:41,680 --> 00:52:44,480] So we use the sampling process, either greedy sampling,
+[00:52:44,480 --> 00:52:46,720] some other version of sampling to calculate
+[00:52:46,720 --> 00:52:48,220] the tokens at each time step.
+[00:52:48,220 --> 00:52:50,745] We end it when we have this end token.
+[00:52:50,745 --> 00:52:52,120] Whenever we sample the end token,
+[00:52:52,120 --> 00:52:53,720] that's how we know when to finish.
+[00:52:53,720 --> 00:52:56,180] And these models actually worked very well for the time.
+[00:52:56,180 --> 00:52:58,860] I think they had a lot of great successes.
+[00:52:58,860 --> 00:53:02,040] So you can see here a lot of nice examples of where
+[00:53:02,040 --> 00:53:05,400] the model's outputting very reasonable captions based
+[00:53:05,400 --> 00:53:10,480] on the input image, but also they the models would struggle
+[00:53:10,480 --> 00:53:11,960] in a lot of scenarios too.
+[00:53:11,960 --> 00:53:16,520] So a lot of these have to do with the distribution of where
+[00:53:16,520 --> 00:53:19,300] these images are commonly seen in the training data.
+[00:53:19,300 --> 00:53:22,700] For example, someone holding something with their hands
+[00:53:22,700 --> 00:53:27,040] cupped like this very much looks how they might hold a mouse.
+[00:53:27,040 --> 00:53:31,860] But obviously, we can tell this is a phone because it's
+[00:53:31,860 --> 00:53:34,880] a flat object they're holding, and their hand is facing up,
+[00:53:34,880 --> 00:53:36,080] not downwards.
+[00:53:36,080 --> 00:53:39,260] So this thing is interesting to see.
+[00:53:39,260 --> 00:53:41,380] Also, I guess they think the woman's holding
+[00:53:41,380 --> 00:53:46,700] a cat where she's just wearing some fur clothing.
+[00:53:46,700 --> 00:53:49,760] They see a beach, so they assume there's a surfboard.
+[00:53:49,760 --> 00:53:51,520] This type of hallucination, I would say,
+[00:53:51,520 --> 00:53:54,260] is still extremely common with vision language models
+[00:53:54,260 --> 00:53:58,340] today, where it'll think there's objects present that
+[00:53:58,340 --> 00:54:00,080] are commonly present in a given scene,
+[00:54:00,080 --> 00:54:03,140] but aren't in this particular scene that you're looking at.
+[00:54:03,140 --> 00:54:05,340] Also, things like bird being perched in a tree
+[00:54:05,340 --> 00:54:07,960] or throwing a ball, but he's catching a ball.
+[00:54:07,960 --> 00:54:11,080] These are all based on the bias in the data set, essentially,
+[00:54:11,080 --> 00:54:14,340] and the model learning that during training, it
+[00:54:14,340 --> 00:54:16,140] is most probably true that a certain object
+[00:54:16,140 --> 00:54:17,900] or a certain action is being performed
+[00:54:17,900 --> 00:54:20,800] when in the actual image it's not the case.
+[00:54:20,800 --> 00:54:25,160] So in the data set, there's high co-occurrence
+[00:54:25,160 --> 00:54:27,577] of these actions or objects with the particular scene.
+[00:54:27,577 --> 00:54:29,160] So the model learns to associate them,
+[00:54:29,160 --> 00:54:30,900] but it doesn't learn to disentangle.
+[00:54:30,900 --> 00:54:33,828] It's happening in this scene because of the-- in this scene,
+[00:54:33,828 --> 00:54:36,120] we know they're not throwing because the glove is here,
+[00:54:36,120 --> 00:54:38,780] and the ball is going into the glove, not on the other hand,
+[00:54:38,780 --> 00:54:40,723] but you need to explain it like that.
+[00:54:40,723 --> 00:54:42,140] And the way we train these models,
+[00:54:42,140 --> 00:54:44,180] we're training them just to output the caption.
+[00:54:44,180 --> 00:54:46,020] So we're not doing any explanation there,
+[00:54:46,020 --> 00:54:47,840] and that's why it's part of the reason you
+[00:54:47,840 --> 00:54:51,680] see this co-occurrence issue.
+[00:54:51,680 --> 00:54:55,300] So for visual question answering,
+[00:54:55,300 --> 00:54:57,820] this is another really common task where RNNs were used,
+[00:54:57,820 --> 00:55:01,520] and there are two formulations for visual question answering
+[00:55:01,520 --> 00:55:03,220] that were commonly used.
+[00:55:03,220 --> 00:55:05,880] One is to basically, you say you have
+[00:55:05,880 --> 00:55:08,160] a model that is a captioning model,
+[00:55:08,160 --> 00:55:12,020] and you want to see how well it could answer questions.
+[00:55:12,020 --> 00:55:14,658] One thing you could do is to give it this question,
+[00:55:14,658 --> 00:55:16,200] and then have it output text and look
+[00:55:16,200 --> 00:55:19,520] at the probabilities of each of the answer sequences.
+[00:55:19,520 --> 00:55:21,920] So you have a probability for each character or token,
+[00:55:21,920 --> 00:55:23,420] and you could multiply them together
+[00:55:23,420 --> 00:55:25,295] to get the probability of the overall answer.
+[00:55:25,295 --> 00:55:29,860] This is one way you could use one of these RNN style models
+[00:55:29,860 --> 00:55:31,940] to do question answering.
+[00:55:31,940 --> 00:55:36,460] A more common way people did it is they would have basically
+[00:55:36,460 --> 00:55:40,260] a question as input to the model,
+[00:55:40,260 --> 00:55:42,180] multiple different answers also as
+[00:55:42,180 --> 00:55:43,577] separate inputs to your model.
+[00:55:43,577 --> 00:55:45,660] And then it's outputting essentially a probability
+[00:55:45,660 --> 00:55:46,280] per question.
+[00:55:46,280 --> 00:55:50,020] So in this case, it would be a four way classifier where
+[00:55:50,020 --> 00:55:52,628] you have four different classes: answer 1, answer 2, answer 3,
+[00:55:52,628 --> 00:55:54,920] answer 4, and you're just outputting the probabilities.
+[00:55:54,920 --> 00:55:56,962] And a lot of different ways you can formulate it,
+[00:55:56,962 --> 00:56:00,433] but this is a very common task in computer vision
+[00:56:00,433 --> 00:56:02,100] where you need to use language and where
+[00:56:02,100 --> 00:56:04,900] sequence modeling helps.
+[00:56:04,900 --> 00:56:06,940] Also visual dialogue.
+[00:56:06,940 --> 00:56:10,520] At the time, these were all considered very separate tasks.
+[00:56:10,520 --> 00:56:13,580] These days, the tasks you have one model that can do almost all
+[00:56:13,580 --> 00:56:17,117] of these, but how can you have a chat about an image?
+[00:56:17,117 --> 00:56:19,200] We've really seen an explosion in the capabilities
+[00:56:19,200 --> 00:56:22,960] of these kinds of models in the last two years.
+[00:56:22,960 --> 00:56:27,800] Maybe one other type of model that RNNs were commonly used for
+[00:56:27,800 --> 00:56:30,140] is for this visual navigation task.
+[00:56:30,140 --> 00:56:33,800] So you have these images coming in, and you want to output
+[00:56:33,800 --> 00:56:37,420] a sequence of directions to move in some 2D floor plan.
+[00:56:37,420 --> 00:56:40,942] How do you get to the target destination?
+[00:56:40,942 --> 00:56:42,400] There's another application for you
+[00:56:42,400 --> 00:56:48,480] all to be aware of where these sequence models were used.
+[00:56:48,480 --> 00:56:53,680] One thing I want to note that I didn't really explicitly mention
+[00:56:53,680 --> 00:56:56,440] before, but just in the same way where
+[00:56:56,440 --> 00:57:02,600] we can have multi-layer CNNs or multi-layer of these dense
+[00:57:02,600 --> 00:57:06,060] or fully connected layers, you can also have multi-layer RNNs.
+[00:57:06,060 --> 00:57:07,920] And in practice, most of the RNNs,
+[00:57:07,920 --> 00:57:10,280] I showed were multi-layer RNNs.
+[00:57:10,280 --> 00:57:16,280] Now, the main difference is that you treat each layer separately.
+[00:57:16,280 --> 00:57:19,300] So the hidden state of say layer 1,
+[00:57:19,300 --> 00:57:21,300] depends on the hidden state of the previous time
+[00:57:21,300 --> 00:57:23,220] step of layer 1.
+[00:57:23,220 --> 00:57:26,320] So in this of depth wise dimension--
+[00:57:26,320 --> 00:57:31,473] I'm sorry in the depth dimension, each of these layers,
+[00:57:31,473 --> 00:57:33,140] you're only looking at the hidden states
+[00:57:33,140 --> 00:57:35,280] from that layer in the previous time steps.
+[00:57:35,280 --> 00:57:40,300] And then in terms of looking at Windows in the time dimension,
+[00:57:40,300 --> 00:57:43,060] instead of-- so the first layer will have the actual input
+[00:57:43,060 --> 00:57:45,220] x as the input, but then the second layer
+[00:57:45,220 --> 00:57:49,600] will take as input the output y from the previous layer.
+[00:57:49,600 --> 00:57:51,860] So you can stack these up, and it
+[00:57:51,860 --> 00:57:57,700] forms this grid, where each layer is operating with regards
+[00:57:57,700 --> 00:58:00,200] to the previous hidden states only within that layer,
+[00:58:00,200 --> 00:58:02,140] but then in terms of passing input output that
+[00:58:02,140 --> 00:58:03,460] is between layers.
+[00:58:03,460 --> 00:58:06,580] And so you can see to calculate this top right value
+[00:58:06,580 --> 00:58:10,782] we need to calculate all of the different values, all
+[00:58:10,782 --> 00:58:13,240] of the different hidden states in this entire computational
+[00:58:13,240 --> 00:58:14,380] graph beforehand.
+[00:58:14,380 --> 00:58:17,540] So you can get a feel for how as you start training,
+[00:58:17,540 --> 00:58:22,720] this gets to be a very involved process and not very efficient.
+[00:58:22,720 --> 00:58:27,680] OK, I'll talk about one of the key variants for RNNs that was
+[00:58:27,680 --> 00:58:30,900] proposed actually a while ago in the 1990s,
+[00:58:30,900 --> 00:58:34,400] but saw a lot of success for quite some time until
+[00:58:34,400 --> 00:58:37,400] the transformer revolution called LSTMs.
+[00:58:37,400 --> 00:58:41,500] You won't need to know about the details of how LSTMs operate,
+[00:58:41,500 --> 00:58:44,360] but what I hope you learned is that RNNs have
+[00:58:44,360 --> 00:58:49,300] some key disadvantages that LSTMs seek to alleviate,
+[00:58:49,300 --> 00:58:51,680] and a lot of the more modern state space
+[00:58:51,680 --> 00:58:53,840] models also try to seek to alleviate
+[00:58:53,840 --> 00:58:57,640] some of these same issues that RNNs face.
+[00:58:57,640 --> 00:59:01,720] So we talked about how by default, tanh
+[00:59:01,720 --> 00:59:04,580] is a really commonly used activation function.
+[00:59:04,580 --> 00:59:06,560] And we also talked about how you have this Whh
+[00:59:06,560 --> 00:59:09,200] matrix that converts your previous hidden state
+[00:59:09,200 --> 00:59:11,920] to the new one.
+[00:59:11,920 --> 00:59:17,180] And it's summed with this Wxh matrix that converts your input
+[00:59:17,180 --> 00:59:19,420] vector xt at the current time step
+[00:59:19,420 --> 00:59:22,860] into your hidden state dimension and then you sum these together.
+[00:59:22,860 --> 00:59:28,320] You can also formulate this as we have our weights here,
+[00:59:28,320 --> 00:59:31,300] and you're stacking the vectors like this.
+[00:59:31,300 --> 00:59:33,100] And so sometimes for shorthand people,
+[00:59:33,100 --> 00:59:37,540] we'll just combine both of these W's together to form one big W.
+[00:59:37,540 --> 00:59:42,700] But you should note that these are two blocks that
+[00:59:42,700 --> 00:59:45,540] are diagonally positioned together
+[00:59:45,540 --> 00:59:48,280] where there would be like-- if you're formulating like this,
+[00:59:48,280 --> 00:59:50,200] there's a lot of zeros in this W,
+[00:59:50,200 --> 00:59:53,680] because Whh is not interacting with xt at all,
+[00:59:53,680 --> 00:59:55,700] but this is a shorthand way to notate it
+[00:59:55,700 --> 00:59:57,820] where it makes thinking about it and writing down
+[00:59:57,820 --> 00:59:58,760] the math easier.
+[00:59:58,760 --> 01:00:00,940] So you will see all three variants here.
+[01:00:00,940 --> 01:00:02,420] This one's maybe the most explicit
+[01:00:02,420 --> 01:00:05,480] about where the actual values, the non-zero values,
+[01:00:05,480 --> 01:00:07,100] and the weight matrices lie.
+[01:00:07,100 --> 01:00:09,680] And so one way to think of it is you stack these vectors
+[01:00:09,680 --> 01:00:11,240] together, which is shown here.
+[01:00:11,240 --> 01:00:13,980] We're multiplying by this W and then we pass it through tanh h.
+[01:00:13,980 --> 01:00:18,243] This gives us our output h,t which we pass to the next RNN.
+[01:00:18,243 --> 01:00:19,660] You can imagine these are stacked.
+[01:00:19,660 --> 01:00:23,320] And then you may also have either the output directly yt,
+[01:00:23,320 --> 01:00:27,760] or we have this layer where it's a weight matrix times
+[01:00:27,760 --> 01:00:31,040] ht with the activation function around it too.
+[01:00:31,040 --> 01:00:32,960] Yeah, question.
+[01:00:32,960 --> 01:00:35,680] Oh sure.
+[01:00:35,680 --> 01:00:40,320] So here we have multilayer RNNs, how is the [INAUDIBLE] matrix
+[01:00:40,320 --> 01:00:41,320] pretty much [INAUDIBLE]?
+[01:00:41,320 --> 01:00:43,640] Yeah so the weights are shared within the layers
+[01:00:43,640 --> 01:00:44,700] for multi-layer RNN.
+[01:00:44,700 --> 01:00:49,600] So all of these hidden state updates
+[01:00:49,600 --> 01:00:51,300] will use the same weights.
+[01:00:51,300 --> 01:00:54,360] And then each layer, which you stack it vertically
+[01:00:54,360 --> 01:00:58,440] in this diagram, each layer will have a separate set of weights.
+[01:00:58,440 --> 01:01:04,420] OK, yeah, so this is the way that it works.
+[01:01:04,420 --> 01:01:06,700] And then when you have backpropagation,
+[01:01:06,700 --> 01:01:07,640] we talked about.
+[01:01:07,640 --> 01:01:11,060] If you don't have a loss for each time step,
+[01:01:11,060 --> 01:01:14,380] why you need to only calculate your loss based on what
+[01:01:14,380 --> 01:01:18,060] the losses of your output h,t, and so when you do this
+[01:01:18,060 --> 01:01:20,920] backpropagation, you're multiplying by W,
+[01:01:20,920 --> 01:01:23,380] and then you're also taking the derivative of tanh.
+[01:01:23,380 --> 01:01:25,560] And both of these can actually have some issues.
+[01:01:25,560 --> 01:01:28,860] So when specifically mathematically
+[01:01:28,860 --> 01:01:32,300] looking at what is the gradient of how--
+[01:01:32,300 --> 01:01:36,820] if we change each component of our hidden state t,
+[01:01:36,820 --> 01:01:38,340] with respect to h,t minus 1.
+[01:01:38,340 --> 01:01:40,880] Sorry, if we change each component of h,t minus 1,
+[01:01:40,880 --> 01:01:43,010] how will that affect h,t?
+[01:01:43,010 --> 01:01:44,760] This is what this gradient is calculating.
+[01:01:44,760 --> 01:01:47,900] We need the derivative of tanh because this is our activation
+[01:01:47,900 --> 01:01:48,520] function.
+[01:01:48,520 --> 01:01:52,500] And then we have Whh which is the multiply here for converting
+[01:01:52,500 --> 01:01:55,357] the previous hidden state to the next one.
+[01:01:55,357 --> 01:01:57,440] So this is actually how we calculate the gradient.
+[01:01:57,440 --> 01:01:58,920] And here we can run into issues.
+[01:01:58,920 --> 01:02:04,260] So if we're calculating the loss at each time step,
+[01:02:04,260 --> 01:02:06,980] and we have lost here the total loss
+[01:02:06,980 --> 01:02:09,760] we just summit for each of the weights.
+[01:02:09,760 --> 01:02:11,200] So the total loss is just the sum
+[01:02:11,200 --> 01:02:13,600] of the loss at each time step with respect
+[01:02:13,600 --> 01:02:18,560] to this reused W matrix.
+[01:02:18,560 --> 01:02:23,280] And so you end up getting this product of these dl--
+[01:02:26,640 --> 01:02:32,200] to calculate the loss of L-- at the final step L,t with respect
+[01:02:32,200 --> 01:02:35,560] to h,t, you need to calculate each of the intermediate hidden
+[01:02:35,560 --> 01:02:39,880] states and how that affects W in order to calculate this final
+[01:02:39,880 --> 01:02:42,400] loss here by using the chain rule.
+[01:02:42,400 --> 01:02:44,400] We mentioned example here, and just
+[01:02:44,400 --> 01:02:46,640] to point out why this is an issue.
+[01:02:46,640 --> 01:02:48,540] If we look at these individual terms,
+[01:02:48,540 --> 01:02:50,840] so if we hone in on this aspect of how
+[01:02:50,840 --> 01:02:55,360] does changing the current hidden state change the next one, which
+[01:02:55,360 --> 01:02:58,560] is the majority of these calculations contained
+[01:02:58,560 --> 01:03:00,640] in this product term here, we get
+[01:03:00,640 --> 01:03:04,860] that it's the same thing we mentioned earlier
+[01:03:04,860 --> 01:03:09,100] where you have this derivative of tanh multiplied by your Whh.
+[01:03:09,100 --> 01:03:10,860] And so why is this an issue?
+[01:03:10,860 --> 01:03:15,560] Well, first of all, this is the derivative of tanh plotted here.
+[01:03:15,560 --> 01:03:19,220] The maximum value is 1, and so almost always you're
+[01:03:19,220 --> 01:03:20,920] getting less than 1.
+[01:03:20,920 --> 01:03:25,540] So you can have vanishing gradients from this term here.
+[01:03:25,540 --> 01:03:30,540] But even if we assume there's no non-linearity or we
+[01:03:30,540 --> 01:03:33,140] pick some other activation function
+[01:03:33,140 --> 01:03:34,620] that doesn't have this issue.
+[01:03:34,620 --> 01:03:38,860] If we look at this weight matrix here,
+[01:03:38,860 --> 01:03:41,980] that we're multiplying at each time step,
+[01:03:41,980 --> 01:03:45,160] either we're going to have a large singular value,
+[01:03:45,160 --> 01:03:49,440] so this will be as the vectors are coming in,
+[01:03:49,440 --> 01:03:52,640] what is the maximum they'll be stretched?
+[01:03:52,640 --> 01:03:55,980] If it's say a unit vector singular value is telling you
+[01:03:55,980 --> 01:03:58,060] what's the maximum that a unit vector could
+[01:03:58,060 --> 01:03:59,700] be stretched by the matrix?
+[01:03:59,700 --> 01:04:02,220] So if it's very large you can have these gradients explode
+[01:04:02,220 --> 01:04:04,720] or if it's very small, you can have this vanishing gradients
+[01:04:04,720 --> 01:04:06,280] issue.
+[01:04:06,280 --> 01:04:08,440] And if you have exploding gradients,
+[01:04:08,440 --> 01:04:11,300] we have a fix which is this scaling the gradient.
+[01:04:11,300 --> 01:04:14,920] So you can just divide or clip it and somehow so that you
+[01:04:14,920 --> 01:04:15,460] don't--
+[01:04:15,460 --> 01:04:17,793] so too big of a gradient, it's not too much of an issue.
+[01:04:17,793 --> 01:04:21,240] But this really small vanishing gradient issue
+[01:04:21,240 --> 01:04:23,640] is actually the main issue with why people don't just
+[01:04:23,640 --> 01:04:26,880] use really long RNNs in practice because of tanh,
+[01:04:26,880 --> 01:04:29,260] and because under many scenarios,
+[01:04:29,260 --> 01:04:31,400] your weight matrix has this property where
+[01:04:31,400 --> 01:04:37,660] it's either expanding your activations or reducing them.
+[01:04:37,660 --> 01:04:42,240] So yeah, I think these are the main reasons why it motivated
+[01:04:42,240 --> 01:04:45,200] a change in RNN architectures, and why a lot of the reasons why
+[01:04:45,200 --> 01:04:46,760] people don't use RNNs.
+[01:04:46,760 --> 01:04:48,560] This is one of the main issues.
+[01:04:48,560 --> 01:04:50,680] So how do you resolve this.
+[01:04:50,680 --> 01:04:54,760] So the way that people did it was this creation of the LSTM.
+[01:04:54,760 --> 01:04:57,520] And the high level idea, which I won't go into too many details
+[01:04:57,520 --> 01:04:59,590] because it's actually quite complicated
+[01:04:59,590 --> 01:05:03,110] is that you have four of these different gates that
+[01:05:03,110 --> 01:05:05,790] are tracking different values, that instead
+[01:05:05,790 --> 01:05:07,390] of just having one hidden state, you
+[01:05:07,390 --> 01:05:09,330] have multiple of these values.
+[01:05:09,330 --> 01:05:11,890] You precompute to determine how to change your hidden state,
+[01:05:11,890 --> 01:05:14,030] and then also what information to pass
+[01:05:14,030 --> 01:05:15,295] through a different pathway.
+[01:05:15,295 --> 01:05:17,170] So you have the regular hidden state pathway.
+[01:05:17,170 --> 01:05:19,087] You have a different pathway where it's easier
+[01:05:19,087 --> 01:05:20,630] to pass information.
+[01:05:20,630 --> 01:05:26,470] And this is the basic idea, at a high level they call it a gate
+[01:05:26,470 --> 01:05:30,070] or what are you actually writing to the hidden state of the cell.
+[01:05:30,070 --> 01:05:32,870] The input gate, which is deciding whether or not you
+[01:05:32,870 --> 01:05:34,530] write information to the cell.
+[01:05:34,530 --> 01:05:37,150] The forget gate, how much to forget from previous time
+[01:05:37,150 --> 01:05:40,030] steps, as well as the output gate, which is how much
+[01:05:40,030 --> 01:05:42,963] are you actually outputting for your hidden state.
+[01:05:42,963 --> 01:05:44,630] So you can see, this is really involved,
+[01:05:44,630 --> 01:05:46,530] a lot of design choices here.
+[01:05:46,530 --> 01:05:49,470] and they put it all together into this, I would say,
+[01:05:49,470 --> 01:05:51,670] fairly complicated diagram, but the basic idea
+[01:05:51,670 --> 01:05:54,110] is this part is the same where we're
+[01:05:54,110 --> 01:05:55,548] doing this weight multiply.
+[01:05:55,548 --> 01:05:58,090] But now we have four different values we're computing instead
+[01:05:58,090 --> 01:06:00,370] of just the h,t.
+[01:06:00,370 --> 01:06:03,290] We have the input gate, and the gate
+[01:06:03,290 --> 01:06:05,410] to determine how much to write here,
+[01:06:05,410 --> 01:06:10,050] and we have our output that's passed to the next hidden state.
+[01:06:10,050 --> 01:06:12,610] You can think of this top section
+[01:06:12,610 --> 01:06:14,970] here as a highway where the goal is to not
+[01:06:14,970 --> 01:06:16,910] have any activation functions.
+[01:06:16,910 --> 01:06:17,770] So no tanh.
+[01:06:17,770 --> 01:06:20,130] So we avoid the issues we had where
+[01:06:20,130 --> 01:06:24,530] tanh made the gradients vanish, and all we're applying
+[01:06:24,530 --> 01:06:25,630] is this forget gate.
+[01:06:25,630 --> 01:06:28,530] So as long as we're not basically
+[01:06:28,530 --> 01:06:32,150] forgetting all the information at each time step,
+[01:06:32,150 --> 01:06:34,830] we're able to pass information more easily.
+[01:06:34,830 --> 01:06:36,510] This is the high level explanation.
+[01:06:36,510 --> 01:06:38,350] And then more importantly, in practice,
+[01:06:38,350 --> 01:06:41,570] people seem to see that this worked very well.
+[01:06:41,570 --> 01:06:45,090] Again, you won't be implementing this for the course at all,
+[01:06:45,090 --> 01:06:47,930] but I think this is a really commonly used baseline still
+[01:06:47,930 --> 01:06:50,150] and some deep learning papers.
+[01:06:50,150 --> 01:06:51,670] So it's good to know about.
+[01:06:51,670 --> 01:06:54,690] But I think you can think of this through the lens of people
+[01:06:54,690 --> 01:06:56,750] are trying to construct these things to make up
+[01:06:56,750 --> 01:06:58,250] for all the issues that RNNs had,
+[01:06:58,250 --> 01:07:01,790] which is vanishing gradients and also the lack of information
+[01:07:01,790 --> 01:07:02,745] being captured.
+[01:07:02,745 --> 01:07:04,870] You need to cram everything into this hidden state.
+[01:07:04,870 --> 01:07:06,330] So you have really long term dependencies.
+[01:07:06,330 --> 01:07:07,050] Those are lost.
+[01:07:07,050 --> 01:07:08,670] So they created a separate pathway
+[01:07:08,670 --> 01:07:12,910] to pass over this more long term information through the top
+[01:07:12,910 --> 01:07:15,230] here.
+[01:07:15,230 --> 01:07:19,190] So do LSTMs solve the vanishing gradient problem completely?
+[01:07:19,190 --> 01:07:20,330] It definitely helps.
+[01:07:20,330 --> 01:07:22,648] So it makes the RNN easier to preserve
+[01:07:22,648 --> 01:07:24,190] this information over many time steps
+[01:07:24,190 --> 01:07:26,950] by using this top pathway diagram.
+[01:07:26,950 --> 01:07:29,850] So it's in contrast--
+[01:07:29,850 --> 01:07:32,190] it's much harder for Vanilla RNNs
+[01:07:32,190 --> 01:07:35,950] to learn our current weight matrix that preserves info
+[01:07:35,950 --> 01:07:38,450] in the hidden state across every single time step,
+[01:07:38,450 --> 01:07:40,270] if we're always doing the same operation,
+[01:07:40,270 --> 01:07:42,630] and we're not able to just pass information directly
+[01:07:42,630 --> 01:07:45,190] without an activation function.
+[01:07:45,190 --> 01:07:49,550] So it doesn't guarantee it, but it makes it significantly easier
+[01:07:49,550 --> 01:07:54,010] and it helps improve learning long term dependencies and works
+[01:07:54,010 --> 01:07:55,430] very well empirically.
+[01:07:55,430 --> 01:07:59,450] So people generally don't train RNNs so much, and more often
+[01:07:59,450 --> 01:08:01,210] train LSTMs, if you were going to go
+[01:08:01,210 --> 01:08:07,323] with this recurrent modeling route, but I think in general,
+[01:08:07,323 --> 01:08:07,990] these are also--
+[01:08:07,990 --> 01:08:10,570] I was saying, I would say significantly fallen out
+[01:08:10,570 --> 01:08:12,290] of fashion, but it gives you a sense
+[01:08:12,290 --> 01:08:15,850] of the way that people have tried to design RNNs to account
+[01:08:15,850 --> 01:08:18,450] for the issues they face.
+[01:08:18,450 --> 01:08:22,689] So one other thing that would be cool to tie-in to something
+[01:08:22,689 --> 01:08:24,189] you learned earlier in this course,
+[01:08:24,189 --> 01:08:27,609] is this idea of directly adding outputs and skipping
+[01:08:27,609 --> 01:08:29,770] some activation functions or other layers
+[01:08:29,770 --> 01:08:31,649] is actually highly related to the idea
+[01:08:31,649 --> 01:08:33,529] that we discussed in ResNets, where
+[01:08:33,529 --> 01:08:36,850] you have these skip connections, where the value is just
+[01:08:36,850 --> 01:08:41,550] copied over and added later in the layer block.
+[01:08:41,550 --> 01:08:43,162] So you have multiple in ResNets.
+[01:08:43,162 --> 01:08:45,370] You have multiple of these convolution layers stacked
+[01:08:45,370 --> 01:08:48,210] together, and then you add skip connections where the value just
+[01:08:48,210 --> 01:08:49,310] gets added here.
+[01:08:49,310 --> 01:08:52,590] And you can think of this in a similar light
+[01:08:52,590 --> 01:08:56,390] for LSTMs, how it's skipping over some of these layers
+[01:08:56,390 --> 01:08:59,729] and it helps improve as you get in this case,
+[01:08:59,729 --> 01:09:02,010] instead of very large depth of the model.
+[01:09:02,010 --> 01:09:04,569] It's very long sequences of time steps.
+[01:09:04,569 --> 01:09:07,212] So this is parallel, but it's a little different
+[01:09:07,212 --> 01:09:08,670] because one is the number of layers
+[01:09:08,670 --> 01:09:12,750] and the other is the number of time steps.
+[01:09:12,750 --> 01:09:16,910] OK, I think the final slide for today's lecture
+[01:09:16,910 --> 01:09:21,670] is just a little tie-in for how these RNNs have made
+[01:09:21,670 --> 01:09:24,410] a bit of a resurgence in the last year or two,
+[01:09:24,410 --> 01:09:28,247] which is funny, because I think if we taught the course maybe
+[01:09:28,247 --> 01:09:30,830] a year or two ago, I would have been much more willing to want
+[01:09:30,830 --> 01:09:31,993] to cut RNNs entirely.
+[01:09:31,993 --> 01:09:34,410] But there are actually a lot of nice advantages they have.
+[01:09:34,410 --> 01:09:37,250] So the main one is this unlimited context length.
+[01:09:37,250 --> 01:09:39,510] So one of the main issues with transformers
+[01:09:39,510 --> 01:09:42,109] is they have a limited context length, as people are really
+[01:09:42,109 --> 01:09:44,609] pushing the boundaries for what these models are capable of.
+[01:09:44,609 --> 01:09:47,170] This context length is becoming more and more of an issue.
+[01:09:47,170 --> 01:09:49,229] So there have been various workarounds in the transformer
+[01:09:49,229 --> 01:09:49,843] space.
+[01:09:49,843 --> 01:09:52,010] People do things like rope and some other techniques
+[01:09:52,010 --> 01:09:54,229] to try to extend the context length,
+[01:09:54,229 --> 01:09:57,770] but it's a pretty significant limitation of the model.
+[01:09:57,770 --> 01:10:02,230] The other thing is that during inference for RNNs,
+[01:10:02,230 --> 01:10:05,210] the compute scales linearly with the sequence length
+[01:10:05,210 --> 01:10:07,510] or during training to, but basically,
+[01:10:07,510 --> 01:10:11,592] as you add more and more steps to your sequence,
+[01:10:11,592 --> 01:10:14,050] you just need to recompute the same operation over and over
+[01:10:14,050 --> 01:10:14,550] again.
+[01:10:14,550 --> 01:10:17,530] So there's no operation that looks across the entire input
+[01:10:17,530 --> 01:10:20,410] sequence like you have for transformers.
+[01:10:20,410 --> 01:10:22,350] So these are really big advantages,
+[01:10:22,350 --> 01:10:24,030] and there have been a couple of papers.
+[01:10:24,030 --> 01:10:28,773] So to shout out a few, there's this RWKV model.
+[01:10:28,773 --> 01:10:30,190] You can check out arXiv link here,
+[01:10:30,190 --> 01:10:33,558] and also Mamba are both mainly highlighting
+[01:10:33,558 --> 01:10:35,850] this idea of we're able to achieve linear time sequence
+[01:10:35,850 --> 01:10:36,350] modeling.
+[01:10:36,350 --> 01:10:38,310] So as you scale up your input sequence,
+[01:10:38,310 --> 01:10:41,130] the compute also scales linearly as opposed to quadratically
+[01:10:41,130 --> 01:10:42,490] with transformers.
+[01:10:42,490 --> 01:10:46,610] And so it's better for long context problems sometimes.
+[01:10:46,610 --> 01:10:48,835] In terms of compute it works better,
+[01:10:48,835 --> 01:10:50,210] and it has these main advantages.
+[01:10:50,210 --> 01:10:51,810] So people try to get the best of both worlds,
+[01:10:51,810 --> 01:10:53,850] and there's been a lot of research in this area.
+[01:10:53,850 --> 01:10:55,808] How can you get the performance of transformers
+[01:10:55,808 --> 01:10:58,350] with the scaling of RNNs?
+[01:10:58,350 --> 01:11:01,330] OK, so that's all for today in class.
+[01:11:01,330 --> 01:11:04,070] We basically talked about how, there's a lot of different ways
+[01:11:04,070 --> 01:11:06,370] you can design architectures with RNNs.
+[01:11:06,370 --> 01:11:09,327] Vanilla RNNs are simple, but they don't work that well.
+[01:11:09,327 --> 01:11:10,910] And there's been more complex variants
+[01:11:10,910 --> 01:11:13,710] that people have proposed that introduce ways to selectively
+[01:11:13,710 --> 01:11:16,190] pass information.
+[01:11:16,190 --> 01:11:18,110] This backward flow of gradients in RNNs
+[01:11:18,110 --> 01:11:20,190] can either explode or vanish, depending on the activation
+[01:11:20,190 --> 01:11:22,607] function you use, or what is the properties of your weight
+[01:11:22,607 --> 01:11:23,230] matrix.
+[01:11:23,230 --> 01:11:26,910] So you often need this back propagation through time
+[01:11:26,910 --> 01:11:29,630] to actually compute the gradient as well.
+[01:11:29,630 --> 01:11:32,510] And then finally, basically these better architectures
+[01:11:32,510 --> 01:11:34,670] are a hot topic of research right now, as well
+[01:11:34,670 --> 01:11:37,748] as just generally new paradigms for reasoning over sequences.
+[01:11:37,748 --> 01:11:39,290] So yeah, I think that's it for today.
+[01:11:39,290 --> 01:11:43,180] Next time we'll talk about attention and transformers.

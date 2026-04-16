@@ -1,0 +1,6316 @@
+Lecture 8:
+Attention and Transformers
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 1
+
+April 24, 2025
+
+Administrative
+● Assignment 2 released yesterday (4/23)
+● Project proposals are due tomorrow (4/25)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 2
+
+April 24, 2025
+
+Last Time: Recurrent Neural Networks
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 3
+
+April 24, 2025
+
+Today: Attention + Transformers
+Attention: A new primitive that
+operates on sets of vectors
+
+Stanford CS231n 10 th Anniversary
+
+Transformer: A neural
+network architecture that
+uses attention everywhere
+
+Lecture 8 - 4
+
+April 24, 2025
+
+Today: Attention + Transformers
+Attention: A new primitive that
+operates on sets of vectors
+
+Transformer: A neural
+network architecture that
+uses attention everywhere
+
+Transformers are used
+everywhere today!
+But they developed as
+an offshoot of RNNs
+so let’s start there
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 5
+
+April 24, 2025
+
+Sequence to Sequence with RNNs: Encoder - Decoder
+Input: Sequence x1, … xT
+Output: Sequence y1, …, yT’
+
+A motivating example for today’s discussion –
+machine translation! English → Italian
+
+Encoder: ht = fW(xt, ht-1)
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+Sutskever et al, “Sequence to sequence learning with neural networks”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 6
+
+April 24, 2025
+
+Sequence to Sequence with RNNs
+Input: Sequence x1, … xT
+Output: Sequence y1, …, yT’
+From final hidden state predict:
+Encoder: ht = fW(xt, ht-1) Initial decoder state s0
+Context vector c (often c=hT)
+h1
+
+h2
+
+h3
+
+h4
+
+s0
+
+x1
+
+x2
+
+x3
+
+x4
+
+c
+
+we
+
+see
+
+the
+
+sky
+
+Sutskever et al, “Sequence to sequence learning with neural networks”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 7
+
+April 24, 2025
+
+Sequence to Sequence with RNNs
+Decoder: st = gU(yt-1, st-1, c)
+
+Input: Sequence x1, … xT
+Output: Sequence y1, …, yT’
+
+vediamo
+
+From final hidden state predict:
+Encoder: ht = fW(xt, ht-1) Initial decoder state s0
+Context vector c (often c=hT)
+
+y1
+
+h1
+
+h2
+
+h3
+
+h4
+
+s0
+
+s1
+
+x1
+
+x2
+
+x3
+
+x4
+
+c
+
+y0
+
+we
+
+see
+
+the
+
+sky
+
+[START]
+
+Sutskever et al, “Sequence to sequence learning with neural networks”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 8
+
+April 24, 2025
+
+Sequence to Sequence with RNNs
+Decoder: st = gU(yt-1, st-1, c)
+
+Input: Sequence x1, … xT
+Output: Sequence y1, …, yT’
+
+vediamo
+
+From final hidden state predict:
+Encoder: ht = fW(xt, ht-1) Initial decoder state s0
+Context vector c (often c=hT)
+
+il
+
+y1
+
+y2
+
+h1
+
+h2
+
+h3
+
+h4
+
+s0
+
+s1
+
+s2
+
+x1
+
+x2
+
+x3
+
+x4
+
+c
+
+y0
+
+y1
+
+we
+
+see
+
+the
+
+sky
+
+[START]
+
+vediamo
+
+Sutskever et al, “Sequence to sequence learning with neural networks”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 9
+
+April 24, 2025
+
+Sequence to Sequence with RNNs
+Decoder: st = gU(yt-1, st-1, c)
+
+Input: Sequence x1, … xT
+Output: Sequence y1, …, yT’
+
+il
+
+cielo
+
+[STOP]
+
+y1
+
+y2
+
+y3
+
+y4
+
+vediamo
+
+From final hidden state predict:
+Encoder: ht = fW(xt, ht-1) Initial decoder state s0
+Context vector c (often c=hT)
+h1
+
+h2
+
+h3
+
+h4
+
+s0
+
+s1
+
+s2
+
+s3
+
+s4
+
+x1
+
+x2
+
+x3
+
+x4
+
+c
+
+y0
+
+y1
+
+y2
+
+y3
+
+we
+
+see
+
+the
+
+sky
+
+[START]
+
+vediamo
+
+il
+
+cielo
+
+Sutskever et al, “Sequence to sequence learning with neural networks”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 10
+
+April 24, 2025
+
+Sequence to Sequence with RNNs
+Decoder: st = gU(yt-1, st-1, c)
+
+Input: Sequence x1, … xT
+Output: Sequence y1, …, yT’
+
+il
+
+cielo
+
+[STOP]
+
+y1
+
+y2
+
+y3
+
+y4
+
+vediamo
+
+From final hidden state predict:
+Encoder: ht = fW(xt, ht-1) Initial decoder state s0
+Context vector c (often c=hT)
+h1
+
+h2
+
+h3
+
+h4
+
+s0
+
+s1
+
+s2
+
+s3
+
+s4
+
+x1
+
+x2
+
+x3
+
+x4
+
+c
+
+y0
+
+y1
+
+y2
+
+y3
+
+we
+
+see
+
+the
+
+sky
+
+[START]
+
+vediamo
+
+il
+
+cielo
+
+Problem: Input sequence
+bottlenecks through fixed
+sized c. What if T=1000?
+
+Sutskever et al, “Sequence to sequence learning with neural networks”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 11
+
+April 24, 2025
+
+Sequence to Sequence with RNNs
+Decoder: st = gU(yt-1, st-1, c)
+
+Input: Sequence x1, … xT
+Output: Sequence y1, …, yT’
+
+il
+
+cielo
+
+[STOP]
+
+y1
+
+y2
+
+y3
+
+y4
+
+vediamo
+
+From final hidden state predict:
+Encoder: ht = fW(xt, ht-1) Initial decoder state s0
+Context vector c (often c=hT)
+h1
+
+h2
+
+h3
+
+h4
+
+s0
+
+s1
+
+s2
+
+s3
+
+s4
+
+x1
+
+x2
+
+x3
+
+x4
+
+c
+
+y0
+
+y1
+
+y2
+
+y3
+
+we
+
+see
+
+the
+
+sky
+
+[START]
+
+vediamo
+
+il
+
+cielo
+
+Solution: Look back at the
+whole input sequence on
+each step of the output
+
+Sutskever et al, “Sequence to sequence learning with neural networks”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 12
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+Input: Sequence x1, … xT
+Output: Sequence y1, …, yT’
+From final hidden state:
+
+Encoder: ht = fW(xt, ht-1) Initial decoder state s0
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+s0
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 13
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+Compute (scalar) alignment scores
+et,i = fatt(st-1, hi)
+(fatt is a Linear Layer)
+
+e11
+
+e12
+
+e13
+
+e14
+
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+From final hidden state:
+Initial decoder state s0
+s0
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 14
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+a11
+
+a12
+
+a13
+
+Compute (scalar) alignment scores
+et,i = fatt(st-1, hi)
+(fatt is a Linear Layer)
+
+a14
+
+softmax
+e11
+
+e12
+
+e13
+
+e14
+
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+From final hidden state:
+Initial decoder state s0
+
+Normalize alignment scores
+to get attention weights
+0 < at,i < 1 ∑iat,i = 1
+
+s0
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 15
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+a11
+
+a12
+
+a13
+
+Compute (scalar) alignment scores
+et,i = fatt(st-1, hi)
+(fatt is a Linear Layer)
+
+a14
+
+vediamo
+
+softmax
+e11
+
+e12
+
+e13
+
+e14
+
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+From final hidden state:
+Initial decoder state s0
+s0
+
+Normalize alignment scores
+to get attention weights
+0 < at,i < 1 ∑iat,i = 1
+Compute context vector as
+weighted sum of hidden
+states
+ct = ∑iat,ihi
+
++
+
+c1
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 16
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+a11
+
+a12
+
+a13
+
+Compute (scalar) alignment scores
+et,i = fatt(st-1, hi)
+(fatt is a Linear Layer)
+
+a14
+
+vediamo
+
+softmax
+e11
+
+h1
+
+x1
+
+we
+
+e12
+
+h2
+
+x2
+
+see
+
+e13
+
+h3
+
+x3
+
+the
+
+e14
+
+From final hidden state:
+Initial decoder state s0
+
+h4
+
+x4
+
+s0
+
+y1
+
++
+
+Compute context vector as
+weighted sum of hidden
+states
+ct = ∑iat,ihi
+
+s1
+
+c1
+
+Normalize alignment scores
+to get attention weights
+0 < at,i < 1 ∑iat,i = 1
+
+y0
+
+Use context vector in
+decoder: st = gU(yt-1, st-1, ct)
+
+sky
+[START]
+
+gU is an RNN unit
+(e.g. LSTM, GRU)
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 17
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+a11
+
+a12
+
+a13
+
+Compute (scalar) alignment scores
+et,i = fatt(st-1, hi)
+(fatt is a Linear Layer)
+
+a14
+
+vediamo
+
+softmax
+e11
+
+h1
+
+e12
+
+h2
+
+e13
+
+h3
+
+e14
+
+From final hidden state:
+Initial decoder state s0
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+s0
+
+Intuition: Context
+vector attends to the
+relevant part of the
+input sequence
+“vediamo” = “we see”
+so maybe a11=a12=0.45,
+a13=a14=0.05
+
+y1
+
++
+
+Compute context vector as
+weighted sum of hidden
+states
+ct = ∑iat,ihi
+
+s1
+
+c1
+
+Normalize alignment scores
+to get attention weights
+0 < at,i < 1 ∑iat,i = 1
+
+y0
+
+Use context vector in
+decoder: st = gU(yt-1, st-1, ct)
+
+[START]
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 18
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+a11
+
+a12
+
+a13
+
+Compute (scalar) alignment scores
+et,i = fatt(st-1, hi)
+(fatt is a Linear Layer)
+
+a14
+
+vediamo
+
+softmax
+e11
+
+h1
+
+x1
+
+we
+
+e12
+
+h2
+
+x2
+
+see
+
+e13
+
+h3
+
+x3
+
+the
+
+e14
+
+From final hidden state:
+Initial decoder state s0
+
+h4
+
+x4
+
+sky
+
+s0
+
+Intuition: Context
+vector attends to the
+relevant part of the
+input sequence
+“vediamo” = “we see”
+so maybe a11=a12=0.45,
+a13=a14=0.05
+
+y1
+
++
+
+Compute context vector as
+weighted sum of hidden
+states
+ct = ∑iat,ihi
+
+s1
+
+c1
+
+Normalize alignment scores
+to get attention weights
+0 < at,i < 1 ∑iat,i = 1
+
+y0
+
+Use context vector in
+decoder: st = gU(yt-1, st-1, ct)
+
+[START]
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 19
+
+All differentiable! No
+supervision on attention
+weights. Backprop
+through everything
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+
+Repeat: Use s1 to compute
+new context vector c2
+
+a21
+
+a22
+
+a23
+
+a24
+
+vediamo
+
+softmax
+y1
+e21
+
+e22
+
+e23
+
+Compute new alignment
+scores e2,i and attention
+weights a2,i
+
+e24
+
++
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+s0
+
+s1
+
+c1
+
+y0
+
+c2
+
+[START]
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 8 - 20
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+
+Repeat: Use s1 to compute
+new context vector c2
+
+a21
+
+a22
+
+a23
+
+a24
+
+vediamo
+
+il
+
+y1
+
+y2
+
+softmax
+e21
+
+e22
+
+e23
+
+e24
+
+Use context vector
+in decoder: st =
+gU(yt-1, st-1, ct)
+
++
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+s0
+
+s1
+
+c1
+
+s2
+
+y0
+
+[START]
+
+c2
+
+y1
+
+vediamo
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 21
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+
+Repeat: Use s1 to compute
+new context vector c2
+
+a21
+
+a22
+
+a23
+
+a24
+
+vediamo
+
+il
+
+y1
+
+y2
+
+softmax
+e21
+
+e22
+
+e23
+
+e24
+
+Use context vector
+in decoder: st =
+gU(yt-1, st-1, ct)
+
++
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+s0
+
+s1
+
+Intuition: Context vector
+attends to the relevant
+part of the input sequence
+“il” = “the”
+so maybe a21=a22=0.05,
+a24=0.1, a23=0.8
+
+c1
+
+s2
+
+y0
+
+[START]
+
+c2
+
+y1
+
+vediamo
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 22
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+Use a different context vector in each timestep of decoder
+-
+
+Input sequence not bottlenecked through single vector
+At each timestep of decoder, context vector “looks at”
+different parts of the input sequence
+
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+vediamo
+
+il
+
+cielo
+
+[STOP]
+
+y1
+
+y2
+
+y3
+
+y4
+
+s1
+
+s2
+
+s3
+
+s4
+
+s0
+
+c1
+
+y0
+
+[START]
+
+c2
+
+y1
+
+vediamo
+
+c3
+
+y2
+
+il
+
+c4
+
+y3
+
+cielo
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 23
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+a21
+
+a22
+
+a23
+
+a24
+
+Example: English to
+French translation
+
+Visualize attention weights a t,i
+
+softmax
+e21
+
+e22
+
+e23
+
+e24
+
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 24
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+Example: English to
+French translation
+
+Visualize attention weights a t,i
+
+Input: “The agreement on the
+European Economic Area was
+signed in August 1992.”
+
+Output: “L’accord sur la zone
+économique européenne a été
+signé en août 1992.”
+
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 25
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+Example: English to
+French translation
+Input: “The agreement on the
+European Economic Area was
+signed in August 1992.”
+
+Visualize attention weights a t,i
+
+Diagonal attention
+means words
+correspond in order
+
+Output: “L’accord sur la zone
+économique européenne a été
+signé en août 1992.”
+Diagonal attention
+means words
+correspond in order
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 26
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+Example: English to
+French translation
+Input: “The agreement on the
+European Economic Area was
+signed in August 1992.”
+
+Output: “L’accord sur la zone
+économique européenne a été
+signé en août 1992.”
+
+Visualize attention weights a t,i
+
+Diagonal attention
+means words
+correspond in order
+
+Attention figures
+out other word
+orders
+
+Diagonal attention
+means words
+correspond in order
+Bahdanau et al, “Neural machine translation by jointly learning to align and translate”, ICLR 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 27
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+There’s a general
+operator hiding here:
+a21
+
+a22
+
+a23
+
+a24
+
+vediamo
+
+il
+
+cielo
+
+[STOP]
+
+y1
+
+y2
+
+y3
+
+y4
+
+s1
+
+s2
+
+s3
+
+s4
+
+softmax
+e21
+
+e22
+
+e23
+
+e24
+
++
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+s0
+
+c1
+
+y0
+
+[START]
+
+Stanford CS231n 10th Anniversary
+
+c2
+
+y1
+
+vediamo
+
+Lecture 8 - 28
+
+c3
+
+y2
+
+il
+
+c4
+
+y3
+
+cielo
+
+April 24, 2025
+
+Sequence to Sequence with RNNs and Attention
+There’s a general
+operator hiding here:
+
+Query vectors (decoder RNN states) and
+data vectors (encoder RNN states)
+get transformed to
+output vectors (Context states).
+Each query attends to all data vectors and
+gives one output vector
+
+h1
+
+h2
+
+h3
+
+h4
+
+x1
+
+x2
+
+x3
+
+x4
+
+we
+
+see
+
+the
+
+sky
+
+vediamo
+
+il
+
+cielo
+
+[STOP]
+
+y1
+
+y2
+
+y3
+
+y4
+
+s1
+
+s2
+
+s3
+
+s4
+
+s0
+
+c1
+
+y0
+
+[START]
+
+Stanford CS231n 10th Anniversary
+
+c2
+
+y1
+
+vediamo
+
+Lecture 8 - 29
+
+c3
+
+y2
+
+il
+
+c4
+
+y3
+
+cielo
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: q [DQ]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 30
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: q [DQ]
+Data vectors: X [NX x DX]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 31
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: q [DQ]
+Data vectors: X [NX x DX]
+
+Computation:
+Similarities: e [NX] ei = fatt(q, Xi)
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 32
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: q [DQ]
+Data vectors: X [NX x DX]
+
+Computation:
+Similarities: e [NX] ei = fatt(q, Xi)
+Attention weights: a = softmax(e) [NX]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 33
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: q [DQ]
+Data vectors: X [NX x DX]
+
+Computation:
+Similarities: e [NX] ei = fatt(q, Xi)
+Attention weights: a = softmax(e) [NX]
+Output vector: y = ∑iaiXi [DX]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 34
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: q [DQ]
+Data vectors: X [NX x DX]
+
+Computation:
+Similarities: e [NX] ei = fatt(q, Xi)
+Attention weights: a = softmax(e) [NX]
+Output vector: y = ∑iaiXi [DX]
+
+Stanford CS231n 10th Anniversary
+
+Let’s generalize this!
+
+Lecture 8 - 35
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: q [DX]
+Data vectors: X [NX x DX]
+
+Computation:
+Similarities: e [NX] ei = q · Xi
+Attention weights: a = softmax(e) [NX]
+Output vector: y = ∑iaiXi [DX]
+
+Changes
+- Use dot product for similarity
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 36
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: q [DX]
+Data vectors: X [NX x DX]
+
+Computation:
+Similarities: e [NX] ei = q · Xi / 𝐷𝑋
+Attention weights: a = softmax(e) [NX]
+Output vector: y = ∑iaiXi [DX]
+
+Changes
+- Use scaled dot product for similarity
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 37
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: q [DX]
+Data vectors: X [NX x DX]
+Large similarities will cause softmax to
+saturate and give vanishing gradients
+Recall a · b = |a||b| cos(angle)
+Suppose that a and b are constant
+vectors of dimension D
+Then |a| = (∑ia2)1/2 = a 𝐷
+
+Computation:
+Similarities: e [NX] ei = q · Xi / 𝐷𝑋
+Attention weights: a = softmax(e) [NX]
+Output vector: y = ∑iaiXi [DX]
+
+Changes
+- Use scaled dot product for similarity
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 38
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: Q [NQ x DX]
+Data vectors: X [NX x DX]
+
+Computation:
+Similarities: E = QXT / 𝐷𝑋 [NQ x NX]
+Eij = Qi·Xj / 𝐷𝑋
+Attention weights: A = softmax(E, dim=1) [NQ x NX]
+Output vector: Y = AX [NQ x DX]
+Yi = ∑jAijXj
+
+Changes
+- Use scaled dot product for similarity
+- Multiple query vectors
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 39
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: Q [NQ x DQ]
+Data vectors: X [NX x DX]
+Key matrix: WK [DX x DQ]
+Value matrix: WV [DX x DV]
+
+Computation:
+Keys: K = XWK [NX x DQ]
+Values: V = XWV [NX x DV]
+Similarities: E = QKT / 𝐷𝑄 [NQ x NX]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [NQ x NX]
+Output vector: Y = AV [NQ x DV]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Changes
+- Use scaled dot product for similarity
+- Multiple query vectors
+- Separate key and value
+
+Lecture 8 - 40
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: Q [NQ x DQ]
+Data vectors: X [NX x DX]
+Key matrix: WK [DX x DQ]
+Value matrix: WV [DX x DV]
+
+Computation:
+Keys: K = XWK [NX x DQ]
+Values: V = XWV [NX x DV]
+Similarities: E = QKT / 𝐷𝑄 [NQ x NX]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [NQ x NX]
+Output vector: Y = AV [NQ x DV]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+X1
+X2
+X3
+Q1
+
+Lecture 8 - 41
+
+Q2
+
+Q3
+
+Q4
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: Q [NQ x DQ]
+Data vectors: X [NX x DX]
+Key matrix: WK [DX x DQ]
+Value matrix: WV [DX x DV]
+
+V1
+V2
+V3
+
+Computation:
+Keys: K = XWK [NX x DQ]
+Values: V = XWV [NX x DV]
+Similarities: E = QKT / 𝐷𝑄 [NQ x NX]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [NQ x NX]
+Output vector: Y = AV [NQ x DV]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+X1
+
+K1
+
+X2
+
+K2
+
+X3
+
+K3
+Q1
+
+Lecture 8 - 42
+
+Q2
+
+Q3
+
+Q4
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: Q [NQ x DQ]
+Data vectors: X [NX x DX]
+Key matrix: WK [DX x DQ]
+Value matrix: WV [DX x DV]
+
+V1
+V2
+V3
+
+Computation:
+Keys: K = XWK [NX x DQ]
+Values: V = XWV [NX x DV]
+Similarities: E = QKT / 𝐷𝑄 [NQ x NX]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [NQ x NX]
+Output vector: Y = AV [NQ x DV]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+X1
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+E4,1
+
+X2
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+E4,2
+
+X3
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+E4,3
+
+Q1
+
+Q2
+
+Q3
+
+Q4
+
+Lecture 8 - 43
+
+April 24, 2025
+
+Attention Layer
+
+Softmax normalizes each
+column: each query predicts
+a distribution over the keys
+
+Inputs:
+Query vector: Q [NQ x DQ]
+Data vectors: X [NX x DX]
+Key matrix: WK [DX x DQ]
+Value matrix: WV [DX x DV]
+
+Computation:
+Keys: K = XWK [NX x DQ]
+Values: V = XWV [NX x DV]
+Similarities: E = QKT / 𝐷𝑄 [NQ x NX]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [NQ x NX]
+Output vector: Y = AV [NQ x DV]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+A4,1
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+A4,2
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+A4,3
+
+Softmax(
+
+)
+
+X1
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+E4,1
+
+X2
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+E4,2
+
+X3
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+E4,3
+
+Q1
+
+Q2
+
+Q3
+
+Q4
+
+Lecture 8 - 44
+
+April 24, 2025
+
+Attention Layer
+Inputs:
+Query vector: Q [NQ x DQ]
+Data vectors: X [NX x DX]
+Key matrix: WK [DX x DQ]
+Value matrix: WV [DX x DV]
+
+Y4
+
+), Sum(
+
+)
+
+A2,1
+
+A3,1
+
+A4,1
+
+A1,2
+
+A2,2
+
+A3,2
+
+A4,2
+
+A1,3
+
+A2,3
+
+A3,3
+
+A4,3
+
+Y1
+
+V1
+
+A1,1
+
+V2
+V3
+
+Computation:
+Keys: K = XWK [NX x DQ]
+Values: V = XWV [NX x DV]
+Similarities: E = QKT / 𝐷𝑄 [NQ x NX]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [NQ x NX]
+Output vector: Y = AV [NQ x DV]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y3
+
+Each output is a linear
+combination of all values,
+weighted by attention weights
+
+Y2
+
+Product(
+
+Softmax(
+
+)
+
+X1
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+E4,1
+
+X2
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+E4,2
+
+X3
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+E4,3
+
+Q1
+
+Q2
+
+Q3
+
+Q4
+
+Lecture 8 - 45
+
+April 24, 2025
+
+Cross-Attention Layer
+
+Y1
+
+Inputs:
+Query vector: Q [NQ x DQ]
+Data vectors: X [NX x DX]
+Key matrix: WK [DX x DQ]
+Value matrix: WV [DX x DV]
+
+Product(
+Each query produces
+one output, which is a
+mix of information in
+the data vectors
+
+Computation:
+Keys: K = XWK [NX x DQ]
+Values: V = XWV [NX x DV]
+Similarities: E = QKT / 𝐷𝑄 [NQ x NX]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [NQ x NX]
+Output vector: Y = AV [NQ x DV]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y2
+
+Y3
+
+Y4
+
+), Sum(
+
+)
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+A4,1
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+A4,2
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+A4,3
+
+Softmax(
+
+)
+
+X1
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+E4,1
+
+X2
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+E4,2
+
+X3
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+E4,3
+
+Q1
+
+Q2
+
+Q3
+
+Q4
+
+Lecture 8 - 46
+
+April 24, 2025
+
+Y1
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Product(
+
+Each input produces
+one output, which is
+a mix of information
+from all inputs
+Shapes get a little simpler:
+- N input vectors, each Din
+- Almost always DQ = DV = Dout
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y2
+
+Y3
+
+), Sum( )
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+Softmax(
+
+)
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+Lecture 8 - 47
+
+April 24, 2025
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Each input produces
+one output, which is
+a mix of information
+from all inputs
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+V1
+
+V2
+
+From each input:
+compute a query,
+key, and value vector
+
+V3
+Often fused to one matmul:
+
+K1
+K2
+
+[Q K V] = X[WQ WK WV]
+[N x 3Dout] = [N x Din] [Din x 3Dout]
+
+K3
+
+Lecture 8 - 48
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+April 24, 2025
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Each input produces
+one output, which is
+a mix of information
+from all inputs
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+V1
+
+V2
+V3
+
+Compute similarity
+between each query
+and each key
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+Lecture 8 - 49
+
+April 24, 2025
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Each input produces
+one output, which is
+a mix of information
+from all inputs
+
+Normalize over each column:
+each query computes a
+distribution over keys
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+Softmax(
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+)
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+Lecture 8 - 50
+
+April 24, 2025
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Each input produces
+one output, which is
+a mix of information
+from all inputs
+
+Compute output
+vectors as linear
+combinations of
+value vectors
+
+Y1
+
+Y2
+
+Product(
+
+), Sum( )
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+Softmax(
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y3
+
+)
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+Lecture 8 - 51
+
+April 24, 2025
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Product(
+
+), Sum( )
+
+Consider permuting inputs:
+
+Softmax(
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+X3
+
+Lecture 8 - 52
+
+X1
+
+)
+
+X2
+
+April 24, 2025
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Product(
+
+), Sum( )
+
+Consider permuting inputs:
+Queries, keys, and values
+will be the same but permuted
+
+V3
+
+V1
+V2
+Softmax(
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+)
+
+K3
+K1
+
+K2
+
+Lecture 8 - 53
+
+Q3
+
+Q1
+
+Q2
+
+X3
+
+X1
+
+X2
+
+April 24, 2025
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Product(
+
+Consider permuting inputs:
+Queries, keys, and values
+will be the same but permuted
+Similarities are the same but
+permuted
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+), Sum( )
+
+V3
+
+V1
+V2
+Softmax(
+
+)
+
+K3
+
+E3,3
+
+E1,3
+
+E2,3
+
+K1
+
+E3,1
+
+E1,1
+
+E2,1
+
+K2
+
+E3,2
+
+E1,2
+
+E2,2
+
+Q3
+
+Q1
+
+Q2
+
+X3
+
+X1
+
+X2
+
+Lecture 8 - 54
+
+April 24, 2025
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Product(
+
+Consider permuting inputs:
+Queries, keys, and values
+will be the same but permuted
+Similarities are the same but
+permuted
+
+Computation:
+Attention weights are the
+Queries: Q = XWQ [N x Dout]
+same but permuted
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+), Sum( )
+
+V3
+
+A3,3
+
+A1,3
+
+A2,3
+
+V1
+
+A3,1
+
+A1,1
+
+A2,1
+
+V2
+
+A3,2
+
+A1,2
+
+A2,2
+
+Softmax(
+
+)
+
+K3
+
+E3,3
+
+E1,3
+
+E2,3
+
+K1
+
+E3,1
+
+E1,1
+
+E2,1
+
+K2
+
+E3,2
+
+E1,2
+
+E2,2
+
+Q3
+
+Q1
+
+Q2
+
+X3
+
+X1
+
+X2
+
+Lecture 8 - 55
+
+April 24, 2025
+
+Y3
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Product(
+
+Y2
+
+), Sum( )
+
+Consider permuting inputs:
+Queries, keys, and values
+will be the same but permuted
+Similarities are the same but
+permuted
+
+Computation:
+Attention weights are the
+Queries: Q = XWQ [N x Dout]
+same but permuted
+Keys:
+K = XWK [N x Dout]
+Outputs are the same but
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N] permuted
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y1
+
+V3
+
+A3,3
+
+A1,3
+
+A2,3
+
+V1
+
+A3,1
+
+A1,1
+
+A2,1
+
+V2
+
+A3,2
+
+A1,2
+
+A2,2
+
+Softmax(
+
+)
+
+K3
+
+E3,3
+
+E1,3
+
+E2,3
+
+K1
+
+E3,1
+
+E1,1
+
+E2,1
+
+K2
+
+E3,2
+
+E1,2
+
+E2,2
+
+Q3
+
+Q1
+
+Q2
+
+X3
+
+X1
+
+X2
+
+Lecture 8 - 56
+
+April 24, 2025
+
+Y3
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Y1
+
+Product(
+
+Self-Attention is
+permutation equivariant:
+F(σ(X)) = σ(F(X))
+
+), Sum( )
+
+V3
+
+A3,3
+
+A1,3
+
+A2,3
+
+V1
+
+A3,1
+
+A1,1
+
+A2,1
+
+V2
+
+A3,2
+
+A1,2
+
+A2,2
+
+Softmax(
+
+This means that Self-Attention
+Computation:
+works on sets of vectors
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y2
+
+)
+
+K3
+
+E3,3
+
+E1,3
+
+E2,3
+
+K1
+
+E3,1
+
+E1,1
+
+E2,1
+
+K2
+
+E3,2
+
+E1,2
+
+E2,2
+
+Q3
+
+Q1
+
+Q2
+
+X3
+
+X1
+
+X2
+
+Lecture 8 - 57
+
+April 24, 2025
+
+Y1
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Y2
+
+Product(
+
+Problem: Self-Attention
+does not know the order of
+the sequence
+
+), Sum( )
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+Softmax(
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y3
+
+)
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+Lecture 8 - 58
+
+April 24, 2025
+
+Y1
+
+Self-Attention Layer
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Product(
+
+Problem: Self-Attention
+does not know the order of
+the sequence
+Solution: Add positional
+encoding to each input; this
+is a vector that is a fixed
+function of the index
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y2
+
+Y3
+
+), Sum( )
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+Softmax(
+
+)
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+E(1)
+
+E(2)
+
+E(3)
+
+Lecture 8 - 59
+
+April 24, 2025
+
+Y1
+
+Masked Self-Attention Layer
+
+Product(
+
+Don’t let vectors “look ahead” in the sequence
+
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Y2
+
+Override similarities with -inf;
+this controls which inputs each
+vector is allowed to look at.
+
+), Sum( )
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+V2
+
+0
+
+A2,2
+
+A3,2
+
+V3
+
+0
+
+0
+
+A3,3
+
+Softmax(
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y3
+
+)
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+K2
+
+-∞
+
+E2,2
+
+E3,2
+
+K3
+
+-∞
+
+-∞
+
+E3,3
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+Lecture 8 - 60
+
+April 24, 2025
+
+is
+
+Masked Self-Attention Layer
+
+Product(
+
+Don’t let vectors “look ahead” in the sequence
+
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Override similarities with -inf;
+this controls which inputs each
+vector is allowed to look at.
+Used for language modeling
+where you want to predict the
+next word
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AV [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+very
+
+cool
+
+), Sum( )
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+V2
+
+0
+
+A2,2
+
+A3,2
+
+V3
+
+0
+
+0
+
+A3,3
+
+Softmax(
+
+)
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+K2
+
+-∞
+
+E2,2
+
+E3,2
+
+K3
+
+-∞
+
+-∞
+
+E3,3
+
+Q1
+
+Q2
+
+Q3
+
+Attention is
+
+very
+
+Lecture 8 - 61
+
+April 24, 2025
+
+Multiheaded Self-Attention Layer
+Run H copies of Self-Attention in parallel
+
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+Computation:
+Queries: Q = XWQ [N x Dout]
+Keys:
+K = XWK [N x Dout]
+Values: V = XWV [N x Dout]
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AX [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+X1
+
+Lecture 8 - 62
+
+X2
+
+X3
+
+April 24, 2025
+
+Multiheaded Self-Attention Layer
+Run H copies of Self-Attention in parallel
+
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+Computation:
+Queries: Q = XWQ [N x Dout]
+H = 3 independent
+Keys:
+K = XWK [N x Dout]
+self-attention layers
+Values: V = XWV [N x Dout]
+(called heads), each
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+with their own weights
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AX [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+X1
+
+Lecture 8 - 63
+
+X2
+
+X3
+
+April 24, 2025
+
+Multiheaded Self-Attention Layer
+Run H copies of Self-Attention in parallel
+
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Stack up the H
+independent outputs
+for each input X
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+H = 3 independent
+Keys:
+K = XWK [N x Dout]
+self-attention layers
+Values: V = XWV [N x Dout]
+(called heads), each
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+with their own weights
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AX [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+Y1,1
+Y1,2
+Y1,3
+
+X1
+
+Lecture 8 - 64
+
+Y2,1
+Y2,2
+Y2,3
+
+X2
+
+Y3,1
+Y3,2
+Y3,3
+
+X3
+
+April 24, 2025
+
+Multiheaded Self-Attention Layer
+Run H copies of Self-Attention in parallel
+
+Inputs:
+Input vectors: X [N x Din]
+Key matrix: WK [Din x Dout]
+Value matrix: WV [Din x Dout]
+Query matrix: WQ [Din x Dout]
+
+Output projection fuses
+data from each head
+
+O1
+
+O2
+
+O3
+
+Stack up the H
+independent outputs
+for each input X
+
+Y1,1
+Y1,2
+Y1,3
+
+Y2,1
+Y2,2
+Y2,3
+
+Y3,1
+Y3,2
+Y3,3
+
+Computation:
+Queries: Q = XWQ [N x Dout]
+H = 3 independent
+Keys:
+K = XWK [N x Dout]
+self-attention layers
+Values: V = XWV [N x Dout]
+(called heads), each
+Similarities: E = QKT / 𝐷𝑄 [N x N]
+with their own weights
+Eij = Qi·Kj / 𝐷𝑄
+Attention weights: A = softmax(E, dim=1) [N x N]
+Output vector: Y = AX [N x Dout]
+Yi = ∑jAijVj
+
+Stanford CS231n 10th Anniversary
+
+X1
+
+Lecture 8 - 65
+
+X2
+
+X3
+
+April 24, 2025
+
+Multiheaded Self-Attention Layer
+
+Run H copies of Self-Attention in parallel
+Inputs:
+Each of the H parallel
+Input vectors: X [N x D]
+layers use a qkv dim of
+Key matrix: WK [D x HDH]
+DH = “head dim”
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Usually DH = D / H, so
+Output matrix: WO [HDH x D]
+inputs and outputs have
+the same dimension
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+O1
+
+O2
+
+O3
+
+Y1,1
+Y1,2
+Y1,3
+
+Y2,1
+Y2,2
+Y2,3
+
+Y3,1
+Y3,2
+Y3,3
+
+X1
+
+Lecture 8 - 66
+
+X2
+
+X3
+
+April 24, 2025
+
+Multiheaded Self-Attention Layer
+
+Run H copies of Self-Attention in parallel
+Inputs:
+Input vectors: X [N x D]
+In practice, compute
+Key matrix: WK [D x HDH]
+all H heads in parallel
+Value matrix: WV [D x HD H]
+using batched matrix
+Query matrix: WQ [D x HD H]
+multiply operations.
+Output matrix: WO [HDH x D]
+
+Used everywhere in
+Computation:
+practice.
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+O1
+
+O2
+
+O3
+
+Y1,1
+Y1,2
+Y1,3
+
+Y2,1
+Y2,2
+Y2,3
+
+Y3,1
+Y3,2
+Y3,3
+
+X1
+
+Lecture 8 - 67
+
+X2
+
+X3
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 68
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 69
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+2. QK Similarity
+[H x N x DH] [H x DH x N] => [H x N x N]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 70
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+2. QK Similarity
+[H x N x DH] [H x DH x N] => [H x N x N]
+3. V-Weighting
+[H x N x N] [H x N x DH] => [H x N x DH]
+Reshape to [N x HDH]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 71
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+2. QK Similarity
+[H x N x DH] [H x DH x N] => [H x N x N]
+3. V-Weighting
+[H x N x N] [H x N x DH] => [H x N x DH]
+Reshape to [N x HDH]
+4. Output Projection
+[N x HDH] [HDH x D] => [N x D]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 72
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+2. QK Similarity
+[H x N x DH] [H x DH x N] => [H x N x N]
+3. V-Weighting
+[H x N x N] [H x N x DH] => [H x N x DH]
+Reshape to [N x HDH]
+4. Output Projection
+[N x HDH] [HDH x D] => [N x D]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+Q: How much compute does this take
+as the number of vectors N increases?
+
+Lecture 8 - 73
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+2. QK Similarity
+[H x N x DH] [H x DH x N] => [H x N x N]
+3. V-Weighting
+[H x N x N] [H x N x DH] => [H x N x DH]
+Reshape to [N x HDH]
+4. Output Projection
+[N x HDH] [HDH x D] => [N x D]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+Q: How much compute does this take
+as the number of vectors N increases?
+A: O(N2)
+
+Lecture 8 - 74
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+2. QK Similarity
+[H x N x DH] [H x DH x N] => [H x N x N]
+3. V-Weighting
+[H x N x N] [H x N x DH] => [H x N x DH]
+Reshape to [N x HDH]
+4. Output Projection
+[N x HDH] [HDH x D] => [N x D]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+Q: How much memory does this take
+as the number of vectors N increases?
+
+Lecture 8 - 75
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+2. QK Similarity
+[H x N x DH] [H x DH x N] => [H x N x N]
+3. V-Weighting
+[H x N x N] [H x N x DH] => [H x N x DH]
+Reshape to [N x HDH]
+4. Output Projection
+[N x HDH] [HDH x D] => [N x D]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+Q: How much memory does this take
+as the number of vectors N increases?
+A: O(N2)
+
+Lecture 8 - 76
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H]
+Output matrix: WO [HDH x D]
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+2. QK Similarity
+[H x N x DH] [H x DH x N] => [H x N x N]
+3. V-Weighting
+[H x N x N] [H x N x DH] => [H x N x DH]
+Reshape to [N x HDH]
+4. Output Projection
+[N x HDH] [HDH x D] => [N x D]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+If N=100K, H=64 then
+HxNxN attention weights
+take 1.192 TB! GPUs don’t
+have that much memory…
+
+Q: How much memory does this take
+as the number of vectors N increases?
+A: O(N2)
+
+Lecture 8 - 77
+
+April 24, 2025
+
+Self-Attention is Four Matrix Multiplies!
+Flash Attention
+algorithm computes
+2+3 at the same time
+without storing the
+full attention matrix!
+
+Inputs:
+Input vectors: X [N x D]
+Key matrix: WK [D x HDH]
+Value matrix: WV [D x HD H]
+Query matrix: WQ [D x HD H] Makes large N
+Output matrix: WO [HDH x D] possible
+
+1. QKV Projection
+[N x D] [D x 3HDH] => [N x 3HDH]
+Split and reshape to get Q, K, V each of
+shape [H x N x DH]
+2. QK Similarity
+[H x N x DH] [H x DH x N] => [H x N x N]
+3. V-Weighting
+[H x N x N] [H x N x DH] => [H x N x DH]
+Reshape to [N x HDH]
+4. Output Projection
+[N x HDH] [HDH x D] => [N x D]
+
+Computation:
+Queries: Q = XWQ [H x N x DH]
+Keys:
+K = XWK [H x N x DH]
+Values: V = XWV [H x N x DH]
+Similarities: E = QKT / 𝐷𝑄 [H x N x N]
+Attention weights: A = softmax(E, dim=2) [H x N x N]
+Head outputs: Y = AV [H x N x DH] => [N x HD H]
+Outputs: O = YWO [N x D]
+
+Stanford CS231n 10th Anniversary
+
+If N=100K, H=64 then
+HxNxN attention weights
+take 1.192 TB! GPUs don’t
+have that much memory…
+
+Q: How much memory does this take
+as the number of vectors N increases?
+A: O(N) with Flash Attention
+Dao et al, “FlashAtten tion: Fast an d Memor y-Efficien t Exact Atte ntio n with IO-Awaren ess”, 202 2
+
+Lecture 8 - 78
+
+April 24, 2025
+
+Three Ways of Processing Sequences
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 79
+
+April 24, 2025
+
+Three Ways of Processing Sequences
+Recurrent Neural Network
+
+y1
+
+y2
+
+y3
+
+y4
+
+x1
+
+x2
+
+x3
+
+x4
+
+Works on 1D ordered sequences
+(+) Theoretically good at long
+sequences: O(N) compute and
+memory for a sequence of length N
+(-) Not parallelizable. Need to
+compute hidden states sequentially
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 80
+
+April 24, 2025
+
+Three Ways of Processing Sequences
+Convolution
+
+Recurrent Neural Network
+
+y1
+
+y2
+
+y3
+
+y4
+
+y1
+
+y2
+
+y3
+
+y4
+
+x1
+
+x2
+
+x3
+
+x4
+
+x1
+
+x2
+
+x3
+
+x4
+
+Works on 1D ordered sequences
+
+Works on N-dimensional grids
+
+(+) Theoretically good at long
+sequences: O(N) compute and
+memory for a sequence of length N
+(-) Not parallelizable. Need to
+compute hidden states sequentially
+
+(-) Bad for long sequences: need to
+stack many layers to build up large
+receptive fields
+(+) Parallelizable, outputs can be
+computed in parallel
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 81
+
+April 24, 2025
+
+Three Ways of Processing Sequences
+Convolution
+
+Recurrent Neural Network
+
+Self-Attention
+Y1
+
+Y2
+
+Y3
+
+Product(→), Sum(↑)
+
+y1
+
+y2
+
+y3
+
+y4
+
+y1
+
+y2
+
+y3
+
+y4
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+Softmax(↑)
+
+x1
+
+x2
+
+x3
+
+x4
+
+x1
+
+x2
+
+x3
+
+x4
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+Works on 1D ordered sequences
+
+Works on N-dimensional grids
+
+Works on sets of vectors
+
+(+) Theoretically good at long
+sequences: O(N) compute and
+memory for a sequence of length N
+(-) Not parallelizable. Need to
+compute hidden states sequentially
+
+(-) Bad for long sequences: need to
+stack many layers to build up large
+receptive fields
+(+) Parallelizable, outputs can be
+computed in parallel
+
+(+) Great for long sequences; each
+output depends directly on all inputs
+(+) Highly parallel, it’s just 4 matmuls
+(-) Expensive: O(N2) compute, O(N)
+memory for sequence of length N
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 82
+
+April 24, 2025
+
+Three Ways of Processing Sequences
+Convolution
+
+Recurrent Neural Network
+
+Self-Attention
+Y1
+
+Y2
+
+Y3
+
+Product(→), Sum(↑)
+
+y1
+
+y2
+
+y3
+
+y4
+
+y1
+
+y2
+
+y3
+
+y4
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+Softmax(↑)
+
+x1
+
+x2
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+Attention
+Need
+x
+x
+x is
+x All
+x You
+x
+3
+
+4
+
+Works on 1D ordered sequences
+(+) Theoretically good at long
+sequences: O(N) compute and
+memory for a sequence of length N
+(-) Not parallelizable. Need to
+compute hidden states sequentially
+
+1
+
+2
+
+3
+
+4
+
+Vaswani et al, NeurIPS 2017
+Works on N-dimensional grids
+
+Works on sets of vectors
+
+(-) Bad for long sequences: need to
+stack many layers to build up large
+receptive fields
+(+) Parallelizable, outputs can be
+computed in parallel
+
+(+) Great for long sequences; each
+output depends directly on all inputs
+(+) Highly parallel, it’s just 4 matmuls
+(-) Expensive: O(N2) compute, O(N)
+memory for sequence of length N
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 83
+
+April 24, 2025
+
+The Transformer
+Transformer Block
+Input: Set of vectors x
+
+x1
+
+x2
+
+x3
+
+x4
+
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 84
+
+April 24, 2025
+
+The Transformer
+Transformer Block
+Input: Set of vectors x
+
+Self-Attention
+
+All vectors interact through
+(multiheaded) Self-Attention
+
+x1
+
+x2
+
+x3
+
+x4
+
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 85
+
+April 24, 2025
+
+The Transformer
+Transformer Block
+Input: Set of vectors x
+
++
+
+Residual connection
+
+Self-Attention
+
+All vectors interact through
+(multiheaded) Self-Attention
+
+x1
+
+x2
+
+x3
+
+x4
+
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 86
+
+April 24, 2025
+
+Recall Layer Normalization:
+Given h1, …, hN
+(Shape: D)
+scale: 𝛾
+(Shape: D)
+shift: 𝛽
+(Shape: D)
+𝜇i = (∑j hi,j)/D
+(scalar)
+2
+1/2
+𝜎i = (∑j (hi,j - 𝜇i) /D)
+(scalar)
+zi = (hi - 𝜇i) / 𝜎i
+yi = 𝛾 * zi + 𝛽
+
+The Transformer
+Transformer Block
+Input: Set of vectors x
+
+Ba et al, 2016
+Layer normalization
+normalizes all vectors
+
+Layer Normalization
+
+Residual connection
+
++
+Self-Attention
+
+All vectors interact through
+(multiheaded) Self-Attention
+
+x1
+
+x2
+
+x3
+
+x4
+
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 87
+
+April 24, 2025
+
+The Transformer
+
+Usually a two-layer MLP;
+classic setup is
+D => 4D => D
+
+Transformer Block
+
+Also sometimes called FFN
+(Feed-Forward Network)
+
+Input: Set of vectors x
+MLP independently
+on each vector
+
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+Layer normalization
+normalizes all vectors
+
+Layer Normalization
+
+Residual connection
+
++
+Self-Attention
+
+All vectors interact through
+(multiheaded) Self-Attention
+
+x1
+
+x2
+
+x3
+
+x4
+
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 88
+
+April 24, 2025
+
+The Transformer
+Transformer Block
+Input: Set of vectors x
+
++
+
+Residual connection
+MLP independently
+on each vector
+
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+Layer normalization
+normalizes all vectors
+
+Layer Normalization
+
+Residual connection
+
++
+Self-Attention
+
+All vectors interact through
+(multiheaded) Self-Attention
+
+x1
+
+x2
+
+x3
+
+x4
+
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 89
+
+April 24, 2025
+
+The Transformer
+
+y1
+
+Transformer Block
+Input: Set of vectors x
+
+y2
+
+y3
+
+y4
+
+Another Layer Norm
+
+Layer Normalization
+
+Residual connection
+
++
+
+MLP independently
+on each vector
+
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+Layer normalization
+normalizes all vectors
+
+Layer Normalization
+
+Residual connection
+
++
+Self-Attention
+
+All vectors interact through
+(multiheaded) Self-Attention
+
+x1
+
+x2
+
+x3
+
+x4
+
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 90
+
+April 24, 2025
+
+The Transformer
+Transformer Block
+
+y1
+
+y2
+
+y4
+
+Layer Normalization
+
++
+
+Input: Set of vectors x
+Output: Set of vectors y
+Self-Attention is the only
+interaction between vectors
+
+y3
+
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+LayerNorm and MLP work on
+each vector independently
+
+Layer Normalization
+
+Highly scalable and
+parallelizable, most of the
+compute is just 6 matmuls:
+
+Self-Attention
+
+4 from Self-Attention
+2 from MLP
+
++
+
+x1
+
+x2
+
+x3
+
+x4
+
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 91
+
+April 24, 2025
+
+The Transformer
+Transformer Block
+
+Input: Set of vectors x
+Output: Set of vectors y
+Self-Attention is the only
+interaction between vectors
+
+A Transformer is just a stack of
+identical Transformer blocks!
+They have not changed much since
+2017… but have gotten a lot bigger
+
+LayerNorm and MLP work on
+each vector independently
+Highly scalable and
+parallelizable, most of the
+compute is just 6 matmuls:
+4 from Self-Attention
+2 from MLP
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 92
+
+April 24, 2025
+
+The Transformer
+Transformer Block
+
+Input: Set of vectors x
+Output: Set of vectors y
+Self-Attention is the only
+interaction between vectors
+LayerNorm and MLP work on
+each vector independently
+
+A Transformer is just a stack of
+identical Transformer blocks!
+They have not changed much since
+2017… but have gotten a lot bigger
+Original: [Vaswani et al, 2017]
+12 blocks, D=1024, H=16, N=512
+213M params
+
+Highly scalable and
+parallelizable, most of the
+compute is just 6 matmuls:
+4 from Self-Attention
+2 from MLP
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 93
+
+April 24, 2025
+
+The Transformer
+Transformer Block
+
+Input: Set of vectors x
+Output: Set of vectors y
+Self-Attention is the only
+interaction between vectors
+LayerNorm and MLP work on
+each vector independently
+Highly scalable and
+parallelizable, most of the
+compute is just 6 matmuls:
+
+A Transformer is just a stack of
+identical Transformer blocks!
+They have not changed much since
+2017… but have gotten a lot bigger
+Original: [Vaswani et al, 2017]
+12 blocks, D=1024, H=16, N=512
+213M params
+GPT-2: [Radford et al, 2019]
+48 blocks, D=1600, H=25, N=1024
+1.5B params
+
+4 from Self-Attention
+2 from MLP
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 94
+
+April 24, 2025
+
+The Transformer
+Transformer Block
+
+Input: Set of vectors x
+Output: Set of vectors y
+Self-Attention is the only
+interaction between vectors
+LayerNorm and MLP work on
+each vector independently
+Highly scalable and
+parallelizable, most of the
+compute is just 6 matmuls:
+4 from Self-Attention
+2 from MLP
+
+A Transformer is just a stack of
+identical Transformer blocks!
+They have not changed much since
+2017… but have gotten a lot bigger
+Original: [Vaswani et al, 2017]
+12 blocks, D=1024, H=16, N=512
+213M params
+GPT-2: [Radford et al, 2019]
+48 blocks, D=1600, H=25, N=1024
+1.5B params
+GPT-3: [Brown et al, 2020]
+96 blocks, D=12288, H=96, N=2048
+175B params
+
+Vaswani et al, “Attention is all you need,” NeurIPS 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 95
+
+April 24, 2025
+
+Transformers for Language Modeling (LLM)
+Learn an embedding matrix at the start of
+the model to convert words into vectors.
+Given vocab size V and model dimension
+D, it’s a lookup table of shape [V x D]
+
+Embedding Matrix
+[V x D]
+Attention
+
+Stanford CS231n 10th Anniversary
+
+is
+
+all
+
+Lecture 8 - 96
+
+you
+
+April 24, 2025
+
+Transformers for Language Modeling (LLM)
+Learn an embedding matrix at the start of
+the model to convert words into vectors.
+Given vocab size V and model dimension
+D, it’s a lookup table of shape [V x D]
+
+Use masked attention inside each
+transformer block so each token can only
+see the ones before it
+
+Embedding Matrix
+[V x D]
+Attention
+
+Stanford CS231n 10th Anniversary
+
+is
+
+all
+
+Lecture 8 - 97
+
+you
+
+April 24, 2025
+
+Transformers for Language Modeling (LLM)
+Learn an embedding matrix at the start of
+the model to convert words into vectors.
+
+is
+
+all
+
+you
+
+need
+
+Projection Matrix
+[D x V]
+
+Given vocab size V and model dimension
+D, it’s a lookup table of shape [V x D]
+
+Use masked attention inside each
+transformer block so each token can only
+see the ones before it
+At the end, learn a projection matrix of
+shape [D x V] to project each D-dim
+vector to a V-dim vector of scores for
+each element of the vocabulary.
+Embedding Matrix
+[V x D]
+Attention
+
+Stanford CS231n 10th Anniversary
+
+is
+
+all
+
+Lecture 8 - 98
+
+you
+
+April 24, 2025
+
+Transformers for Language Modeling (LLM)
+Learn an embedding matrix at the start of
+the model to convert words into vectors.
+
+is
+
+all
+
+you
+
+need
+
+Projection Matrix
+[D x V]
+
+Given vocab size V and model dimension
+D, it’s a lookup table of shape [V x D]
+
+Use masked attention inside each
+transformer block so each token can only
+see the ones before it
+At the end, learn a projection matrix of
+shape [D x V] to project each D-dim
+vector to a V-dim vector of scores for
+each element of the vocabulary.
+Train to predict next token using softmax
++ cross-entropy loss
+
+Embedding Matrix
+[V x D]
+Attention
+
+Stanford CS231n 10th Anniversary
+
+is
+
+all
+
+Lecture 8 - 99
+
+you
+
+April 24, 2025
+
+Vision Transformers (ViT)
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 100
+
+April 24, 2025
+
+Vision Transformers (ViT)
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 101
+
+April 24, 2025
+
+Vision Transformers (ViT)
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+Lecture 8 - 102
+
+April 24, 2025
+
+Vision Transformers (ViT)
+
+Q: Any other way to
+describe this operation?
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+Lecture 8 - 103
+
+April 24, 2025
+
+Vision Transformers (ViT)
+
+Q: Any other way to
+describe this operation?
+A: 16x16 conv with stride
+16, 3 input channels, D
+output channels
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+Lecture 8 - 104
+
+April 24, 2025
+
+Vision Transformers (ViT)
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+D-dim vector per patch
+are the input vectors to
+the Transformer
+
+Lecture 8 - 105
+
+April 24, 2025
+
+Vision Transformers (ViT)
+
+Use positional
+encoding to tell
+the transformer
+the 2D position
+of each patch
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+D-dim vector per patch
+are the input vectors to
+the Transformer
+
+Lecture 8 - 106
+
+April 24, 2025
+
+Vision Transformers (ViT)
+Don’t use any
+masking; each
+image patch can
+look at all other
+image patches
+Use positional
+encoding to tell
+the transformer
+the 2D position
+of each patch
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+D-dim vector per patch
+are the input vectors to
+the Transformer
+
+Lecture 8 - 107
+
+April 24, 2025
+
+Vision Transformers (ViT)
+
+Transformer
+gives an output
+vector per patch
+Don’t use any
+masking; each
+image patch can
+look at all other
+image patches
+Use positional
+encoding to tell
+the transformer
+the 2D position
+of each patch
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+D-dim vector per patch
+are the input vectors to
+the Transformer
+
+Lecture 8 - 108
+
+April 24, 2025
+
+Vision Transformers (ViT)
+
+Average pool NxD vectors to
+1xD, apply a linear layer
+D=>C to predict class scores
+Pooling
+
+Transformer
+gives an output
+vector per patch
+Don’t use any
+masking; each
+image patch can
+look at all other
+image patches
+Use positional
+encoding to tell
+the transformer
+the 2D position
+of each patch
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Tran sformers fo r Image
+Recognition at Scale”, ICLR 202 1
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+D-dim vector per patch
+are the input vectors to
+the Transformer
+
+Lecture 8 - 109
+
+April 24, 2025
+
+Tweaking Transformers
+The Transformer architecture has not
+changed much since 2017.
+
+y1
+
+y2
+
+y3
+
+y4
+
+Layer Normalization
+
++
+
+But a few changes have become common:
+
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+Layer Normalization
+
++
+Self-Attention
+x1
+Stanford CS231n 10th Anniversary
+
+x2
+
+Lecture 8 - 110
+
+x3
+
+x4
+
+April 24, 2025
+
+Pre-Norm Transformer
+
+y1
+
+y2
+
+y3
+
+y4
+
+Layer Normalization
+Layer normalization is outside
+the residual connections
+Kind of weird, the model can’t
+actually learn the identify function
+
++
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+Layer Normalization
+
++
+Self-Attention
+x1
+
+x2
+
+x3
+
+x4
+
+Baevski & Auli, “Adaptive Input Representations for Neural Language Modeling”, arXiv 2018
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 111
+
+April 24, 2025
+
+Pre-Norm Transformer
+Layer normalization is outside
+the residual connections
+Kind of weird, the model can’t
+actually learn the identify function
+Solution: Move layer
+normalization before the SelfAttention and MLP, inside the
+residual connections. Training is
+more stable.
+
+y1
+
+y2
+
+y3
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+Layer Normalization
+
++
+Self-Attention
+Layer Normalization
+
+x1
+
+x2
+
+x3
+
+x4
+
+Baevski & Auli, “Adaptive Input Representations for Neural Language Modeling”, arXiv 2018
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 112
+
+April 24, 2025
+
+RMSNorm
+
+y1
+
+y2
+
+Replace Layer Normalization
+with Root-Mean-Square
+Normalization (RMSNorm)
+Input: x [shape D]
+Output: y [shape D]
+Weight: 𝛾 [shape D]
+
+𝑦𝑖 =
+
+𝜀+
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
++
+
+𝑥𝑖
+∗𝛾
+𝑅𝑀𝑆(𝑥) 𝑖
+
+𝑅𝑀𝑆 𝑥 =
+
+y3
+
+Self-Attention
+
+𝑁
+1
+෍ 𝑥𝑖2
+𝑁 𝑖=1
+
+RMSNorm
+
+Training is a bit more stable
+
+x1
+
+x2
+
+x3
+
+x4
+
+Zhang and Sennrich, “Root Mean Square Layer Normalization”, NeurIPS 2019
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 113
+
+April 24, 2025
+
+SwiGLU MLP
+
+y1
+
+y2
+
+Classic MLP:
+Input: X [N x D]
+Weights: W1 [D x 4D]
+W2 [4D x D]
+Output: Y = σ(XW1)W2 [N x D]
+
+y3
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
++
+Self-Attention
+RMSNorm
+
+x1
+
+x2
+
+x3
+
+x4
+
+Shazeer, “GLU Variants Improve Transformers”, 2020
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 114
+
+April 24, 2025
+
+SwiGLU MLP
+
+y1
+
+y2
+
+Classic MLP:
+Input: X [N x D]
+Weights: W1 [D x 4D]
+W2 [4D x D]
+Output: Y = σ(XW1)W2 [N x D]
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
+SwiGLU MLP:
+
++
+
+Input: X [N x D]
+Weights: W1 , W2 [D x H]
+W3 [H x D]
+Output:
+𝑌 = 𝜎 𝑋𝑊1 ⊙ 𝑋𝑊2 𝑊3
+Setting H = 8D/3 keeps
+same total params
+
+y3
+
+Self-Attention
+RMSNorm
+
+x1
+
+x2
+
+x3
+
+x4
+
+Shazeer, “GLU Variants Improve Transformers”, 2020
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 115
+
+April 24, 2025
+
+SwiGLU MLP
+
+y1
+
+y2
+
+Classic MLP:
+Input: X [N x D]
+Weights: W1 [D x 4D]
+W2 [4D x D]
+Output: Y = σ(XW1)W2 [N x D]
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
+SwiGLU MLP:
+Input: X [N x D]
+Weights: W1 , W2 [D x H]
+W3 [H x D]
+Output:
+𝑌 = 𝜎 𝑋𝑊1 ⊙ 𝑋𝑊2 𝑊3
+
+y3
+
++
+
+We offer no explanation as
+to why these architectures
+seem to work; we attribute
+their success, as all else,
+to divine benevolence.
+
+Setting H = 8D/3 keeps
+same total params
+
+Self-Attention
+RMSNorm
+
+x1
+
+x2
+
+x3
+
+x4
+
+Shazeer, “GLU Variants Improve Transformers”, 2020
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 116
+
+April 24, 2025
+
+Mixture of Experts (MoE)
+
+y1
+
+y2
+
+Learn E separate sets of MLP weights in
+each block; each MLP is an expert
+W1: [D x 4D] => [E x D x 4D]
+W2: [4D x D] => [E x 4D x D]
+
+y3
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
++
+Self-Attention
+RMSNorm
+
+x1
+
+x2
+
+x3
+
+x4
+
+Shazeer et al, “Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer”, 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 117
+
+April 24, 2025
+
+Mixture of Experts (MoE)
+
+y1
+
+y2
+
+Learn E separate sets of MLP weights in
+each block; each MLP is an expert
+W1: [D x 4D] => [E x D x 4D]
+W2: [4D x D] => [E x 4D x D]
+
+y3
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+Each token gets routed to A < E of the
+experts. These are the active experts.
+
+MLP
+
+RMSNorm
+
++
+
+Increases params by E,
+But only increases compute by A
+
+Self-Attention
+RMSNorm
+
+x1
+
+x2
+
+x3
+
+x4
+
+Shazeer et al, “Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer”, 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 118
+
+April 24, 2025
+
+Mixture of Experts (MoE)
+
+y1
+
+y2
+
+Learn E separate sets of MLP weights in
+each block; each MLP is an expert
+W1: [D x 4D] => [E x D x 4D]
+W2: [4D x D] => [E x 4D x D]
+
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+RMSNorm
+
++
+
+Increases params by E,
+But only increases compute by A
+
+Stanford CS231n 10th Anniversary
+
+y4
+
++
+
+Each token gets routed to A < E of the
+experts. These are the active experts.
+
+All of the biggest LLMs today (e.g.
+GPT4o, GPT4.5, Claude 3.7, Gemini 2.5
+Pro, etc) almost certainly use MoE and
+have > 1T params; but they don’t publish
+details anymore
+
+y3
+
+Self-Attention
+RMSNorm
+
+x1
+
+x2
+
+Lecture 8 - 119
+
+x3
+
+x4
+
+April 24, 2025
+
+Tweaking Transformers
+
+y1
+
+y2
+
+The Transformer architecture has not
+changed much since 2017.
+But a few changes have become common:
+- Pre-Norm: Move normalization inside
+residual
+- RMSNorm: Different normalization layer
+- SwiGLU: Different MLP architecture
+- Mixture of Experts (MoE): Learn E
+different MLPs, use A < E of them per
+token. Massively increase params,
+modest increase to compute cost.
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
++
+Self-Attention
+RMSNorm
+
+x1
+Stanford CS231n 10th Anniversary
+
+y3
+
+x2
+
+Lecture 8 - 120
+
+x3
+
+x4
+
+April 24, 2025
+
+Summary: Attention + Transformers
+Attention: A new primitive that
+operates on sets of vectors
+
+Transformer: A neural
+network architecture that
+uses attention everywhere
+
+Transformers are the
+backbone of all large
+AI models today!
+
+Used for language,
+vision, speech, …
+
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 121
+
+April 24, 2025
+
+Next Time:
+Detection, Segmentation,
+Visualization
+Stanford CS231n 10th Anniversary
+
+Lecture 8 - 122
+
+April 24, 2025
+
+

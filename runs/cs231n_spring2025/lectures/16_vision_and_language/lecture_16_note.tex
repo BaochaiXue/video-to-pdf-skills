@@ -1,0 +1,164 @@
+
+\documentclass[a4paper]{article}
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\newtcolorbox{knowledgebox}[1]{enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black, coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm}, boxrule=1pt, sharp corners}
+\newtcolorbox{importantbox}[1]{enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black, coltitle=black, fonttitle=\bfseries, title=#1, sharp corners}
+\newtcolorbox{warningbox}[1]{enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black, coltitle=white, fonttitle=\bfseries, title=#1, sharp corners}
+\lstset{language=Python,basicstyle=\ttfamily\small,keywordstyle=\color{blue},stringstyle=\color{red!60!black},commentstyle=\color{green!60!black},breaklines=true,frame=single,numbers=left,numberstyle=\tiny\color{gray},captionpos=b,extendedchars=false}
+\newcommand{\notetitle}{CS231N Spring 2025 课程讲义：Lecture 16 Vision and Language}
+\newcommand{\noteauthors}{Codex Worker 3}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-09-02}
+\newcommand{\videoduration}{1:09:53}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=mQOK0Mfyrkk}
+\newcommand{\videocoverpath}{cover.jpg}
+\begin{document}
+\begin{titlepage}\centering
+{\Large 课程讲义\par}\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}\vspace{0.8cm}
+{\large \noteauthors\par}\vspace{0.3cm}
+{\large \notedate\par}\vspace{1.2cm}
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+\tableofcontents\newpage
+
+    \section{从专项模型到 foundation models：为什么多模态成为主线}
+
+    这一讲不是继续沿着传统 CV 任务往下细分，而是把视角提升到 foundation models。讲者先回顾课程前面隐含的默认假设：我们通常为每个任务训练一个专门模型，分类一个模型、分割一个模型、captioning 又是另一个模型。然而 foundation model 的核心思想恰恰相反：先用超大规模、多样化数据训练一个底座，再通过 zero-shot、few-shot、fine-tuning 或 chaining 支撑大量下游任务。
+
+    课程没有把所有 foundation model 一锅端，而是明确把语言模型放出界外，把焦点锁定在 vision-language 与 multimodal foundation models 上。这个限定很重要，因为它意味着视觉信息不再只是某个任务的输入，而是和文本、动作、对话、规划处于同一个统一表示空间中。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-18.png}
+\caption{CLIP 把图像编码器与文本编码器对齐到同一嵌入空间，用对比学习直接学习跨模态相似度。}
+\end{figure}
+
+
+    \begin{importantbox}{本讲的中心问题}
+    一个视觉 foundation model 值得关注，不是因为参数大，而是因为它在足够多任务上表现出迁移性、鲁棒性和统一接口。参数规模通常是结果，不是定义本身。
+    \end{importantbox}
+
+    \subsection{本章小结}
+
+    本讲真正想回答的问题是：当视觉模型不再服务于单一 benchmark，而开始成为跨任务底座时，我们该如何理解它的训练目标、数据来源和使用方式。
+
+    \section{CLIP：零样本分类、prompt engineering 与规模效应}
+
+    讲者把 CLIP 放在 SimCLR 的延长线上理解：SimCLR 用图像-图像对比学习把同一实例的不同增强拉近，把不同实例推远；CLIP 则把其中一端换成文本，于是目标变成“匹配图像和正确文本，同时排斥错误文本”。
+
+    一个简单的相似度写法是：
+    \[
+    s(I, T) = \langle f_I(I), f_T(T) \rangle,
+    \]
+    其中 $f_I$ 是图像编码器，$f_T$ 是文本编码器，二者都把输入映射到同一嵌入空间；内积或余弦相似度越大，表示图像与文本越匹配。
+
+    这使 CLIP 可以直接做 zero-shot classification。对类别集合 $\mathcal{C}$，我们把每个类别写成自然语言提示，例如 “a photo of a dog”，然后选择相似度最大的类别：
+    \[
+    \hat y = \arg\max_{c \in \mathcal{C}} \, \langle f_I(x), f_T(t_c) \rangle.
+    \]
+
+    这里：
+    \begin{itemize}
+    \item $x$ 是待分类图像；
+    \item $t_c$ 是类别 $c$ 的文字提示；
+    \item $f_I(x)$ 与 $f_T(t_c)$ 的相似度决定模型对该类别的偏好。
+    \end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-32.png}
+\caption{零样本分类的核心是把类别写成提示词，再与图像表示做相似度匹配。}
+\end{figure}
+
+
+    课程在这里特别强调 prompt engineering 和 prompt ensembling。单个词往往过于偏置，而短语更贴近互联网图文数据的真实分布，因此把多个 prompt 的向量取平均，往往比只用一个类名效果更稳。这个细节说明：zero-shot 不是“模型凭空会分类”，而是“我们用自然语言构造了一个与训练分布一致的类别接口”。
+
+    讲者随后用多个结果页解释为什么 CLIP 的 zero-shot 能击败许多监督模型。答案不神秘：一方面是模型规模更大，另一方面是训练数据从 ImageNet 级别扩展到数亿图文对。课程把这种现象概括为一句极其关键的话：no labels can beat labels, not because labels are useless, but because scale changes what the model can generalize.
+
+    CoCa 则是在 CLIP 风格基础上加入 captioning loss 的升级版。其核心思想是：仅靠图文对比，有时只能学会“粗粒度匹配”；如果再要求模型生成描述，它就会学到更丰富的细节、属性与组合语义。课程借此自然引出 CLIP-style 模型的优点与缺点：优点是迁移强、零样本好、接口统一；缺点是数据噪声大、互联网偏见明显、细粒度 grounding 常常不够精确。
+
+    \subsection{本章小结}
+
+    CLIP 把视觉分类从“固定标签空间”改写成“图像与语言的相似度匹配”，这一步使 zero-shot 成为可能。真正支撑它的，不仅是对比目标本身，更是 scale、prompt design 和统一嵌入空间。
+
+    \section{从 CLIP-style 模型到视觉语言对话系统}
+
+    当课程转向 LLaVA 与 Flamingo 时，主题从“对齐表征”变成“如何让视觉特征进入语言模型的生成链路”。LLaVA 的关键设计非常直接：保留一个强视觉编码器与一个大语言模型，再学习一个投影模块，把视觉特征映射为语言模型可接受的 token 表示。这样，大语言模型就能在已有语言能力基础上消费图像信息。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-67.png}
+\caption{LLaVA 用视觉编码器与大型语言模型对接，把视觉特征投影到语言模型可消费的 token 空间。}
+\end{figure}
+
+
+    课程用 “visual instructions” 的视角解释了这类模型的本质：它们不仅要看见图像，还要能理解用户问题的语义、遵循对话格式，并在生成时把视觉证据和语言先验混合起来。Flamingo 则提供了另一种融合路径，通过 gated cross-attention 和 Perceiver sampler，把可变长视觉输入压缩成适合语言模型消费的中间表示，并在 few-shot / in-context 场景中展现很强表现。
+
+    后半段的 open-weight 模型讨论尤其重要。讲者把 Molmo 的进展归因于两个因素：第一是 grounding 能力更强，模型不仅回答“是什么”，还能指出“图里哪里是答案”；第二是数据质量比纯数量更重要。PixMo 的数据收集方式被称为 intentional data，而不是 incidental internet data，这意味着监督信号是为了提取视觉语义而专门设计的，而不只是碰巧挂在网上的 alt-text。
+
+    \begin{knowledgebox}{为什么 grounding 是重要转折}
+    当模型不仅能输出文字答案，还能指出图像中的对应区域、菜单项、车牌号或空间位置时，它才真正具备“可操作的视觉理解”。这也是多模态模型从 perception 走向 action 的关键门槛。
+    \end{knowledgebox}
+
+    \subsection{本章小结}
+
+    从 CLIP 到 LLaVA/Flamingo，再到 Molmo，演化主线非常清楚：先把图像和文本放进同一空间，再把视觉特征接入生成式语言模型，最后提升 grounding 与数据质量，让输出从“会说”进化到“说得有证据”。
+
+    \section{SAM、链式调用与从感知走向行动}
+
+    Segment Anything Model（SAM）代表了另一种 foundation model 思路：它并不直接回答开放式语言问题，而是把分割任务抽象成 promptable segmentation。用户可以给点、框、粗 mask 等提示，模型返回若干候选分割结果。课程特别强调了 SAM 处理歧义的方式：它往往输出多个不同粒度的 mask，而不是强行宣称只有一个“正确分割”，这样用户或下游系统可以自己选择最合适的解释。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-117.png}
+\caption{SAM 把分割变成 promptable segmentation：用户给点、框或粗提示，模型返回候选 mask。}
+\end{figure}
+
+
+    讲者随后把主题推进到 chaining。单个模型不一定解决所有问题，但如果我们能把分类、检测、分割、问答、语言规划串起来，就能得到更强系统能力。CuPL 说明语言模型可以自动生成更好的分类 prompt；VisProg 则更进一步，把复杂视觉任务拆成一段可执行程序，让不同视觉模块和语言模块协同完成推理。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-135.png}
+\caption{VisProg 把复杂视觉问答拆成可执行程序，展示了多模型 chaining 的思路。}
+\end{figure}
+
+
+    这种程序化视角的意义在于：foundation model 不一定要独自完成所有推理，它可以作为组件出现在更大系统中。课程最后几页把话题推向 perception to action，说明当视觉 grounding、分割和语言规划都成熟后，模型就会自然进入 embodied AI、navigation 和 manipulation 的领域。
+
+    \subsection{本章小结}
+
+    SAM 说明 foundation model 可以服务于“可提示的基础视觉能力”；VisProg 和 chaining 则说明，更强的智能往往来自多个模块的程序化协作，而不是把一切硬塞进单个 end-to-end 模型。
+
+    \section{总结与延伸}
+
+    Lecture 16 把 Vision and Language 这件事讲清楚了两个层面。第一个层面是训练目标：CLIP 之类模型把视觉与语言对齐到同一语义空间，为 zero-shot 和迁移奠定基础。第二个层面是系统组织：LLaVA、Flamingo、Molmo、SAM、VisProg 等工作表明，多模态模型的价值越来越体现在 grounding、模块协作和可操作接口，而不只是静态 benchmark 分数。
+
+    对自学者而言，本讲应重点记住三条线索。第一，foundation model 的关键不是“大”，而是统一接口和跨任务迁移。第二，从 CLIP 到 LLaVA 的演化，代表了“表征对齐”到“生成交互”的升级。第三，SAM 与 VisProg 说明多模态系统的未来很可能不是单模型包打天下，而是把感知、分割、语言和程序化控制组合成可执行流水线。
+
+\end{document}

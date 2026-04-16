@@ -1,0 +1,3535 @@
+Lecture 6:
+Training CNNs and CNN
+Architectures
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 1
+
+April 17, 2025
+
+Course Logistics
+
+● Assignment 1 is due next Wednesday (4/23) at 11:59PM!
+● Project proposal deadline is due on Friday next week (4/25)
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 2
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+
+How to train CNNs?
+
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 3
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+
+How to train CNNs?
+
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 4
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+
+How to train CNNs?
+
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 5
+
+April 17, 2025
+
+Recap: Convolution Layer
+3x32x32 image
+
+Don’t forget bias terms!
+
+6 activation maps,
+each 1x28x28
+Activation
+Function!
+
+Convolution
+Layer
+
+(ReLU)
+
+32
+32
+3
+
+6x3x5x5
+filters
+
+Slide inspiration: Justin Johnson
+
+Stanford CS231n 10th Anniversary
+
+Stack activations to get a
+6x28x28 output image!
+Lecture 6 -
+
+6
+
+April 17, 2025
+
+Recap: Pooling Layer
+Single depth slice
+x
+
+1
+
+1
+
+2
+
+6
+
+4
+
+5
+
+6
+
+7
+
+8
+
+3
+
+2
+
+1
+
+0
+
+1
+
+2
+
+3
+
+4
+
+pool with 2x2 filters and
+stride 2
+
+8
+
+3
+
+4
+
+3.25
+
+5.25
+
+2
+
+2
+
+Max
+Pooling
+
+Average
+Pooling
+
+y
+Stanford CS231n 10th Anniversary
+
+Lecture 6 -
+
+7
+
+April 17, 2025
+
+Components of CNNs
+Convolution Layers
+
+Pooling Layers
+
+Fully-Connected Layers
+x
+
+Normalization Layers
+
+𝑥!!,# =
+
+𝑥!,# − 𝜇#
+
+Dropout (sometimes)
+
+h
+
+s
+
+Activation Functions
+
+𝜎#$ + 𝜀
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 8
+
+April 17, 2025
+
+Components of CNNs
+Convolution Layers
+
+Pooling Layers
+
+Fully-Connected Layers
+x
+
+Normalization Layers
+
+𝑥!!,# =
+
+𝑥!,# − 𝜇#
+
+Dropout (sometimes)
+
+h
+
+s
+
+Activation Functions
+
+𝜎#$ + 𝜀
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 9
+
+April 17, 2025
+
+Example Normalization Layer: LayerNorm
+High-level Idea: Learn parameters that let us scale / shift the input data
+1. Normalize input data
+2. Scale / shift using learned parameters
+
+Ba, Kiros, and Hinton, “Layer Normalization”, arXiv 2016
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 10
+
+April 17, 2025
+
+Example Normalization Layer: LayerNorm
+High-level Idea: Learn parameters that let us scale / shift the input data
+1. Normalize input data
+2. Scale / shift using learned parameters
+
+x: N × D
+
+Normalize
+Statistics calculated per batch à
+Learned parameters applied to each sample à
+
+𝞵 ,𝝈 : N × 1
+ɣ,β: 1 × D
+y = ɣ(x-𝞵)/𝝈+β
+
+Ba, Kiros, and Hinton, “Layer Normalization”, arXiv 2016
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 11
+
+April 17, 2025
+
+Other Normalization Layers
+
+You will implement some of these in assignment 2!
+Wu and He, “Group Normalization”, ECCV 2018
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 12
+
+April 17, 2025
+
+Components of CNNs
+Convolution Layers
+
+Pooling Layers
+
+Fully-Connected Layers
+x
+
+Normalization Layers
+
+𝑥!!,# =
+
+𝑥!,# − 𝜇#
+
+Dropout (sometimes)
+
+h
+
+s
+
+Activation Functions
+
+𝜎#$ + 𝜀
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 13
+
+April 17, 2025
+
+Components of CNNs
+Convolution Layers
+
+Pooling Layers
+
+Fully-Connected Layers
+x
+
+Normalization Layers
+
+𝑥!!,# =
+
+𝑥!,# − 𝜇#
+
+Dropout (sometimes)
+
+h
+
+s
+
+Activation Functions
+
+𝜎#$ + 𝜀
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 14
+
+April 17, 2025
+
+Regularization: Dropout
+In each forward pass, randomly set some neurons to zero
+Probability of dropping is a hyperparameter; 0.5 is common
+
+Srivastava et al, “Dropout: A simple way to prevent neural networks from overfitting”, JMLR 2014
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 15
+
+April 17, 2025
+
+Regularization: Dropout
+How can this possibly be a good idea?
+Forces the network to have a redundant representation;
+Prevents co-adaptation of features
+has an ear
+
+X
+
+has a tail
+is furry
+
+X
+
+has claws
+mischievous
+look
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 16
+
+cat
+score
+
+X
+
+April 17, 2025
+
+Regularization: Dropout
+How can this possibly be a good idea?
+Another interpretation:
+Dropout is training a large ensemble of
+models (that share parameters).
+Each binary mask is one model
+An FC layer with 4096 units has
+24096 ~ 101233 possible masks!
+Only ~ 1082 atoms in the universe...
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 17
+
+April 17, 2025
+
+Dropout: Test time
+
+At test time all neurons are active always
+=> We must scale the activations so that for each neuron:
+output at test time = expected output at training time
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 18
+
+April 17, 2025
+
+Dropout Summary
+
+drop in train time
+
+scale at test time
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 19
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+
+How to train CNNs?
+
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 20
+
+April 17, 2025
+
+Components of CNNs
+Convolution Layers
+
+Pooling Layers
+
+Fully-Connected Layers
+x
+
+Normalization Layers
+
+𝑥!!,# =
+
+𝑥!,# − 𝜇#
+
+Dropout (sometimes)
+
+h
+
+s
+
+Activation Functions
+
+𝜎#$ + 𝜀
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 21
+
+April 17, 2025
+
+Components of CNNs
+Convolution Layers
+
+Pooling Layers
+
+Fully-Connected Layers
+x
+
+Normalization Layers
+
+Dropout (sometimes)
+
+h
+
+s
+
+Activation Functions
+
+𝑥!,#Introduce
+− 𝜇#
+Goal:
+non𝑥!!,# =
+linearities
+to
+our
+model!
+$
+𝜎 +𝜀
+#
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 22
+
+April 17, 2025
+
+Activation Functions
+-
+
+Squashes numbers to range [0,1]
+Historically popular since they
+have nice interpretation as a
+saturating “firing rate” of a neuron
+
+Key problem:
+
+Sigmoid
+
+Many layers of sigmoids à smaller
+and smaller gradients.
+Q: In which regions does sigmoid
+have a small gradient?
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 23
+
+April 17, 2025
+
+Activation Functions
+-
+
+Squashes numbers to range [0,1]
+Historically popular since they
+have nice interpretation as a
+saturating “firing rate” of a neuron
+
+Key problem:
+
+Sigmoid
+
+Stanford CS231n 10th Anniversary
+
+Large positive or negative values
+can “kill” the gradients. Many layers
+of sigmoids à smaller and smaller
+gradients in practice
+
+Lecture 6 - 24
+
+April 17, 2025
+
+Activation Functions
+
+- Computes f(x) = max(0,x)
+- Does not saturate (in +region)
+- Very computationally efficient
+- Converges much faster than
+sigmoid in practice (e.g. 6x)
+
+ReLU
+(Rectified Linear Unit)
+[Krizhevsky et al., 2012]
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 25
+
+April 17, 2025
+
+Activation Functions
+
+- Computes f(x) = max(0,x)
+- Does not saturate (in +region)
+- Very computationally efficient
+- Converges much faster than
+sigmoid in practice (e.g. 6x)
+
+ReLU
+(Rectified Linear Unit)
+
+Stanford CS231n 10th Anniversary
+
+- Not zero-centered output
+- An annoyance:
+Dead ReLUs when x < 0!
+Lecture 6 - 26
+
+April 17, 2025
+
+Activation Functions
+
+[Hendrycks et al., 2016]
+
+- Computes f(x) = x*Φ(x)
+- Very nice behavior around 0
+- Smoothness facilitates training in
+practice
+
+Source: https://en.m.wikipedia.org/wiki/File:ReLU_and_GELU.svg
+
+GELU
+(Gaussian Error
+Linear Unit)
+Stanford CS231n 10th Anniversary
+
+- Higher computational cost than ReLU
+- Large negative values can still have
+gradient à 0
+
+Lecture 6 - 27
+
+April 17, 2025
+
+Activation Function Zoo
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 28
+
+April 17, 2025
+
+Activation Function Zoo
+Q: Where are activations used in CNNs?
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 29
+
+April 17, 2025
+
+Activation Function Zoo
+Q: Where are activations used in CNNs?
+A: Generally placed after linear operators (feedforward/linear
+layer, convolutional layer, etc.)
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 30
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+How to train CNNs?
+
+Stanford CS231n 10th Anniversary
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Lecture 6 - 31
+
+April 17, 2025
+
+ImageNet Large Scale Visual Recognition Challenge (ILSVRC) winners
+152 layers 152 layers 152 layers
+
+19 layers
+
+shallow
+
+Lin et al
+
+Sanchez &
+Perronnin
+
+8 layers
+
+8 layers
+
+Krizhevsky et al
+(AlexNet)
+
+Zeiler &
+Fergus
+
+Stanford CS231n 10th Anniversary
+
+22 layers
+
+Simonyan & Szegedy et al
+Zisserman (VGG) (GoogLeNet)
+
+He et al
+(ResNet)
+
+Shao et al
+
+Lecture 6 - 32
+
+Hu et al
+(SENet)
+
+Russakovsky et al
+
+April 17, 2025
+
+ImageNet Large Scale Visual Recognition Challenge (ILSVRC) winners
+152 layers 152 layers 152 layers
+
+19 layers
+
+shallow
+
+Lin et al
+
+Sanchez &
+Perronnin
+
+8 layers
+
+8 layers
+
+Krizhevsky et al
+(AlexNet)
+
+Zeiler &
+Fergus
+
+Stanford CS231n 10th Anniversary
+
+22 layers
+
+Simonyan & Szegedy et al
+Zisserman (VGG) (GoogLeNet)
+
+He et al
+(ResNet)
+
+Shao et al
+
+Lecture 6 - 33
+
+Hu et al
+(SENet)
+
+Russakovsky et al
+
+April 17, 2025
+
+ImageNet Large Scale Visual Recognition Challenge (ILSVRC) winners
+152 layers 152 layers 152 layers
+
+19 layers
+
+shallow
+
+Lin et al
+
+Sanchez &
+Perronnin
+
+8 layers
+
+8 layers
+
+Krizhevsky et al
+(AlexNet)
+
+Zeiler &
+Fergus
+
+Stanford CS231n 10th Anniversary
+
+22 layers
+
+Simonyan & Szegedy et al
+Zisserman (VGG) (GoogLeNet)
+
+He et al
+(ResNet)
+
+Shao et al
+
+Lecture 6 - 34
+
+Hu et al
+(SENet)
+
+Russakovsky et al
+
+April 17, 2025
+
+Case Study: VGGNet
+
+Softmax
+FC 1000
+Softmax
+
+FC 4096
+
+FC 1000
+
+FC 4096
+
+FC 4096
+
+Pool
+
+FC 4096
+
+3x3 conv, 512
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 512
+
+Softmax
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 1000
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 4096
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 4096
+
+Pool
+
+Pool
+
+Pool
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 384
+
+Pool
+
+Pool
+
+Pool
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 384
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+Pool
+
+Pool
+
+Pool
+
+5x5 conv, 256
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+11x11 conv, 96
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+Input
+
+Input
+
+Input
+
+AlexNet
+
+VGG16
+
+VGG19
+
+[Simonyan and Zisserman, 2014]
+
+Small filters, Deeper networks
+8 layers (AlexNet)
+-> 16 - 19 layers (VGG16Net)
+Only 3x3 CONV stride 1, pad 1
+and 2x2 MAX POOL stride 2
+11.7% top 5 error in ILSVRC’13
+(ZFNet)
+-> 7.3% top 5 error in ILSVRC’14
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 35
+
+April 17, 2025
+
+Case Study: VGGNet
+
+Softmax
+FC 1000
+Softmax
+
+FC 4096
+
+FC 1000
+
+FC 4096
+
+FC 4096
+
+Pool
+
+FC 4096
+
+3x3 conv, 512
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 512
+
+Softmax
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 1000
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 4096
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 4096
+
+Pool
+
+Pool
+
+Pool
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 384
+
+Pool
+
+Pool
+
+Pool
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 384
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+Pool
+
+Pool
+
+Pool
+
+5x5 conv, 256
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+11x11 conv, 96
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+Input
+
+Input
+
+Input
+
+AlexNet
+
+VGG16
+
+VGG19
+
+[Simonyan and Zisserman, 2014]
+
+Q: Why use smaller filters? (3x3 conv)
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 36
+
+April 17, 2025
+
+Case Study: VGGNet
+
+Softmax
+FC 1000
+
+[Simonyan and Zisserman, 2014]
+
+Q: What is the effective receptive field
+of three 3x3 conv (stride 1) layers?
+Input
+
+A1
+
+Conv1 (3x3)
+
+A3
+
+A2
+
+Conv2 (3x3)
+
+Stanford CS231n 10th Anniversary
+
+Conv3 (3x3)
+
+Lecture 6 - 37
+
+Softmax
+
+FC 4096
+
+FC 1000
+
+FC 4096
+
+FC 4096
+
+Pool
+
+FC 4096
+
+3x3 conv, 512
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+Pool
+
+Pool
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+Pool
+
+Pool
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+Input
+
+Input
+
+VGG16
+
+VGG19
+
+April 17, 2025
+
+Case Study: VGGNet
+
+Softmax
+FC 1000
+
+[Simonyan and Zisserman, 2014]
+
+Q: What is the effective receptive field
+of three 3x3 conv (stride 1) layers?
+Input
+
+A1
+
+Conv1 (3x3)
+
+A3
+
+A2
+
+Conv2 (3x3)
+
+Stanford CS231n 10th Anniversary
+
+Conv3 (3x3)
+
+Lecture 6 - 38
+
+Softmax
+
+FC 4096
+
+FC 1000
+
+FC 4096
+
+FC 4096
+
+Pool
+
+FC 4096
+
+3x3 conv, 512
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+Pool
+
+Pool
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+Pool
+
+Pool
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+Input
+
+Input
+
+VGG16
+
+VGG19
+
+April 17, 2025
+
+Case Study: VGGNet
+
+Softmax
+FC 1000
+
+[Simonyan and Zisserman, 2014]
+
+Q: What is the effective receptive field
+of three 3x3 conv (stride 1) layers?
+Input
+
+A1
+
+Conv1 (3x3)
+
+A3
+
+A2
+
+Conv2 (3x3)
+
+Stanford CS231n 10th Anniversary
+
+Conv3 (3x3)
+
+Lecture 6 - 39
+
+Softmax
+
+FC 4096
+
+FC 1000
+
+FC 4096
+
+FC 4096
+
+Pool
+
+FC 4096
+
+3x3 conv, 512
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+Pool
+
+Pool
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+Pool
+
+Pool
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+Input
+
+Input
+
+VGG16
+
+VGG19
+
+April 17, 2025
+
+Case Study: VGGNet
+
+Softmax
+FC 1000
+
+[Simonyan and Zisserman, 2014]
+
+Q: What is the effective receptive field
+of three 3x3 conv (stride 1) layers?
+Input
+
+A1
+
+Conv1 (3x3)
+
+A3
+
+A2
+
+Conv2 (3x3)
+
+Stanford CS231n 10th Anniversary
+
+Conv3 (3x3)
+
+Lecture 6 - 40
+
+Softmax
+
+FC 4096
+
+FC 1000
+
+FC 4096
+
+FC 4096
+
+Pool
+
+FC 4096
+
+3x3 conv, 512
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+Pool
+
+Pool
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+Pool
+
+Pool
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+Input
+
+Input
+
+VGG16
+
+VGG19
+
+April 17, 2025
+
+Case Study: VGGNet
+
+Softmax
+FC 1000
+
+[Simonyan and Zisserman, 2014]
+
+Q: What is the effective receptive field
+of three 3x3 conv (stride 1) layers?
+Input
+
+A1
+
+Conv1 (3x3)
+
+A3
+
+A2
+
+Conv2 (3x3)
+
+Stanford CS231n 10th Anniversary
+
+Conv3 (3x3)
+
+Lecture 6 - 41
+
+Softmax
+
+FC 4096
+
+FC 1000
+
+FC 4096
+
+FC 4096
+
+Pool
+
+FC 4096
+
+3x3 conv, 512
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+Pool
+
+Pool
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+Pool
+
+Pool
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+Input
+
+Input
+
+VGG16
+
+VGG19
+
+April 17, 2025
+
+Case Study: VGGNet
+
+Softmax
+FC 1000
+Softmax
+
+FC 4096
+
+FC 1000
+
+FC 4096
+
+FC 4096
+
+Pool
+
+FC 4096
+
+3x3 conv, 512
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 512
+
+Softmax
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 1000
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 4096
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 4096
+
+Pool
+
+Pool
+
+Pool
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 384
+
+Pool
+
+Pool
+
+Pool
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 384
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+Pool
+
+Pool
+
+Pool
+
+5x5 conv, 256
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+11x11 conv, 96
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+Input
+
+Input
+
+Input
+
+AlexNet
+
+VGG16
+
+VGG19
+
+[Simonyan and Zisserman, 2014]
+
+Q: Why use smaller filters? (3x3 conv)
+
+Stack of three 3x3 conv (stride 1) layers
+has same effective receptive field as
+one 7x7 conv layer
+[7x7]
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 42
+
+April 17, 2025
+
+Case Study: VGGNet
+
+Softmax
+FC 1000
+Softmax
+
+FC 4096
+
+FC 1000
+
+FC 4096
+
+FC 4096
+
+Pool
+
+FC 4096
+
+3x3 conv, 512
+
+Pool
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+Pool
+
+Pool
+
+3x3 conv, 512
+
+Softmax
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 1000
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 4096
+
+3x3 conv, 512
+
+3x3 conv, 512
+
+FC 4096
+
+Pool
+
+Pool
+
+Pool
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 256
+
+3x3 conv, 384
+
+Pool
+
+Pool
+
+Pool
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+3x3 conv, 384
+
+3x3 conv, 128
+
+3x3 conv, 128
+
+Pool
+
+Pool
+
+Pool
+
+5x5 conv, 256
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+11x11 conv, 96
+
+3x3 conv, 64
+
+3x3 conv, 64
+
+Input
+
+Input
+
+Input
+
+AlexNet
+
+VGG16
+
+VGG19
+
+[Simonyan and Zisserman, 2014]
+
+Q: Why use smaller filters? (3x3 conv)
+Stack of three 3x3 conv (stride 1) layers
+has same effective receptive field as
+one 7x7 conv layer
+But deeper, more non-linearities
+And fewer parameters: 3 * (32C2) vs.
+72C2 for C channels per layer
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 43
+
+April 17, 2025
+
+ImageNet Large Scale Visual Recognition Challenge (ILSVRC) winners
+“Revolution of Depth”
+152 layers 152 layers 152 layers
+
+19 layers
+
+shallow
+
+Lin et al
+
+Sanchez &
+Perronnin
+
+8 layers
+
+8 layers
+
+Krizhevsky et al
+(AlexNet)
+
+Zeiler &
+Fergus
+
+Stanford CS231n 10th Anniversary
+
+22 layers
+
+Simonyan & Szegedy et al
+Zisserman (VGG) (GoogLeNet)
+
+He et al
+(ResNet)
+
+Shao et al
+
+Lecture 6 - 44
+
+Hu et al
+(SENet)
+
+Russakovsky et al
+
+April 17, 2025
+
+Case Study: ResNet
+[He et al., 2015]
+
+What happens when we continue stacking deeper layers on a “plain” convolutional
+neural network?
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 45
+
+April 17, 2025
+
+Case Study: ResNet
+[He et al., 2015]
+
+Test error
+
+56-layer
+
+20-layer
+
+Training error
+
+What happens when we continue stacking deeper layers on a “plain” convolutional
+neural network?
+
+56-layer
+
+20-layer
+Iterations
+
+Stanford CS231n 10th Anniversary
+
+Iterations
+
+Lecture 6 - 46
+
+April 17, 2025
+
+Case Study: ResNet
+[He et al., 2015]
+
+Test error
+
+56-layer
+
+20-layer
+
+Training error
+
+What happens when we continue stacking deeper layers on a “plain” convolutional
+neural network?
+
+56-layer
+
+20-layer
+Iterations
+
+Iterations
+
+56-layer model performs worse on both test and training error
+-> The deeper model performs worse, but it’s not caused by overfitting!
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 47
+
+April 17, 2025
+
+Case Study: ResNet
+[He et al., 2015]
+
+Fact: Deep models have more representation power
+(more parameters) than shallower models.
+Hypothesis: the problem is an optimization problem,
+deeper models are harder to optimize
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 48
+
+April 17, 2025
+
+Case Study: ResNet
+[He et al., 2015]
+
+Fact: Deep models have more representation power
+(more parameters) than shallower models.
+Hypothesis: the problem is an optimization problem,
+deeper models are harder to optimize
+What should the deeper model learn to be at least
+as good as the shallower model?
+A solution by construction is copying the learned
+layers from the shallower model and setting
+additional layers to identity mapping.
+
+Stanford CS231n 10th Anniversary
+
+H(x)
+H(x)
+relu
+
+Identity
+
+relu
+
+conv
+
+conv
+
+X
+
+X
+
+Lecture 6 - 49
+
+April 17, 2025
+
+Case Study: ResNet
+[He et al., 2015]
+
+Solution: Use network layers to fit a residual mapping instead of directly trying to fit a
+desired underlying mapping
+H(x)
+
+conv
+
+relu
+conv
+
+X
+“Plain” layers
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 50
+
+April 17, 2025
+
+Case Study: ResNet
+[He et al., 2015]
+
+Solution: Use network layers to fit a residual mapping instead of directly trying to fit a
+desired underlying mapping
+Identity mapping:
+relu
+H(x) = x if F(x) = 0
+H(x)
+H(x) = F(x) + x
+conv
+
+conv
+
+relu
+
+F(x)
+
+relu
+
+conv
+
+conv
+
+X
+“Plain” layers
+
+X
+Residual block
+
+Stanford CS231n 10th Anniversary
+
+X
+identity
+
+Lecture 6 - 51
+
+April 17, 2025
+
+Case Study: ResNet
+[He et al., 2015]
+
+Solution: Use network layers to fit a residual mapping instead of directly trying to fit a
+desired underlying mapping
+Identity mapping:
+relu
+H(x) = F(x) + x
+H(x) = x if F(x) = 0
+H(x)
+H(x) = F(x) + x
+conv
+
+conv
+
+relu
+
+F(x)
+
+relu
+
+conv
+
+conv
+
+X
+“Plain” layers
+
+X
+Residual block
+
+Stanford CS231n 10th Anniversary
+
+X
+identity
+
+Lecture 6 - 52
+
+Use layers to
+fit residual
+F(x) = H(x) - x
+instead of
+H(x) directly
+
+April 17, 2025
+
+Softmax
+FC 1000
+Pool
+
+Case Study: ResNet
+[He et al., 2015]
+
+3x3 conv, 512
+3x3 conv, 512
+3x3 conv, 512
+3x3 conv, 512
+
+Full ResNet architecture:
+- Stack residual blocks
+- Every residual block has
+two 3x3 conv layers
+
+relu
+
+3x3 conv, 512
+3x3 conv, 512, /2
+
+F(x) + x
+
+..
+.
+3x3 conv, 128
+3x3 conv, 128
+
+3x3 conv
+
+F(x)
+
+relu
+
+X
+identity
+
+3x3 conv
+
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128, / 2
+
+3x3 conv, 64
+3x3 conv, 64
+
+X
+Residual block
+
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+Pool
+7x7 conv, 64, / 2
+Input
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 53
+
+April 17, 2025
+
+Softmax
+FC 1000
+Pool
+
+Case Study: ResNet
+[He et al., 2015]
+
+Full ResNet architecture:
+- Stack residual blocks
+- Every residual block has
+two 3x3 conv layers
+- Periodically, double # of
+filters and downsample
+spatially using stride 2
+(/2 in each dimension)
+Reduce the activation
+volume by half.
+
+3x3 conv, 512
+3x3 conv, 512
+3x3 conv, 512
+3x3 conv, 512
+
+relu
+
+3x3 conv, 512
+3x3 conv, 512, /2
+
+F(x) + x
+
+..
+.
+3x3 conv, 128
+3x3 conv, 128
+
+3x3 conv
+
+F(x)
+
+relu
+
+X
+identity
+
+3x3 conv
+
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128, / 2
+
+3x3 conv, 64
+3x3 conv, 64
+
+X
+Residual block
+
+3x3 conv, 128
+filters, /2
+spatially with
+stride 2
+3x3 conv, 64
+filters
+
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+Pool
+7x7 conv, 64, / 2
+Input
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 54
+
+April 17, 2025
+
+Softmax
+FC 1000
+Pool
+
+Case Study: ResNet
+[He et al., 2015]
+
+Full ResNet architecture:
+- Stack residual blocks
+- Every residual block has
+two 3x3 conv layers
+- Periodically, double # of
+filters and downsample
+spatially using stride 2
+(/2 in each dimension)
+- Additional conv layer at
+the beginning (stem)
+
+3x3 conv, 512
+3x3 conv, 512
+3x3 conv, 512
+3x3 conv, 512
+
+relu
+
+3x3 conv, 512
+3x3 conv, 512, /2
+
+F(x) + x
+
+..
+.
+3x3 conv, 128
+3x3 conv, 128
+
+3x3 conv
+
+F(x)
+
+relu
+
+X
+identity
+
+3x3 conv
+
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128, / 2
+
+3x3 conv, 64
+3x3 conv, 64
+
+X
+Residual block
+
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+Pool
+7x7 conv, 64, / 2
+Input
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 55
+
+Beginning
+conv layer
+
+April 17, 2025
+
+Case Study: ResNet
+[He et al., 2015]
+
+Softmax
+FC 1000
+Pool
+3x3 conv, 512
+3x3 conv, 512
+3x3 conv, 512
+3x3 conv, 512
+
+Total depths of 18, 34, 50,
+101, or 152 layers for
+ImageNet
+
+3x3 conv, 512
+3x3 conv, 512, /2
+
+..
+.
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128, / 2
+
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+Pool
+7x7 conv, 64, / 2
+Input
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 56
+
+April 17, 2025
+
+Softmax
+FC 1000
+Pool
+
+Case Study: ResNet
+
+3x3 conv, 64
+3x3 conv, 64
+
+[He et al., 2015]
+
+Very deep networks using residual
+connections
+-
+
+152-layer model for ImageNet
+ILSVRC’15 classification winner
+(3.57% top 5 error)
+Swept all classification and
+detection competitions in
+ILSVRC’15 and COCO’15!
+
+3x3 conv, 64
+3x3 conv, 64
+
+relu
+F(x) + x
+
+3x3 conv, 64
+3x3 conv, 64
+
+..
+.
+
+conv
+
+F(x)
+
+relu
+conv
+
+X
+Residual block
+
+X
+identity
+
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128
+3x3 conv, 128 / 2
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+3x3 conv, 64
+Pool
+7x7 conv, 64 / 2
+Input
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 57
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+How to train CNNs?
+
+Stanford CS231n 10th Anniversary
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Lecture 6 - 58
+
+April 17, 2025
+
+How to initialize weights in neural
+network layers?
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 59
+
+April 17, 2025
+
+Weight Initialization Case: Values too small
+
+Forward pass for a 6-layer
+net with hidden size 4096
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 60
+
+April 17, 2025
+
+Weight Initialization Case: Values too small
+All activations tend to zero
+for deeper network layers
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 61
+
+April 17, 2025
+
+Weight Initialization Case: Values too large
+
+Increase std of initial
+weights from 0.01 to 0.05
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 62
+
+April 17, 2025
+
+Weight Initialization Case: Values too large
+Activations blow up quickly
+Increase std of initial
+weights from 0.01 to 0.05
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 63
+
+April 17, 2025
+
+How to fix this? Depends on the size of the layer
+
+He et al, “Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification”, ICCV 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 64
+
+April 17, 2025
+
+One solution: Kaiming / MSRA Initialization
+ReLU correction: std = sqrt(2 / Din)
+
+“Just right”: Activations are
+nicely scaled for all layers!
+
+He et al, “Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification”, ICCV 2015
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 65
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+How to train CNNs?
+
+Stanford CS231n 10th Anniversary
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Lecture 6 - 66
+
+April 17, 2025
+
+TLDR for Image Normalization: center and scale
+for each channel
+- Subtract per-channel mean and
+Divide by per-channel std (almost all modern models)
+(stats along each channel = 3 numbers)
+
+- Requires pre-computing means and std for each
+pixel channel (given your dataset)
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 67
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+How to train CNNs?
+
+Stanford CS231n 10th Anniversary
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Lecture 6 - 68
+
+April 17, 2025
+
+Regularization: A common pattern
+Training: Add some kind of randomness
+
+Testing: Average out randomness (sometimes approximate)
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 69
+
+April 17, 2025
+
+Regularization: A common pattern
+Training: Add some kind
+of randomness
+
+Testing: Average out randomness
+(sometimes approximate)
+
+Stanford CS231n 10th Anniversary
+
+Example: Dropout
+Training:
+Randomly drop
+activations
+Testing: Use all
+activations and
+average values
+with p
+Lecture 6 - 70
+
+April 17, 2025
+
+Regularization: Data Augmentation
+Load image
+and label
+
+“cat”
+Compute
+loss
+CNN
+
+Transform image
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 71
+
+April 17, 2025
+
+Data Augmentation
+Horizontal Flips
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 72
+
+April 17, 2025
+
+Data Augmentation
+Random crops and scales
+Training: sample random crops / scales
+ResNet:
+1. Pick random L in range [256, 480]
+2. Resize training image, short side = L
+3. Sample random 224 x 224 patch
+
+Test Time Augmentation: average a fixed set of crops
+ResNet:
+1. Resize image at 5 scales: {224, 256, 384, 480, 640}
+2. For each size, use 10 224 x 224 crops: 4 corners + center, + flips
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 73
+
+April 17, 2025
+
+Data Augmentation
+Color Jitter
+Simple: Randomize
+contrast and brightness
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 74
+
+April 17, 2025
+
+Regularization: Cutout
+Training: Set random image regions to zero
+Testing: Use full image
+Examples:
+Dropout
+Data Augmentation
+Cutout / Random Crop
+
+DeVries and Taylor, “Improved Regularization of
+Convolutional Neural Networks with Cutout”, arXiv 2017
+
+Stanford CS231n 10th Anniversary
+
+Works very well for small datasets like CIFAR,
+less common for large datasets like ImageNet
+
+Lecture 6 - 75
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+How to train CNNs?
+
+Stanford CS231n 10th Anniversary
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Lecture 6 - 76
+
+April 17, 2025
+
+What if you don’t have a lot of data? Can
+you still train CNNs?
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 77
+
+April 17, 2025
+
+Transfer Learning with CNNs
+
+AlexNet:
+64 x 3 x 11 x 11
+
+(More on this in Lecture 13)
+Stanford CS231n 10th Anniversary
+
+Lecture 6 -
+
+78
+
+April 17, 2025
+
+Transfer Learning with CNNs
+Test image L2 Nearest neighbors in feature space
+
+(More on this in Lecture 13)
+Stanford CS231n 10th Anniversary
+
+Lecture 6 -
+
+79
+
+April 17, 2025
+
+Donahue et al, “DeCAF: A Deep Convolutional Activation
+Feature for Generic Visual Recognition”, ICML 2014
+Razavian et al, “CNN Features Off-the-Shelf: An
+Astounding Baseline for Recognition”, CVPR Workshops
+2014
+
+Transfer Learning with CNNs
+1. Train on Imagenet (or internet scale data)
+FC-1000
+FC-4096
+FC-4096
+MaxPool
+Conv-512
+Conv-512
+MaxPool
+Conv-512
+Conv-512
+MaxPool
+Conv-256
+Conv-256
+MaxPool
+Conv-128
+Conv-128
+MaxPool
+Conv-64
+Conv-64
+Image
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 -
+
+80
+
+April 17, 2025
+
+Donahue et al, “DeCAF: A Deep Convolutional Activation
+Feature for Generic Visual Recognition”, ICML 2014
+Razavian et al, “CNN Features Off-the-Shelf: An
+Astounding Baseline for Recognition”, CVPR Workshops
+2014
+
+Transfer Learning with CNNs
+1. Train on Imagenet
+
+2. Small Dataset (C classes)
+
+FC-1000
+
+FC-C
+
+FC-4096
+
+FC-4096
+
+FC-4096
+
+FC-4096
+
+MaxPool
+
+MaxPool
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+MaxPool
+
+MaxPool
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+MaxPool
+
+MaxPool
+
+Conv-256
+
+Conv-256
+
+Conv-256
+
+Conv-256
+
+MaxPool
+
+MaxPool
+
+Conv-128
+
+Conv-128
+
+Conv-128
+
+Conv-128
+
+MaxPool
+
+MaxPool
+
+Conv-64
+
+Conv-64
+
+Conv-64
+
+Conv-64
+
+Image
+
+Image
+
+Stanford CS231n 10th Anniversary
+
+Reinitialize
+this and train
+
+Freeze these from
+pretrained model
+
+Lecture 6 -
+
+81
+
+April 17, 2025
+
+Donahue et al, “DeCAF: A Deep Convolutional Activation
+Feature for Generic Visual Recognition”, ICML 2014
+Razavian et al, “CNN Features Off-the-Shelf: An
+Astounding Baseline for Recognition”, CVPR Workshops
+2014
+
+Transfer Learning with CNNs
+1. Train on Imagenet
+
+2. Small Dataset (C classes)
+
+3. Bigger dataset
+
+FC-1000
+
+FC-C
+
+FC-4096
+
+FC-4096
+
+FC-4096
+
+FC-4096
+
+MaxPool
+
+MaxPool
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+MaxPool
+
+MaxPool
+
+MaxPool
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+Conv-512
+
+MaxPool
+
+MaxPool
+
+Conv-256
+
+Conv-256
+
+Conv-256
+
+Conv-256
+
+MaxPool
+
+MaxPool
+
+MaxPool
+
+Conv-128
+
+Conv-128
+
+Conv-128
+
+Conv-128
+
+Conv-128
+
+Conv-128
+
+MaxPool
+
+MaxPool
+
+MaxPool
+
+Conv-64
+
+Conv-64
+
+Conv-64
+
+Conv-64
+
+Conv-64
+
+Conv-64
+
+Image
+
+Image
+
+Image
+
+Stanford CS231n 10th Anniversary
+
+FC-C
+
+Reinitialize
+this and train
+
+Freeze these from
+pretrained model
+
+Lecture 6 -
+
+FC-4096
+FC-4096
+MaxPool
+
+MaxPool
+
+Initialize from
+pretrained
+model, then
+finetune
+everything
+
+Conv-256
+Conv-256
+
+82
+
+With bigger
+dataset, it’s
+better to train
+more layers
+
+April 17, 2025
+
+very similar
+dataset
+
+very different
+dataset
+
+very little data
+
+?
+
+?
+
+quite a lot of
+data
+
+?
+
+?
+
+FC-1000
+FC-4096
+FC-4096
+MaxPool
+Conv-512
+Conv-512
+MaxPool
+Conv-512
+
+More specific
+
+Conv-512
+MaxPool
+Conv-256
+Conv-256
+
+More generic
+
+MaxPool
+Conv-128
+Conv-128
+MaxPool
+Conv-64
+Conv-64
+Image
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 -
+
+83
+
+April 17, 2025
+
+very similar
+dataset
+
+very different
+dataset
+
+very little data
+
+Use Linear
+Classifier on
+final layer
+
+?
+
+quite a lot of
+data
+
+Finetune all
+model layers
+
+?
+
+FC-1000
+FC-4096
+FC-4096
+MaxPool
+Conv-512
+Conv-512
+MaxPool
+Conv-512
+
+More specific
+
+Conv-512
+MaxPool
+Conv-256
+Conv-256
+
+More generic
+
+MaxPool
+Conv-128
+Conv-128
+MaxPool
+Conv-64
+Conv-64
+Image
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 -
+
+84
+
+April 17, 2025
+
+very similar
+dataset
+
+very different
+dataset
+
+very little data
+
+Use Linear
+Classifier on
+final layer
+
+Try another
+model or collect
+more data L
+
+quite a lot of
+data
+
+Finetune all
+model layers
+
+Either finetune
+all model layers
+or train from
+scratch!
+
+FC-1000
+FC-4096
+FC-4096
+MaxPool
+Conv-512
+Conv-512
+MaxPool
+Conv-512
+
+More specific
+
+Conv-512
+MaxPool
+Conv-256
+Conv-256
+
+More generic
+
+MaxPool
+Conv-128
+Conv-128
+MaxPool
+Conv-64
+Conv-64
+Image
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 -
+
+85
+
+April 17, 2025
+
+Takeaway for your projects and beyond:
+Have some dataset of interest but it has < ~1M images?
+1. Find a very large dataset that has
+similar data, train a big model there
+2. Transfer learn to your dataset
+Deep learning frameworks provide a “Model Zoo” of pretrained
+models so you don’t need to train your own
+PyTorch: https://github.com/pytorch/vision
+Huggingface: https://github.com/huggingface/pytorch-image-models
+Stanford CS231n 10th Anniversary
+
+Lecture 6 -
+
+86
+
+April 17, 2025
+
+Lecture Overview – Two Broad Sets of Topics
+
+How to build CNNs?
+
+How to train CNNs?
+
+Stanford CS231n 10th Anniversary
+
+Layers in CNNs
+Activation Functions
+CNN Architectures
+Weight Initialization
+Data Preprocessing
+Data augmentation
+Transfer Learning
+Hyperparameter Selection
+
+Lecture 6 - 87
+
+April 17, 2025
+
+Choosing Hyperparameters
+Step 1: Check initial loss
+Step 2: Overfit a small sample
+Step 3: Find LR that makes loss go down
+Use the architecture from the previous step, use all training
+data, turn on small weight decay, find a learning rate that
+makes the loss drop significantly within ~100 iterations
+Good learning rates to try: 1e-1, 1e-2, 1e-3, 1e-4, 1e-5
+Stanford CS231n 10th Anniversary
+
+Lecture 6 -
+
+88
+
+April 17, 2025
+
+Choosing Hyperparameters
+Step 1: Check initial loss
+Step 2: Overfit a small sample
+Step 3: Find LR that makes loss go down
+Step 4: Coarse grid of hyperparams, train for ~1-5 epochs
+Step 5: Refine grid, train longer
+Step 6: Look at loss and accuracy curves (next slides)
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 89
+
+April 17, 2025
+
+Accuracy still going up, you
+need to train longer
+
+Accuracy
+
+Train
+
+Val
+time
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 90
+
+April 17, 2025
+
+Q: What is happening here?
+
+Accuracy
+
+Train
+
+Val
+time
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 91
+
+April 17, 2025
+
+Huge train / val gap means
+overfitting! Increase regularization
+or get more data
+
+Accuracy
+
+Train
+
+Val
+time
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 92
+
+April 17, 2025
+
+No gap between train / val means
+underfitting: train longer, can
+possibly use a bigger model
+
+Accuracy
+
+Train
+
+Val
+time
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 93
+
+April 17, 2025
+
+Choosing Hyperparameters
+Step 1: Check initial loss
+Step 2: Overfit a small sample
+Step 3: Find LR that makes loss go down
+Step 4: Coarse grid, train for ~1-5 epochs
+Step 5: Refine grid, train longer
+Step 6: Look at loss and accuracy curves
+Step 7: GOTO step 5
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 94
+
+April 17, 2025
+
+Random Search for HyperParameter Optimization
+Bergstra and Bengio, 2012
+Random Layout
+
+Unimportant Parameter
+
+Grid Layout
+
+Important Parameter
+
+Unimportant Parameter
+
+Random Search vs. Grid Search
+
+Important Parameter
+Illustration of Bergstra et al., 2012 by Shayne
+Longpre, copyright CS231n 2017
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 95
+
+April 17, 2025
+
+Summary
+We reviewed 8 topics at a high level:
+
+1. Layers in CNNs (Conv, FC, Norm, Dropout)
+2. Activation Functions in NNs (ReLU, GELU, etc.)
+3. CNN Architectures (VGG, ResNets)
+4. Weight Initialization (Maintain Activation Distribution)
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 96
+
+April 17, 2025
+
+Summary
+We reviewed 8 topics at a high level:
+
+5. Data Preprocessing (subtract mean, divide std)
+6. Data augmentation (cropping, jitter)
+7. Transfer Learning (train on ImageNet first)
+8. Hyperparameter (Checking Losses + Random Search)
+
+Stanford CS231n 10th Anniversary
+
+Lecture 6 - 97
+
+April 17, 2025
+
+

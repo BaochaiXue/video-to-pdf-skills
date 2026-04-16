@@ -1,0 +1,1786 @@
+[00:00:05,440 --> 00:00:08,160] I'm really happy to announce our next guest
+[00:00:08,160 --> 00:00:11,120] speaker for the course, Professor Jiajun Wu.
+[00:00:11,120 --> 00:00:14,597] So Jiajun is an assistant professor here at Stanford
+[00:00:14,597 --> 00:00:16,180] in the Department of Computer Science,
+[00:00:16,180 --> 00:00:22,720] and he's a faculty member of the Stanford Vision and Learning
+[00:00:22,720 --> 00:00:24,040] Lab.
+[00:00:24,040 --> 00:00:27,240] His research focuses on scene understanding with an emphasis
+[00:00:27,240 --> 00:00:31,360] on multimodal perception, robotics and embodied AI,
+[00:00:31,360 --> 00:00:35,740] visual generation and reasoning, and 3D understanding,
+[00:00:35,740 --> 00:00:38,120] which is the topic of today's lecture.
+[00:00:38,120 --> 00:00:41,920] And so I'll now turn it over to Jiajun to begin today's lecture.
+[00:00:41,920 --> 00:00:43,340] OK, yeah, so I'm Jiajun.
+[00:00:43,340 --> 00:00:44,860] I'm an assistant professor here.
+[00:00:44,860 --> 00:00:46,360] And I think, a few years ago, I used
+[00:00:46,360 --> 00:00:48,840] to teach this class, co-teach.
+[00:00:48,840 --> 00:00:51,940] So I heard this year, it's the 10th year anniversary.
+[00:00:51,940 --> 00:00:55,360] So you have guest speakers from different places.
+[00:00:55,360 --> 00:00:58,520] OK, so today, we're going to talk about 3D vision.
+[00:00:58,520 --> 00:01:01,130] So it might be kind of different from a lot of things
+[00:01:01,130 --> 00:01:05,938] you learned before because, I think, in the past few weeks,
+[00:01:05,938 --> 00:01:07,730] we talked about convolution neural networks
+[00:01:07,730 --> 00:01:09,970] and transformers and maybe vision language models
+[00:01:09,970 --> 00:01:12,100] and generative models as well for Justin.
+[00:01:12,100 --> 00:01:13,730] Right, OK.
+[00:01:13,730 --> 00:01:16,690] Yeah, so here, for 3D, I think I'm going to first introduce
+[00:01:16,690 --> 00:01:19,730] a little bit on, what are the 3D representations?
+[00:01:19,730 --> 00:01:22,370] So it's more like, it's pretty distant from all
+[00:01:22,370 --> 00:01:23,430] the deep learning stuff.
+[00:01:23,430 --> 00:01:25,850] But then we're going to talk about how deep learning or AI
+[00:01:25,850 --> 00:01:29,010] has changed 3D vision and how they can be integrated
+[00:01:29,010 --> 00:01:30,290] in different ways.
+[00:01:30,290 --> 00:01:32,930] And we're looking into a few different applications about 3D
+[00:01:32,930 --> 00:01:35,570] generation, reconstruction, and stuff like that.
+[00:01:35,570 --> 00:01:39,050] OK, so let's begin by looking into, what are the possible ways
+[00:01:39,050 --> 00:01:41,070] to represent objects in 3D?
+[00:01:41,070 --> 00:01:42,755] Because in 2D, it's so straightforward.
+[00:01:42,755 --> 00:01:44,130] It looks like I just have pixels.
+[00:01:44,130 --> 00:01:47,750] I have a loading a file of a PNG file or a JPEG file.
+[00:01:47,750 --> 00:01:50,130] It's like 200 by 200 pixels.
+[00:01:50,130 --> 00:01:51,950] But how can we represent 3D objects?
+[00:01:51,950 --> 00:01:54,890] I think that's the first thing we want to look into.
+[00:01:54,890 --> 00:01:59,260] And 3D objects, they can be diverse.
+[00:01:59,260 --> 00:02:01,520] They can be at different scales.
+[00:02:01,520 --> 00:02:05,580] It can be huge, large buildings and trees, complex structures.
+[00:02:05,580 --> 00:02:09,380] And if you zoom in, you can also see all the fine details.
+[00:02:09,380 --> 00:02:11,820] So what are the best 3D representations to represent all
+[00:02:11,820 --> 00:02:14,420] these different types of 3D objects at different scales with
+[00:02:14,420 --> 00:02:16,860] different features?
+[00:02:16,860 --> 00:02:20,220] And unlike images, where everyone just uses pixels,
+[00:02:20,220 --> 00:02:24,260] so we have 200 by 200, 500 by 500.
+[00:02:24,260 --> 00:02:27,780] The way to represent 3D objects, objects are also like,
+[00:02:27,780 --> 00:02:28,650] you have geometry.
+[00:02:28,650 --> 00:02:29,400] You have textures.
+[00:02:29,400 --> 00:02:30,320] You have materials.
+[00:02:30,320 --> 00:02:32,640] But let's just maybe start by looking at geometry.
+[00:02:32,640 --> 00:02:34,495] And even just for 3D object geometry,
+[00:02:34,495 --> 00:02:36,620] there are so many different ways to represent them.
+[00:02:36,620 --> 00:02:39,680] We can basically categorize them into two different categories.
+[00:02:39,680 --> 00:02:41,860] One is called explicit representations.
+[00:02:41,860 --> 00:02:45,140] So where you can, in some sense, directly, I
+[00:02:45,140 --> 00:02:46,700] would say, explicitly representing
+[00:02:46,700 --> 00:02:47,680] part of the objects.
+[00:02:47,680 --> 00:02:50,160] This includes things like point clouds,
+[00:02:50,160 --> 00:02:52,460] if you have a cloud of 3D points,
+[00:02:52,460 --> 00:02:55,720] or a polygon mesh or subdivisions,
+[00:02:55,720 --> 00:02:59,063] which we're going to talk about it, and others.
+[00:02:59,063 --> 00:03:00,480] And there's a different categories
+[00:03:00,480 --> 00:03:03,550] of object shape representations, which are often called implicit.
+[00:03:03,550 --> 00:03:05,300] So we're going to talk about them as well.
+[00:03:05,300 --> 00:03:07,425] So I'm going to explain them a little bit of detail
+[00:03:07,425 --> 00:03:09,840] later, including level sets, algebraic surfaces, distance
+[00:03:09,840 --> 00:03:10,660] functions.
+[00:03:10,660 --> 00:03:13,080] So they are basically representing 3D objects
+[00:03:13,080 --> 00:03:14,680] or their geometries as functions,
+[00:03:14,680 --> 00:03:17,720] which it is not directly-- it's not as, in some sense,
+[00:03:17,720 --> 00:03:19,985] intuitive as, oh, it's just a collection of points.
+[00:03:19,985 --> 00:03:21,360] But as we'll see later, they also
+[00:03:21,360 --> 00:03:24,280] have their own advantages and weaknesses
+[00:03:24,280 --> 00:03:26,240] using implicit representations.
+[00:03:26,240 --> 00:03:29,240] So every choice, they have their suitable task and type
+[00:03:29,240 --> 00:03:30,155] of geometry.
+[00:03:30,155 --> 00:03:32,280] And in particular, in the context of deep learning,
+[00:03:32,280 --> 00:03:34,488] they may also have their own strengths and weaknesses
+[00:03:34,488 --> 00:03:37,960] when you want to apply deep learning methods on top of it.
+[00:03:37,960 --> 00:03:41,480] So when do we choose a representation?
+[00:03:41,480 --> 00:03:43,480] We have to store them, so pixels are
+[00:03:43,480 --> 00:03:45,640] easy to store because it's just a matrix.
+[00:03:45,640 --> 00:03:48,620] But then 3D point clouds are more irregular.
+[00:03:48,620 --> 00:03:51,320] And also, especially if you use some implicit representations,
+[00:03:51,320 --> 00:03:53,340] like representing object as a function,
+[00:03:53,340 --> 00:03:56,090] how would you store that in a computer?
+[00:03:56,090 --> 00:03:59,370] And how does it support creating new shapes?
+[00:03:59,370 --> 00:04:02,210] And especially now, let's say, maybe the input is a picture,
+[00:04:02,210 --> 00:04:04,770] or the input is a language description.
+[00:04:04,770 --> 00:04:06,390] And different type of operations--
+[00:04:06,390 --> 00:04:07,550] you have 3D objects.
+[00:04:07,550 --> 00:04:10,370] And then how can you edit it, simplify it, smooth it, filter,
+[00:04:10,370 --> 00:04:11,310] and repair it?
+[00:04:11,310 --> 00:04:12,850] So you can have to do a lot more.
+[00:04:12,850 --> 00:04:14,917] For images, sometimes you want to do that, too.
+[00:04:14,917 --> 00:04:15,750] You want to edit it.
+[00:04:15,750 --> 00:04:17,208] You want to edit it using language.
+[00:04:17,208 --> 00:04:19,010] You want to edit it using stroke.
+[00:04:19,010 --> 00:04:22,210] And how can you edit or perform any type of operations on 3D
+[00:04:22,210 --> 00:04:24,070] objects and rendering?
+[00:04:24,070 --> 00:04:28,112] How can you turn that 3D objects into 2D pixels?
+[00:04:28,112 --> 00:04:29,070] In some sense, you can.
+[00:04:29,070 --> 00:04:31,210] 3D vision is to invert the process.
+[00:04:31,210 --> 00:04:35,432] How can you go from 2D images to reconstruct the 3D objects?
+[00:04:35,432 --> 00:04:37,390] So how they support all these different things,
+[00:04:37,390 --> 00:04:40,870] including in animations, especially if you are modeling,
+[00:04:40,870 --> 00:04:43,790] let's say, 3D humans or animals, and you want to animate them,
+[00:04:43,790 --> 00:04:46,130] so all these factors need to be considered.
+[00:04:46,130 --> 00:04:49,170] And something else, of course, that connects through all these
+[00:04:49,170 --> 00:04:51,780] is also their integration with different deep learning methods
+[00:04:51,780 --> 00:04:55,180] for, let's say, shape editing, rendering, inverse rendering,
+[00:04:55,180 --> 00:04:57,260] and animation as well.
+[00:04:57,260 --> 00:04:59,380] So very quickly, I can go through some
+[00:04:59,380 --> 00:05:01,780] of these representations like point clouds.
+[00:05:01,780 --> 00:05:05,820] So point cloud is probably the simplest representations.
+[00:05:05,820 --> 00:05:07,120] I only have 3D points.
+[00:05:07,120 --> 00:05:09,508] It doesn't have connectivity, so it doesn't capture
+[00:05:09,508 --> 00:05:10,800] how these points are connected.
+[00:05:10,800 --> 00:05:12,383] So you basically just have a-- instead
+[00:05:12,383 --> 00:05:14,260] of having an n by [? n ?] matrix,
+[00:05:14,260 --> 00:05:16,660] which is about the pixel values of all the pixels
+[00:05:16,660 --> 00:05:20,060] in the picture, now you have a 3 by n matrix,
+[00:05:20,060 --> 00:05:23,960] where 3 is x, y, z coordinates of these individual points.
+[00:05:23,960 --> 00:05:26,300] And you have a number of points.
+[00:05:26,300 --> 00:05:29,853] So sometimes, you can represent the surface normals of the point
+[00:05:29,853 --> 00:05:32,020] as well so that you have not only where the point is
+[00:05:32,020 --> 00:05:35,960] in the 3D space, but also to which direction it's facing.
+[00:05:35,960 --> 00:05:38,740] So you have the surface normals, which give you
+[00:05:38,740 --> 00:05:40,240] a bit more information.
+[00:05:40,240 --> 00:05:42,180] And sometimes, people call them surfels, which
+[00:05:42,180 --> 00:05:46,020] is points with orientations.
+[00:05:46,020 --> 00:05:48,322] And yeah, so why do you need surface normals?
+[00:05:48,322 --> 00:05:49,780] Because if you want to render them,
+[00:05:49,780 --> 00:05:52,430] you want to say how the object look like,
+[00:05:52,430 --> 00:05:55,310] then that means you have to often specify a lighting source.
+[00:05:55,310 --> 00:05:57,350] Where's the lighting coming from?
+[00:05:57,350 --> 00:05:59,430] But to make the rendering look realistic,
+[00:05:59,430 --> 00:06:01,630] you have to consider how the lighting, coming
+[00:06:01,630 --> 00:06:03,350] from a certain direction, is going
+[00:06:03,350 --> 00:06:05,090] to interact with the point.
+[00:06:05,090 --> 00:06:07,230] And this is where the surface normals
+[00:06:07,230 --> 00:06:10,070] is used to help you to make the rendering look realistic,
+[00:06:10,070 --> 00:06:12,550] like you can see here.
+[00:06:12,550 --> 00:06:14,590] So how can you get points?
+[00:06:14,590 --> 00:06:18,790] A benefit of the point cloud, it is often a raw format that you
+[00:06:18,790 --> 00:06:21,710] will get from a lot of the 3D sensors,
+[00:06:21,710 --> 00:06:25,110] including these depth sensors, including some 3D scanners.
+[00:06:25,110 --> 00:06:27,970] And nowadays, I think if you can even use an iPhone.
+[00:06:27,970 --> 00:06:30,870] I think they have an AR kit, or these kind of software allow you
+[00:06:30,870 --> 00:06:32,230] to scan 3D objects.
+[00:06:32,230 --> 00:06:34,770] But the raw output of those sensors,
+[00:06:34,770 --> 00:06:36,050] they're still 3D point clouds.
+[00:06:36,050 --> 00:06:37,550] Now, of course, after that, you have
+[00:06:37,550 --> 00:06:40,103] to process them and fuse them to make it like maybe
+[00:06:40,103 --> 00:06:41,020] objects with textures.
+[00:06:43,590 --> 00:06:45,570] So yeah, they often results from scanners.
+[00:06:45,570 --> 00:06:47,185] They can potentially be very noisy.
+[00:06:47,185 --> 00:06:48,810] And there are things like this, and you
+[00:06:48,810 --> 00:06:52,130] want to fuse them, merge them, repair them.
+[00:06:52,130 --> 00:06:54,650] And in this part, you have to consider
+[00:06:54,650 --> 00:06:57,770] how these different pictures can be registered to give you
+[00:06:57,770 --> 00:07:00,810] the shared point cloud.
+[00:07:00,810 --> 00:07:04,490] And they're very flexible, so you can-- because you
+[00:07:04,490 --> 00:07:05,870] can move points here and there.
+[00:07:05,870 --> 00:07:07,850] So you can use them to represent basically
+[00:07:07,850 --> 00:07:09,110] any type of object geometry.
+[00:07:09,110 --> 00:07:11,770] You're not constrained by the topology or stuff like that.
+[00:07:11,770 --> 00:07:14,290] It's useful for large data sets because sometimes, you
+[00:07:14,290 --> 00:07:17,330] have to consider a very diverse set of objects.
+[00:07:17,330 --> 00:07:20,370] But because the points are already, in some sense--
+[00:07:20,370 --> 00:07:23,390] you consider they being presampled.
+[00:07:23,390 --> 00:07:26,830] So if you have a lot of points-- if you're representing objects,
+[00:07:26,830 --> 00:07:29,342] but your points are sampled in an even way in the sense
+[00:07:29,342 --> 00:07:31,050] that you have a lot of points, let's say,
+[00:07:31,050 --> 00:07:34,090] on the head of the rabbit, but you have very, very few points
+[00:07:34,090 --> 00:07:35,690] on the tail of the rabbit, then it
+[00:07:35,690 --> 00:07:37,650] will be actually hard to draw samples
+[00:07:37,650 --> 00:07:39,470] from these undersampled regions.
+[00:07:39,470 --> 00:07:41,950] So sometimes, when people consider sampling points,
+[00:07:41,950 --> 00:07:43,490] you have to design algorithm to make
+[00:07:43,490 --> 00:07:45,770] sure you sample them roughly evenly,
+[00:07:45,770 --> 00:07:48,020] across different parts of the objects.
+[00:07:48,020 --> 00:07:50,900] And other limitations, or it's not obvious
+[00:07:50,900 --> 00:07:52,460] how we can directly perform sometimes
+[00:07:52,460 --> 00:07:55,340] the very useful operations, like simplification or subdivisions,
+[00:07:55,340 --> 00:07:57,460] on these objects.
+[00:07:57,460 --> 00:08:00,500] It doesn't directly allow you to do smooth rendering.
+[00:08:00,500 --> 00:08:02,620] There's no topological information.
+[00:08:02,620 --> 00:08:06,620] So for example here, if I give you a collection of points,
+[00:08:06,620 --> 00:08:11,540] then you can't even tell if this is like a torus or this is
+[00:08:11,540 --> 00:08:14,588] like these ring-like shapes, because it doesn't tell you
+[00:08:14,588 --> 00:08:15,880] how these points are connected.
+[00:08:15,880 --> 00:08:20,220] So it's a partial information about what the object is if you
+[00:08:20,220 --> 00:08:21,783] just have the point clouds.
+[00:08:21,783 --> 00:08:23,200] So naturally, people will say, OK,
+[00:08:23,200 --> 00:08:25,468] how can I actually capture more information
+[00:08:25,468 --> 00:08:27,260] so that I can distinguish between these two
+[00:08:27,260 --> 00:08:28,540] different objects?
+[00:08:28,540 --> 00:08:32,440] Then naturally, that goes to the polygonal meshes.
+[00:08:32,440 --> 00:08:36,080] So it represents the objects still as a collection of points,
+[00:08:36,080 --> 00:08:38,507] but then also how these points are connected.
+[00:08:38,507 --> 00:08:40,840] So now you have not only the points, but also the faces,
+[00:08:40,840 --> 00:08:43,179] the surfaces.
+[00:08:43,179 --> 00:08:45,930] And this is arguably, I would say,
+[00:08:45,930 --> 00:08:48,310] the most widely used representation for 3D objects
+[00:08:48,310 --> 00:08:51,350] in all these graphics engines and in computer games and stuff
+[00:08:51,350 --> 00:08:54,630] like that, basically it is all represented as polygon meshes.
+[00:08:54,630 --> 00:08:57,010] But you can see that to represent faces,
+[00:08:57,010 --> 00:09:00,990] it is more complex because often, you have to consider--
+[00:09:00,990 --> 00:09:03,040] especially if you're looking at raw meshes,
+[00:09:03,040 --> 00:09:05,290] then every face may have a different number of points.
+[00:09:05,290 --> 00:09:07,873] You may have three points and have four points or five points.
+[00:09:07,873 --> 00:09:10,310] And how you can represent them, especially given
+[00:09:10,310 --> 00:09:12,645] their irregularity, how you can integrate them
+[00:09:12,645 --> 00:09:15,270] with neural networks, especially in the early stage when people
+[00:09:15,270 --> 00:09:17,070] start with convolution neural networks,
+[00:09:17,070 --> 00:09:18,930] they always assume a fixed resolution.
+[00:09:18,930 --> 00:09:20,650] But here you have not--
+[00:09:20,650 --> 00:09:24,730] I would say a variable dimension of these raw information.
+[00:09:24,730 --> 00:09:26,610] How does that integrate with deep learning?
+[00:09:26,610 --> 00:09:27,770] That has been some big challenge.
+[00:09:27,770 --> 00:09:30,410] That's why deep learning with 3D vision started kind of late,
+[00:09:30,410 --> 00:09:33,270] because people were thinking about how we can adapt all these
+[00:09:33,270 --> 00:09:36,870] deep learning methods to deal with all these complex
+[00:09:36,870 --> 00:09:40,070] representations for objects, which are not as unified
+[00:09:40,070 --> 00:09:42,270] as images.
+[00:09:42,270 --> 00:09:44,140] But meshes are really widely used,
+[00:09:44,140 --> 00:09:45,880] and they can be very complex meshes
+[00:09:45,880 --> 00:09:47,680] that capture all the details.
+[00:09:47,680 --> 00:09:49,215] For example, you have scanners.
+[00:09:49,215 --> 00:09:50,840] You get points, and then you fuse them.
+[00:09:50,840 --> 00:09:52,260] And you apply some algorithm.
+[00:09:52,260 --> 00:09:54,860] You can get very large mesh.
+[00:09:54,860 --> 00:09:58,320] This one has 56 million triangles
+[00:09:58,320 --> 00:10:04,200] and 28 million vertices to represent the sculpture.
+[00:10:04,200 --> 00:10:06,480] And you can have even larger ones, let's say,
+[00:10:06,480 --> 00:10:07,420] from Google Earth.
+[00:10:07,420 --> 00:10:08,820] They have trillions of triangles.
+[00:10:08,820 --> 00:10:13,138] Try to represent basically all the buildings on Earth.
+[00:10:13,138 --> 00:10:15,680] The nice thing about meshes, it supports a lot of operations,
+[00:10:15,680 --> 00:10:16,657] like subdivisions.
+[00:10:16,657 --> 00:10:18,240] Or I want to have more details and how
+[00:10:18,240 --> 00:10:22,837] can I use more meshes to capture more details of the shape?
+[00:10:22,837 --> 00:10:24,420] And you can do simplification as well.
+[00:10:24,420 --> 00:10:25,962] Sometimes, you want to process things
+[00:10:25,962 --> 00:10:28,140] very fast, so I don't need that many meshes.
+[00:10:28,140 --> 00:10:30,640] I just want to simplify it, and so there
+[00:10:30,640 --> 00:10:34,520] are existing algorithms that allow you to do that as well.
+[00:10:34,520 --> 00:10:37,520] And regularization-- if you get irregular mesh,
+[00:10:37,520 --> 00:10:39,360] and sometimes you want to regularize them
+[00:10:39,360 --> 00:10:42,140] so that every face is a triangle,
+[00:10:42,140 --> 00:10:43,840] they always connect three vertices.
+[00:10:43,840 --> 00:10:47,300] They have roughly the same size and so that it's
+[00:10:47,300 --> 00:10:48,360] easier for processing.
+[00:10:48,360 --> 00:10:51,100] And they have more obviously good properties
+[00:10:51,100 --> 00:10:54,660] that supports future processing of different graphics algorithms
+[00:10:54,660 --> 00:10:55,580] and meshes.
+[00:10:55,580 --> 00:10:58,080] There have been people who develop these algorithms as well
+[00:10:58,080 --> 00:11:01,600] so that you can ensure that basically,
+[00:11:01,600 --> 00:11:04,100] points at different regions, they are roughly evenly sampled
+[00:11:04,100 --> 00:11:05,220] so that it won't be the case that,
+[00:11:05,220 --> 00:11:07,740] OK, let's say the head of the tail or the head of the rabbit
+[00:11:07,740 --> 00:11:09,620] is much more densely sampled than the tail
+[00:11:09,620 --> 00:11:12,060] and these kind of things.
+[00:11:12,060 --> 00:11:14,927] OK, so this is of one type of shape representations.
+[00:11:14,927 --> 00:11:16,760] And there are other type of representations,
+[00:11:16,760 --> 00:11:20,740] for example, parametric representations, because objects
+[00:11:20,740 --> 00:11:22,308] are not just totally irregular.
+[00:11:22,308 --> 00:11:24,100] It's not just often a collection of points.
+[00:11:24,100 --> 00:11:26,000] In meshes, they're very general.
+[00:11:26,000 --> 00:11:27,920] But sometimes, we lose a lot of information.
+[00:11:27,920 --> 00:11:30,460] If you look at, let's say, your chairs or your tables,
+[00:11:30,460 --> 00:11:31,877] you have all these straight lines.
+[00:11:31,877 --> 00:11:34,127] So how can you represent these kind of straight lines?
+[00:11:34,127 --> 00:11:35,940] And when people design them, they often
+[00:11:35,940 --> 00:11:38,700] use some of these parametric representations.
+[00:11:38,700 --> 00:11:41,390] So you can represent shapes as a function.
+[00:11:41,390 --> 00:11:42,510] So think about it.
+[00:11:42,510 --> 00:11:45,870] So when I design them, I can--
+[00:11:45,870 --> 00:11:48,690] if I want to represent a surface or represent a curve,
+[00:11:48,690 --> 00:11:51,670] the underlying degree of freedom is actually lower.
+[00:11:51,670 --> 00:11:53,870] Often, if I have a curve, there's
+[00:11:53,870 --> 00:11:55,683] only one underlying degree of freedom.
+[00:11:55,683 --> 00:11:57,350] That's why I can represent a curve using
+[00:11:57,350 --> 00:12:01,350] a function f of X. I just varied x and get a value of y.
+[00:12:01,350 --> 00:12:03,750] So you can use basically all these different types
+[00:12:03,750 --> 00:12:08,790] of functions in 2D, but also more often in 3D to map
+[00:12:08,790 --> 00:12:11,390] a certain number of variables, the underlying intrinsic
+[00:12:11,390 --> 00:12:13,890] dimensionality of the objects, which are often, let's say,
+[00:12:13,890 --> 00:12:17,370] in two or even one, and then mapping into the 3D space.
+[00:12:17,370 --> 00:12:19,990] And then this allows you to represent 3D objects
+[00:12:19,990 --> 00:12:22,830] in a parametric representations using basically a set
+[00:12:22,830 --> 00:12:23,790] of functions.
+[00:12:23,790 --> 00:12:26,970] You can do that for curves, let's say, in circles.
+[00:12:26,970 --> 00:12:28,990] Basically, if you want to represent a circle,
+[00:12:28,990 --> 00:12:30,950] you don't really need--
+[00:12:30,950 --> 00:12:33,190] one way is you sample a number of points.
+[00:12:33,190 --> 00:12:35,850] Or you can even connect them, like meshes.
+[00:12:35,850 --> 00:12:37,230] You're using the lines.
+[00:12:37,230 --> 00:12:40,120] Another way is you just represent the curve
+[00:12:40,120 --> 00:12:41,782] of the circle as this function.
+[00:12:41,782 --> 00:12:43,240] Basically, there's a sine function,
+[00:12:43,240 --> 00:12:48,500] a cosine function, and you just vary one variable, which is t.
+[00:12:48,500 --> 00:12:50,700] You can think about it as the degrees or angles,
+[00:12:50,700 --> 00:12:52,940] and it will map it to all the points on the circles.
+[00:12:52,940 --> 00:12:56,560] So here now, you can use a function to represent parametric
+[00:12:56,560 --> 00:12:59,100] representations for curves in 2D.
+[00:12:59,100 --> 00:13:01,580] And of course, you can do that in 3D as well.
+[00:13:01,580 --> 00:13:03,440] If you want to represent a sphere,
+[00:13:03,440 --> 00:13:07,382] all you need is just two degrees of freedom, u and v.
+[00:13:07,382 --> 00:13:09,840] And then you can go through these functions so that you can
+[00:13:09,840 --> 00:13:14,200] map them to every point in 3D space for this sphere.
+[00:13:14,200 --> 00:13:15,480] So people have designed--
+[00:13:15,480 --> 00:13:16,900] I'm not going to detail here--
+[00:13:16,900 --> 00:13:18,960] but more complex parametric representations,
+[00:13:18,960 --> 00:13:21,280] like Bézier curves and Bézier surfaces,
+[00:13:21,280 --> 00:13:25,760] which allows you to represent these pretty flexible and smooth
+[00:13:25,760 --> 00:13:30,680] surfaces in 3D using basically a few control points.
+[00:13:30,680 --> 00:13:33,120] So you basically use these Bézier functions
+[00:13:33,120 --> 00:13:35,520] to capture the underlying lower dimensionalities
+[00:13:35,520 --> 00:13:37,370] of these surfaces, and then you can
+[00:13:37,370 --> 00:13:39,370] map the underlying low dimensionality
+[00:13:39,370 --> 00:13:43,370] into these flexible shapes.
+[00:13:43,370 --> 00:13:46,130] And they also allow you to do things like subdivision,
+[00:13:46,130 --> 00:13:49,570] so you can trying to get more details into the surfaces
+[00:13:49,570 --> 00:13:51,823] and to make it more fine-grained and stuff like that.
+[00:13:51,823 --> 00:13:53,490] OK, so that would be the second category
+[00:13:53,490 --> 00:13:54,550] of shape representations.
+[00:13:54,550 --> 00:13:57,630] You can represent 3D objects in a nonparametric way,
+[00:13:57,630 --> 00:14:00,530] like a collection of unordered points or their connections
+[00:14:00,530 --> 00:14:01,230] as meshes.
+[00:14:01,230 --> 00:14:04,050] Or you can represent them in a parametric way, where
+[00:14:04,050 --> 00:14:05,390] you have a function, basically.
+[00:14:05,390 --> 00:14:08,650] And by varying a few parameters that
+[00:14:08,650 --> 00:14:11,290] are underlying the true degree of freedoms of the object
+[00:14:11,290 --> 00:14:15,970] geometry, you can map them into more complex shapes.
+[00:14:15,970 --> 00:14:18,905] So basically, everything here, as I said, it has been--
+[00:14:18,905 --> 00:14:20,530] if you remember, at the very beginning,
+[00:14:20,530 --> 00:14:21,810] we said there are two types of ways
+[00:14:21,810 --> 00:14:23,030] to represent object geometry.
+[00:14:23,030 --> 00:14:24,390] One is explicit.
+[00:14:24,390 --> 00:14:25,590] There's more implicit.
+[00:14:25,590 --> 00:14:27,570] And all of them, they fall into this category
+[00:14:27,570 --> 00:14:29,070] of being quite explicit.
+[00:14:29,070 --> 00:14:30,790] So it's like, I have points.
+[00:14:30,790 --> 00:14:33,550] And points are just directly points [INAUDIBLE] on objects.
+[00:14:33,550 --> 00:14:36,510] And for the surfaces, or for parametric curves as well,
+[00:14:36,510 --> 00:14:41,670] they directly map it to the points on the objects.
+[00:14:41,670 --> 00:14:43,650] So there are explicit representations.
+[00:14:43,650 --> 00:14:45,830] They have a lot of benefits.
+[00:14:45,830 --> 00:14:49,950] First, you map all the points directly,
+[00:14:49,950 --> 00:14:51,990] so you can get all these points.
+[00:14:51,990 --> 00:14:55,970] In general, every point I have in, let's say, a sample,
+[00:14:55,970 --> 00:14:58,810] I have Bézier surface representations.
+[00:14:58,810 --> 00:15:02,230] I can basically sample two points and UV in this underlying
+[00:15:02,230 --> 00:15:04,990] lower dimensional space and then go into that function and map it
+[00:15:04,990 --> 00:15:06,850] to a point in the 3D space.
+[00:15:06,850 --> 00:15:10,968] So I directly get a point in a 3D space.
+[00:15:10,968 --> 00:15:13,510] So all points are given, in some sense, you can say directly.
+[00:15:13,510 --> 00:15:15,430] I can directly get other points.
+[00:15:15,430 --> 00:15:17,810] So it's very easy for us to sample points.
+[00:15:17,810 --> 00:15:20,910] So let's say I have this torus, and I have represented
+[00:15:20,910 --> 00:15:22,450] using this f function.
+[00:15:22,450 --> 00:15:24,830] So now my question is, can you just sample some points
+[00:15:24,830 --> 00:15:26,850] on the surface of the object for me?
+[00:15:26,850 --> 00:15:29,230] This is so easy because I would just randomly
+[00:15:29,230 --> 00:15:30,530] put in some u and v values.
+[00:15:30,530 --> 00:15:33,320] I just randomly sample those u and v values and then let them
+[00:15:33,320 --> 00:15:37,240] go through this function, and it will just compute and give me
+[00:15:37,240 --> 00:15:40,840] some of the 3D points, which are guaranteed to be on this surface
+[00:15:40,840 --> 00:15:41,960] of the object.
+[00:15:41,960 --> 00:15:44,640] So sampling is much easier.
+[00:15:44,640 --> 00:15:48,440] So what is hard about these explicit representations?
+[00:15:48,440 --> 00:15:51,880] The hard thing is it's very hard, in some sense,
+[00:15:51,880 --> 00:15:56,400] to test whether a point is inside or outside the objects.
+[00:15:56,400 --> 00:15:59,560] Similarly, if I represent a sphere as this
+[00:15:59,560 --> 00:16:03,480] function, and it's easy for me to sample points on the sphere.
+[00:16:03,480 --> 00:16:05,520] But it is hard for me to say, now
+[00:16:05,520 --> 00:16:07,360] I have a different-- now I have a query.
+[00:16:07,360 --> 00:16:10,520] I say, at this point, 3 over 4, 1 over 2, 1 over 4.
+[00:16:10,520 --> 00:16:13,120] At this point in 3D space, the is the inside object
+[00:16:13,120 --> 00:16:16,720] or the outside object.
+[00:16:16,720 --> 00:16:18,440] I think we can maybe--
+[00:16:18,440 --> 00:16:21,360] actually, I'm not even sure about that.
+[00:16:21,360 --> 00:16:24,760] So it is actually hard to test whether a certain point is
+[00:16:24,760 --> 00:16:27,000] inside or outside object.
+[00:16:27,000 --> 00:16:31,557] So you can see that explicit representations is--
+[00:16:31,557 --> 00:16:33,890] all these representations, they have their own strengths
+[00:16:33,890 --> 00:16:34,655] and weaknesses.
+[00:16:34,655 --> 00:16:36,030] And for explicit representations,
+[00:16:36,030 --> 00:16:38,290] it's actually pretty easy to sample points, which
+[00:16:38,290 --> 00:16:39,450] are very useful because sometimes, you
+[00:16:39,450 --> 00:16:41,590] want to convert them into, let's say, a collection of points.
+[00:16:41,590 --> 00:16:43,310] And then you want to apply, whatever your point,
+[00:16:43,310 --> 00:16:44,490] neural networks on it.
+[00:16:44,490 --> 00:16:47,410] But it is hard to test if a certain point is
+[00:16:47,410 --> 00:16:49,850] inside or outside object, which may have some issues.
+[00:16:49,850 --> 00:16:52,533] For example, let's say if you want to use a neural rendering
+[00:16:52,533 --> 00:16:54,950] method, and now there's a lot of neural rendering methods,
+[00:16:54,950 --> 00:16:56,450] requires a lot of these kind of queries
+[00:16:56,450 --> 00:16:59,070] about whether a point is inside the object or outside object.
+[00:16:59,070 --> 00:17:01,330] What would be the geometry or density of object
+[00:17:01,330 --> 00:17:02,430] at that particular point?
+[00:17:02,430 --> 00:17:03,390] What would be the material?
+[00:17:03,390 --> 00:17:05,609] Or what would be the radiance or color of the object
+[00:17:05,609 --> 00:17:06,930] at that particular point?
+[00:17:06,930 --> 00:17:11,170] So essentially, representations are not very supportive of--
+[00:17:11,170 --> 00:17:12,849] it's not easy to run these operations
+[00:17:12,849 --> 00:17:15,740] on these explicit representations.
+[00:17:15,740 --> 00:17:17,490] So naturally, people thought, OK, maybe we
+[00:17:17,490 --> 00:17:19,157] can come up with a different type of way
+[00:17:19,157 --> 00:17:20,329] to represent geometry.
+[00:17:20,329 --> 00:17:23,030] And here I say "implicit" representations for geometry.
+[00:17:23,030 --> 00:17:25,694] But as you can see later, in a lot of these neural rendering
+[00:17:25,694 --> 00:17:27,069] methods or deep learning methods,
+[00:17:27,069 --> 00:17:29,569] they just extend these implicit representations for not only
+[00:17:29,569 --> 00:17:33,100] geometry, but also for colors and appearance of objects in 3D.
+[00:17:33,100 --> 00:17:36,180] So the idea of these implicit representations is now,
+[00:17:36,180 --> 00:17:39,160] I want to classify these points.
+[00:17:39,160 --> 00:17:42,540] So I assume, if the points are on the objects,
+[00:17:42,540 --> 00:17:44,080] they're on the surface of objects,
+[00:17:44,080 --> 00:17:46,740] then they satisfy some certain relationship.
+[00:17:46,740 --> 00:17:48,820] So for example, for a sphere, what
+[00:17:48,820 --> 00:17:51,980] would be the points on the sphere, on the unit sphere?
+[00:17:51,980 --> 00:17:54,580] The constraint they satisfy is the square
+[00:17:54,580 --> 00:17:57,340] of x and the square of y and square z.
+[00:17:57,340 --> 00:17:59,280] When we sum them up, they equal to 1.
+[00:17:59,280 --> 00:18:03,540] So this is constraint they satisfied for all the points
+[00:18:03,540 --> 00:18:05,285] on the sphere.
+[00:18:05,285 --> 00:18:06,660] All right, so more generally, you
+[00:18:06,660 --> 00:18:09,740] can write it down as the constraint will be some function
+[00:18:09,740 --> 00:18:12,310] of x and y and z equals 0.
+[00:18:12,310 --> 00:18:14,060] So in this case, f, x, and y, the function
+[00:18:14,060 --> 00:18:17,680] will be x squared plus y squared plus z squared minus 1.
+[00:18:17,680 --> 00:18:19,160] So that would be the function here.
+[00:18:19,160 --> 00:18:20,910] But more generally, you can think about it
+[00:18:20,910 --> 00:18:23,652] as even for complex shapes, you can represent-- sometimes,
+[00:18:23,652 --> 00:18:25,860] these functions can be so complex that you don't even
+[00:18:25,860 --> 00:18:27,320] have a closed form.
+[00:18:27,320 --> 00:18:28,700] So how can I represent an f?
+[00:18:28,700 --> 00:18:30,860] I just write it as a neural network.
+[00:18:30,860 --> 00:18:33,680] My hope is a neural network will be able to represent it.
+[00:18:33,680 --> 00:18:35,600] But in general, the idea is, you have
+[00:18:35,600 --> 00:18:38,480] some function or some constraints
+[00:18:38,480 --> 00:18:41,360] that points on a certain object will satisfy.
+[00:18:41,360 --> 00:18:43,460] And this is the way you will represent an object.
+[00:18:43,460 --> 00:18:45,380] And this is called implicit representations,
+[00:18:45,380 --> 00:18:47,100] which started with geometry.
+[00:18:47,100 --> 00:18:49,480] But as I said, you're now using all these different ways
+[00:18:49,480 --> 00:18:51,920] representing textures, materials, appearance,
+[00:18:51,920 --> 00:18:52,817] and all these things.
+[00:18:52,817 --> 00:18:55,400] So the good thing about implicit representation-- sorry, let's
+[00:18:55,400 --> 00:18:56,380] start with the bad thing.
+[00:18:56,380 --> 00:18:58,172] The bad thing about implicit representation
+[00:18:58,172 --> 00:19:00,380] is now it's actually much harder to sample points.
+[00:19:00,380 --> 00:19:02,540] I tell you, OK, this is a constraint,
+[00:19:02,540 --> 00:19:04,160] let's say, this torus satisfy.
+[00:19:04,160 --> 00:19:09,160] Right, OK, every x and y and z, if I put it into this function,
+[00:19:09,160 --> 00:19:11,440] and the output is 0, then, yeah, they
+[00:19:11,440 --> 00:19:13,460] must be on the surface of this object.
+[00:19:13,460 --> 00:19:17,398] But then how can I get a couple of these x, y, z tuples?
+[00:19:17,398 --> 00:19:19,440] That would be very hard because they are required
+[00:19:19,440 --> 00:19:20,540] to solve this function.
+[00:19:20,540 --> 00:19:22,720] And this function is maybe not too hard to solve.
+[00:19:22,720 --> 00:19:25,330] Maybe you can still solve that using some high school math.
+[00:19:25,330 --> 00:19:29,650] But when the function gets really complex for arbitrary
+[00:19:29,650 --> 00:19:32,310] shapes, it becomes much harder to solve these functions.
+[00:19:32,310 --> 00:19:34,850] So it's not easy to actually now sample points
+[00:19:34,850 --> 00:19:38,010] on the surface of objects if you are representing objects
+[00:19:38,010 --> 00:19:39,330] implicitly.
+[00:19:39,330 --> 00:19:40,715] But benefit, the strength of that
+[00:19:40,715 --> 00:19:42,090] is now, it's actually pretty easy
+[00:19:42,090 --> 00:19:44,170] to test whether a point is inside an object,
+[00:19:44,170 --> 00:19:45,290] outside object.
+[00:19:45,290 --> 00:19:48,610] Because if I want to do testing, I just have a query,
+[00:19:48,610 --> 00:19:50,910] then this is so easy because it's inside or outside.
+[00:19:50,910 --> 00:19:52,550] I just send it into that function.
+[00:19:52,550 --> 00:19:55,510] I'll get a value, or the value is minus 1 over 8.
+[00:19:55,510 --> 00:19:56,810] That's smaller than 0.
+[00:19:56,810 --> 00:20:02,170] So because I assume the object is represented by this function.
+[00:20:02,170 --> 00:20:03,930] And all the surface points on object,
+[00:20:03,930 --> 00:20:05,870] they satisfy that function equals 0.
+[00:20:05,870 --> 00:20:07,870] Anything that's, [? I don't know, ?] I would say
+[00:20:07,870 --> 00:20:08,950] lower than 0 is negative.
+[00:20:08,950 --> 00:20:11,490] If the output value is negative, then the point
+[00:20:11,490 --> 00:20:12,910] must be inside the object.
+[00:20:12,910 --> 00:20:14,710] And if the output value is positive,
+[00:20:14,710 --> 00:20:17,490] then the point must be outside the object.
+[00:20:17,490 --> 00:20:20,730] So now it becomes much easier to test whether a certain point is
+[00:20:20,730 --> 00:20:22,850] inside or outside object, although it becomes much
+[00:20:22,850 --> 00:20:24,740] harder to sample a number of points
+[00:20:24,740 --> 00:20:26,460] on the surface of an object.
+[00:20:26,460 --> 00:20:28,700] So you can see now, there is a clear trade-off
+[00:20:28,700 --> 00:20:31,500] between these implicit and explicit representations.
+[00:20:31,500 --> 00:20:33,500] Here, again, we talk about geometry.
+[00:20:33,500 --> 00:20:36,020] But this distinction and the contrast
+[00:20:36,020 --> 00:20:38,620] between explicit and implicit representations, I think,
+[00:20:38,620 --> 00:20:40,120] is very important and fundamental.
+[00:20:40,120 --> 00:20:44,060] It is behind development, deep neural networks when they apply
+[00:20:44,060 --> 00:20:48,060] to 3D data in general, as we'll see later.
+[00:20:48,060 --> 00:20:50,800] So before we-- let's [? see, I'm at ?] 25 minutes.
+[00:20:50,800 --> 00:20:52,758] So I promise I spend no more than five minutes,
+[00:20:52,758 --> 00:20:54,592] and we're going to talk about deep learning.
+[00:20:54,592 --> 00:20:57,380] So before we talk about how deep learning can be applied to 3D
+[00:20:57,380 --> 00:21:00,420] representations in general, a little bit more on implicit
+[00:21:00,420 --> 00:21:02,140] representations is--
+[00:21:02,140 --> 00:21:04,480] some other features of implicit representations,
+[00:21:04,480 --> 00:21:08,183] the good things about them is it's easy to compose them.
+[00:21:08,183 --> 00:21:10,100] So sometimes, you feel like, oh, if I actually
+[00:21:10,100 --> 00:21:14,060] represent everything with a function, that seems great
+[00:21:14,060 --> 00:21:15,980] if I have a closed form, but also seem
+[00:21:15,980 --> 00:21:18,800] very constrained because every closed form, I can write it out.
+[00:21:18,800 --> 00:21:21,400] The geometries look very, very regular.
+[00:21:21,400 --> 00:21:24,285] So if I want to represent the shape of a cow,
+[00:21:24,285 --> 00:21:25,410] how would I represent that?
+[00:21:25,410 --> 00:21:27,370] What would be the function I can write for the shape of a cow?
+[00:21:27,370 --> 00:21:28,430] It's just not obvious.
+[00:21:28,430 --> 00:21:30,430] But the nice thing about implicit representation
+[00:21:30,430 --> 00:21:32,513] is you don't have to write everything in one shot,
+[00:21:32,513 --> 00:21:34,190] because it's so easy to compose them.
+[00:21:34,190 --> 00:21:36,310] You can actually perform logical operations
+[00:21:36,310 --> 00:21:37,490] on these implicit functions.
+[00:21:37,490 --> 00:21:39,190] Let's say you have two objects, and you
+[00:21:39,190 --> 00:21:42,070] find unions or intersections or differences.
+[00:21:42,070 --> 00:21:43,670] Again, they're just values.
+[00:21:43,670 --> 00:21:45,583] So you put x, y, z onto this function.
+[00:21:45,583 --> 00:21:46,250] You get a value.
+[00:21:46,250 --> 00:21:47,570] You put x, y, z onto that function.
+[00:21:47,570 --> 00:21:48,290] You get a value.
+[00:21:48,290 --> 00:21:50,645] You can just do arithmetic operations
+[00:21:50,645 --> 00:21:52,270] on top of these values, and that allows
+[00:21:52,270 --> 00:21:54,645] you to compute the unions or intersections of differences
+[00:21:54,645 --> 00:21:56,110] between these objects.
+[00:21:56,110 --> 00:21:59,110] And eventually, you can compose them to divide
+[00:21:59,110 --> 00:22:00,670] pretty complex shapes.
+[00:22:00,670 --> 00:22:04,055] And this is actually behind support
+[00:22:04,055 --> 00:22:05,430] a lot of these industrial designs
+[00:22:05,430 --> 00:22:10,788] when people are designing complex parts for, I would say,
+[00:22:10,788 --> 00:22:11,330] I don't know.
+[00:22:11,330 --> 00:22:14,550] I mean, when you're doing manufacturing,
+[00:22:14,550 --> 00:22:17,077] you have to fabricate some complex shapes.
+[00:22:17,077 --> 00:22:18,910] A lot of these designs are done by these CAD
+[00:22:18,910 --> 00:22:20,210] models, Computer-Aided Designs.
+[00:22:20,210 --> 00:22:22,970] And they're composing these implicit functions
+[00:22:22,970 --> 00:22:25,650] using simple logical operations.
+[00:22:25,650 --> 00:22:29,827] And you can also do things that are beyond just logical.
+[00:22:29,827 --> 00:22:31,410] You can even add things up, especially
+[00:22:31,410 --> 00:22:34,290] if you have a distance function, where every point is
+[00:22:34,290 --> 00:22:36,995] like, oh, the positive value and the negative value--
+[00:22:36,995 --> 00:22:38,370] the values actually have meanings
+[00:22:38,370 --> 00:22:40,010] because they indicate how far you are
+[00:22:40,010 --> 00:22:41,590] to the surface of the object.
+[00:22:41,590 --> 00:22:43,650] So you can even add them up, and this allows you
+[00:22:43,650 --> 00:22:46,756] to smoothly blend the shapes.
+[00:22:46,756 --> 00:22:49,590] So you can see that here, if I have a distance function,
+[00:22:49,590 --> 00:22:51,810] and here I just want to represent a vertical line,
+[00:22:51,810 --> 00:22:52,830] OK, this is here.
+[00:22:52,830 --> 00:22:55,710] And then anything that's minus 0 is to the left of the line.
+[00:22:55,710 --> 00:22:58,258] Anything that is positive is to the right of the line.
+[00:22:58,258 --> 00:23:00,050] And then you have another line representing
+[00:23:00,050 --> 00:23:01,490] using a different function.
+[00:23:01,490 --> 00:23:03,130] So what happens if you add them up?
+[00:23:03,130 --> 00:23:05,610] If you add them up, then it naturally
+[00:23:05,610 --> 00:23:07,750] becomes an interpolation between these two shapes.
+[00:23:07,750 --> 00:23:10,370] This is an example of doing things in 1D.
+[00:23:10,370 --> 00:23:13,210] But you can imagine you can even similarly doing things in 3D
+[00:23:13,210 --> 00:23:15,610] in a sense, OK, now you can actually even blend these
+[00:23:15,610 --> 00:23:16,770] different shapes.
+[00:23:16,770 --> 00:23:19,620] And these distance functions can be arbitrarily composed
+[00:23:19,620 --> 00:23:22,060] and allow you to create actually pretty complex worlds,
+[00:23:22,060 --> 00:23:22,560] like this.
+[00:23:22,560 --> 00:23:25,620] And this is not easy, but you can even think about it.
+[00:23:25,620 --> 00:23:28,300] You can construct really complex with all the details
+[00:23:28,300 --> 00:23:31,220] worlds by just simply--
+[00:23:31,220 --> 00:23:34,077] not simply, by difficulty, but compose
+[00:23:34,077 --> 00:23:35,160] these different functions.
+[00:23:35,160 --> 00:23:37,118] But they are actually very expressive if you're
+[00:23:37,118 --> 00:23:39,820] very good at it.
+[00:23:39,820 --> 00:23:44,087] OK, so we said, OK, we have parametric representation that
+[00:23:44,087 --> 00:23:46,420] can be explicit, that directly give you points on the 3D
+[00:23:46,420 --> 00:23:47,120] surface.
+[00:23:47,120 --> 00:23:48,620] Or we can have parametric representations,
+[00:23:48,620 --> 00:23:49,540] like these functions.
+[00:23:49,540 --> 00:23:50,660] But they're implicit.
+[00:23:50,660 --> 00:23:52,660] So they're just like, OK, now you can only
+[00:23:52,660 --> 00:23:55,240] try to verify if the point is inside or outside an object.
+[00:23:55,240 --> 00:23:56,657] But then you can also compose them
+[00:23:56,657 --> 00:23:58,260] to build more complex shapes.
+[00:23:58,260 --> 00:24:00,500] And is that possible for us to also have
+[00:24:00,500 --> 00:24:02,460] implicit representation and nonparametric,
+[00:24:02,460 --> 00:24:05,207] like that point style, but then you also querying functions?
+[00:24:05,207 --> 00:24:07,540] Well, sometimes, they actually do have things like that.
+[00:24:07,540 --> 00:24:10,080] This eventually goes to methods like level set methods.
+[00:24:10,080 --> 00:24:13,460] So implicit surfaces are very nice because as we said,
+[00:24:13,460 --> 00:24:14,800] it's easy to merge them.
+[00:24:14,800 --> 00:24:16,100] It's easy to split them.
+[00:24:16,100 --> 00:24:18,690] But sometimes, it's hard to describe, as we said,
+[00:24:18,690 --> 00:24:20,050] complex shapes in closed forms.
+[00:24:20,050 --> 00:24:21,245] You have a cow.
+[00:24:21,245 --> 00:24:22,370] How would you represent it?
+[00:24:22,370 --> 00:24:23,850] You can compose them.
+[00:24:23,850 --> 00:24:27,390] But if every time I have to query whether a certain point is
+[00:24:27,390 --> 00:24:30,030] inside a cow, you have to have hundreds of functions.
+[00:24:30,030 --> 00:24:32,550] And you perform all these add and or, and/or,
+[00:24:32,550 --> 00:24:33,970] plus/minus operations.
+[00:24:33,970 --> 00:24:35,230] Then it takes a long time.
+[00:24:35,230 --> 00:24:37,410] So what if I just prequery?
+[00:24:37,410 --> 00:24:41,030] So I have a 3D space, and I just sample, let's say,
+[00:24:41,030 --> 00:24:43,110] a 100 by 100 by 100 grid.
+[00:24:43,110 --> 00:24:45,887] So I have now a million points sampled.
+[00:24:45,887 --> 00:24:47,470] And for these 1 million points, I just
+[00:24:47,470 --> 00:24:50,190] precompute whether they're inside the objects
+[00:24:50,190 --> 00:24:52,150] or outside the objects, what is the distance
+[00:24:52,150 --> 00:24:55,883] of these points to the surfaces for a complex shapes?
+[00:24:55,883 --> 00:24:57,550] So you can precompute them, and then you
+[00:24:57,550 --> 00:25:00,090] can store all the values in a matrix.
+[00:25:00,090 --> 00:25:00,890] This is in 2D.
+[00:25:00,890 --> 00:25:04,070] But this is for visualization.
+[00:25:04,070 --> 00:25:05,890] But in practice, it's in 3D.
+[00:25:05,890 --> 00:25:09,190] So you have a 3D matrix that store all these precomputed
+[00:25:09,190 --> 00:25:10,950] values of the distance functions.
+[00:25:10,950 --> 00:25:13,930] So now, in some sense, you still have an implicit representation.
+[00:25:13,930 --> 00:25:16,260] But because you have prequeried them,
+[00:25:16,260 --> 00:25:20,280] you turned it into nonparametric representations.
+[00:25:20,280 --> 00:25:23,740] And even if you just look at this matrix in 2D,
+[00:25:23,740 --> 00:25:26,373] you can now still find where the boundaries are.
+[00:25:26,373 --> 00:25:27,540] So where are the boundaries?
+[00:25:27,540 --> 00:25:30,460] They're just basically where you have two adjacent values.
+[00:25:30,460 --> 00:25:32,480] One is positive, and one is negative.
+[00:25:32,480 --> 00:25:34,840] So that means there must be somewhere in between.
+[00:25:34,840 --> 00:25:37,340] That is the point here.
+[00:25:37,340 --> 00:25:39,320] They satisfy the function f of x equals
+[00:25:39,320 --> 00:25:42,860] 0, which means the point must be on the surface.
+[00:25:42,860 --> 00:25:46,280] So in that sense, you are turning
+[00:25:46,280 --> 00:25:48,640] on parametric representation or implicit
+[00:25:48,640 --> 00:25:50,560] into nonparametric representations
+[00:25:50,560 --> 00:25:54,760] by prequerying a lot of these points using the functions.
+[00:25:54,760 --> 00:25:57,480] And this allows you to have actually more explicit controls
+[00:25:57,480 --> 00:26:00,447] because you can now visualize them.
+[00:26:00,447 --> 00:26:01,780] You can say, I have this matrix.
+[00:26:01,780 --> 00:26:03,900] And I can visualize them based on their values.
+[00:26:03,900 --> 00:26:08,240] And this is used a lot in things like CTs and MRIs and all
+[00:26:08,240 --> 00:26:09,920] these medical data.
+[00:26:09,920 --> 00:26:12,052] And a related thing is people may say, OK,
+[00:26:12,052 --> 00:26:14,260] what if I don't care about all these distance values?
+[00:26:14,260 --> 00:26:17,203] I can prequery what's going on at all these points,
+[00:26:17,203 --> 00:26:18,620] but then I compute all the values.
+[00:26:18,620 --> 00:26:20,560] I say plus 5, minus 5.
+[00:26:20,560 --> 00:26:23,900] But all I care about is whether this is inside or outside
+[00:26:23,900 --> 00:26:24,578] object.
+[00:26:24,578 --> 00:26:26,620] So if it's positive, I'll just treat them as one.
+[00:26:26,620 --> 00:26:29,120] If it's negative, which means they're inside object,
+[00:26:29,120 --> 00:26:30,420] treat them as 0, let's say.
+[00:26:30,420 --> 00:26:32,700] So if you binarize them, then this gives you
+[00:26:32,700 --> 00:26:34,900] a final representation, which is arguably
+[00:26:34,900 --> 00:26:39,000] the easiest to understand is this is called voxels.
+[00:26:39,000 --> 00:26:42,900] So you can prequery where the implicit functions are, and then
+[00:26:42,900 --> 00:26:45,560] you have all these, density-sampled grid.
+[00:26:45,560 --> 00:26:47,980] But now, instead of storing their distance functions,
+[00:26:47,980 --> 00:26:49,940] how far they are from the surface
+[00:26:49,940 --> 00:26:52,660] by going through the functions and give you plus 5, minus 5,
+[00:26:52,660 --> 00:26:54,160] you just binarize it.
+[00:26:54,160 --> 00:26:57,580] You only care about whether a certain point is inside objects
+[00:26:57,580 --> 00:26:59,060] or outside objects.
+[00:26:59,060 --> 00:27:00,880] Then you have a voxel representation,
+[00:27:00,880 --> 00:27:04,980] which is again like a 3D matrix, can be 100 by 100 by 100.
+[00:27:04,980 --> 00:27:07,820] But for every point, you have to go through this function
+[00:27:07,820 --> 00:27:10,320] and query whether it's inside and outside objects.
+[00:27:10,320 --> 00:27:12,910] You have 1 or 0, and you can represent objects
+[00:27:12,910 --> 00:27:14,010] in a binarized way.
+[00:27:14,010 --> 00:27:16,510] So this gives you the final representation I'm going to talk
+[00:27:16,510 --> 00:27:19,670] about for objects in 3D.
+[00:27:19,670 --> 00:27:23,028] So I have introduced voxels in a kind of complex way.
+[00:27:23,028 --> 00:27:25,070] But from a different perspective, people may say,
+[00:27:25,070 --> 00:27:27,190] this is actually very easy to understand because, in some
+[00:27:27,190 --> 00:27:29,530] sense, voxels actually have a lot of analogy as pixels,
+[00:27:29,530 --> 00:27:31,470] because pixels are 2D matrices.
+[00:27:31,470 --> 00:27:34,630] And now you have 3D matrices, and voxels is basically just
+[00:27:34,630 --> 00:27:37,002] a 3D matrix.
+[00:27:37,002 --> 00:27:39,630] So although, you can see that they
+[00:27:39,630 --> 00:27:41,630] have connections with all the other ways that we
+[00:27:41,630 --> 00:27:43,150] can represent shapes.
+[00:27:43,150 --> 00:27:46,880] And the way I'm introducing it this way is, actually,
+[00:27:46,880 --> 00:27:49,130] when deep learning comes in-- so first, deep learning,
+[00:27:49,130 --> 00:27:49,880] when did it start?
+[00:27:49,880 --> 00:27:51,215] 2010.
+[00:27:51,215 --> 00:27:53,090] Deep learning has been there for a long time,
+[00:27:53,090 --> 00:27:56,690] but the modern deep learning thing is 2010.
+[00:27:56,690 --> 00:27:59,210] Geoff Hinton started doing that on speech recognition.
+[00:27:59,210 --> 00:28:02,345] And in 2012, they have AlexNet, which was written on ImageNet.
+[00:28:02,345 --> 00:28:04,470] So you've learned all these, and they're all in 2D.
+[00:28:04,470 --> 00:28:07,370] OK, now people say, OK, what if I want to do in 3D?
+[00:28:07,370 --> 00:28:08,750] This is a very natural thought.
+[00:28:08,750 --> 00:28:11,360] So I want to go from 2D convolution neural networks--
+[00:28:11,360 --> 00:28:14,067] 2012, there's no transformer.
+[00:28:14,067 --> 00:28:16,400] So how can I apply a 2D convolution neural network on 3D
+[00:28:16,400 --> 00:28:17,120] data?
+[00:28:17,120 --> 00:28:19,640] And everyone knows we have all these different 3D
+[00:28:19,640 --> 00:28:21,280] representations.
+[00:28:21,280 --> 00:28:23,912] But which one do you begin with?
+[00:28:23,912 --> 00:28:26,390] It turns out that people will say, OK, yeah,
+[00:28:26,390 --> 00:28:28,922] the people who started doing deep learning on 3D data,
+[00:28:28,922 --> 00:28:30,380] they're the computer vision people.
+[00:28:30,380 --> 00:28:31,540] They're not the graphics people.
+[00:28:31,540 --> 00:28:33,540] They're like, oh, I've been working with pixels.
+[00:28:33,540 --> 00:28:36,600] And maybe the easiest thing I can do is just to scale up.
+[00:28:36,600 --> 00:28:38,260] And instead of working on 2D matrices,
+[00:28:38,260 --> 00:28:40,300] I just make it work on 3D matrices.
+[00:28:40,300 --> 00:28:41,540] So that would be the simplest thing I can do.
+[00:28:41,540 --> 00:28:43,248] Instead of having 2D convolution network,
+[00:28:43,248 --> 00:28:45,280] I have a volumetric convolution neural network.
+[00:28:45,280 --> 00:28:47,240] Then, which of these representations
+[00:28:47,240 --> 00:28:50,023] allow you or support a volumetric convolution?
+[00:28:50,023 --> 00:28:51,940] It turned out to be this voxel representation.
+[00:28:51,940 --> 00:28:55,603] This is basically the easiest you can imagine.
+[00:28:55,603 --> 00:28:57,520] But the graphics people don't agree with that,
+[00:28:57,520 --> 00:28:58,900] because the graphics people are like,
+[00:28:58,900 --> 00:29:00,358] oh, this voxel [? representation ?]
+[00:29:00,358 --> 00:29:02,760] is really bad because it's very slow to compute.
+[00:29:02,760 --> 00:29:04,920] As we talked about, we have this [INAUDIBLE] sample
+[00:29:04,920 --> 00:29:05,900] all these values.
+[00:29:05,900 --> 00:29:08,130] And there, you can look at the quality.
+[00:29:08,130 --> 00:29:10,378] It's so bad compared with meshes or point clouds.
+[00:29:10,378 --> 00:29:12,670] So people are like, why do you want to start with that?
+[00:29:12,670 --> 00:29:14,920] But the reason that people started doing deep learning
+[00:29:14,920 --> 00:29:17,356] on 3D data with voxels, because I think it's--
+[00:29:17,356 --> 00:29:20,550] it's so easy to draw an analogy between pixels and voxels,
+[00:29:20,550 --> 00:29:22,470] and you just have to change one of the code.
+[00:29:22,470 --> 00:29:24,178] That is, instead of doing 2D convolution,
+[00:29:24,178 --> 00:29:25,730] now do 3D convolution.
+[00:29:25,730 --> 00:29:28,570] So that's, in some sense, how things get started.
+[00:29:28,570 --> 00:29:32,090] But before I talk about the deep learning methods for 3D data,
+[00:29:32,090 --> 00:29:34,490] another aspect that's very important is the data-- sorry,
+[00:29:34,490 --> 00:29:35,370] for 3D data, yeah.
+[00:29:35,370 --> 00:29:38,030] So beyond methods, data sets are also very important.
+[00:29:38,030 --> 00:29:41,270] ImageNet really prompted AlexNet and stuff like that.
+[00:29:41,270 --> 00:29:44,650] So for 3D, similarly, we have to collect a lot of data as well.
+[00:29:44,650 --> 00:29:48,708] So pre-3D, pre-deep learning, the common data sets or popular
+[00:29:48,708 --> 00:29:51,250] data set people often use is this thing called Princeton data
+[00:29:51,250 --> 00:29:55,070] Shape Benchmark, which has 1,800 models, 180 categories.
+[00:29:55,070 --> 00:29:57,570] So you can see they actually have quite a lot of categories,
+[00:29:57,570 --> 00:29:58,910] 180 categories.
+[00:29:58,910 --> 00:30:01,770] But there are only 1,800 models, which means there are basically
+[00:30:01,770 --> 00:30:04,130] 10 models per [INAUDIBLE] year, which is so small.
+[00:30:04,130 --> 00:30:06,522] But back then, it was considered pretty large.
+[00:30:06,522 --> 00:30:08,230] And people feel like, oh, this is already
+[00:30:08,230 --> 00:30:10,605] enough to do because we can't really make anything really
+[00:30:10,605 --> 00:30:12,350] work well on them.
+[00:30:12,350 --> 00:30:15,230] And there was very little machine learning there.
+[00:30:15,230 --> 00:30:20,430] So prior to 2014, all these data sets are more or less small.
+[00:30:20,430 --> 00:30:23,630] They may have a certain number of models, even up to 10,000,
+[00:30:23,630 --> 00:30:25,070] 9,000, 10,000.
+[00:30:25,070 --> 00:30:27,810] But they're also divided into so many different classes.
+[00:30:27,810 --> 00:30:31,250] And so each class, you only have 10 models each or less than 100,
+[00:30:31,250 --> 00:30:32,790] I would say.
+[00:30:32,790 --> 00:30:36,130] So after that, people started by saying, OK, if we have ImageNet,
+[00:30:36,130 --> 00:30:38,870] can we also have the 3D data sets for shapes?
+[00:30:38,870 --> 00:30:42,010] So this is behind efforts of a few concurrent work.
+[00:30:42,010 --> 00:30:43,510] But really, I think eventually, they
+[00:30:43,510 --> 00:30:44,968] consolidated into this thing called
+[00:30:44,968 --> 00:30:46,670] ShapeNet, which is, a lot of them
+[00:30:46,670 --> 00:30:48,030] are actually led by Stanford.
+[00:30:48,030 --> 00:30:52,070] There's Leo Guibas and Silvio Savarese.
+[00:30:52,070 --> 00:30:55,050] So they led these large data sets called ShapeNet,
+[00:30:55,050 --> 00:30:57,922] which has 3 million models.
+[00:30:57,922 --> 00:31:00,750] But in practice, just ImageNet, you have this large image.
+[00:31:00,750 --> 00:31:03,010] And there's a smaller data set that people often use.
+[00:31:03,010 --> 00:31:05,427] So ShapeNet, similarly, you have a ShapeNet core data set,
+[00:31:05,427 --> 00:31:09,440] which is what people typically use as basically 50,000 models
+[00:31:09,440 --> 00:31:10,600] in 55 categories.
+[00:31:10,600 --> 00:31:12,100] Now you can see, for every category,
+[00:31:12,100 --> 00:31:13,720] you have 1,000 models on average.
+[00:31:13,720 --> 00:31:15,460] But in practice, it's not a balance.
+[00:31:15,460 --> 00:31:17,780] So for chairs, you have actually a lot more.
+[00:31:17,780 --> 00:31:19,240] So that's why people say, oh, now I
+[00:31:19,240 --> 00:31:21,300] have finally I have thousands of models on chairs.
+[00:31:21,300 --> 00:31:22,760] I can train some deep networks on it.
+[00:31:22,760 --> 00:31:24,385] Before I just-- you can have 10 models.
+[00:31:24,385 --> 00:31:25,600] You can't do anything.
+[00:31:25,600 --> 00:31:28,520] So this is how things started, and so there
+[00:31:28,520 --> 00:31:31,520] has been a few years where a lot of these advances and all
+[00:31:31,520 --> 00:31:33,620] the results are just presented on chairs and cars
+[00:31:33,620 --> 00:31:36,115] because these are the largest categories in ShapeNet
+[00:31:36,115 --> 00:31:37,740] And people feel like, OK, that's great.
+[00:31:37,740 --> 00:31:38,980] But then that's not enough.
+[00:31:38,980 --> 00:31:41,960] So we should move even bigger.
+[00:31:41,960 --> 00:31:45,140] So in the past few years, this is work at AI2,
+[00:31:45,140 --> 00:31:47,662] the Allen Institute from Seattle,
+[00:31:47,662 --> 00:31:50,120] where what they did is they collected much larger data sets
+[00:31:50,120 --> 00:31:52,880] called Objaverse and Objaverse Extra Large that you have
+[00:31:52,880 --> 00:31:57,100] roughly 1 million or 10 million models for different 3D assets.
+[00:31:57,100 --> 00:32:00,240] And you can see they have much more categories.
+[00:32:00,240 --> 00:32:03,330] These models are on average also have a higher quality
+[00:32:03,330 --> 00:32:05,730] also with textures.
+[00:32:05,730 --> 00:32:07,190] So these are synthetic data sets.
+[00:32:07,190 --> 00:32:09,648] But also, there are real data sets that are being produced,
+[00:32:09,648 --> 00:32:12,130] including some of them are from 3D scans.
+[00:32:12,130 --> 00:32:15,470] You just take 3D scanners.
+[00:32:15,470 --> 00:32:17,630] Back in 2016, people have been working on it.
+[00:32:17,630 --> 00:32:19,750] This is a data set called, I think,
+[00:32:19,750 --> 00:32:21,270] the Redwood data set or something.
+[00:32:21,270 --> 00:32:24,810] So you have 10,000 scans of real-world objects.
+[00:32:24,810 --> 00:32:28,890] And more recently, people have been building larger data sets
+[00:32:28,890 --> 00:32:30,850] where they also encourage people.
+[00:32:30,850 --> 00:32:35,250] I think this is an effort co-led by Meta and Oxford.
+[00:32:35,250 --> 00:32:37,598] So they encourage people to take data for them.
+[00:32:37,598 --> 00:32:39,390] They also pay people to take data for them.
+[00:32:39,390 --> 00:32:41,630] So people just, using an iPhone-- you have an object.
+[00:32:41,630 --> 00:32:42,310] You put it on a table.
+[00:32:42,310 --> 00:32:43,060] You use an iPhone.
+[00:32:43,060 --> 00:32:44,890] You take a 360 video around objects,
+[00:32:44,890 --> 00:32:47,370] and then you get $1 or something like that.
+[00:32:47,370 --> 00:32:49,987] So they encourage people to take data for them.
+[00:32:49,987 --> 00:32:51,070] This is the first version.
+[00:32:51,070 --> 00:32:53,050] They have 19,000 videos of objects.
+[00:32:53,050 --> 00:32:55,565] These are real objects because capturing real objects
+[00:32:55,565 --> 00:32:56,190] is much harder.
+[00:32:56,190 --> 00:32:57,250] And the object version and all the things
+[00:32:57,250 --> 00:32:59,590] I talked about before, it was synthetic objects.
+[00:32:59,590 --> 00:33:01,260] But these are real objects.
+[00:33:01,260 --> 00:33:04,780] And then, also because a lot of the development in 3D vision
+[00:33:04,780 --> 00:33:07,220] algorithms, you can actually take these 360 videos and try
+[00:33:07,220 --> 00:33:09,680] to reconstruct the 3D objects.
+[00:33:09,680 --> 00:33:13,400] So now you have paired data of the videos or images of objects,
+[00:33:13,400 --> 00:33:15,510] as well as their 3D geometries and textures.
+[00:33:27,380 --> 00:33:28,480] This is the first version.
+[00:33:28,480 --> 00:33:31,020] I think they have a more recent version, V2, or maybe even
+[00:33:31,020 --> 00:33:33,880] V3 right now, which is supposed to be a little larger.
+[00:33:33,880 --> 00:33:35,535] But still, it is hard to scale up.
+[00:33:35,535 --> 00:33:36,160] Think about it.
+[00:33:36,160 --> 00:33:39,580] Right now, you have 90,000 videos or basically 90,000
+[00:33:39,580 --> 00:33:40,360] objects.
+[00:33:40,360 --> 00:33:42,200] And I think they're scaling it up,
+[00:33:42,200 --> 00:33:44,440] but I don't think it's over 100,000.
+[00:33:44,440 --> 00:33:47,000] So basically, you can think about it as, for real objects,
+[00:33:47,000 --> 00:33:48,900] you have 100,000 models.
+[00:33:48,900 --> 00:33:52,660] But if you look at, What's the data set size of the images?
+[00:33:52,660 --> 00:33:54,880] So it's [? in the ?] lie on 5 B or whatever.
+[00:33:54,880 --> 00:33:56,280] That's like 5 billion images.
+[00:33:56,280 --> 00:33:59,240] And Google and OpenAI must have much larger data sets.
+[00:33:59,240 --> 00:34:02,160] So there's still a huge gap between the number of data
+[00:34:02,160 --> 00:34:05,520] points that you can have for 2D images or videos versus you can
+[00:34:05,520 --> 00:34:06,860] have for 3D objects.
+[00:34:06,860 --> 00:34:08,400] So I think that's a big challenge,
+[00:34:08,400 --> 00:34:10,500] how we can move forward with 3D vision.
+[00:34:10,500 --> 00:34:12,360] And people have different ideas.
+[00:34:12,360 --> 00:34:15,060] But still, this is much larger than what we had before.
+[00:34:15,060 --> 00:34:15,962] At least you can.
+[00:34:15,962 --> 00:34:17,920] It's possible that you can still, more or less,
+[00:34:17,920 --> 00:34:22,108] train some deep learning models on these data sets now.
+[00:34:22,108 --> 00:34:24,400] And quickly, there are also other data sets that people
+[00:34:24,400 --> 00:34:25,760] being built on parts.
+[00:34:25,760 --> 00:34:27,528] This is also from Stanford, where
+[00:34:27,528 --> 00:34:29,320] they try to annotate a little bit of object
+[00:34:29,320 --> 00:34:31,760] parts and their correspondence and hierarchies.
+[00:34:35,320 --> 00:34:38,719] And also, there's this data set called
+[00:34:38,719 --> 00:34:40,518] PartNet, where they want to annotate
+[00:34:40,518 --> 00:34:42,060] not only the parts and the semantics,
+[00:34:42,060 --> 00:34:43,280] but also how they may move.
+[00:34:43,280 --> 00:34:46,100] So a little bit of mobility information of different parts.
+[00:34:46,100 --> 00:34:48,239] Like, the laptop, you can open and close it.
+[00:34:48,239 --> 00:34:50,241] And there are also data sets for 3D scenes,
+[00:34:50,241 --> 00:34:51,699] so not only just objects and parts.
+[00:34:51,699 --> 00:34:53,600] But there are also the rooms.
+[00:34:53,600 --> 00:34:57,200] So there have been things like the scan data sets.
+[00:34:57,200 --> 00:34:59,450] These are people who actually just go inside your home
+[00:34:59,450 --> 00:35:01,990] or go inside your-- actually, to our office as well.
+[00:35:01,990 --> 00:35:04,630] They just come in, and then they just have a 3D scanner.
+[00:35:04,630 --> 00:35:07,130] They scan the home, and then they have some annotations.
+[00:35:07,130 --> 00:35:11,850] So here and more recently, again, you
+[00:35:11,850 --> 00:35:14,090] can do that even with your iPhone right now.
+[00:35:14,090 --> 00:35:17,150] But still, these kind of data sets are much smaller.
+[00:35:17,150 --> 00:35:20,945] So here this one, the first version scanner you have 1,500.
+[00:35:20,945 --> 00:35:23,070] I think they they have a ++ for the second version,
+[00:35:23,070 --> 00:35:26,710] which is roughly the same size, maybe 2,000 or 3,000 rooms.
+[00:35:26,710 --> 00:35:29,170] So the amount of data you have for 3D data,
+[00:35:29,170 --> 00:35:32,250] for 3D scenes in particular, is also even much smaller than
+[00:35:32,250 --> 00:35:34,703] the amount of data you have for 3D objects.
+[00:35:34,703 --> 00:35:36,370] So I think it's not obvious that how can
+[00:35:36,370 --> 00:35:38,453] we go beyond that constraints, because if you have
+[00:35:38,453 --> 00:35:40,010] to scan it yourself, you're always
+[00:35:40,010 --> 00:35:41,410] bounded by how much time you have
+[00:35:41,410 --> 00:35:45,250] and how much people you have.
+[00:35:45,250 --> 00:35:47,850] Anyway, but there are attempts being
+[00:35:47,850 --> 00:35:52,010] made in trying to collect data.
+[00:35:52,010 --> 00:35:56,220] And finally, if you want to apply deep learning on to 3D
+[00:35:56,220 --> 00:35:59,085] vision, so what are the tasks we care about?
+[00:35:59,085 --> 00:36:00,460] So there are generative modeling,
+[00:36:00,460 --> 00:36:03,000] just like your generative-- just like what Justin said.
+[00:36:03,000 --> 00:36:05,700] You can generate 2D images or videos.
+[00:36:05,700 --> 00:36:07,080] You can also generate 3D shapes.
+[00:36:07,080 --> 00:36:08,240] You can generate 3D scenes.
+[00:36:08,240 --> 00:36:09,980] You can make them condition.
+[00:36:09,980 --> 00:36:13,560] The condition can be condition on language, condition on image.
+[00:36:13,560 --> 00:36:14,600] You have an input image.
+[00:36:14,600 --> 00:36:16,940] And how can you reconstruct the 3D objects?
+[00:36:16,940 --> 00:36:19,000] And you have to learn the shape priors.
+[00:36:19,000 --> 00:36:21,320] You have to do shape generation, completion.
+[00:36:21,320 --> 00:36:23,220] Sometimes, you have a partial object,
+[00:36:23,220 --> 00:36:25,280] and you want to repair it.
+[00:36:25,280 --> 00:36:26,080] You want to fix it.
+[00:36:26,080 --> 00:36:28,580] So there's geometric data processing as well.
+[00:36:28,580 --> 00:36:31,425] Other tasks, including discriminative models.
+[00:36:31,425 --> 00:36:32,800] For example, you have a 3D shape.
+[00:36:32,800 --> 00:36:35,700] How can you classify what's the category of objects
+[00:36:35,700 --> 00:36:36,480] it belongs to?
+[00:36:36,480 --> 00:36:38,380] Is it a chair or a table?
+[00:36:38,380 --> 00:36:39,940] And a lot of them now are actually
+[00:36:39,940 --> 00:36:41,820] done by rendering them into pixels
+[00:36:41,820 --> 00:36:44,500] because you have very good image recognition
+[00:36:44,500 --> 00:36:46,000] models, like GPT or something.
+[00:36:46,000 --> 00:36:47,502] So you just take a 3D object.
+[00:36:47,502 --> 00:36:48,960] You can render them into a picture.
+[00:36:48,960 --> 00:36:51,160] You can upload a picture to GPT, and they can do it for you.
+[00:36:51,160 --> 00:36:52,820] So that's, in some sense, one way
+[00:36:52,820 --> 00:36:55,670] of solving these discriminative problems.
+[00:36:55,670 --> 00:36:57,550] But there are also more specific things
+[00:36:57,550 --> 00:36:59,430] that it's not very easy to solve.
+[00:36:59,430 --> 00:37:02,070] For example, you have a different type of cell.
+[00:37:02,070 --> 00:37:03,570] And you have the 3D scans.
+[00:37:03,570 --> 00:37:05,750] And how can you classify the cell and all these more
+[00:37:05,750 --> 00:37:08,083] specialized domains where you don't have that much data?
+[00:37:08,083 --> 00:37:11,950] So how can you solve these discriminative problems?
+[00:37:11,950 --> 00:37:13,965] And joint modeling of 2D and 3D data,
+[00:37:13,965 --> 00:37:16,590] which is becoming more and more important because the two data,
+[00:37:16,590 --> 00:37:17,650] we have so much more.
+[00:37:17,650 --> 00:37:19,188] We have so many images and videos.
+[00:37:19,188 --> 00:37:21,730] We have very good foundation models that are trained on them.
+[00:37:21,730 --> 00:37:24,670] So how can we leverage the priors in our 2D foundation
+[00:37:24,670 --> 00:37:25,190] models?
+[00:37:25,190 --> 00:37:26,607] Like, what an image look like, how
+[00:37:26,607 --> 00:37:28,950] to make an image look realistic, how to make a video
+[00:37:28,950 --> 00:37:29,730] look realistic.
+[00:37:29,730 --> 00:37:32,590] How can we use that information to help our 3D reconstruction
+[00:37:32,590 --> 00:37:34,270] to be more realistic?
+[00:37:34,270 --> 00:37:36,490] So joint modeling in 2D and 3D data--
+[00:37:36,490 --> 00:37:38,950] because there are so many large-scale 2D data sets
+[00:37:38,950 --> 00:37:40,450] and very good pretrained models.
+[00:37:40,450 --> 00:37:43,377] And also, there has been a lot of advances in neural rendering
+[00:37:43,377 --> 00:37:45,710] or differential rendering methods that basically connect
+[00:37:45,710 --> 00:37:46,927] 3D world and 2D world.
+[00:37:46,927 --> 00:37:48,010] Because you have 3D world.
+[00:37:48,010 --> 00:37:48,760] You have 3D model.
+[00:37:48,760 --> 00:37:49,970] You can render them into 2D.
+[00:37:49,970 --> 00:37:52,500] The rendering process can be made differentiable
+[00:37:52,500 --> 00:37:54,460] or can be approximated with neural networks.
+[00:37:54,460 --> 00:37:56,680] Then, now you can connect all these data in different
+[00:37:56,680 --> 00:37:58,763] modalities through differentiable neural networks,
+[00:37:58,763 --> 00:38:02,920] allows you to bridge the priors you have in 2D data or 2D
+[00:38:02,920 --> 00:38:06,360] foundation models into the 3D world.
+[00:38:06,360 --> 00:38:09,113] Yeah, and sometimes, you want to even do some joint multimodal
+[00:38:09,113 --> 00:38:10,780] beyond visual data, including text data.
+[00:38:10,780 --> 00:38:12,238] But sometimes, you have other data.
+[00:38:12,238 --> 00:38:14,660] Let's say, in robotics, you often have tactile data.
+[00:38:14,660 --> 00:38:16,280] So how to fuse them as well.
+[00:38:16,280 --> 00:38:18,360] And sometimes, for autonomous driving,
+[00:38:18,360 --> 00:38:20,380] maybe you have LiDAR data or depth data.
+[00:38:20,380 --> 00:38:22,760] How can you fuse them as well?
+[00:38:22,760 --> 00:38:25,480] So I want to use deep learning on 3D data to solve all these
+[00:38:25,480 --> 00:38:26,878] different problems.
+[00:38:26,878 --> 00:38:29,170] So we spend all the time talking about representations.
+[00:38:29,170 --> 00:38:30,640] So how do we begin with?
+[00:38:30,640 --> 00:38:33,898] So as I suggested, people who are initially doing that
+[00:38:33,898 --> 00:38:35,940] is the computer vision people who work on pixels.
+[00:38:35,940 --> 00:38:36,900] They work on images.
+[00:38:36,900 --> 00:38:39,420] So naturally, they say, why don't we start with voxels?
+[00:38:39,420 --> 00:38:42,858] But even before that, they say, OK, this is an old idea.
+[00:38:42,858 --> 00:38:45,400] And this is the very first idea that people tried in applying
+[00:38:45,400 --> 00:38:46,900] deep learning to 3D vision.
+[00:38:46,900 --> 00:38:48,643] And now, in some sense, it's coming back.
+[00:38:48,643 --> 00:38:50,060] But the very first idea they tried
+[00:38:50,060 --> 00:38:52,080] is, now, let's don't even worry about voxels.
+[00:38:52,080 --> 00:38:53,700] Let's just say you have a 3D shape.
+[00:38:53,700 --> 00:38:54,320] It's a mesh.
+[00:38:54,320 --> 00:38:55,700] It's voxel, whatever.
+[00:38:55,700 --> 00:38:59,200] And I want you to learn to recognize what an object is.
+[00:38:59,200 --> 00:39:00,280] What is the object here?
+[00:39:00,280 --> 00:39:01,600] It's a chair.
+[00:39:01,600 --> 00:39:03,120] But what if the input is 3D data?
+[00:39:03,120 --> 00:39:04,820] How can we process that?
+[00:39:04,820 --> 00:39:07,320] Before we have a 3D deep learning method,
+[00:39:07,320 --> 00:39:10,140] what if I just render it into images because I have very good
+[00:39:10,140 --> 00:39:10,790] image models?
+[00:39:13,620 --> 00:39:14,960] I just take the 3D objects.
+[00:39:14,960 --> 00:39:16,480] I would just put camera at different places.
+[00:39:16,480 --> 00:39:18,230] I can render all these images, the objects
+[00:39:18,230 --> 00:39:19,540] from different views.
+[00:39:19,540 --> 00:39:22,120] And then, now this becomes a 2D problem.
+[00:39:22,120 --> 00:39:24,180] I will just apply a convolutional neural network
+[00:39:24,180 --> 00:39:27,560] on each of these views, and I have some ways to fuse them.
+[00:39:27,560 --> 00:39:29,580] So I have some pooling, whatever.
+[00:39:29,580 --> 00:39:32,500] And then I just do image classification.
+[00:39:32,500 --> 00:39:34,860] So this becomes an image classification problem.
+[00:39:34,860 --> 00:39:37,722] Well, the only difference being, now you have multiple views.
+[00:39:37,722 --> 00:39:40,180] So this is like, in some sense, one of the very first ideas
+[00:39:40,180 --> 00:39:41,700] people applied to 3D vision.
+[00:39:41,700 --> 00:39:43,375] They just used 2D networks.
+[00:39:43,375 --> 00:39:45,000] And why do you want to use 2D networks?
+[00:39:45,000 --> 00:39:47,042] Because back then, they were pushing on ImageNet.
+[00:39:47,042 --> 00:39:48,150] And they're very good.
+[00:39:48,150 --> 00:39:51,535] So ImageNet is much larger than 3D data sets.
+[00:39:51,535 --> 00:39:53,410] So any model that are pretrained on ImageNet,
+[00:39:53,410 --> 00:39:54,743] they have very good performance.
+[00:39:54,743 --> 00:39:57,190] So the easiest way to solve this 3D recognition problem is
+[00:39:57,190 --> 00:39:59,670] to first render it into 2D.
+[00:39:59,670 --> 00:40:02,790] Later, people move away from it because people are like, oh,
+[00:40:02,790 --> 00:40:04,010] we have more 3D data.
+[00:40:04,010 --> 00:40:05,550] We should try to do 3D native--
+[00:40:05,550 --> 00:40:07,390] come up with 3D native methods.
+[00:40:07,390 --> 00:40:10,310] And people also come up with ideas about connecting 3D and 2D
+[00:40:10,310 --> 00:40:11,715] through neural rendering.
+[00:40:11,715 --> 00:40:13,590] But now I feel like this trend is coming back
+[00:40:13,590 --> 00:40:15,815] because all these image and video models
+[00:40:15,815 --> 00:40:16,690] are getting so great.
+[00:40:16,690 --> 00:40:18,790] I don't know if many of you may have seen the VL3
+[00:40:18,790 --> 00:40:21,070] or whatever, was released yesterday?
+[00:40:21,070 --> 00:40:21,570] Right.
+[00:40:21,570 --> 00:40:24,470] So if they're so great, maybe we should just rely a bit more
+[00:40:24,470 --> 00:40:26,770] on the image and video foundation models, again,
+[00:40:26,770 --> 00:40:29,853] because they are just trained on a thousand times or tens
+[00:40:29,853 --> 00:40:31,770] of thousands of times, or even more than that,
+[00:40:31,770 --> 00:40:34,310] maybe a million times more data than 3D data.
+[00:40:34,310 --> 00:40:36,090] So how can we incorporate that?
+[00:40:36,090 --> 00:40:39,430] But coming back, now this is the very first method.
+[00:40:39,430 --> 00:40:43,030] In some sense, people try to apply deep learning on 3D data
+[00:40:43,030 --> 00:40:45,270] just by converting them into 2D.
+[00:40:45,270 --> 00:40:48,122] And they do very well in shape classification.
+[00:40:48,122 --> 00:40:50,080] They have shapes, and you want to classify them
+[00:40:50,080 --> 00:40:51,163] into different categories.
+[00:40:51,163 --> 00:40:54,280] And they have very good performance.
+[00:40:54,280 --> 00:40:58,440] And yeah, so you can leverage a lot of literatures on 2D image
+[00:40:58,440 --> 00:41:00,120] pretrained models.
+[00:41:00,120 --> 00:41:02,680] But the issue is you need some projections.
+[00:41:02,680 --> 00:41:05,140] But sometimes, the input can be very noisy.
+[00:41:05,140 --> 00:41:07,243] People are like, what if my input is too noisy?
+[00:41:07,243 --> 00:41:09,660] The point clouds, or whatever, they're just not very good.
+[00:41:09,660 --> 00:41:11,760] If I render them, they look kind of bad.
+[00:41:11,760 --> 00:41:15,680] So is it possible for us to come up with more 3D native methods?
+[00:41:15,680 --> 00:41:20,000] So later, people tried a number of 3D native methods that just
+[00:41:20,000 --> 00:41:22,040] apply deep learning directly on 3D data.
+[00:41:22,040 --> 00:41:24,280] As I said, the easiest way to do this
+[00:41:24,280 --> 00:41:27,640] is just to apply your pixel convolution neural network
+[00:41:27,640 --> 00:41:30,440] into a voxel, volumetric convolution neural network.
+[00:41:30,440 --> 00:41:33,360] So this is actually a Deep Belief Network,
+[00:41:33,360 --> 00:41:34,880] which is generative network.
+[00:41:34,880 --> 00:41:38,060] But still, you have some 3D convolutional filters.
+[00:41:38,060 --> 00:41:41,280] And this is in 2015 by Princeton.
+[00:41:41,280 --> 00:41:43,640] And you can see that in their generative model,
+[00:41:43,640 --> 00:41:48,330] that can actually synthesize 3D shapes in the form of 3D voxels
+[00:41:48,330 --> 00:41:50,370] at relatively lower resolution.
+[00:41:50,370 --> 00:41:52,430] But this is 10 years ago now.
+[00:41:52,430 --> 00:41:56,090] So back then, this was considered pretty impressive.
+[00:41:56,090 --> 00:41:58,470] And you can do all these condition generations,
+[00:41:58,470 --> 00:42:02,750] conditional semantic labels at bats and a desk and tables.
+[00:42:02,750 --> 00:42:04,582] You can synthesize these different shapes.
+[00:42:04,582 --> 00:42:06,290] And because this is a generative network,
+[00:42:06,290 --> 00:42:08,730] you can also use it for classification.
+[00:42:08,730 --> 00:42:12,890] So you can do image shape classification as well.
+[00:42:12,890 --> 00:42:16,890] And later, something that actually we did
+[00:42:16,890 --> 00:42:19,330] is what if we just apply it the GANs,
+[00:42:19,330 --> 00:42:20,830] this Generative Adversarial Network?
+[00:42:20,830 --> 00:42:22,510] You can use GANs to generate 2D pixels.
+[00:42:22,510 --> 00:42:25,090] There's no reason you cannot use GANs to generate 3D voxels.
+[00:42:25,090 --> 00:42:27,450] So we just did this very simple thing,
+[00:42:27,450 --> 00:42:30,690] and that is applied a GAN to 3D voxels and actually give you
+[00:42:30,690 --> 00:42:33,830] a pretty good generation of 3D objects.
+[00:42:33,830 --> 00:42:36,450] This is eight, nine years ago.
+[00:42:36,450 --> 00:42:39,410] Yeah, OK.
+[00:42:39,410 --> 00:42:44,490] And later, with training from CMU, we also did an extension.
+[00:42:44,490 --> 00:42:48,130] That is, you can use GANs to not only generate 3D shapes,
+[00:42:48,130 --> 00:42:50,330] but also you can render them into 2D.
+[00:42:50,330 --> 00:42:53,470] You can project them into 2D surfaces so that you can get
+[00:42:53,470 --> 00:42:57,130] the depth map of the 3D objects you generated.
+[00:42:57,130 --> 00:42:59,950] And then you can use a cyclegan to convert this depth
+[00:42:59,950 --> 00:43:02,273] map into a color image.
+[00:43:02,273 --> 00:43:04,690] Now you can have adversarial losses not only on 3D shapes,
+[00:43:04,690 --> 00:43:05,830] but also on 2D pictures.
+[00:43:05,830 --> 00:43:08,270] You want 3D shapes to look realistic so that they can be
+[00:43:08,270 --> 00:43:12,270] indistinguishable from the 3D object data you have.
+[00:43:12,270 --> 00:43:14,710] You also want the 2D images to look realistic so that
+[00:43:14,710 --> 00:43:18,470] they're indistinguishable from images of real cars.
+[00:43:18,470 --> 00:43:20,270] So then you can do 3D generation,
+[00:43:20,270 --> 00:43:22,630] as well as 2D generation at the same time.
+[00:43:22,630 --> 00:43:27,210] And because you have different latent vectors for the shapes,
+[00:43:27,210 --> 00:43:29,330] for the viewpoints, and for the textures,
+[00:43:29,330 --> 00:43:31,352] you also have some level of controllability.
+[00:43:31,352 --> 00:43:32,810] Like, you can change the viewpoint.
+[00:43:32,810 --> 00:43:34,310] You can change the textures.
+[00:43:34,310 --> 00:43:36,270] You can do interpolation.
+[00:43:36,270 --> 00:43:39,750] And you can transfer the texture of one car
+[00:43:39,750 --> 00:43:42,260] onto the shape of another car.
+[00:43:42,260 --> 00:43:45,200] This is 2018.
+[00:43:45,200 --> 00:43:47,480] So people tried applying deep networks,
+[00:43:47,480 --> 00:43:48,980] like convolutional neural networks,
+[00:43:48,980 --> 00:43:51,920] generative adversarial networks, on 3D voxels instead of 2D
+[00:43:51,920 --> 00:43:52,863] pixels.
+[00:43:52,863 --> 00:43:54,780] And can we do a little bit better with voxels?
+[00:43:54,780 --> 00:43:57,200] Because one thing that people have complained about voxels
+[00:43:57,200 --> 00:43:59,240] is they're just really slow.
+[00:43:59,240 --> 00:44:00,420] You have to presample them.
+[00:44:00,420 --> 00:44:01,920] And there are a lot of wasted effort
+[00:44:01,920 --> 00:44:04,880] because a lot of sample points are just like empty space.
+[00:44:04,880 --> 00:44:08,125] Or there are inside objects, and it gives you no information.
+[00:44:08,125 --> 00:44:09,500] So naturally, people thought, OK,
+[00:44:09,500 --> 00:44:10,792] can we actually make it better?
+[00:44:10,792 --> 00:44:14,120] So there are improvements to voxels, like octave trees.
+[00:44:14,120 --> 00:44:16,160] The idea of octave trees is you still
+[00:44:16,160 --> 00:44:18,093] have explicit representations.
+[00:44:18,093 --> 00:44:19,760] Sorry, in some sense, you can argue it's
+[00:44:19,760 --> 00:44:20,885] an implicit representation.
+[00:44:20,885 --> 00:44:24,400] But it's like nonparametric implicit representations.
+[00:44:24,400 --> 00:44:26,520] But then, instead of representing
+[00:44:26,520 --> 00:44:31,848] every point in space at a uniform scale, you actually--
+[00:44:31,848 --> 00:44:34,780] assuming the voxels or--
+[00:44:34,780 --> 00:44:37,840] yeah, basically, the voxels can be of different sizes,
+[00:44:37,840 --> 00:44:40,230] I just divide the divide space into different regions.
+[00:44:40,230 --> 00:44:41,490] And I spend a lot more.
+[00:44:41,490 --> 00:44:43,810] And when I feel like I'm really close to the surface
+[00:44:43,810 --> 00:44:47,110] of the objects, I just represent objects in a much finer scale.
+[00:44:47,110 --> 00:44:49,890] And when I'm in this empty space or inside objects,
+[00:44:49,890 --> 00:44:52,690] where I really don't care too much about what's going on,
+[00:44:52,690 --> 00:44:54,990] I can have huge voxels in some sense.
+[00:44:54,990 --> 00:44:57,690] So you can recursively partition the space,
+[00:44:57,690 --> 00:45:02,070] and you can have different sizes of voxels at different space.
+[00:45:02,070 --> 00:45:04,730] And this allows you to really scale up.
+[00:45:04,730 --> 00:45:07,870] So you can see that compared with just directly using voxels,
+[00:45:07,870 --> 00:45:10,130] this is 2019-ish.
+[00:45:10,130 --> 00:45:12,890] People say, OK, octave trees are great because it allows
+[00:45:12,890 --> 00:45:14,950] me to go from lower resolution.
+[00:45:14,950 --> 00:45:17,770] That's how much you can fit into GPU memory.
+[00:45:17,770 --> 00:45:20,150] You can do 64 by 64 with voxels.
+[00:45:20,150 --> 00:45:23,956] But with octave trees, you can do 256.
+[00:45:23,956 --> 00:45:26,230] And you can even use that for generation as well.
+[00:45:26,230 --> 00:45:28,530] You can generate objects also.
+[00:45:28,530 --> 00:45:31,330] They look like voxels, but they're higher resolution
+[00:45:31,330 --> 00:45:34,490] because you're more efficient in representing the space.
+[00:45:34,490 --> 00:45:37,260] So these are the very early attempts in applying deep
+[00:45:37,260 --> 00:45:38,620] learning to 3D space.
+[00:45:38,620 --> 00:45:41,406] And you're like, OK, why don't we just try voxels?
+[00:45:41,406 --> 00:45:44,300] Then this is the moment where people
+[00:45:44,300 --> 00:45:46,640] have got a bit more interest into like, oh, no,
+[00:45:46,640 --> 00:45:50,740] now what if you the graphics people feel like-- you're just
+[00:45:50,740 --> 00:45:51,700] doing all this wrong.
+[00:45:51,700 --> 00:45:54,460] Because why do you want to use this kind of pretty
+[00:45:54,460 --> 00:45:56,540] inefficient, ugly-looking representations,
+[00:45:56,540 --> 00:45:58,067] like voxels or octave trees?
+[00:45:58,067 --> 00:45:59,900] Now we have all these good representations--
+[00:45:59,900 --> 00:46:01,820] point clouds, meshes, splines.
+[00:46:01,820 --> 00:46:03,880] Why are we not using these representations?
+[00:46:03,880 --> 00:46:06,652] But as we said, the challenge is, points are here and there.
+[00:46:06,652 --> 00:46:08,860] How can you even apply convolutional points and stuff
+[00:46:08,860 --> 00:46:09,360] like that?
+[00:46:09,360 --> 00:46:10,540] It's just not very obvious.
+[00:46:10,540 --> 00:46:12,420] But people start to look into it.
+[00:46:12,420 --> 00:46:15,860] So naturally, people move into applying or developing new deep
+[00:46:15,860 --> 00:46:19,302] learning methods that directly work on not only just 3D data,
+[00:46:19,302 --> 00:46:21,260] but also different types of 3D representations,
+[00:46:21,260 --> 00:46:23,060] like point clouds.
+[00:46:23,060 --> 00:46:26,380] So in PointNet, I think this is an important work also
+[00:46:26,380 --> 00:46:29,620] from Stanford, from Leo's team.
+[00:46:29,620 --> 00:46:32,300] What's going on here is they develop a new type of deep
+[00:46:32,300 --> 00:46:34,660] network that directly works with 3D point clouds.
+[00:46:34,660 --> 00:46:37,520] So it's called PointNet.
+[00:46:37,520 --> 00:46:42,440] So the idea is, for points, you have to be permutation invariant
+[00:46:42,440 --> 00:46:45,840] because if I have point 1 and point 2 OK, point 1 is here,
+[00:46:45,840 --> 00:46:47,170] and point 2 is here.
+[00:46:47,170 --> 00:46:49,300] Now I have a different input.
+[00:46:49,300 --> 00:46:52,000] I would say point 1 here and point 2 there.
+[00:46:52,000 --> 00:46:55,080] So then whatever-- your network should
+[00:46:55,080 --> 00:46:58,880] be invariant to these two types of input, which means no matter
+[00:46:58,880 --> 00:47:02,060] how I name, this one is point 1, that one is point 2,
+[00:47:02,060 --> 00:47:03,920] or I name this one's point 1, that one
+[00:47:03,920 --> 00:47:05,900] is point 2, your output should be the same,
+[00:47:05,900 --> 00:47:08,488] because the points there are unordered.
+[00:47:08,488 --> 00:47:10,280] There's no guaranteed ordering in the sense
+[00:47:10,280 --> 00:47:11,680] that our top left is 1, 1.
+[00:47:11,680 --> 00:47:14,660] Bottom right is 100, 100.
+[00:47:14,660 --> 00:47:17,500] So if there's an order, if the points are unordered,
+[00:47:17,500 --> 00:47:19,880] you have to be permutation invariant.
+[00:47:19,880 --> 00:47:22,560] So how can we do that?
+[00:47:22,560 --> 00:47:25,400] And second is you have to be also sampling invariant.
+[00:47:25,400 --> 00:47:28,200] So sometimes, you sample, say, 10 points
+[00:47:28,200 --> 00:47:31,320] on the head of the bunny or rabbit
+[00:47:31,320 --> 00:47:33,380] and 5 points on the tail of the rabbit.
+[00:47:33,380 --> 00:47:34,970] And sometimes, you sample 10 points
+[00:47:34,970 --> 00:47:36,690] on the tail of the rabbit, only 5 points
+[00:47:36,690 --> 00:47:38,082] on the head of the rabbit.
+[00:47:38,082 --> 00:47:39,790] So how can you also be invariant to that?
+[00:47:39,790 --> 00:47:42,710] Because there's no guarantee on how your sample points.
+[00:47:42,710 --> 00:47:45,730] So there are a bit of a issue here and there,
+[00:47:45,730 --> 00:47:50,250] but the one idea they imply, they used, and I
+[00:47:50,250 --> 00:47:52,970] think it's basically probably the most important point,
+[00:47:52,970 --> 00:47:53,830] is they just--
+[00:47:53,830 --> 00:47:55,910] I just apply-- it's also so simple.
+[00:47:55,910 --> 00:47:57,450] I just apply a symmetric function
+[00:47:57,450 --> 00:47:59,190] on the embeddings of the points.
+[00:47:59,190 --> 00:48:01,930] So basically, for all the points,
+[00:48:01,930 --> 00:48:04,270] I first compute some embeddings for them,
+[00:48:04,270 --> 00:48:07,010] just like you compute embeddings for different regions
+[00:48:07,010 --> 00:48:08,810] or different windows of image.
+[00:48:08,810 --> 00:48:11,370] And I compute the features for each point.
+[00:48:11,370 --> 00:48:13,310] And then I just have to fuse them.
+[00:48:13,310 --> 00:48:16,150] But because I want them to be permutation invariant,
+[00:48:16,150 --> 00:48:18,890] so I just use a symmetric function in the sense
+[00:48:18,890 --> 00:48:21,070] that, for example, it can be just a max function.
+[00:48:21,070 --> 00:48:23,410] And I take the maximum, softmax.
+[00:48:23,410 --> 00:48:24,670] It can also be a sum function.
+[00:48:24,670 --> 00:48:26,850] I just add them up.
+[00:48:26,850 --> 00:48:27,990] So that's what's going on.
+[00:48:27,990 --> 00:48:28,790] This is so simple.
+[00:48:28,790 --> 00:48:31,583] You have a number of points, 1, 2, 3 or 1, whatever.
+[00:48:31,583 --> 00:48:33,500] And then you have compute embeddings for them,
+[00:48:33,500 --> 00:48:34,640] and they just aggregate them.
+[00:48:34,640 --> 00:48:36,440] You can compute the max for each dimension.
+[00:48:36,440 --> 00:48:38,340] You can sum them up or stuff like that.
+[00:48:38,340 --> 00:48:39,560] And yeah.
+[00:48:39,560 --> 00:48:42,870] And you have this aggregated embeddings for all the points.
+[00:48:42,870 --> 00:48:44,620] And then you go through maybe a few layers
+[00:48:44,620 --> 00:48:46,760] of fully connected networks and stuff like that.
+[00:48:46,760 --> 00:48:50,380] And then you use it to classify all--
+[00:48:50,380 --> 00:48:55,380] are these points are really representing a chair or a table?
+[00:48:55,380 --> 00:48:57,440] So that's basically what's going on,
+[00:48:57,440 --> 00:49:00,200] and it turned out to be quite powerful.
+[00:49:00,200 --> 00:49:03,735] And of course, there have been a lot of the improvements
+[00:49:03,735 --> 00:49:04,360] on top of that.
+[00:49:04,360 --> 00:49:06,360] People have been coming up with new methods that
+[00:49:06,360 --> 00:49:07,756] improve on PointNet.
+[00:49:07,756 --> 00:49:09,335] They have PointNet++.
+[00:49:09,335 --> 00:49:11,460] And there are things people have been trying to do,
+[00:49:11,460 --> 00:49:14,940] is graph neural networks because you can easily translate points
+[00:49:14,940 --> 00:49:19,440] into nodes of a graph, and then the neighborhood, the proximity,
+[00:49:19,440 --> 00:49:22,100] whether points are close to each other as the edges
+[00:49:22,100 --> 00:49:23,320] connecting these points.
+[00:49:23,320 --> 00:49:24,820] So there have been like graph neural networks
+[00:49:24,820 --> 00:49:26,362] and all these other methods that have
+[00:49:26,362 --> 00:49:30,150] been developed for these point cloud processing.
+[00:49:30,150 --> 00:49:34,410] But the original idea in the PointNet paper is so simple,
+[00:49:34,410 --> 00:49:36,990] and it turned out to be also very powerful.
+[00:49:36,990 --> 00:49:38,510] Something else you want to consider
+[00:49:38,510 --> 00:49:40,350] is you also want to measure.
+[00:49:40,350 --> 00:49:41,410] For pixels, it's easy.
+[00:49:41,410 --> 00:49:42,650] I have an output image.
+[00:49:42,650 --> 00:49:44,170] I have the ground truth image.
+[00:49:44,170 --> 00:49:46,128] I just compute the differences between the two.
+[00:49:46,128 --> 00:49:48,070] I have two loss or whatever.
+[00:49:48,070 --> 00:49:50,950] For points, how would you compare the output point cloud
+[00:49:50,950 --> 00:49:52,910] and the input point cloud, especially if you
+[00:49:52,910 --> 00:49:54,035] care about generation task?
+[00:49:54,035 --> 00:49:55,702] If you do a classification, that's fine.
+[00:49:55,702 --> 00:49:57,350] You have input point cloud, and output
+[00:49:57,350 --> 00:49:59,350] is chair, table, whatever.
+[00:49:59,350 --> 00:50:00,850] You have a cross-entropy loss.
+[00:50:00,850 --> 00:50:02,110] That's all you need.
+[00:50:02,110 --> 00:50:04,670] But if you output, if you're doing a generation task,
+[00:50:04,670 --> 00:50:06,270] and you have a voxels, it's also easy.
+[00:50:06,270 --> 00:50:08,510] Just do a cross-entropy loss of the 100
+[00:50:08,510 --> 00:50:10,630] by 100 by 100 voxel grid.
+[00:50:10,630 --> 00:50:13,230] But if your output is a point and 100 points, and how would
+[00:50:13,230 --> 00:50:16,150] you compare the output point cloud versus the ground truth
+[00:50:16,150 --> 00:50:16,810] point cloud?
+[00:50:16,810 --> 00:50:19,270] You have to also design distance metrics.
+[00:50:19,270 --> 00:50:22,992] So the two common distance metrics that people did use--
+[00:50:22,992 --> 00:50:24,450] one is called the Chamfer distance.
+[00:50:24,450 --> 00:50:26,210] A Chamfer distance is easy to understand.
+[00:50:26,210 --> 00:50:27,790] That is you have two sets of points.
+[00:50:27,790 --> 00:50:31,370] And for each point on each side or each set,
+[00:50:31,370 --> 00:50:33,485] you just basically find the nearest neighbor.
+[00:50:33,485 --> 00:50:35,110] So you have a collection of red points.
+[00:50:35,110 --> 00:50:36,630] You have a collection of blue points.
+[00:50:36,630 --> 00:50:38,150] And for the red point, for each of red points,
+[00:50:38,150 --> 00:50:40,590] you just find its nearest neighbor in the blue set.
+[00:50:40,590 --> 00:50:41,930] And for each of the blue points, you just
+[00:50:41,930 --> 00:50:43,130] find the nearest neighbor in the red set.
+[00:50:43,130 --> 00:50:44,850] And you want to minimize the distance,
+[00:50:44,850 --> 00:50:46,850] minimize the distance of each point
+[00:50:46,850 --> 00:50:49,170] to its nearest neighbor in the other set.
+[00:50:49,170 --> 00:50:51,770] And the second idea, loss function that people may use
+[00:50:51,770 --> 00:50:53,270] is called Earth Mover distance.
+[00:50:53,270 --> 00:50:55,770] And here you do a bipartite matching between the two
+[00:50:55,770 --> 00:50:58,107] sets of points, and you have a one-to-one paired
+[00:50:58,107 --> 00:50:59,690] matching between these points, and you
+[00:50:59,690 --> 00:51:02,672] want to minimize the distance among all these pairs.
+[00:51:02,672 --> 00:51:04,130] So these are the two common metrics
+[00:51:04,130 --> 00:51:05,930] that people use when they're comparing the distance
+[00:51:05,930 --> 00:51:07,170] between the point clouds.
+[00:51:07,170 --> 00:51:08,470] And they can be made differentiable,
+[00:51:08,470 --> 00:51:10,345] which means you can now compute the gradients
+[00:51:10,345 --> 00:51:12,530] and use it to optimize your neural network so
+[00:51:12,530 --> 00:51:14,530] that hopefully, the output better point
+[00:51:14,530 --> 00:51:19,330] clouds if you're caring about a point cloud generation problem.
+[00:51:19,330 --> 00:51:23,050] So we have moved from voxels to point clouds.
+[00:51:23,050 --> 00:51:24,950] And then people were like, OK, this is great.
+[00:51:24,950 --> 00:51:28,080] And now I can process the points, I can output points.
+[00:51:28,080 --> 00:51:31,900] But we also have other beautiful partitions like splines.
+[00:51:31,900 --> 00:51:34,320] They're very good at capturing the surfaces of objects.
+[00:51:34,320 --> 00:51:36,340] If you use any kind of neural network
+[00:51:36,340 --> 00:51:38,200] to generate voxels or generate point clouds,
+[00:51:38,200 --> 00:51:39,880] they always look very ugly.
+[00:51:39,880 --> 00:51:42,400] So they don't have smooth surfaces and stuff like that.
+[00:51:42,400 --> 00:51:43,858] So how can we have a neural network
+[00:51:43,858 --> 00:51:46,900] that can output or understand objects, but also represent
+[00:51:46,900 --> 00:51:48,940] the beautiful surfaces?
+[00:51:48,940 --> 00:51:51,772] So people go a bit forward in thinking
+[00:51:51,772 --> 00:51:53,980] about how I can integrate neural networks with things
+[00:51:53,980 --> 00:51:56,340] like splines or functions like that.
+[00:51:56,340 --> 00:51:58,220] And a notable example--
+[00:51:58,220 --> 00:52:00,400] here is this thing called AtlasNet.
+[00:52:00,400 --> 00:52:04,060] So what's going on here is they try to use deep learning.
+[00:52:04,060 --> 00:52:06,940] But then, instead of directly outputting a set of 3D point
+[00:52:06,940 --> 00:52:10,940] clouds, so I learned a transformation function.
+[00:52:10,940 --> 00:52:13,420] I have latent shape representations.
+[00:52:13,420 --> 00:52:16,940] And then, if you remember, when we say you have these parametric
+[00:52:16,940 --> 00:52:19,680] representation of object shapes, you're basically transforming,
+[00:52:19,680 --> 00:52:25,030] let's say, a 2D space of u and v into a 3D space, like a sphere.
+[00:52:25,030 --> 00:52:27,353] And for simple things like sphere, it's easy.
+[00:52:27,353 --> 00:52:28,270] You can write it down.
+[00:52:28,270 --> 00:52:32,088] What is that function in sine and cosine or whatever?
+[00:52:32,088 --> 00:52:34,630] But for complex objects, it is very hard to write a function.
+[00:52:34,630 --> 00:52:36,470] And often, there is no closed form.
+[00:52:36,470 --> 00:52:39,158] So the idea here is, OK, if there is no closed form,
+[00:52:39,158 --> 00:52:40,950] then why don't we just use a neural network
+[00:52:40,950 --> 00:52:42,210] to represent that?
+[00:52:42,210 --> 00:52:44,390] So here you can see this neural network,
+[00:52:44,390 --> 00:52:49,210] which is implemented as MLP, just learns that function f.
+[00:52:49,210 --> 00:52:51,750] You can take the two values, u and v, as the input
+[00:52:51,750 --> 00:52:53,110] to the function f.
+[00:52:53,110 --> 00:52:55,510] And the neural networks is performing the computation
+[00:52:55,510 --> 00:52:59,470] of the function f and u and v and output a point in 3D space.
+[00:52:59,470 --> 00:53:04,070] So it's basically learning how we are able to transform this 2D
+[00:53:04,070 --> 00:53:09,070] space into the 3D space, and it might be too hard to represent
+[00:53:09,070 --> 00:53:11,920] the entire object using a single transformation.
+[00:53:11,920 --> 00:53:13,670] So people thought, OK, we can use a couple
+[00:53:13,670 --> 00:53:14,885] of small neural networks.
+[00:53:14,885 --> 00:53:17,010] So think about it as now you have a piece of paper.
+[00:53:17,010 --> 00:53:18,450] You can fold it in different ways.
+[00:53:18,450 --> 00:53:20,010] You can fold it multiple times.
+[00:53:20,010 --> 00:53:21,750] And all these things get put together
+[00:53:21,750 --> 00:53:25,920] to form the final shapes you care about.
+[00:53:25,920 --> 00:53:29,007] So this is, you can see, the differences between these two,
+[00:53:29,007 --> 00:53:30,340] three different representations.
+[00:53:30,340 --> 00:53:31,480] You have an input image.
+[00:53:31,480 --> 00:53:34,440] And if you want to represent it reconstructed using voxels,
+[00:53:34,440 --> 00:53:36,680] you can see it's doing something.
+[00:53:36,680 --> 00:53:40,400] But you're really bounded by limited resolution voxels.
+[00:53:40,400 --> 00:53:42,440] And for point clouds, yeah, you're no longer
+[00:53:42,440 --> 00:53:43,860] bounded by the resolutions.
+[00:53:43,860 --> 00:53:46,260] And it gives you maybe a bit more details.
+[00:53:46,260 --> 00:53:48,020] But the points are really unordered.
+[00:53:48,020 --> 00:53:50,720] You cannot really get any smooth surfaces out of the point
+[00:53:50,720 --> 00:53:51,560] clouds.
+[00:53:51,560 --> 00:53:54,063] And for this thing called AtlasNet, which is basically
+[00:53:54,063 --> 00:53:55,480] learning transform pieces, you can
+[00:53:55,480 --> 00:53:58,160] see that they have actually smoother surfaces.
+[00:53:58,160 --> 00:54:00,160] So using neural network to represent
+[00:54:00,160 --> 00:54:02,240] how you can map a parametric representation
+[00:54:02,240 --> 00:54:05,320] from a low-dimensional space to a higher-dimensional space,
+[00:54:05,320 --> 00:54:07,340] and you learn multiple of these mappings.
+[00:54:07,340 --> 00:54:10,080] And when they are combined, they give you the final output
+[00:54:10,080 --> 00:54:11,610] geometries conditioned on 2D images.
+[00:54:16,200 --> 00:54:30,020] OK, so finally, in some sense, we can put it this way.
+[00:54:30,020 --> 00:54:32,660] So what is deep network doing when they're
+[00:54:32,660 --> 00:54:34,380] doing ImageNet classification?
+[00:54:34,380 --> 00:54:36,980] They're basically learning very complex functions
+[00:54:36,980 --> 00:54:40,220] that map input images in the form of pixels
+[00:54:40,220 --> 00:54:42,040] into a final category label.
+[00:54:42,040 --> 00:54:45,060] Is it a cat or a dog or person or whatever?
+[00:54:45,060 --> 00:54:47,500] That function is really complex, and output space
+[00:54:47,500 --> 00:54:48,240] is really small.
+[00:54:48,240 --> 00:54:50,620] Output space is 1,000 dimensions.
+[00:54:50,620 --> 00:54:52,200] So it's like, OK, it's a cat or dog?
+[00:54:52,200 --> 00:54:53,617] You have 1,000 way classification.
+[00:54:53,617 --> 00:54:54,680] Output space is so small.
+[00:54:54,680 --> 00:54:57,260] Input space is much larger because you have 500
+[00:54:57,260 --> 00:54:58,480] by 500 pixels.
+[00:54:58,480 --> 00:55:00,935] So that's 250,000 or something.
+[00:55:00,935 --> 00:55:02,060] Input space is much larger.
+[00:55:02,060 --> 00:55:03,268] Output space is really small.
+[00:55:03,268 --> 00:55:07,340] The function is really hard to write.
+[00:55:07,340 --> 00:55:09,500] Is it possible for me to write down some formulas
+[00:55:09,500 --> 00:55:13,540] so that I can classify the input image by computing
+[00:55:13,540 --> 00:55:15,640] whatever, some specific values and output
+[00:55:15,640 --> 00:55:16,720] if this is a cat or dog?
+[00:55:16,720 --> 00:55:17,545] I cannot do that.
+[00:55:17,545 --> 00:55:18,920] The function is so hard to write.
+[00:55:18,920 --> 00:55:19,810] There's no closed form.
+[00:55:19,810 --> 00:55:20,970] That's why I need a deep network.
+[00:55:20,970 --> 00:55:22,010] Input space is large.
+[00:55:22,010 --> 00:55:23,630] Output space is small.
+[00:55:23,630 --> 00:55:26,190] So if you really think about deep networks that way and think
+[00:55:26,190 --> 00:55:29,070] about what they are doing, then you realize a lot of the things
+[00:55:29,070 --> 00:55:31,770] that we have been doing with deep networks on 3D shapes,
+[00:55:31,770 --> 00:55:36,670] it doesn't seem to map that mapping to that, I would say,
+[00:55:36,670 --> 00:55:37,570] equation.
+[00:55:37,570 --> 00:55:38,997] So it doesn't map that well.
+[00:55:38,997 --> 00:55:40,830] And what are the representations that really
+[00:55:40,830 --> 00:55:42,530] map them-- map it the best?
+[00:55:42,530 --> 00:55:44,270] What's the optimal representations
+[00:55:44,270 --> 00:55:47,390] that seems to really fit into the paradigm?
+[00:55:47,390 --> 00:55:50,650] And if we think more carefully, I think, around 2019,
+[00:55:50,650 --> 00:55:52,788] then people realize, oh, yeah, in some sense,
+[00:55:52,788 --> 00:55:54,330] deep network is an implicit function.
+[00:55:54,330 --> 00:55:57,510] And why don't we just use it to represent implicit function
+[00:55:57,510 --> 00:55:59,470] for object 3D geometry?
+[00:55:59,470 --> 00:56:02,110] So instead of representing the voxels
+[00:56:02,110 --> 00:56:04,030] because now you're just doing--
+[00:56:04,030 --> 00:56:07,870] you turn it into pixels, but then you just scale up into 3D.
+[00:56:07,870 --> 00:56:09,410] And you apply 3D convolution.
+[00:56:09,410 --> 00:56:12,310] But fundamentally, voxel is really about
+[00:56:12,310 --> 00:56:14,570] whether the thing is inside and outside the object.
+[00:56:14,570 --> 00:56:18,240] So instead of just directly prequerying the space and get
+[00:56:18,240 --> 00:56:20,383] the voxels and apply a convolution on top of it,
+[00:56:20,383 --> 00:56:22,800] what if I just directly using deep network to perform that
+[00:56:22,800 --> 00:56:25,840] query for me so that I don't have to run 3D convolution
+[00:56:25,840 --> 00:56:26,400] or anything?
+[00:56:26,400 --> 00:56:29,840] I just query a space in 3D, and deep network should tell me
+[00:56:29,840 --> 00:56:34,280] if the output can just be one dimensional inside and outside,
+[00:56:34,280 --> 00:56:38,960] whether that point is inside a 3D shape or outside a 3D shape.
+[00:56:38,960 --> 00:56:41,240] So finally, I think people move that leap,
+[00:56:41,240 --> 00:56:44,640] take the leap to go from specific representations
+[00:56:44,640 --> 00:56:47,660] on point clouds or splines into implicit representations,
+[00:56:47,660 --> 00:56:49,300] but not directly working on voxels.
+[00:56:49,300 --> 00:56:51,840] But instead, think about it as a level set
+[00:56:51,840 --> 00:56:55,520] or some implicit functions that use deep network to represent.
+[00:56:55,520 --> 00:56:56,680] That's the final step.
+[00:56:56,680 --> 00:56:59,380] Going from this AtlasNet or whatever,
+[00:56:59,380 --> 00:57:02,760] you're learning the transformation from a 2D space
+[00:57:02,760 --> 00:57:03,860] to 3D space.
+[00:57:03,860 --> 00:57:06,240] But now I can directly do an implicit query
+[00:57:06,240 --> 00:57:07,600] using the deep networks.
+[00:57:07,600 --> 00:57:10,840] So that goes to deep implicit functions, which
+[00:57:10,840 --> 00:57:13,460] is interesting because around that time, in 2019,
+[00:57:13,460 --> 00:57:16,290] there are four papers that are doing almost exactly
+[00:57:16,290 --> 00:57:17,330] the same thing.
+[00:57:17,330 --> 00:57:19,913] They all argue that before we have been using voxels and point
+[00:57:19,913 --> 00:57:22,455] clouds and meshes, or whatever, they have their own strengths
+[00:57:22,455 --> 00:57:23,030] or weakness.
+[00:57:23,030 --> 00:57:24,490] But really, the right thing to do
+[00:57:24,490 --> 00:57:28,710] is I should just send the query into the deep network.
+[00:57:28,710 --> 00:57:31,990] So deep network, what it should do is just take the input,
+[00:57:31,990 --> 00:57:34,110] let's say x, y, z-coordinate, and output
+[00:57:34,110 --> 00:57:37,770] whether that point is inside and outside the object.
+[00:57:37,770 --> 00:57:41,090] And that would be, in some sense, the final, I would say,
+[00:57:41,090 --> 00:57:41,830] one of the final.
+[00:57:41,830 --> 00:57:44,810] And that's the kind of idea that was proposed in 2019.
+[00:57:44,810 --> 00:57:47,010] And even right now, in 2025, a lot of people
+[00:57:47,010 --> 00:57:49,170] have been still using this same idea.
+[00:57:49,170 --> 00:57:51,530] That is, I would just use deep network
+[00:57:51,530 --> 00:57:54,210] to tell me whether a point is inside or outside an object.
+[00:57:54,210 --> 00:57:56,850] And not only you can go a little bit beyond then, just
+[00:57:56,850 --> 00:57:59,220] like a binary classification of inside and outside,
+[00:57:59,220 --> 00:58:01,470] because you can also say, oh, maybe I care a bit more.
+[00:58:01,470 --> 00:58:03,553] I say, what would be the signed distance function?
+[00:58:03,553 --> 00:58:06,970] How far the point is from the surface of the object.
+[00:58:06,970 --> 00:58:09,570] Or what would be the density values of the point?
+[00:58:09,570 --> 00:58:11,470] Or later, what will be the color?
+[00:58:11,470 --> 00:58:14,030] What will be the radiance values of the point?
+[00:58:14,030 --> 00:58:16,550] But here, starting from 2019, people really
+[00:58:16,550 --> 00:58:19,550] start to apply deep network in a way that is, in some sense,
+[00:58:19,550 --> 00:58:20,650] similar to classification.
+[00:58:20,650 --> 00:58:24,630] That is, I take points in 3D space and use it as an implicit
+[00:58:24,630 --> 00:58:27,550] function to query some properties of the points in 3D
+[00:58:27,550 --> 00:58:29,270] space.
+[00:58:29,270 --> 00:58:33,190] And people have tried to use it as represent a collection
+[00:58:33,190 --> 00:58:36,305] of implicit functions, not just how PCs are deforming
+[00:58:36,305 --> 00:58:38,430] into the 3D space to get different pieces of papers
+[00:58:38,430 --> 00:58:42,070] in 3D, but really representing implicit parts of the objects
+[00:58:42,070 --> 00:58:43,250] using small neural networks.
+[00:58:43,250 --> 00:58:45,950] And they can form a complex shapes.
+[00:58:45,950 --> 00:58:52,350] And if you can represent objects in 3D using implicit functions,
+[00:58:52,350 --> 00:58:54,170] you can do that not only for geometry.
+[00:58:54,170 --> 00:58:56,030] You can query not only the inside
+[00:58:56,030 --> 00:58:58,290] or whether a point is inside or outside objects,
+[00:58:58,290 --> 00:59:01,170] whether how far the point is from the surface of the object.
+[00:59:01,170 --> 00:59:03,308] You can also query, what will be the radiance?
+[00:59:03,308 --> 00:59:04,850] What will be the color of the object?
+[00:59:04,850 --> 00:59:06,490] And then I go directly one year later.
+[00:59:06,490 --> 00:59:08,170] This is maybe one or two years later.
+[00:59:08,170 --> 00:59:10,390] Now, people come up with this thing called NeRF So
+[00:59:10,390 --> 00:59:13,240] where they used differences here is now say--
+[00:59:13,240 --> 00:59:14,960] or I should use deepen our knowledge
+[00:59:14,960 --> 00:59:17,600] to query, what will be the signed distance function
+[00:59:17,600 --> 00:59:21,640] or density of the objects, but also querying the radiance?
+[00:59:21,640 --> 00:59:26,380] So here you can see what's going on is you query NeRF about x, y,
+[00:59:26,380 --> 00:59:28,090] z-coordinate in the 3D space.
+[00:59:28,090 --> 00:59:29,840] In addition to that, because we are trying
+[00:59:29,840 --> 00:59:31,640] to model the appearance as well, you also
+[00:59:31,640 --> 00:59:35,400] query the viewing directions, the camera viewing directions.
+[00:59:35,400 --> 00:59:39,200] And the output of the neural network is not just like 1 or 0,
+[00:59:39,200 --> 00:59:40,440] inside, outside.
+[00:59:40,440 --> 00:59:44,080] It is the density values in addition to the color values
+[00:59:44,080 --> 00:59:45,720] or the radiance.
+[00:59:45,720 --> 00:59:50,600] And if you directly train implicit functions on 3D shapes,
+[00:59:50,600 --> 00:59:52,600] and then you require 3D supervision.
+[00:59:52,600 --> 00:59:54,783] So if you have a collection of 3D objects,
+[00:59:54,783 --> 00:59:56,200] you can use them as a supervision.
+[00:59:56,200 --> 00:59:59,200] That gives you-- OK, you have the ground truth about whether
+[00:59:59,200 --> 01:00:01,760] a point is inside or outside a 3D object.
+[01:00:01,760 --> 01:00:04,525] But here you want to train on 2D images.
+[01:00:04,525 --> 01:00:05,900] That's what's going on with NeRF.
+[01:00:05,900 --> 01:00:08,840] So they also put that together with the neural rendering--
+[01:00:08,840 --> 01:00:09,940] volume rendering function.
+[01:00:09,940 --> 01:00:11,773] And they made this volume rendering function
+[01:00:11,773 --> 01:00:15,010] differentiable in the sense that you can have a rendering model,
+[01:00:15,010 --> 01:00:17,730] you can query all these different points in 3D space.
+[01:00:17,730 --> 01:00:20,210] You can get their colors, and also
+[01:00:20,210 --> 01:00:23,090] their densities in appearance.
+[01:00:23,090 --> 01:00:25,210] And then you can compute how much
+[01:00:25,210 --> 01:00:27,010] light is blocked along the way.
+[01:00:27,010 --> 01:00:29,010] So this is basically volume rendering
+[01:00:29,010 --> 01:00:30,570] as in computer graphics.
+[01:00:30,570 --> 01:00:35,850] There's very minimal change made because you can see,
+[01:00:35,850 --> 01:00:38,090] even directly from the volume-rendering equations,
+[01:00:38,090 --> 01:00:39,890] that everything here is--
+[01:00:39,890 --> 01:00:41,030] this is an approximation.
+[01:00:41,030 --> 01:00:42,655] But with approximation, everything here
+[01:00:42,655 --> 01:00:43,890] is differentiable.
+[01:00:43,890 --> 01:00:46,438] So you can compute how much light--
+[01:00:46,438 --> 01:00:48,730] if the neural network gives you the density, which is--
+[01:00:48,730 --> 01:00:51,610] basically, you can think of it as opacity of the point in 3D
+[01:00:51,610 --> 01:00:53,283] space, and it also gives you the color,
+[01:00:53,283 --> 01:00:55,450] then you can compute how much light has been blocked
+[01:00:55,450 --> 01:01:00,050] by the points that are sampled ahead of that point.
+[01:01:00,050 --> 01:01:02,450] And along the way, and you can compute also
+[01:01:02,450 --> 01:01:05,090] how much light is there contributing
+[01:01:05,090 --> 01:01:09,820] to what I'm going to see in this ray from any particular point?
+[01:01:09,820 --> 01:01:11,360] So now you have a few things.
+[01:01:11,360 --> 01:01:13,693] You have neural networks to represent implicit functions
+[01:01:13,693 --> 01:01:16,122] for the colors or radiance and the densities.
+[01:01:16,122 --> 01:01:18,080] And then you have this volume render equations,
+[01:01:18,080 --> 01:01:21,260] which is made differentiable so that you can learn directly from
+[01:01:21,260 --> 01:01:23,083] 2D images.
+[01:01:23,083 --> 01:01:25,000] So these are the two things that have changed.
+[01:01:25,000 --> 01:01:27,760] And one is, I no longer have to train on 3D shapes.
+[01:01:27,760 --> 01:01:30,640] I can train on 2D images with this volume rendering equations.
+[01:01:30,640 --> 01:01:33,940] And the second is, instead of just looking into geometry
+[01:01:33,940 --> 01:01:38,540] or density of objects in 3D, I also look into their radiance
+[01:01:38,540 --> 01:01:40,120] or appearance in 3D.
+[01:01:40,120 --> 01:01:43,060] So these two changes lead to the kind of big jump
+[01:01:43,060 --> 01:01:46,100] behind, from NeRF, or from implicit functions
+[01:01:46,100 --> 01:01:49,540] or deep [? SDF ?] and all these other methods to NeRF.
+[01:01:49,540 --> 01:01:52,472] So a lot of people feel like, oh yeah, NeRF has been great.
+[01:01:52,472 --> 01:01:53,680] It seems like out of nowhere.
+[01:01:53,680 --> 01:01:55,740] That's really not the case because they're
+[01:01:55,740 --> 01:01:58,380] very much inspired-- if you look at the articles they later
+[01:01:58,380 --> 01:02:01,700] wrote themselves, they are very much
+[01:02:01,700 --> 01:02:04,640] inspired by all these advances in deep intrinsic functions.
+[01:02:04,640 --> 01:02:06,600] Although, they focus only on geometry.
+[01:02:06,600 --> 01:02:09,900] But now I do both geometry and appearance.
+[01:02:09,900 --> 01:02:13,920] And I do learning from 2D images instead of 3D shapes.
+[01:02:13,920 --> 01:02:16,200] So yeah, here are some results of NeRF.
+[01:02:16,200 --> 01:02:17,950] This you may have seen many times.
+[01:02:24,800 --> 01:02:27,620] OK, so if you remember, we said, in the past,
+[01:02:27,620 --> 01:02:29,920] we have been working on something like generating 3D
+[01:02:29,920 --> 01:02:33,908] shapes, and then also generating their 2D appearances.
+[01:02:33,908 --> 01:02:36,200] Here, at the very beginning, we used the representation
+[01:02:36,200 --> 01:02:38,640] that is voxels.
+[01:02:38,640 --> 01:02:41,253] But now, as we said, yeah, NeRF is great.
+[01:02:41,253 --> 01:02:42,920] And if we have implicit representations,
+[01:02:42,920 --> 01:02:45,900] there's no need to really represent it as voxels.
+[01:02:45,900 --> 01:02:49,480] What if we just replace that with the radiance fields?
+[01:02:49,480 --> 01:02:50,973] So we also did that as well.
+[01:02:50,973 --> 01:02:52,640] So we have a neural network that capture
+[01:02:52,640 --> 01:02:54,980] the implicit radiance fields and densities.
+[01:02:54,980 --> 01:02:57,067] But it is generative neural network.
+[01:02:57,067 --> 01:02:59,400] And then you can even still apply the same GAN rendering
+[01:02:59,400 --> 01:03:01,880] framework so that you can render objects in 3D,
+[01:03:01,880 --> 01:03:04,100] as well as their 2D pictures.
+[01:03:04,100 --> 01:03:06,730] And you can also do the same thing as controllability.
+[01:03:06,730 --> 01:03:10,750] And you can change the camera viewpoint.
+[01:03:10,750 --> 01:03:13,768] You can change object identity, but you can keep the viewpoint.
+[01:03:13,768 --> 01:03:15,810] You can do all the things that you can do before.
+[01:03:15,810 --> 01:03:18,237] But now with NeRF, you can learn directly from images.
+[01:03:18,237 --> 01:03:20,570] So you don't have to restrict yourself to the categories
+[01:03:20,570 --> 01:03:23,810] of cars or chairs, where you have a lot of 3D data,
+[01:03:23,810 --> 01:03:26,930] because you can learn directly from images.
+[01:03:26,930 --> 01:03:29,850] Yeah, so you can see that now, the output becomes much more
+[01:03:29,850 --> 01:03:30,510] realistic.
+[01:03:30,510 --> 01:03:32,850] So this is the thing we did called [? pigeon ?]
+[01:03:32,850 --> 01:03:35,910] with Eric Chen as a first author,
+[01:03:35,910 --> 01:03:39,110] and also with mostly people from Gordon's group.
+[01:03:42,410 --> 01:03:48,010] OK, and finally, NeRF is great, but then NeRF has this issue
+[01:03:48,010 --> 01:03:50,890] that is, you have to sample a lot of points in 3D.
+[01:03:50,890 --> 01:03:53,890] You're no longer presampling them and then applying
+[01:03:53,890 --> 01:03:55,230] a volumetric convolution.
+[01:03:55,230 --> 01:03:56,650] But still, just like a level set,
+[01:03:56,650 --> 01:03:58,025] you have to sample all the points
+[01:03:58,025 --> 01:03:59,730] and create neural network all the time.
+[01:03:59,730 --> 01:04:02,583] And now you can do it learning from 2D.
+[01:04:02,583 --> 01:04:04,000] You can do all these great things.
+[01:04:04,000 --> 01:04:06,083] But because you still have to do all the sampling,
+[01:04:06,083 --> 01:04:07,380] it is very slow.
+[01:04:07,380 --> 01:04:09,238] So people thought a little bit more.
+[01:04:09,238 --> 01:04:10,780] Again, from the graphics people, they
+[01:04:10,780 --> 01:04:13,547] were like, OK, I have this good idea about points and meshes.
+[01:04:13,547 --> 01:04:15,880] And the nice thing about them is they are free in space.
+[01:04:15,880 --> 01:04:17,200] They're very efficient.
+[01:04:17,200 --> 01:04:19,200] So is that possible for us to integrate the two?
+[01:04:19,200 --> 01:04:20,880] Can I have an implicit representations?
+[01:04:20,880 --> 01:04:23,798] But maybe I don't have to have a fixed sampling grid.
+[01:04:23,798 --> 01:04:25,340] I don't have to sample all the times,
+[01:04:25,340 --> 01:04:26,960] because it takes so much time.
+[01:04:26,960 --> 01:04:30,020] So maybe I really should put them together.
+[01:04:30,020 --> 01:04:34,117] So you can argue that NeRF tried to parameterize densities--
+[01:04:34,117 --> 01:04:36,200] sorry, parameterize the scenes very, very densely,
+[01:04:36,200 --> 01:04:39,660] you have to sample all the points density in 3D.
+[01:04:39,660 --> 01:04:41,980] A lot of points are wasted, just like in voxels.
+[01:04:41,980 --> 01:04:44,600] You have all the points that are representing empty space.
+[01:04:44,600 --> 01:04:45,660] You don't want that.
+[01:04:45,660 --> 01:04:48,300] In NeRF, a lot of sampling, a lot of queries
+[01:04:48,300 --> 01:04:50,180] are also querying empty space.
+[01:04:50,180 --> 01:04:52,100] And network may give you a density of 0
+[01:04:52,100 --> 01:04:55,220] or something like that, but it's taking a lot of time.
+[01:04:55,220 --> 01:04:57,500] So how can we address that?
+[01:04:57,500 --> 01:05:00,440] What If I just try to sample things more sparsely?
+[01:05:00,440 --> 01:05:02,790] I still have this implicit representations.
+[01:05:02,790 --> 01:05:06,890] But instead of sampling empty spaces all the time,
+[01:05:06,890 --> 01:05:09,830] I only sample at places where I know there are stuff.
+[01:05:09,830 --> 01:05:11,070] But how can I know that?
+[01:05:11,070 --> 01:05:13,590] What if I have a point representations?
+[01:05:13,590 --> 01:05:16,890] So this is the idea behind this thing called Gaussian splats,
+[01:05:16,890 --> 01:05:18,190] which you may have heard of.
+[01:05:18,190 --> 01:05:20,730] So it still has the same implicit functions.
+[01:05:20,730 --> 01:05:23,470] You're querying neural network for densities and for appearance
+[01:05:23,470 --> 01:05:24,870] and stuff like that.
+[01:05:24,870 --> 01:05:28,170] But instead of creating neural network all the time,
+[01:05:28,170 --> 01:05:30,938] I have a point representation of the 3D Gaussian blobs in the 3D
+[01:05:30,938 --> 01:05:33,230] space, which I think sometimes you can think about them
+[01:05:33,230 --> 01:05:34,350] as point clouds.
+[01:05:34,350 --> 01:05:36,170] But the points are not like a single point.
+[01:05:36,170 --> 01:05:37,370] They're like a blob.
+[01:05:37,370 --> 01:05:39,750] They're like some regions.
+[01:05:39,750 --> 01:05:43,050] And because you know where these blobs are,
+[01:05:43,050 --> 01:05:46,115] when you're sending out a ray from your camera to the 3D space
+[01:05:46,115 --> 01:05:48,490] and sample points, you don't have to sample all the time.
+[01:05:48,490 --> 01:05:50,590] You just look at where these blobs are,
+[01:05:50,590 --> 01:05:53,790] and then you can know-- based on the radius
+[01:05:53,790 --> 01:05:55,390] of these different Gaussians, you
+[01:05:55,390 --> 01:05:56,870] will only sample at regions where
+[01:05:56,870 --> 01:05:58,470] you know there is some stuff.
+[01:05:58,470 --> 01:06:01,710] So this makes rendering much more efficient.
+[01:06:01,710 --> 01:06:05,393] And so here are some of the reconstruction results using 3D
+[01:06:05,393 --> 01:06:06,060] Gaussian splats.
+[01:06:14,330 --> 01:06:17,530] And you can see that in terms of quality,
+[01:06:17,530 --> 01:06:19,858] they're actually not that--
+[01:06:19,858 --> 01:06:20,650] they're comparable.
+[01:06:20,650 --> 01:06:22,890] I would say they're comparable to NeRFs.
+[01:06:22,890 --> 01:06:25,010] This is different metrics, PSNR, SSIM.
+[01:06:25,010 --> 01:06:26,430] They're like rendering qualities.
+[01:06:26,430 --> 01:06:29,898] And I think the y-axis, it doesn't start from 0.
+[01:06:29,898 --> 01:06:31,190] So this is a little misleading.
+[01:06:31,190 --> 01:06:33,230] But basically, you can see these numbers are really close.
+[01:06:33,230 --> 01:06:34,610] So in terms of quality, rendering quality,
+[01:06:34,610 --> 01:06:36,850] Gaussian splats and NeRFs are similar, at least
+[01:06:36,850 --> 01:06:38,370] when they're first proposed.
+[01:06:38,370 --> 01:06:40,890] But Gaussian splats are just much more efficient.
+[01:06:40,890 --> 01:06:42,610] So this is FPS, Frame Per Second.
+[01:06:42,610 --> 01:06:45,110] You can render 150 pictures per second.
+[01:06:45,110 --> 01:06:49,370] Well, for NeRF, it takes you maybe 20 seconds
+[01:06:49,370 --> 01:06:51,050] to render just a single picture.
+[01:06:51,050 --> 01:06:54,670] So now this thing is now made 1,000 times faster.
+[01:06:54,670 --> 01:06:56,170] At least that's what they argued.
+[01:06:56,170 --> 01:06:59,340] So because you no longer waste all your computing power
+[01:06:59,340 --> 01:07:02,500] on sampling empty space and query neural networks
+[01:07:02,500 --> 01:07:06,370] all the time about these points that are in the empty space.
+[01:07:11,260 --> 01:07:13,940] OK, yeah, so that is basically how deep learning has been
+[01:07:13,940 --> 01:07:17,167] integrated on 3D data in all these different representations,
+[01:07:17,167 --> 01:07:19,000] how they got started, how they have evolved,
+[01:07:19,000 --> 01:07:21,180] and its connection with all these different shape
+[01:07:21,180 --> 01:07:22,060] representations.
+[01:07:22,060 --> 01:07:23,560] And one thing we didn't talk about--
+[01:07:23,560 --> 01:07:25,620] we just use two minutes to quickly cover it--
+[01:07:25,620 --> 01:07:28,660] is there has been also interesting
+[01:07:28,660 --> 01:07:30,620] things about object geometry that
+[01:07:30,620 --> 01:07:32,720] is not only about the element geometry,
+[01:07:32,720 --> 01:07:36,360] the specific details about the parts, but also the structures.
+[01:07:36,360 --> 01:07:39,605] Because often, there could be-- the chairs are symmetric.
+[01:07:39,605 --> 01:07:40,980] So we talk a little bit about it,
+[01:07:40,980 --> 01:07:42,980] where there's a parametric surface.
+[01:07:42,980 --> 01:07:46,580] And you can parameterize part of the surface using a sphere
+[01:07:46,580 --> 01:07:49,107] or stuff like that, using these closed form equations.
+[01:07:49,107 --> 01:07:50,940] And that gives you a little bit of symmetry.
+[01:07:50,940 --> 01:07:53,100] But there has been also more systematic studies
+[01:07:53,100 --> 01:07:56,110] about the regularities or structures within object
+[01:07:56,110 --> 01:07:58,430] geometry, including their repetitions, including
+[01:07:58,430 --> 01:07:59,290] their symmetries.
+[01:07:59,290 --> 01:08:01,832] And people also come up with different representations for it
+[01:08:01,832 --> 01:08:04,350] as well.
+[01:08:04,350 --> 01:08:06,730] So how can we really represent-- in some sense,
+[01:08:06,730 --> 01:08:09,290] you can argue that point clouds, meshes, implicit functions,
+[01:08:09,290 --> 01:08:11,582] they're really representing the geometric details maybe
+[01:08:11,582 --> 01:08:13,450] for the individual parts.
+[01:08:13,450 --> 01:08:15,310] None of them is directly capturing
+[01:08:15,310 --> 01:08:18,290] things like regularities, like symmetry and repetition.
+[01:08:18,290 --> 01:08:20,189] So how can we capture that?
+[01:08:20,189 --> 01:08:23,510] A few other attempts that people have been exploring, mostly
+[01:08:23,510 --> 01:08:27,270] from the graphics community, is I can represent objects just
+[01:08:27,270 --> 01:08:31,229] basically as a collection of these simple geometric parts,
+[01:08:31,229 --> 01:08:33,590] like a part set.
+[01:08:33,590 --> 01:08:36,310] And there has been methods that apply deep learning on it,
+[01:08:36,310 --> 01:08:38,790] representing using deep networks to represent
+[01:08:38,790 --> 01:08:40,189] different parts of objects, using
+[01:08:40,189 --> 01:08:42,750] simple geometric primitives, and then compose them,
+[01:08:42,750 --> 01:08:45,649] or using implicit functions and compose them,
+[01:08:45,649 --> 01:08:47,470] as we talked about before.
+[01:08:47,470 --> 01:08:51,547] But there has also been attempts to do a bit more, so not just
+[01:08:51,547 --> 01:08:53,630] like representing objects as a collection of parts
+[01:08:53,630 --> 01:08:55,297] without considering their relationships,
+[01:08:55,297 --> 01:08:57,040] but also modeling the relationships
+[01:08:57,040 --> 01:08:58,560] between these parts.
+[01:08:58,560 --> 01:09:03,319] This is even more so the case for scenes, let's say, a bed.
+[01:09:03,319 --> 01:09:04,883] Our bad is usually next to the wall.
+[01:09:04,883 --> 01:09:07,300] Chairs is usually next to the tables, and stuff like that.
+[01:09:07,300 --> 01:09:09,000] So you not only want to represent them
+[01:09:09,000 --> 01:09:12,580] as unrelated collection of parts or objects.
+[01:09:12,580 --> 01:09:15,000] You want to capture their relationships as well.
+[01:09:15,000 --> 01:09:18,008] In the hierarchies, when you are constructing,
+[01:09:18,008 --> 01:09:20,300] when you're building-- you're doing some constructions,
+[01:09:20,300 --> 01:09:21,640] your architecture.
+[01:09:21,640 --> 01:09:22,580] You're an architect.
+[01:09:22,580 --> 01:09:26,000] You're designing a building, then, of course,
+[01:09:26,000 --> 01:09:29,180] you're not just representing objects or their relationships.
+[01:09:29,180 --> 01:09:30,580] You have to consider hierarchies,
+[01:09:30,580 --> 01:09:31,960] what you build first.
+[01:09:31,960 --> 01:09:33,520] There's a classroom, and a classroom
+[01:09:33,520 --> 01:09:35,580] has-- there's some tables and chairs in it,
+[01:09:35,580 --> 01:09:36,740] and chairs has parts.
+[01:09:36,740 --> 01:09:38,840] There's basically a level hierarchy
+[01:09:38,840 --> 01:09:41,752] and how this can be used and integrated with neural networks,
+[01:09:41,752 --> 01:09:43,960] as well as you have not only the hierarchy, but also,
+[01:09:43,960 --> 01:09:46,180] you can compose hierarchies and relationships.
+[01:09:46,180 --> 01:09:48,722] So you have hierarchical graph, where,
+[01:09:48,722 --> 01:09:50,680] let's say, for chairs, you have different level
+[01:09:50,680 --> 01:09:53,340] hierarchy for bases, for seats, for backs.
+[01:09:53,340 --> 01:09:55,520] And the bases may have different legs.
+[01:09:55,520 --> 01:09:57,520] But then also, the legs themselves are related.
+[01:09:57,520 --> 01:09:59,760] The left leg of the chair and the right leg of the chair,
+[01:09:59,760 --> 01:10:01,180] they are supposed to be symmetric.
+[01:10:01,180 --> 01:10:03,380] And they should have the identical shape.
+[01:10:03,380 --> 01:10:05,780] There are constraints on where these legs are.
+[01:10:05,780 --> 01:10:08,180] They have to be really aligned, otherwise
+[01:10:08,180 --> 01:10:09,400] the chair is going to fall.
+[01:10:09,400 --> 01:10:10,817] So there are all these constraints
+[01:10:10,817 --> 01:10:12,560] that are pretty useful.
+[01:10:12,560 --> 01:10:13,960] And how can we represent them?
+[01:10:13,960 --> 01:10:16,520] And people come up with all these different representations.
+[01:10:16,520 --> 01:10:19,060] And for each of them, there are also
+[01:10:19,060 --> 01:10:21,620] a lot of neural networks, deep learning methods designed
+[01:10:21,620 --> 01:10:24,300] to learn and to capture and to generate objects that
+[01:10:24,300 --> 01:10:26,180] satisfy all these constraints.
+[01:10:26,180 --> 01:10:29,820] For example, you can see, this is a hierarchical graph,
+[01:10:29,820 --> 01:10:33,580] encoders and decoders that try to represent and generate 3D
+[01:10:33,580 --> 01:10:37,300] chairs that satisfy all these constraints while maintaining
+[01:10:37,300 --> 01:10:39,392] their hierarchies.
+[01:10:39,392 --> 01:10:43,660] I think this is also from Leonidas's group, from 2019.
+[01:10:43,660 --> 01:10:45,660] And sometimes, we can even represent
+[01:10:45,660 --> 01:10:47,380] shapes using some form of programs
+[01:10:47,380 --> 01:10:49,260] because there's repetitions and for loops
+[01:10:49,260 --> 01:10:52,070] and how this can be incorporated into using
+[01:10:52,070 --> 01:10:54,070] neural networks to generate programs
+[01:10:54,070 --> 01:10:57,630] that synthesize object shapes and synthesize their relations
+[01:10:57,630 --> 01:10:59,190] between these object parts.
+[01:10:59,190 --> 01:11:01,230] And that's also an important topic.
+[01:11:01,230 --> 01:11:05,390] And most recently, I would say, let me end this by saying,
+[01:11:05,390 --> 01:11:08,270] I think there has been a new trend just in the past one
+[01:11:08,270 --> 01:11:11,750] year or two that the deep networks or large language
+[01:11:11,750 --> 01:11:15,230] models are doing so well, and they understand things so well
+[01:11:15,230 --> 01:11:16,930] that people are exploring.
+[01:11:16,930 --> 01:11:19,990] Is it possible for us to just use large language models,
+[01:11:19,990 --> 01:11:22,470] like GPT, to output these programs
+[01:11:22,470 --> 01:11:23,910] because they understand semantics
+[01:11:23,910 --> 01:11:25,070] and what the chair should be like?
+[01:11:25,070 --> 01:11:26,970] What are the constraints of chairs to satisfy?
+[01:11:26,970 --> 01:11:29,220] So is it possible for me to use a large language model
+[01:11:29,220 --> 01:11:30,330] to output programs?
+[01:11:30,330 --> 01:11:32,950] But then maybe I can use some implicit functions, or whatever,
+[01:11:32,950 --> 01:11:34,430] to capture the specific geometric
+[01:11:34,430 --> 01:11:37,570] details of the parts of the objects, like the chairs.
+[01:11:37,570 --> 01:11:39,870] So there's some kind of new emerging trend of research
+[01:11:39,870 --> 01:11:42,390] that is happening right now in these days.
+[01:11:42,390 --> 01:11:43,770] OK, I think that's all I have.
+[01:11:43,770 --> 01:11:45,580] Thank you.

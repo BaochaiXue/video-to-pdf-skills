@@ -1,0 +1,246 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{float}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b
+}
+
+\newcommand{\notetitle}{CS231n Lecture 12: Self-Supervised Learning}
+\newcommand{\noteauthors}{Codex Harness}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=4howBU7THbM}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{为什么需要自监督学习}
+% source_units: cu_12_01, cu_12_02
+这讲的出发点很明确：现代视觉模型确实能学到强表征，但如果每一步都依赖大规模人工标注，训练成本会非常高。课程因此提出一个关键问题：\textbf{能否利用数据本身生成监督信号，而不是依赖人工标签？}
+
+这就是自监督学习（self-supervised learning, SSL）的核心。课程把它拆成两个阶段：
+\begin{itemize}
+\item \textbf{Pretext Task}：利用数据自身构造目标，例如预测旋转角度、补全缺失区域、区分正负样本。
+\item \textbf{Downstream Task}：把学到的表示迁移到分类、检测、分割等真正关心的任务上。
+\end{itemize}
+
+相应地，评价一个 SSL 方法也不只看 pretext task 做得多好，还包括：
+\begin{itemize}
+\item linear evaluation 表现如何；
+\item transfer 到下游任务后的性能如何；
+\item 是否具有鲁棒性与泛化能力；
+\item 训练是否足够高效。
+\end{itemize}
+
+\subsection{本章小结}
+自监督学习的目标不是“把标签换个名字”，而是利用无标签数据学出可迁移表示。
+
+\section{从图像变换到重建: 经典 pretext task 家族}
+% source_units: cu_12_03, cu_12_04
+课程先回顾了一大批经典 pretext tasks：rotation prediction、relative patch location、jigsaw puzzle、inpainting、colorization，甚至 video colorization。它们表面不同，但都共享同一逻辑：\textbf{人为对数据做某种扰动，再让模型恢复被扰动前的结构。}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-12.png}
+\caption{经典 pretext tasks 的共同点是：标签由输入图像自身生成，而不是由人工标注。}
+\end{figure}
+
+这些任务之所以有效，是因为模型若想解决它们，就必须学习对象形状、相对位置、纹理一致性和语义结构。例如：
+\begin{itemize}
+\item 旋转预测要求模型知道“正常物体应当朝哪个方向”。
+\item jigsaw/relative patch location 迫使模型理解局部块之间的空间关系。
+\item inpainting 与 colorization 则迫使模型从上下文推断缺失内容。
+\end{itemize}
+
+课程还特别提到 video colorization 中“tracking emerges from colorization”的现象：为了把颜色稳定传播到时间维上，模型会自发学习到跨帧对应关系。这非常形象地说明，SSL 学到的往往不是任务本身，而是完成任务所需的潜在结构。
+
+\subsection{本章小结}
+经典 pretext task 家族为后续所有 SSL 方法提供了直觉基础：用可自动构造的任务逼迫模型学习通用结构。
+
+\section{MAE: reconstruction-based learning 的现代版本}
+% source_units: cu_12_05, cu_12_06
+Masked Autoencoders（MAE）是本讲 reconstruction 路线的现代代表。它的关键设计不是“做重建”本身，而是\textbf{只让 encoder 处理可见 patch，把被遮挡 patch 的恢复交给轻量 decoder。}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-52.png}
+\caption{MAE 通过高比例 masking，把重建任务变成“从少量可见 token 恢复完整图像”的表征学习过程。}
+\end{figure}
+
+其训练目标通常可以写成：
+\[
+\mathcal{L}_{\mathrm{MAE}}
+=
+\frac{1}{|\mathcal{M}|}
+\sum_{i \in \mathcal{M}}
+\left\lVert \hat{x}_i - x_i \right\rVert_2^2
+\]
+
+其中：
+\begin{itemize}
+\item $\mathcal{M}$：被 mask 的 patch 集合。
+\item $x_i$：真实 patch。
+\item $\hat{x}_i$：decoder 重建出的 patch。
+\end{itemize}
+
+课程强调了 MAE 的几个关键经验：
+\begin{itemize}
+\item masking ratio 可以很高，高遮挡反而迫使模型学习更全局的表征；
+\item encoder 只看可见 patch，使主干计算保持高效；
+\item linear probing 与 full fine-tuning 的效果不完全一致，因此评价 SSL 不应只看单一 protocol。
+\end{itemize}
+
+\subsection{本章小结}
+MAE 说明 reconstruction 并未过时，关键在于如何把重建任务设计成既高效又能逼出语义表示。
+
+\section{对比学习总式与 InfoNCE}
+% source_units: cu_12_07, cu_12_08
+本讲后半进入 contrastive learning。课程把它写成一个非常清楚的通式：给定一个 anchor、一个正样本和若干负样本，让模型对“正确配对”分配更高分数。
+
+标准 InfoNCE 可写成：
+\[
+\mathcal{L}_{\mathrm{InfoNCE}}
+=
+-\log
+\frac{\exp(\operatorname{sim}(q, k^+) / \tau)}
+{\exp(\operatorname{sim}(q, k^+) / \tau)
++
+\sum_{j=1}^{K}\exp(\operatorname{sim}(q, k_j^-) / \tau)}
+\]
+
+其中：
+\begin{itemize}
+\item $q$：anchor query。
+\item $k^+$：正样本 key。
+\item $k_j^-$：负样本 keys。
+\item $\operatorname{sim}(\cdot, \cdot)$：相似度函数，常用 cosine similarity 或点积。
+\item $\tau$：temperature，控制 softmax 分布的尖锐程度。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-75.png}
+\caption{对比学习把表征学习组织成“让正样本更近、负样本更远”的 softmax 分类问题。}
+\end{figure}
+
+\textbf{下面这段伪代码}把课程里 contrastive pretraining 的训练循环压缩成最小实现骨架：
+
+\begin{lstlisting}[caption={contrastive pretraining 的最小训练循环}]
+x1, x2 = augment(image), augment(image)
+q = encoder_q(x1)
+k_pos = encoder_k(x2)
+k_neg = queue.sample()
+loss = info_nce(q, k_pos, k_neg)
+loss.backward()
+update(encoder_q)
+\end{lstlisting}
+
+\subsection{本章小结}
+InfoNCE 的价值，在于它把“学好表示”改写成一个结构清楚、可批量化的分类问题。
+
+\section{SimCLR、MoCo 与实例级对比学习}
+% source_units: cu_12_09, cu_12_10
+SimCLR 和 MoCo 是实例级对比学习最经典的两条路线。
+
+SimCLR 的设计重点是：
+\begin{itemize}
+\item 强数据增强，构造正样本对；
+\item 大 batch，提供足够多的负样本；
+\item projection head，让对比损失作用在更适合分离的空间里。
+\end{itemize}
+
+MoCo 则用另一种工程思路回答“负样本不够怎么办”：
+\begin{itemize}
+\item 使用 momentum encoder 生成更稳定的 key；
+\item 维护一个 queue，累积大量负样本；
+\item 因而不再强依赖超大 batch。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-90.png}
+\caption{MoCo 的 momentum encoder + queue，是实例级对比学习最有代表性的工程设计之一。}
+\end{figure}
+
+MoCo v2 进一步吸收了 SimCLR 的一些优点，例如更强的数据增强和非线性 projection head。课程借此强调一个很重要的经验：\textbf{SSL 的效果不只来自“大思想”，还高度依赖 augmentation、projection head、batch/queue 大小等工程细节。}
+
+\subsection{本章小结}
+SimCLR 偏向“用更强增强和更大 batch 学表示”，MoCo 偏向“用动量编码器和样本队列换取更高效的负样本组织”。
+
+\section{CPC 与时序级对比学习}
+% source_units: cu_12_11
+Contrastive Predictive Coding（CPC）把对比学习从实例级扩展到了序列级。课程里它既用于音频，也用于视觉上下文，核心思想都是：\textbf{根据当前上下文预测未来表示，并用 InfoNCE 判断哪个未来片段才是真的。}
+
+这意味着对比学习并不一定只能围绕图像增强做“同图不同视角”的匹配，它也可以围绕时间结构做“当前上下文 vs 未来信号”的匹配。这使 CPC 特别适合序列、音频和视频场景。
+
+\subsection{本章小结}
+CPC 证明了对比学习并不限于静态图像，而是一种更一般的时序表示学习框架。
+
+\section{DINO: 不靠显式负样本的自蒸馏路线}
+% source_units: cu_12_12
+DINO 与 DINOv2 代表了另一条路线：不再显式构造负样本，而是用 teacher-student 自蒸馏在无标签数据上学习一致性目标。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-105.png}
+\caption{DINO 用 teacher-student 自蒸馏学习视觉表示，展示了“无显式负样本”也能学到强表征。}
+\end{figure}
+
+教学上，DINO 的意义很大，因为它告诉我们：对比学习虽然强大，但“负样本组织”并不是唯一可行路径。只要目标设计得当，表征也可以通过蒸馏一致性学出来。
+
+\subsection{本章小结}
+DINO 把 SSL 从“正负样本对比”进一步扩展到“无标签蒸馏”，表明 SSL 目标设计仍有很大空间。
+
+\section{总结与延伸}
+本讲把自监督学习的主要路线完整串了起来：
+\begin{itemize}
+\item pretext tasks 用人为扰动逼迫模型学习结构；
+\item MAE 用高遮挡重建学习视觉表示；
+\item SimCLR / MoCo 用 InfoNCE 做实例级对比；
+\item CPC 把对比学习带到时序建模；
+\item DINO 则展示了不依赖显式负样本的自蒸馏路径。
+\end{itemize}
+
+最重要的认识不是“哪篇论文最好”，而是理解这些方法在目标设计上的不同取舍：有的更依赖重建，有的更依赖样本对比，有的依赖 teacher-student 一致性。但它们共享一个更高层的目标：在没有人工标签的情况下学出能迁移到分类、检测、分割乃至视频任务的表征。
+
+\end{document}

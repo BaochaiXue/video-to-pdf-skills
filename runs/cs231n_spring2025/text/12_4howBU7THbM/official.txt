@@ -1,0 +1,2003 @@
+Lecture 12:
+Self-Supervised Learning
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 1
+
+May 8, 2025
+
+Administrative
+- Midterm next Tuesday (5/13 during lecture time) – Don’t be late;
+See this Ed post for logistic details.
+- Midterm review section tomorrow, Friday, 5/9 at 12:30 pm.
+- Project proposal feedback is available on Gradescope.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 2
+
+May 8, 2025
+
+Previous Lecture: GPUs and How to Train On Them
+A bit about GPU hardware
+
+Stanford CS231n 10 th Anniversary
+
+How to train on lots of GPUs
+
+Lecture 12 -
+
+3
+
+May 8, 2025
+
+Lots of Computer Vision Tasks
+Classification
+
+Semantic
+Segmentation
+
+Object
+Detection
+
+Instance
+Segmentation
+
+CAT
+
+GRASS, CAT, TREE,
+SKY
+
+DOG, DOG, CAT
+
+DOG, DOG, CAT
+
+No spatial extent
+
+No objects, just pixels
+
+Stanford CS231n 10 th Anniversary
+
+Multiple Object
+
+Lecture 12 - 4
+
+This image is CC0 public domain
+
+May 8, 2025
+
+Last Week: Visualizing and Understanding
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 5
+
+May 8, 2025
+
+Last Week: Visualizing and Understanding
+Test image
+
+L2 Nearest neighbors in feature space
+
+4096-dim vector
+
+Recall: Nearest neighbors in
+pixel space
+
+Krizhevsky et al, “I mageNet Classification with Deep Convolutional Neural Networks”, NIPS 2012.
+Figures reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 6
+
+May 8, 2025
+
+Learned Representations
+Test image
+
+L2 Nearest neighbors in feature space
+
+4096-dim vector
+
+Recall: Nearest neighbors in
+pixel space
+
+Krizhevsky et al, “I mageNet Classification with Deep Convolutional Neural Networks”, NIPS 2012.
+Figures reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 7
+
+May 8, 2025
+
+Learned Representations
+
+4096-dim vector
+
+Class
+Labels
+
+What is the problem with large-scale training?
+- We need a lot of labeled data
+Is there a way we can train neural networks without
+the need for huge manually labeled datasets?
+Krizhevsky et al, “I mageNet Classification with Deep Convolutional Neural Networks”, NIPS 2012.
+Figures reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 8
+
+May 8, 2025
+
+Self-Supervised Learning
+Pretext
+Objective
+
+Trained Encoder
+Downstream dataset
+
+Downstream
+Objective
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 -
+
+9
+
+Pretext Task
+- Define a task based on
+the data itself
+- No manual annotation
+- Could be considered
+an unsupervised task;
+- but we learn with
+supervised learning
+objectives, e.g.,
+classification or
+regression.
+
+Downstream Task
+- The application you
+care about
+- You do not have large
+datasets
+- The dataset is labeled
+
+May 8, 2025
+
+Encoder
+
+Stanford CS231n 10 th Anniversary
+
+Learned Representation
+
+Self-Supervised Learning – Pretext Task
+
+Decoder,
+Classifier,
+Regressor
+
+Lecture 12 -
+
+10
+
+Labels/outputs
+automatically
+generated
+from data
+
+May 8, 2025
+
+Encoder
+
+Stanford CS231n 10 th Anniversary
+
+Learned Representation
+
+Self-Supervised Learning – Downstream Task
+
+Labels/outputs
+Decoder,
+automatically
+FC
+Classifier, Labels generated
+from data
+Regressor
+
+Lecture 12 -
+
+11
+
+May 8, 2025
+
+Self-supervised pretext tasks
+Example: learn to predict image transformations / complete corrupted images
+
+?
+
+θ=?
+
+image completion
+
+rotation prediction
+
+“jigsaw puzzle”
+
+colorization
+
+1. Solving the pretext tasks allow the model to learn good features.
+2. We can automatically generate labels for the pretext tasks.
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 12
+
+May 8, 2025
+
+How to evaluate a self-supervised learning method?
+● Pretext Task Performance
+○
+
+Measure how well the model performs on the task it was trained on without labels.
+
+● Representation Quality
+○
+
+Evaluate the quality of the learned representations
+■ Linear Evaluation Protocol: Train a linear classifier on the leaerned representations;
+■ Clustering: Measure clustering performance;
+■ t-SNE: Visualize the representations to assess their separability.)
+
+● Robustness and Generalization
+○
+
+Test how well the model generalizes to different datasets and is robust to variations.
+
+○
+
+Assess the efficiency of the method in terms of training time and resource requirements.
+
+● Computational Efficiency
+
+● Transfer Learning and Downstream Task Performance
+○
+
+Assess the utility of the learned representations by transferring them to a downstream
+supervised task.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 13
+
+May 8, 2025
+
+How to evaluate a self-supervised learning method?
+feature
+extractor
+(e.g., a
+convnet)
+
+self-supervised
+learning
+lots of
+unlabeled
+data
+
+90°
+
+conv
+
+fc
+
+1. Learn good feature extractors from
+self-supervised pretext tasks, e.g.,
+predicting image rotations
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 14
+
+May 8, 2025
+
+How to evaluate a self-supervised learning method?
+feature
+extractor
+(e.g., a
+convnet)
+
+self-supervised
+learning
+lots of
+unlabeled
+data
+
+supervised
+learning
+
+evaluate on the
+target task
+e.g. classification, detection
+
+90°
+
+conv
+
+fc
+
+1. Learn good feature extractors from
+self-supervised pretext tasks, e.g.,
+predicting image rotations
+
+Stanford CS231n 10 th Anniversary
+
+small amount of
+labeled data on
+the target task
+
+bird
+
+conv
+
+2. Attach a shallow network on the
+feature extractor; train the shallow
+network on the target task with small
+amount of labeled data
+
+Lecture 12 - 15
+
+linear
+classifier
+
+May 8, 2025
+
+Broader
+picture
+Today’s lecture
+computer vision
+
+language modeling
+
+speech synthesis
+
+Wavenet (van den Oord et al.,
+2016)
+
+Doersch et al., 2015
+
+robot / reinforcement learning
+GPT-4 (OpenAI 2023)
+
+...
+
+Dense Object Net (Florence
+and Manuelli et al., 2018)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 16
+
+May 8, 2025
+
+Today’s Agenda
+Pretext tasks from image transformations
+• Rotation, inpainting, rearrangement, coloring
+• Reconstruction-based learning (MAE)
+Contrastive representation learning
+• Intuition and formulation
+• Instance contrastive learning: SimCLR and MOCO
+• Sequence contrastive learning: CPC
+• Self-Distillation Without Labels, DINO
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 17
+
+May 8, 2025
+
+Today’s Agenda
+Pretext tasks from image transformations
+• Rotation, inpainting, rearrangement, coloring
+• Reconstruction-based learning (MAE)
+Contrastive representation learning
+• Intuition and formulation
+• Instance contrastive learning: SimCLR and MOCO
+• Sequence contrastive learning: CPC
+• Self-Distillation Without Labels, DINO
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 18
+
+May 8, 2025
+
+Pretext task: predict rotations
+
+Hypothesis: a model could recognize the correct rotation of an object only if
+it has the “visual commonsense” of what the object should look like
+unperturbed.
+(Image source: Gidaris et al. 2018)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 19
+
+May 8, 2025
+
+Pretext task: predict rotations
+Self-supervised
+learning by rotating
+the entire input
+images.
+The model learns to
+predict which rotation
+is applied (4-way
+classification)
+(Image source: Gidaris et al. 2018)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 20
+
+May 8, 2025
+
+Pretext task: predict rotations
+Self-supervised
+learning by rotating
+the entire input
+images.
+The model learns to
+predict which rotation
+is applied (4-way
+classification)
+(Image source: Gidaris et al. 2018)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 21
+
+May 8, 2025
+
+Evaluation on semi-supervised learning
+Self-supervised learning on
+CIFAR10 (entire training set).
+Freeze conv1 + conv2
+Learn conv3 + linear layers with
+subset of labeled CIFAR10 data
+(classification).
+
+(Image source: Gidaris et al. 2018)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 22
+
+May 8, 2025
+
+Transfer learned features to supervised learning
+Pretrained with full ImageNet
+supervision
+No pretraining
+
+Self-supervised learning on
+ImageNet (entire training
+set) with AlexNet.
+Finetune on labeled data
+from Pascal VOC 2007.
+Self-supervised learning with rotation prediction
+
+Stanford CS231n 10 th Anniversary
+
+source: Gidaris et al. 2018
+
+Lecture 12 - 23
+
+May 8, 2025
+
+Visualize learned visual attentions
+
+(Image source: Gidaris et al. 2018)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 24
+
+May 8, 2025
+
+Pretext task: predict relative patch locations
+
+(Image source: Doersch et al., 2015)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 25
+
+May 8, 2025
+
+Pretext task: solving “jigsaw puzzles”
+
+(Image source: Noroozi & Favaro, 2016)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 26
+
+May 8, 2025
+
+Transfer learned features to supervised learning
+
+“Ours” is feature learned from solving image Jigsaw puzzles (Noroozi & Favaro,
+2016). Doersch et al. is the method with relative patch location
+(source: Noroozi & Favaro, 2016)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 27
+
+May 8, 2025
+
+Pretext task: predict missing pixels (inpainting)
+
+Context Encoders: Feature Learning by Inpainting (Pathak et al., 2016)
+Source: Pathak et al., 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 28
+
+May 8, 2025
+
+Learning to inpaint by reconstruction
+
+Encoder
+
+Auto Encoder
+
+Decoder
+
+Learning to reconstruct the missing pixels
+Source: Pathak et al., 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 29
+
+May 8, 2025
+
+Inpainting evaluation
+
+Input (context)
+
+reconstruction
+
+Source: Pathak et al., 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 30
+
+May 8, 2025
+
+Learning to inpaint by reconstruction
+
+(We will talk about adversarial learning in the next lecture)
+Loss = reconstruction + adversarial learning
+
+Element wise multiplication
+0 not masked
+𝑀= ቊ
+1
+masked
+Encoder
+
+Adversarial loss between “real” images and inpainted images
+Source: Pathak et al., 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 31
+
+May 8, 2025
+
+Inpainting evaluation
+
+Input (context)
+
+reconstruction
+
+adversarial
+
+recon + adv
+
+Source: Pathak et al., 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 32
+
+May 8, 2025
+
+Transfer learned features to supervised learning
+
+Self-supervised learning on ImageNet training set, transfer to classification
+(Pascal VOC 2007), detection (Pascal VOC 2007), and semantic
+segmentation (Pascal VOC 2012)
+
+Source: Pathak et al., 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 33
+
+May 8, 2025
+
+Pretext task: image coloring
+
+Source: Richard Zhang / Phillip Isola
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 34
+
+May 8, 2025
+
+Pretext task: image coloring
+
+Source: Richard Zhang / Phillip Isola
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 35
+
+May 8, 2025
+
+Learning features from colorization:
+Split-brain Autoencoder
+
+Source: Richard Zhang / Phillip Isola
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 36
+
+May 8, 2025
+
+Learning features from colorization:
+Split-brain Autoencoder
+Idea: cross-channel predictions
+
+Source: Richard Zhang / Phillip Isola
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 37
+
+May 8, 2025
+
+Learning features from colorization:
+Split-brain Autoencoder
+
+Source: Richard Zhang / Phillip Isola
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 38
+
+May 8, 2025
+
+Transfer learned features to supervised learning
+
+supervised
+this paper
+
+Self-supervised learning on
+ImageNet (entire training set).
+
+Use concatenated features
+from F1 and F2
+Labeled data is from the
+Places (Zhou 2016).
+
+Source: Zhang et al., 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 39
+
+May 8, 2025
+
+Pretext task: image coloring
+
+Source: Richard Zhang / Phillip Isola
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 40
+
+May 8, 2025
+
+Pretext task: image coloring
+
+Source: Richard Zhang / Phillip Isola
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 41
+
+May 8, 2025
+
+Pretext task: video coloring
+Idea: model the temporal coherence of colors in videos
+reference frame
+
+how should I color these frames?
+
+...
+
+t=0
+
+t=1
+
+t=2
+
+t=3
+
+Source: Vondrick et al., 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 42
+
+May 8, 2025
+
+Pretext task: video coloring
+Idea: model the temporal coherence of colors in videos
+reference frame
+
+how should I color these frames?
+
+Should be the same color!
+
+...
+
+t=0
+
+t=1
+
+t=2
+
+t=3
+
+Hypothesis: learning to color video frames should allow model to learn to
+track regions or objects without labels!
+
+Source: Vondrick et al., 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 43
+
+May 8, 2025
+
+Learning to color videos
+Learning objective:
+Establish mappings
+between reference and
+target frames in a
+learned feature space.
+Use the mapping as
+“pointers” to copy the
+correct color (LAB).
+Source: Vondrick et al., 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 44
+
+May 8, 2025
+
+Learning to color videos
+
+attention map on the reference
+frame
+
+Source: Vondrick et al., 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 45
+
+May 8, 2025
+
+Learning to color videos
+
+attention map on the reference
+frame
+
+predicted color = weighted
+sum of the reference color
+
+Source: Vondrick et al., 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 46
+
+May 8, 2025
+
+Learning to color videos
+
+attention map on the reference
+frame
+
+predicted color = weighted
+sum of the reference color
+
+loss between predicted color
+and ground truth color
+
+Source: Vondrick et al., 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 47
+
+May 8, 2025
+
+Colorizing videos (qualitative)
+reference frame
+
+target frames (gray)
+
+predicted color
+
+Source: Google AI blog post
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 48
+
+May 8, 2025
+
+Colorizing videos (qualitative)
+reference frame
+
+target frames (gray)
+
+predicted color
+
+Source: Google AI blog post
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 49
+
+May 8, 2025
+
+Tracking emerges from colorization
+Propagate segmentation masks using learned attention
+
+Source: Google AI blog post
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 50
+
+May 8, 2025
+
+Tracking emerges from colorization
+Propagate pose keypoints using learned attention
+
+Source: Google AI blog post
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 51
+
+May 8, 2025
+
+Masked Auto Encoders (MAE)
+Reconstruction with a larger masked portion
+
+50% masking ratio
+
+75% masking ratio
+
+Stanford CS231n 10 th Anniversary
+
+He et al., 2021 Masked Autoencoders
+Are Scalable Vision Learners
+
+Lecture 12 - 52
+
+May 8, 2025
+
+Masked Auto Encoders (MAE)
+
+He et al., 2021 Masked Autoencoders
+Are Scalable Vision Learners
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 53
+
+May 8, 2025
+
+Masking Methos
+
+• Similar to the original ViT,
+divide the input into non-overlapping patches.
+• Uniformly sample a very large proportion (75%) of
+these patches and mask them
+• Masking a high ratio makes predicting the task
+challenging and meaningful.
+• Also, not using mask tokens and picking a high
+sampling ratio (masking most of the image, e.g.,
+75%, and sampling a small visible portion, e.g.,
+25%, to feed into the encoder) enables the
+encoder to be very large.
+
+Figure 6. MAE architecture
+from the paper
+
+He et al., 2021 Masked Autoencoders
+Are Scalable Vision Learners
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 54
+
+May 8, 2025
+
+MAE Encoder
+•
+
+The encoder only operates
+on unmasked patches (25%)
+
+•
+
+Embeds the patches by linear projection
+and add positional embeddings
+
+•
+
+Uses transformer blocks
+
+•
+
+Since the input patches are a small part of the input, the encoder is
+chosen to be very large. (encoder has over 9 times computations per
+He et al., 2021 Masked Autoencoders
+token vs decoder)
+Are Scalable Vision Learners
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 55
+
+Figure 6. MAE architecture
+from the paper
+
+May 8, 2025
+
+MAE Decoder
+• Merges the encoder outputs with the shared
+mask tokens in previously masked places,
+adding positional encodings to them.
+Figure 6. MAE architecture
+• Uses transformer blocks, followed
+from the paper
+by a linear projection for finalizing pixel reconstruction.
+• Is solely responsible for reconstruction, meaning it is not used posttraining. Hence, it is independent of the encoder design, making it flexible
+(unlike traditional AEs or UNet). This is an
+asymmetrical autoencoder design.
+
+He et al., 2021 Masked Autoencoders
+Are Scalable Vision Learners
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 56
+
+May 8, 2025
+
+Reconstruction
+•
+
+The MSE (mean squared error loss) in the pixel space between the
+input image and the reconstructed image is adopted.
+
+•
+
+Loss is only computed for masked patches
+
+He et al., 2021 Masked Autoencoders
+Are Scalable Vision Learners
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 57
+
+May 8, 2025
+
+•
+
+•
+
+•
+
+In linear probing, the pre-trained model is fixed, and only one
+linear layer is added at the end, to predict the labels (or produce
+the output). This method is used to assess the quality of
+representations from a pre-trained feature extraction model.
+
+Encoder
+
+Learned Representation
+
+•
+
+Linear
+
+Encoder
+
+Learned Representation
+
+Linear Probing vs Full Fine-tuning
+
+Linear
+/FC
+
+In fine-tuning, pre-trained model is further trained (not fixed),
+and one or more layers, possibly with non-linearities are added.
+linear probing: provides a measure of representation quality of a
+pre-training in restricted conditions
+fine-tuning: exploits models near-true potential to adopt for new
+tasks
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 58
+
+He et al., 2021 Masked Autoencoders
+Are Scalable Vision Learners
+
+May 8, 2025
+
+Ablation Studies
+So many modeling/hyperparameter choices:
+• Masking ratio
+• Decoder depth
+• Decoder width
+• Mask token (used or not in encoder)
+• Reconstruction target
+• Data augmentation
+• Mask sampling method
+• Training schedule
+He et al., 2021 Masked Autoencoders
+Are Scalable Vision Learners
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 59
+
+May 8, 2025
+
+Masked Autoencoder – Comparisons
+
+He et al., 2021 Masked Autoencoders
+Are Scalable Vision Learners
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 60
+
+May 8, 2025
+
+Summary: pretext tasks from image
+transformations
+● Pretext tasks focus on “visual common sense”, e.g., predict rotations,
+inpainting, rearrangement, and colorization.
+● The models are forced learn good features about natural images, e.g.,
+semantic representation of an object category, in order to solve the pretext
+tasks.
+
+● We often do not care about the performance of these pretext tasks, but
+rather how useful the learned features are for downstream tasks
+(classification, detection, segmentation).
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 61
+
+May 8, 2025
+
+Summary: pretext tasks from image
+transformations
+● Pretext tasks focus on “visual common sense”, e.g., predict rotations,
+inpainting, rearrangement, and colorization.
+● The models are forced learn good features about natural images, e.g.,
+semantic representation of an object category, in order to solve the pretext
+tasks.
+
+● We often do not care about the performance of these pretext tasks, but
+rather how useful the learned features are for downstream tasks
+(classification, detection, segmentation).
+● Problems: 1) coming up with individual pretext tasks is tedious, and 2) the
+learned representations may not be general.
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 62
+
+May 8, 2025
+
+Pretext tasks from image transformations
+?
+θ=?
+
+image completion
+
+rotation prediction
+
+“jigsaw puzzle”
+
+colorization
+
+Learned representations may be tied to a specific pretext task!
+Can we come up with a more general pretext task?
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 63
+
+May 8, 2025
+
+A more general pretext task?
+?
+θ=?
+
+same object
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 64
+
+May 8, 2025
+
+A more general pretext task?
+?
+θ=?
+
+same object
+different object
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 65
+
+May 8, 2025
+
+Contrastive Representation Learning
+?
+θ=?
+
+attract
+repel
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 66
+
+May 8, 2025
+
+Today’s Agenda
+Pretext tasks from image transformations
+• Rotation, inpainting, rearrangement, coloring
+• Reconstruction-based learning (MAE)
+Contrastive representation learning
+• Intuition and formulation
+• Instance contrastive learning: SimCLR and MOCO
+• Sequence contrastive learning: CPC
+• Self-Distillation Without Labels, DINO
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 67
+
+May 8, 2025
+
+Contrastive Representation Learning
+?
+θ=?
+
+attract
+repel
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 68
+
+May 8, 2025
+
+Contrastive Representation Learning
+?
+θ=?
+
+reference
+positive
+negative
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 69
+
+May 8, 2025
+
+A formulation of contrastive learning
+What we want:
+
+x: reference sample; x+ positive sample; x- negative sample
+Given a chosen score function, we aim to learn an encoder
+function f that yields high score for positive pairs (x, x+) and low
+scores for negative pairs (x, x-).
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 70
+
+May 8, 2025
+
+A formulation of contrastive learning
+Loss function given 1 positive sample and N - 1 negative samples:
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 71
+
+May 8, 2025
+
+A formulation of contrastive learning
+Loss function given 1 positive sample and N - 1 negative samples:
+
+...
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 72
+
+May 8, 2025
+
+A formulation of contrastive learning
+Loss function given 1 positive sample and N - 1 negative samples:
+
+score for the positive
+pair
+
+score for the N-1 negative
+pairs
+
+This seems familiar …
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 73
+
+May 8, 2025
+
+A formulation of contrastive learning
+Loss function given 1 positive sample and N - 1 negative samples:
+
+score for the positive
+pair
+
+score for the N-1 negative
+pairs
+
+This seems familiar …
+Cross entropy loss for a N-way softmax classifier!
+I.e., learn to find the positive sample from the N samples
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 74
+
+May 8, 2025
+
+A formulation of contrastive learning
+Loss function given 1 positive sample and N - 1 negative samples:
+
+Commonly known as the InfoNCE loss (van den Oord et al., 2018)
+A lower bound on the mutual information between f(x) and f(x+)
+The larger the negative sample size (N), the tighter the bound
+Detailed derivation: Poole et al., 2019
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 75
+
+May 8, 2025
+
+SimCLR: A Simple Framework for Contrastive Learning
+Cosine similarity as the score function:
+
+Use a projection network g(·) to project
+features to a space where contrastive
+learning is applied
+
+Generate positive samples through data
+augmentation:
+● random cropping, random color
+distortion, and random blur.
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 76
+
+May 8, 2025
+
+SimCLR: generating positive samples from data
+augmentation
+
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 77
+
+May 8, 2025
+
+*We use a slightly different
+formulation in the
+assignment. You should follow
+the assignment instructions.
+
+SimCLR
+Generate a positive pair
+by sampling data
+augmentation functions
+
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 78
+
+May 8, 2025
+
+*We use a slightly different
+formulation in the
+assignment. You should follow
+the assignment instructions.
+
+SimCLR
+Generate a positive pair
+by sampling data
+augmentation functions
+
+InfoNCE loss:
+Use all non-positive
+samples in the batch
+as x Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 79
+
+May 8, 2025
+
+*We use a slightly different
+formulation in the
+assignment. You should follow
+the assignment instructions.
+
+SimCLR
+Generate a positive pair
+by sampling data
+augmentation functions
+
+InfoNCE loss:
+Use all non-positive
+samples in the batch
+as x -
+
+Iterate through and use
+each of the 2N sample
+as reference, compute
+average loss
+
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 80
+
+May 8, 2025
+
+SimCLR: mini-batch training
+“Affinity matrix”
+
+list of positive pairs
+
+Each 2k and 2k + 1 element is
+a positive pair
+*We use a slightly different formulation in the assignment.
+You should follow the assignment instructions.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 81
+
+May 8, 2025
+
+SimCLR: mini-batch training
+“Affinity matrix”
+
+list of positive pairs
+
+Each 2k and 2k + 1 element is
+a positive pair
+*We use a slightly different formulation in the assignment.
+You should follow the assignment instructions.
+
+Stanford CS231n 10 th Anniversary
+
+= classification label for each row
+
+Lecture 12 - 82
+
+May 8, 2025
+
+Training linear classifier on SimCLR features
+Train feature encoder on ImageNet
+(entire training set) using SimCLR.
+Freeze feature encoder, train a
+linear classifier on top with labeled
+data.
+
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 83
+
+May 8, 2025
+
+Semi-supervised learning on SimCLR features
+Train feature encoder on ImageNet
+(entire training set) using SimCLR.
+Finetune the encoder with 1% / 10%
+of labeled data on ImageNet.
+
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 84
+
+May 8, 2025
+
+SimCLR design choices: projection head
+Linear / non-linear projection heads improve
+representation learning.
+A possible explanation:
+● contrastive learning objective may discard
+useful information for downstream tasks
+● representation space z is trained to be
+invariant to data transformation.
+● by leveraging the projection head g(ᐧ), more
+information can be preserved in the h
+representation space
+
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 85
+
+May 8, 2025
+
+SimCLR design choices: large batch size
+Large training batch size is crucial for
+SimCLR!
+Large batch size causes large memory
+footprint during backpropagation:
+requires distributed training on TPUs
+(ImageNet experiments)
+
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 86
+
+May 8, 2025
+
+Momentum Contrastive Learning (MoCo)
+no_grad
+
+Key differences to SimCLR:
+●
+
+Keep a running queue of keys (negative
+samples).
+
+●
+
+Compute gradients and update the
+encoder only through the queries.
+
+●
+
+Decouple min-batch size with the
+number of keys: can support a large
+number of negative samples.
+
+Source: He et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 87
+
+May 8, 2025
+
+Momentum Contrastive Learning (MoCo)
+no_grad
+
+Key differences to SimCLR:
+●
+
+Keep a running queue of keys (negative
+samples).
+
+●
+
+Compute gradients and update the
+encoder only through the queries.
+
+●
+
+Decouple min-batch size with the
+number of keys: can support a large
+number of negative samples.
+
+●
+
+The key encoder is slowly progressing
+through the momentum update rules:
+Source: He et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 88
+
+May 8, 2025
+
+MoCo
+Generate a positive pair
+by sampling data
+augmentation functions
+Use the running
+queue of keys as the
+negative samples
+
+No gradient through
+the key
+
+InfoNCE loss
+Update f_k through
+momentum
+
+Update the FIFO negative
+sample queue
+
+Stanford CS231n 10 th Anniversary
+
+Source: He et al., 2020
+
+Lecture 12 - 89
+
+May 8, 2025
+
+“MoCo V2”
+
+A hybrid of ideas from SimCLR and MoCo:
+● From SimCLR: non-linear projection head and strong data
+augmentation.
+● From MoCo: momentum-updated queues that allow training on
+a large number of negative samples (no TPU required!).
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 90
+
+May 8, 2025
+
+MoCo vs. SimCLR vs. MoCo V2
+Key takeaways:
+●
+
+Non-linear projection head and strong
+data augmentation are crucial for
+contrastive learning.
+
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 91
+
+May 8, 2025
+
+MoCo vs. SimCLR vs. MoCo V2
+Key takeaways:
+●
+
+Non-linear projection head and strong
+data augmentation are crucial for
+contrastive learning.
+
+●
+
+Decoupling mini-batch size with
+negative sample size allows MoCo-V2 to
+outperform SimCLR with smaller batch
+size (256 vs. 8192).
+
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 92
+
+May 8, 2025
+
+MoCo vs. SimCLR vs. MoCo V2
+Key takeaways:
+●
+
+Non-linear projection head and strong
+data augmentation are crucial for
+contrastive learning.
+
+●
+
+Decoupling mini-batch size with
+negative sample size allows MoCo-V2 to
+outperform SimCLR with smaller batch
+size (256 vs. 8192).
+
+●
+
+… all with much smaller memory
+footprint! (“end-to-end” means SimCLR
+here)
+Source: Chen et al., 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 93
+
+May 8, 2025
+
+Instance vs. Sequence Contrastive Learning
+
+Source: van den Oord et al., 2018
+
+Instance-level contrastive learning:
+contrastive learning based on
+positive & negative instances.
+Examples: SimCLR, MoCo
+
+Stanford CS231n 10 th Anniversary
+
+Sequence-level contrastive learning:
+contrastive learning based on
+sequential / temporal orders.
+
+Example: Contrastive Predictive Coding (CPC)
+
+Lecture 12 - 94
+
+May 8, 2025
+
+Contrastive Predictive Coding (CPC)
+Contrastive: contrast between “right”
+and “wrong” sequences using
+contrastive learning.
+Predictive: the model has to predict
+future patterns given the current
+context.
+positive
+context
+
+Coding: the model learns useful
+feature vectors, or “code”, for
+downstream tasks, similar to other
+self-supervised methods.
+
+negative
+Figure source
+
+Stanford CS231n 10 th Anniversary
+
+Source: van den Oord et al., 2018,
+
+Lecture 12 - 95
+
+May 8, 2025
+
+Contrastive Predictive Coding (CPC)
+1. Encode all samples in a sequence into
+vectors zt = genc(xt )
+
+positive
+context
+negative
+Figure source
+
+Stanford CS231n 10 th Anniversary
+
+Source: van den Oord et al., 2018,
+
+Lecture 12 - 96
+
+May 8, 2025
+
+Contrastive Predictive Coding (CPC)
+1. Encode all samples in a sequence into
+vectors zt = genc(xt )
+2. Summarize context (e.g., half of a
+sequence) into a context code ct using an
+auto-regressive model (gar). The original
+paper uses GRU-RNN here.
+
+positive
+context
+negative
+Figure source
+
+Stanford CS231n 10 th Anniversary
+
+Source: van den Oord et al., 2018,
+
+Lecture 12 - 97
+
+May 8, 2025
+
+Contrastive Predictive Coding (CPC)
+1. Encode all samples in a sequence into
+vectors zt = genc(xt )
+2. Summarize context (e.g., half of a
+sequence) into a context code ct using an
+auto-regressive model (gar)
+
+positive
+context
+negative
+Figure source
+
+Stanford CS231n 10 th Anniversary
+
+3. Compute InfoNCE loss between the
+context ct and future code zt+k using the
+following time-dependent score
+function:
+
+where Wk is a trainable matrix.
+Source: van den Oord et al., 2018,
+
+Lecture 12 - 98
+
+May 8, 2025
+
+CPC example: modeling audio sequences
+
+Source: van den Oord et al., 2018,
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 99
+
+May 8, 2025
+
+CPC example: modeling audio sequences
+
+Linear classification on trained
+representations (LibriSpeech dataset)
+Source: van den Oord et al., 2018,
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 100
+
+May 8, 2025
+
+CPC example: modeling visual context
+Idea: split image into patches, model rows of patches from top to bottom as a
+sequence. I.e., use top rows as context to predict bottom rows.
+
+Source: van den Oord et al., 2018,
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 101
+
+May 8, 2025
+
+Other examples: MoCo v3
+“This paper does not describe a
+novel method.”
+
+Chen et al., An Empirical Study of Training Self-Supervised Vision Transformers, FAIR
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 102
+
+May 8, 2025
+
+DINO: Self-Distillation with No Labels
+
+Caron et al. 2021 Emerging Properties in
+Self-Supervised Vision Transformers
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 103
+
+May 8, 2025
+
+DINO
+
+Caron et al. 2021 Emerging Properties in
+Self-Supervised Vision Transformers
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 -
+
+104
+
+May 8, 2025
+
+DINO
+
+Caron et al. 2021 Emerging Properties in
+Self-Supervised Vision Transformers
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 -
+
+105
+
+May 8, 2025
+
+DINO v2
+
+Caron et al. 2021 Emerging Properties in
+Self-Supervised Vision Transformers
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 106
+
+May 8, 2025
+
+Summary: Contrastive Representation Learning
+A general formulation for contrastive learning:
+
+InfoNCE loss: N-way classification among positive and negative samples
+
+Commonly known as the InfoNCE loss (van den Oord et al., 2018)
+A lower bound on the mutual information between f(x) and f(x +)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 107
+
+May 8, 2025
+
+Summary: Contrastive Representation Learning
+SimCLR: a simple framework for contrastive
+representation learning
+● Key ideas: non-linear projection head to allow
+flexible representation learning
+● Simple to implement, effective in learning visual
+representation
+● Requires large training batch size to be effective;
+large memory footprint
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 108
+
+May 8, 2025
+
+Summary: Contrastive Representation Learning
+MoCo (v1, v2): contrastive learning using momentum
+sample encoder
+● Decouples negative sample size from minibatch
+size; allows large batch training without TPU
+● MoCo-v2 combines the key ideas from SimCLR,
+i.e., nonlinear projection head, strong data
+augmentation, with momentum contrastive
+learning
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 109
+
+May 8, 2025
+
+Summary: Contrastive Representation Learning
+CPC: sequence-level contrastive learning
+● Contrast “right” sequence with “wrong”
+sequence.
+● InfoNCE loss with a time-dependent score
+function.
+● Can be applied to a variety of learning
+problems, but not as effective in learning
+image representations compared to instancelevel methods.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 110
+
+May 8, 2025
+
+Next time: Generative Models
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 -
+
+111
+
+May 8, 2025
+
+CPC example: modeling visual context
+●
+●
+
+Compares favorably with other pretext taskbased self-supervised learning method.
+Doesn’t do as well compared to newer
+instance-based contrastive learning methods
+on image feature learning.
+
+Source: van den Oord et al., 2018,
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 114
+
+May 8, 2025
+
+Other examples: Dense Object Net
+Contrastive learning on pixel-wise feature descriptors
+
+Dense Object Net, Florence et al., 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 115
+
+May 8, 2025
+
+Other examples: Dense Object Net
+
+Dense Object Net, Florence et al., 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 116
+
+May 8, 2025
+
+Other examples: Dense Object Net
+
+Dense Object Net, Florence et al., 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 12 - 117
+
+May 8, 2025
+
+

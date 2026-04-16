@@ -1,0 +1,2928 @@
+Lecture 5:
+Image Classification with CNNs
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 1
+
+April 15, 2025
+
+Administrative: Assignment 1
+Assignment 1 Due Wednesday 4/23 at 11:59pm
+-
+
+K-Nearest Neighbor
+Linear classifiers: SVM, Softmax
+Two-layer neural network
+Image features
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 2
+
+April 15, 2025
+
+Administrative: Project Proposal
+Due Fri 4/25
+TA expertise is posted on the webpage.
+http://cs231n.stanford.edu/office_hours.html
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 3
+
+April 15, 2025
+
+Hi I’m Justin
+
+Facebook AI Research
+
+University of Michigan
+
+Stanford, PhD
+
+2010
+
+2015
+I taught CS231N at
+Stanford from 2015-2018
+
+Stanford CS231n 10 th Anniversary
+
+World Labs
+
+2020
+
+2025
+
+I taught the same course
+at Michigan 2019-2022
+
+Lecture 5 - 4
+
+April 15, 2025
+
+CS231n: Deep Learning for Computer Vision
+● Deep Learning Basics (Lecture 2 – 4)
+● Perceiving and Understanding the Visual World (Lecture 5 – 12)
+● Generative and Interactive Visual Intelligence (Lecture 13 – 16)
+
+● Human-Centered Applications and Implications (Lecture 17 – 18)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 5
+
+April 15, 2025
+
+Recap: Image Classification with Linear Classifier
+
+f(x,W) = Wx + b
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 6
+
+April 15, 2025
+
+Recap: Loss Function
+-
+
+We have some dataset of (x,y)
+We have a score function:
+We have a loss function:
+Softmax
+
+Full loss
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 7
+
+April 15, 2025
+
+Recap: Optimization
+
+SGD
+SGD+Momentum
+RMSProp
+
+Adam
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 8
+
+April 15, 2025
+
+Problem: Linear Classifiers are not very powerful
+Visual Viewpoint
+
+Geometric Viewpoint
+
+Linear classifiers learn
+one template per class
+
+Linear classifiers can
+only draw linear
+decision boundaries
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 9
+
+April 15, 2025
+
+Last time: Neural Networks
+Linear score function:
+2-layer Neural Network
+x
+3072
+
+Stanford CS231n 10 th Anniversary
+
+W1
+
+h
+100
+
+W2
+
+s
+10
+
+Lecture 5 - 10
+
+April 15, 2025
+
+Last time: Computation Graph
+
+x
+
+*
+
+s (scores)
+
+hinge
+loss
+
++
+
+L
+
+W
+
+R
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 11
+
+April 15, 2025
+
+Last time: Backpropagation
+“local gradient”
+
+“Downstream
+gradients”
+
+f
+“Upstream
+gradient”
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 12
+
+April 15, 2025
+
+Backprop with Vectors
+Dx
+
+Loss L still a scalar!
+
+“local
+gradients”
+
+Dx
+“Downstream Matrix-vector
+gradients”
+multiply
+
+Dy
+
+[Dx x Dz]
+
+f
+
+[Dy x Dz]
+Jacobian
+matrices
+
+Dy
+Stanford CS231n 10 th Anniversary
+
+Dz
+Dz
+“Upstream gradient”
+For each element of z, how
+much does it influence L?
+Lecture 5 - 13
+
+April 15, 2025
+
+Backprop with Matrices (or Tensors)
+
+Loss L still a scalar!
+
+[Dx×Mx]
+
+dL/dx always has the
+same shape as x!
+
+“local
+gradients”
+
+[Dx×Mx]
+
+[(Dx×Mx)×(Dz×Mz)]
+
+“Downstream Matrix-vector
+gradients”
+multiply
+
+[(Dy×My)×(Dz×Mz)]
+
+[Dy×My]
+
+[Dy×My]
+
+[Dz×Mz]
+
+[Dz×Mz]
+
+Jacobian
+matrices
+For each element of y, how much does
+it influence each element of z?
+
+Stanford CS231n 10 th Anniversary
+
+“Upstream gradient”
+For each element of z, how
+much does it influence L?
+
+Lecture 5 - 14
+
+April 15, 2025
+
+CS231n: Deep Learning for Computer Vision
+● Deep Learning Basics (Lecture 2 – 4)
+● Perceiving and Understanding the Visual World (Lecture 5 – 12)
+● Generative and Interactive Visual Intelligence (Lecture 13 – 16)
+
+● Human-Centered Applications and Implications (Lecture 17 – 18)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 15
+
+April 15, 2025
+
+CS231n: Deep Learning for Computer Vision
+● Deep Learning Basics (Lecture 2 – 4)
+● Perceiving and Understanding the Visual World (Lecture 5 – 12)
+● Generative and Interactive Visual Intelligence (Lecture 13 – 16)
+
+● Human-Centered Applications and Implications (Lecture 17 – 18)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 16
+
+April 15, 2025
+
+Today: Convolutional Networks
+Fully-Connected Layer
+We have
+already
+seen these
+
+x
+
+h
+
+Stanford CS231n 10 th Anniversary
+
+Activation Function
+
+s
+
+Lecture 5 - 17
+
+April 15, 2025
+
+Today: Convolutional Networks
+Fully-Connected Layer
+We have
+already
+seen these
+
+x
+
+h
+
+Activation Function
+
+s
+
+Convolution Layer
+
+Pooling Layer
+
+Today: Imagespecific
+operators
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 18
+
+April 15, 2025
+
+Image Classification: A core task in Computer Vision
+(assume given a set of labels)
+{dog, cat, truck, plane, ...}
+
+This image by Nikita is
+licensed under CC-BY 2.0
+
+Stanford CS231n 10 th Anniversary
+
+cat
+dog
+bird
+deer
+truck
+Lecture 5 - 19
+
+April 15, 2025
+
+Pixel space
+
+f(x) = Wx
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 20
+
+Class
+scores
+
+April 15, 2025
+
+Image features
+
+f(x) = Wx
+Feature Representation
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 21
+
+Class
+scores
+
+April 15, 2025
+
+Example: Color Histogram
+
++1
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 22
+
+April 15, 2025
+
+Example: Histogram of Oriented Gradients (HoG)
+
+Divide image into 8x8 pixel regions
+Within each region quantize edge
+direction into 9 bins
+
+Example: 320x240 image gets divided
+into 40x30 bins; in each bin there are 9
+numbers so feature vector has 30*40*9 =
+10,800 numbers
+
+Lowe, “Object recognition from local scale-in variant features”, ICCV 1999
+Dalal and Triggs, "Histograms of orient ed gradients for human detection ," CVPR 2005
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 23
+
+April 15, 2025
+
+Example: Bag of Words
+Step 1: Build codebook
+Extract random
+patches
+
+Cluster patches to
+form “codebook”
+of “visual words”
+
+Step 2: Encode images
+
+Fei-Fei and Perona, “A bayesian hierarchical model for learning natural scene categories”, CVPR 2005
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 24
+
+April 15, 2025
+
+Image Features
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 25
+
+April 15, 2025
+
+Image features vs. ConvNets
+Feature Extraction
+
+f
+10 numbers giving
+scores for classes
+
+training
+Krizhevsky, Sutskever, and Hinton, “Imagenet classification
+with deep convolutional neu ral networks”, N IPS 2012.
+Figure copyright Krizhevsky, Suts kever, and Hinton, 2012.
+Rep roduced with permission.
+
+training
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 26
+
+10 numbers giving
+scores for classes
+
+April 15, 2025
+
+Last Time: Neural Networks
+Linear score function:
+2-layer Neural Network
+x
+32x32x3
+
+3072
+
+Stanford CS231n 10 th Anniversary
+
+W1
+
+h
+100
+
+W2
+
+s
+10
+
+Lecture 5 - 27
+
+April 15, 2025
+
+Last Time: Neural Networks
+Linear score function:
+2-layer Neural Network
+Problem: The spatial
+structure of images
+is destroyed!
+32x32x3
+
+x
+
+3072
+
+Stanford CS231n 10 th Anniversary
+
+W1
+
+h
+100
+
+W2
+
+s
+10
+
+Lecture 5 - 28
+
+April 15, 2025
+
+Next: Convolutional Neural Networks
+
+Illustration of LeCun et al. 1998 from CS231n 2017 Lecture 1
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 29
+
+April 15, 2025
+
+Next: Convolutional Neural Networks
+Convolution and pooling operators extract
+features while respecting 2D image structure
+
+Illustration of LeCun et al. 1998 from CS231n 2017 Lecture 1
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 30
+
+April 15, 2025
+
+Next: Convolutional Neural Networks
+Convolution and pooling operators extract
+features while respecting 2D image structure
+
+Fully-Connected layers form an
+MLP at the end to predict scores
+
+Illustration of LeCun et al. 1998 from CS231n 2017 Lecture 1
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 31
+
+April 15, 2025
+
+Next: Convolutional Neural Networks
+Trained end-to-end with backprop + gradient descent
+
+Illustration of LeCun et al. 1998 from CS231n 2017 Lecture 1
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 32
+
+April 15, 2025
+
+A bit of history:
+
+Gradient-based learning applied to
+document recognition
+[LeCun, Bottou, Bengio, Haffner 1998]
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 33
+
+April 15, 2025
+
+A bit of history:
+
+ImageNet Classification with Deep
+Convolutional Neural Networks
+[Krizhevsky, Sutskever, Hinton, 2012]
+
+Figure copyright Alex Krizhevsky, Ilya Sutskever, and Geoffrey Hinton, 2012. Reproduced with permission.
+
+“AlexNet”
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 34
+
+April 15, 2025
+
+~2012 – 2020: ConvNets dominate all vision tasks
+Detection
+
+Fi gures copy right Shaoqing Ren, Kai ming He, Ross Girschick, Jian Sun, 2015. Reproduced with permi ssion.
+
+Detection
+
+Fi gures copy right Clement Farabet, 2012. Reproduced with permission.
+
+[Faster R-CNN: Ren, He, Girshick, Sun 2015]
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 35
+
+[Farabet et al., 2012]
+
+April 15, 2025
+
+~2012 – 2020: ConvNets dominate all vision tasks
+Image Captioning
+
+A white teddy bear sitting in
+the grass
+
+A man in a baseball
+uniform throwing a ball
+
+A woman is holding a cat
+in her hand
+All images are CC0 Public domain:
+https://pixabay.com/en/luggage-antique-cat-1643010/
+https://pixabay.com/en/teddy-plush-bears-cute-teddy-bear-1623436/
+https://pixabay.com/en/surf-wave-summer-sport-litoral-1668716/
+https://pixabay.com/en/woman-female-model-portrait-adult-983967/
+https://pixabay.com/en/handstand-lake-meditation-496008/
+https://pixabay.com/en/baseball-player-shortstop-infield-1045263/
+
+Captions generated by Justin Johnson using Neuraltalk2
+
+A man riding a wave on top
+of a surfboard
+
+A cat sitting on a suitcase
+on the floor
+
+Stanford CS231n 10 th Anniversary
+
+A woman standing on a beach
+holding a surfboard
+
+Lecture 5 - 36
+
+[Vinyals et al., 2015]
+[Karpathy and Fei-Fei, 2015]
+
+April 15, 2025
+
+~2012 – 2020: ConvNets dominate all vision tasks
+Text-to-Image Generation
+
+A zombie in the
+style of Picasso
+
+An image of a half
+mouse half
+octopus
+
+Stanford CS231n 10 th Anniversary
+
+A painting of a
+squirrel eating a
+burger
+
+Rombach et al, “High-Resolution Image Synthesis
+with Latent Diffusion Models”, CVPR 2022
+
+A watercolor
+painting of a chair
+that looks like an
+octopus
+
+A shirt with the
+inscription: “I love
+generative
+models!”
+
+Lecture 5 - 37
+
+April 15, 2025
+
+~2012 – 2020: ConvNets dominate all vision tasks
+
+This class used to be focused on ConvNets!
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 38
+
+April 15, 2025
+
+2021 - Present: Transformers have taken over
+2017: Transformers
+for language tasks
+
+Vaswani et al, “Attention is
+all you need”, NeurIPS 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 39
+
+April 15, 2025
+
+2021 - Present: Transformers have taken over
+2017: Transformers
+for language tasks
+
+Vaswani et al, “Attention is
+all you need”, NeurIPS 2017
+
+Stanford CS231n 10 th Anniversary
+
+2021: Transformers
+for vision tasks
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Lecture 5 - 40
+
+April 15, 2025
+
+2021 - Present: Transformers have taken over
+2017: Transformers
+for language tasks
+
+Vaswani et al, “Attention is
+all you need”, NeurIPS 2017
+
+Stanford CS231n 10 th Anniversary
+
+2021: Transformers
+for vision tasks
+
+Wait until
+Lecture 8!
+
+Dosovitskiy et al, “An Image is Worth
+16x16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Lecture 5 - 41
+
+April 15, 2025
+
+Convolutional Neural Networks
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 42
+
+April 15, 2025
+
+Today: Convolutional Networks
+Fully-Connected Layer
+We have
+already
+seen these
+
+x
+
+h
+
+Stanford CS231n 10 th Anniversary
+
+Activation Function
+
+s
+
+Lecture 5 - 43
+
+April 15, 2025
+
+Today: Convolutional Networks
+Fully-Connected Layer
+We have
+already
+seen these
+
+x
+
+h
+
+Activation Function
+
+s
+
+Convolution Layer
+
+Pooling Layer
+
+Today: Imagespecific
+operators
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 44
+
+April 15, 2025
+
+Today: Convolutional Networks
+Fully-Connected Layer
+We have
+already
+seen these
+
+x
+
+h
+
+Activation Function
+
+s
+
+Convolution Layer
+
+Pooling Layer
+
+Today: Imagespecific
+operators
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 45
+
+April 15, 2025
+
+Recap: Fully Connected Layer
+32x32x3 image -> stretch to 3072 x 1
+input
+1
+
+3072
+
+Stanford CS231n 10 th Anniversary
+
+activation
+10 x 3072
+weights
+
+1
+
+Lecture 5 - 46
+
+10
+
+April 15, 2025
+
+Fully Connected Layer
+32x32x3 image -> stretch to 3072 x 1
+input
+1
+
+3072
+
+activation
+10 x 3072
+weights
+
+1
+
+10
+
+1 number:
+the result of taking a dot product
+between a row of W and the input (a
+3072-dimensional dot product)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 47
+
+April 15, 2025
+
+Convolution Layer
+32x32x3 image -> preserve spatial structure
+
+32 height
+
+32 width
+3 depth
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 48
+
+April 15, 2025
+
+Convolution Layer
+32x32x3 image
+5x5x3 filter
+32
+Convolve the filter with the image
+i.e. “slide over the image spatially,
+computing dot products”
+
+32
+3
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 49
+
+April 15, 2025
+
+Convolution Layer
+
+Filters always extend the full
+depth of the input volume
+
+32x32x3 image
+5x5x3 filter
+32
+Convolve the filter with the image
+i.e. “slide over the image spatially,
+computing dot products”
+
+32
+3
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 50
+
+April 15, 2025
+
+Convolution Layer
+32
+
+32
+
+32x32x3 image
+5x5x3 filter
+
+1 number:
+the result of taking a dot product between the
+filter and a small 5x5x3 chunk of the image
+(i.e. 5*5*3 = 75-dimensional dot product + bias)
+
+3
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 51
+
+April 15, 2025
+
+Convolution Layer
+32
+
+32
+3
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 52
+
+April 15, 2025
+
+Convolution Layer
+32
+
+32
+3
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 53
+
+April 15, 2025
+
+Convolution Layer
+32
+
+32
+3
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 54
+
+April 15, 2025
+
+Convolution Layer
+32
+
+32
+3
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 55
+
+April 15, 2025
+
+Convolution Layer
+32
+
+activation map
+
+32x32x3 image
+5x5x3 filter
+
+28
+convolve (slide) over all spatial
+locations
+28
+
+32
+3
+Stanford CS231n 10 th Anniversary
+
+1
+Lecture 5 - 56
+
+April 15, 2025
+
+Convolution Layer
+32
+
+consider a second, green filter
+32x32x3 image
+5x5x3 filter
+
+activation maps
+
+28
+convolve (slide) over all spatial
+locations
+28
+
+32
+3
+Stanford CS231n 10 th Anniversary
+
+1
+Lecture 5 - 57
+
+April 15, 2025
+
+Convolution Layer
+3x32x32 image
+
+6 activation maps,
+each 1x28x28
+
+Consider 6 filters,
+each 3x5x5
+
+Convolution
+Layer
+32
+
+32
+3
+
+6x3x5x5
+filters
+
+Slide inspiration: Justin Johnson
+
+Stanford CS231n 10 th Anniversary
+
+Stack activations to get a
+6x28x28 output image!
+Lecture 5 - 58
+
+April 15, 2025
+
+Convolution Layer
+3x32x32 image
+
+6 activation maps,
+each 1x28x28
+
+Also 6-dim bias vector:
+
+Convolution
+Layer
+32
+
+32
+3
+
+6x3x5x5
+filters
+
+Slide inspiration: Justin Johnson
+
+Stanford CS231n 10 th Anniversary
+
+Stack activations to get a
+6x28x28 output image!
+Lecture 5 - 59
+
+April 15, 2025
+
+Convolution Layer
+3x32x32 image
+
+28x28 grid, at each
+point a 6-dim vector
+Also 6-dim bias vector:
+
+Convolution
+Layer
+32
+
+32
+3
+
+6x3x5x5
+filters
+
+Slide inspiration: Justin Johnson
+
+Stanford CS231n 10 th Anniversary
+
+Stack activations to get a
+6x28x28 output image!
+Lecture 5 - 60
+
+April 15, 2025
+
+Convolution Layer
+2x3x32x32
+Batch of images
+
+2x6x28x28
+Batch of outputs
+
+Also 6-dim bias vector:
+
+Convolution
+Layer
+32
+
+32
+3
+
+6x3x5x5
+filters
+
+Slide inspiration: Justin Johnson
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 61
+
+April 15, 2025
+
+Convolution Layer
+N x Cin x H x W
+Batch of images
+
+N x Cout x H’ x W’
+Batch of outputs
+
+Also Cout-dim bias vector:
+
+Convolution
+Layer
+H
+
+W
+Cin
+
+Cout x Cinx Kw x Kh
+filters
+
+Cout
+
+Slide inspiration: Justin Johnson
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 62
+
+April 15, 2025
+
+A ConvNet is a neural network with Conv layers
+32
+
+28
+
+CONV
+
+32
+3
+
+e.g. 6
+5x5x3
+filters
+
+28
+6
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 63
+
+April 15, 2025
+
+A ConvNet is a neural network with Conv layers
+32
+
+32
+3
+
+28
+
+24
+
+CONV
+
+CONV
+
+e.g. 6
+5x5x3
+filters
+
+e.g. 10
+5x5x6
+filters
+
+28
+6
+
+Stanford CS231n 10 th Anniversary
+
+CONV
+
+….
+
+24
+
+10
+Lecture 5 - 64
+
+April 15, 2025
+
+A ConvNet is a neural network with Conv layers
+with activation functions!
+32
+
+32
+3
+
+28
+
+CONV
+ReLU
+e.g. 6
+5x5x3
+filters
+
+28
+6
+
+Stanford CS231n 10 th Anniversary
+
+24
+
+CONV
+ReLU
+e.g. 10
+5x5x6
+filters
+
+CONV
+ReLU
+
+….
+
+24
+
+10
+Lecture 5 - 65
+
+April 15, 2025
+
+What do Conv filters learn?
+28
+
+32
+
+Conv
+
+Linear classifier: One template per class
+
+ReLU
+
+32
+
+28
+
+3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 66
+
+April 15, 2025
+
+What do Conv filters learn?
+28
+
+32
+
+Conv
+
+MLP: Bank of whole-image templates
+
+ReLU
+
+32
+
+28
+
+3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 67
+
+April 15, 2025
+
+What do Conv filters learn?
+28
+
+32
+
+Conv
+
+First-layer conv filters: local image templates
+(Often learns oriented edges, opposing colors)
+
+ReLU
+
+32
+
+28
+
+3
+AlexNet: 64 filters, each 3x11x11
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 68
+
+April 15, 2025
+
+What do Conv filters learn?
+
+Deeper conv layers: Harder to visualize
+Tend to learn larger structures e.g. eyes, letters
+
+32
+
+Conv
+
+ReLU
+
+32
+3
+
+28
+6th layer conv layer from an ImageNet model
+Visualization from [Springenberg et al, ICLR 2015]
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 69
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+32
+
+Conv
+
+ReLU
+
+W1: 6x3x5x5
+32 b1: 6
+
+28
+
+3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 70
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+Input: 7x7
+Filter: 3x3
+
+7
+
+7
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 71
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+Input: 7x7
+Filter: 3x3
+
+7
+
+7
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 72
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+Input: 7x7
+Filter: 3x3
+
+7
+
+7
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 73
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+Input: 7x7
+Filter: 3x3
+
+7
+
+7
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 74
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+Input: 7x7
+Filter: 3x3
+Output: 5x5
+7
+
+7
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 75
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+Input: 7x7
+Filter: 3x3
+Output: 5x5
+7
+
+7
+Stanford CS231n 10 th Anniversary
+
+In general
+Input: W
+Filter: K
+Output: W – K + 1
+Lecture 5 - 76
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+Input: 7x7
+Filter: 3x3
+Output: 5x5
+
+Problem: Feature
+maps shrink with
+each layer!
+
+7
+
+7
+Stanford CS231n 10 th Anniversary
+
+In general
+Input: W
+Filter: K
+Output: W – K + 1
+Lecture 5 - 77
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+Stanford CS231n 10 th Anniversary
+
+0
+
+Input: 7x7
+Filter: 3x3
+Output: 5x5
+
+Problem: Feature
+maps shrink with
+each layer!
+Solution: Add
+padding around
+the input before
+sliding the filter
+
+In general
+Input: W
+Filter: K
+Padding: P
+Output: W – K + 1 + 2P
+Lecture 5 - 78
+
+April 15, 2025
+
+Convolution: Spatial Dimensions
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+Stanford CS231n 10 th Anniversary
+
+0
+
+Input: 7x7
+Filter: 3x3
+Output: 5x5
+Common setting:
+P = (K – 1) / 2
+Means output has
+same size as input
+
+In general
+Input: W
+Filter: K
+Padding: P
+Output: W – K + 1 + 2P
+Lecture 5 - 79
+
+April 15, 2025
+
+Receptive Fields
+For convolution with kernel size K, each element in the
+output depends on a K x K receptive field in the input
+
+Input
+
+Output
+Slide inspiration: Justin Johnson
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 80
+
+April 15, 2025
+
+Receptive Fields
+Each successive convolution adds K – 1 to the receptive field size
+With L layers the receptive field size is 1 + L * (K – 1)
+
+Input
+
+Output
+
+Be careful – “receptive field in the input” vs. “receptive field in the previous layer”
+Slide inspiration: Justin Johnson
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 81
+
+April 15, 2025
+
+Receptive Fields
+Each successive convolution adds K – 1 to the receptive field size
+With L layers the receptive field size is 1 + L * (K – 1)
+
+Input
+
+Problem: For large images we need many layers for
+each output to “see” the whole image image
+
+Output
+Slide inspiration: Justin Johnson
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 82
+
+April 15, 2025
+
+Receptive Fields
+Each successive convolution adds K – 1 to the receptive field size
+With L layers the receptive field size is 1 + L * (K – 1)
+
+Input
+
+Problem: For large images we need many layers for
+each output to “see” the whole image image
+Solution: Downsample inside the network
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 83
+
+Output
+Slide inspiration: Justin Johnson
+
+April 15, 2025
+
+Strided Convolution
+7
+
+Input: 7x7
+Filter: 3x3
+Stride: 2
+7
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 84
+
+April 15, 2025
+
+Strided Convolution
+7
+
+Input: 7x7
+Filter: 3x3
+Stride: 2
+7
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 85
+
+April 15, 2025
+
+Strided Convolution
+7
+
+Input: 7x7
+Filter: 3x3
+Stride: 2
+Output: 3x3
+7
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 86
+
+April 15, 2025
+
+Strided Convolution
+7
+
+Input: 7x7
+Filter: 3x3
+Stride: 2
+Output: 3x3
+7
+
+Stanford CS231n 10 th Anniversary
+
+In general:
+Input: W
+Filter: K
+Padding: P
+Stride: S
+
+Output:
+(W – K + 2P) / S + 1
+
+Lecture 5 - 87
+
+April 15, 2025
+
+Convolution Example
+Input volume: 3 x 32 x 32
+10 5x5 filters with stride 1, pad 2
+Output volume size: ?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 88
+
+April 15, 2025
+
+Convolution Example
+Input volume: 3 x 32 x 32
+10 5x5 filters with stride 1, pad 2
+Output volume size: 10 x 32 x 32
+32 = (32+2*2-5)/1+1
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 89
+
+April 15, 2025
+
+Convolution Example
+Input volume: 3 x 32 x 32
+10 5x5 filters with stride 1, pad 2
+Output volume size: 10 x 32 x 32
+Number of learnable parameters: ?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 90
+
+April 15, 2025
+
+Convolution Example
+Input volume: 3 x 32 x 32
+10 5x5 filters with stride 1, pad 2
+Output volume size: 10 x 32 x 32
+Number of learnable parameters: 760
+Parameters per filter: 3*5*5 + 1 (for bias) = 76
+10 filters, so total is 10 * 76 = 760
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 91
+
+April 15, 2025
+
+Convolution Example
+Input volume: 3 x 32 x 32
+10 5x5 filters with stride 1, pad 2
+Output volume size: 10 x 32 x 32
+Number of learnable parameters: 760
+Number of multiply-add operations?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 92
+
+April 15, 2025
+
+Convolution Example
+Input volume: 3 x 32 x 32
+10 5x5 filters with stride 1, pad 2
+Output volume size: 10 x 32 x 32
+Number of learnable parameters: 760
+Number of multiply-add operations: 768,000
+10*32*32 = 10,240 outputs
+Each output is the inner product of two 3x5x5 tensors (75 elems)
+Total = 75*10240 = 768K
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 93
+
+April 15, 2025
+
+Convolution Summary
+Input: Cin x H x W
+Hyperparameters:
+Kernel size: KH x KW
+Number filters: Cout
+Padding: P
+Stride: S
+Weight matrix: Cout x Cin x KH x KW
+giving Cout filters of size Cin x KH x KW
+Bias vector: Cout
+Output size: Cout x H’ x W’ where:
+H’ = (H – K + 2P) / S + 1
+W’ = (W – K + 2P) / S + 1
+Stanford CS231n 10 th Anniversary
+
+Common settings:
+KH = KW (Small square filters)
+P = (K – 1) / 2 (”Same” padding)
+Cin, Cout = 32, 64, 128, 256 (powers of 2)
+K = 3, P = 1, S = 1 (3x3 conv)
+K = 5, P = 2, S = 1 (5x5 conv)
+K = 1, P = 0, S = 1 (1x1 conv)
+K = 3, P = 1, S = 2 (Downsample by 2)
+
+Lecture 5 - 94
+
+April 15, 2025
+
+PyTorch Convolution Layer
+
+We didn’t talk about groups or dilation…
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 95
+
+April 15, 2025
+
+Other Types of Convolution
+So far: 2D Convolution
+Input: Cin x H x W
+Weights: Cout x Cin x K x K
+
+H
+W
+Cin
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 96
+
+April 15, 2025
+
+Other Types of Convolution
+So far: 2D Convolution
+
+1D Convolution
+
+Input: Cin x H x W
+Weights: Cout x Cin x K x K
+
+H
+W
+Cin
+Stanford CS231n 10 th Anniversary
+
+Input: Cin x W
+Weights: Cout x Cin x K
+
+Cin
+W
+Lecture 5 - 97
+
+April 15, 2025
+
+Other Types of Convolution
+So far: 2D Convolution
+
+3D Convolution
+
+Input: Cin x H x W
+Weights: Cout x Cin x K x K
+
+H
+
+Input: Cin x H x W x D
+Weights: Cout x Cin x K x K x K
+
+H
+
+Cin-dim vector
+at each point
+in the volume
+
+D
+
+W
+Cin
+Stanford CS231n 10 th Anniversary
+
+W
+Lecture 5 - 98
+
+April 15, 2025
+
+Convolutional Networks
+Fully-Connected Layer
+We have
+already
+seen these
+
+x
+
+h
+
+Activation Function
+
+s
+
+Convolution Layer
+
+Pooling Layer
+
+Today: Imagespecific
+operators
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 99
+
+April 15, 2025
+
+Convolutional Networks
+Fully-Connected Layer
+We have
+already
+seen these
+
+x
+
+h
+
+Activation Function
+
+s
+
+Convolution Layer
+
+Pooling Layer
+
+Today: Imagespecific
+operators
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 100
+
+April 15, 2025
+
+Pooling Layers: Another way to downsample
+64 x 112 x 112
+
+64 x 224 x 224
+
+Given an input C x H x W,
+downsample each 1 x H x W plane
+
+Hyperparameters:
+Kernel Size
+Stride
+Pooling function
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 101
+
+April 15, 2025
+
+Pooling Layers: Another way to downsample
+Single depth slice
+
+x
+
+1
+
+1
+
+2
+
+64 x 224 x 224
+
+4
+
+5
+
+6
+
+7
+
+8
+
+3
+
+2
+
+1
+
+0
+
+1
+
+2
+
+3
+
+4
+y
+
+Stanford CS231n 10 th Anniversary
+
+Max pooling with 2x2
+kernel size and stride 2
+
+6
+
+8
+
+3
+
+4
+
+Gives invariance to small spatial
+shifts. No learnable parameters.
+Lecture 5 - 102
+
+April 15, 2025
+
+Pooling Summary
+Input: C x H x W
+Hyperparameters:
+Kernel size: K
+Stride: S
+Pooling function: max, avg
+Output size: C x H’ x W’ where:
+H’ = (H – K) / S + 1
+W’ = (W – K) / S + 1
+No learnable parameters
+
+Stanford CS231n 10 th Anniversary
+
+Common setting:
+max, K=2, S=2 => Gives 2x downsampling
+
+Lecture 5 - 103
+
+April 15, 2025
+
+Convolution and Pooling: Translation Equivariance
+H’ x W’ x C’
+
+HxWxC
+Conv or Pool
+
+Translate
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 104
+
+April 15, 2025
+
+Convolution and Pooling: Translation Equivariance
+H’ x W’ x C’
+
+HxWxC
+Conv or Pool
+
+Translate
+
+Conv(Translate(X))
+= Translate(Conv(X))
+
+Translate
+
+Conv or Pool
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 105
+
+April 15, 2025
+
+Convolution and Pooling: Translation Equivariance
+H’ x W’ x C’
+
+HxWxC
+Conv or Pool
+
+Translate
+
+Conv(Translate(X))
+= Translate(Conv(X))
+
+Translate
+
+Conv or Pool
+
+Intuition: Features of images don’t depend on their location in the image
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 106
+
+April 15, 2025
+
+Summary: Convolutional Networks
+Fully-Connected Layer
+x
+
+h
+
+s
+
+Convolution Layer
+
+Stanford CS231n 10 th Anniversary
+
+Activation Function
+
+Pooling Layer
+
+Lecture 5 - 107
+
+April 15, 2025
+
+Next time: CNN Architectures
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 108
+
+April 15, 2025
+
+Appendix (Slides from Previous Years)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 109
+
+April 15, 2025
+
+Today: Convolutional Networks
+Fully-Connected Layer
+We have
+already
+seen these
+
+x
+
+h
+
+Activation Function
+
+s
+
+Convolution Layer
+
+Pooling Layer
+
+Today: Imagespecific
+operators
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 110
+
+April 15, 2025
+
+Convolution layer: summary
+Let’s assume input is W1 x H1 x C
+Conv layer needs 4 hyperparameters:
+- Number of filters K
+- The filter size F
+- The stride S
+- The zero padding P
+This will produce an output of W 2 x H2 x K
+where:
+- W2 = (W1 - F + 2P)/S + 1
+- H2 = (H1 - F + 2P)/S + 1
+Number of parameters: F 2CK and K biases
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 111
+
+April 15, 2025
+
+Convolution layer: summary
+
+Common settings:
+
+K = (powers of 2, e.g. 32, 64, 128, 512)
+Let’s assume input is W1 x H1 x C
+- F = 3, S = 1, P = 1
+Conv layer needs 4 hyperparameters:
+- F = 5, S = 1, P = 2
+- Number of filters K
+- F = 5, S = 2, P = ? (whatever fits)
+- The filter size F
+- F = 1, S = 1, P = 0
+- The stride S
+- The zero padding P
+This will produce an output of W 2 x H2 x K
+where:
+- W2 = (W1 - F + 2P)/S + 1
+- H2 = (H1 - F + 2P)/S + 1
+Number of parameters: F 2CK and K biases
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 112
+
+April 15, 2025
+
+(btw, 1x1 convolution layers make perfect sense)
+
+1x1 CONV
+with 32 filters
+
+56
+
+56
+
+(each filter has size 1x1x64,
+and performs a 64dimensional dot product)
+56
+64
+
+Stanford CS231n 10 th Anniversary
+
+56
+32
+
+Lecture 5 - 113
+
+April 15, 2025
+
+(btw, 1x1 convolution layers make perfect sense)
+
+1x1 CONV
+with 32 filters
+
+56
+
+56
+
+(each filter has size 1x1x64,
+and performs a 64dimensional dot product)
+56
+64
+
+Stanford CS231n 10 th Anniversary
+
+56
+32
+
+Lecture 5 - 114
+
+April 15, 2025
+
+Example: CONV
+layer in PyTorch
+
+Conv layer needs 4 hyperparameters:
+- Number of filters K
+- The filter size F
+- The stride S
+- The zero padding P
+PyTorch is licensed under BSD 3-clause.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 115
+
+April 15, 2025
+
+The brain/neuron view of CONV Layer
+
+32
+
+32
+3
+
+32x32x3 image
+5x5x3 filter
+
+1 number:
+the result of taking a dot product between the
+filter and this part of the image
+(i.e. 5*5*3 = 75-dimensional dot product)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 116
+
+April 15, 2025
+
+The brain/neuron view of CONV Layer
+
+32
+
+32x32x3 image
+5x5x3 filter
+
+It’s just a neuron with local
+connectivity...
+
+32
+3
+
+1 number:
+the result of taking a dot product between the
+filter and this part of the image
+(i.e. 5*5*3 = 75-dimensional dot product)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 117
+
+April 15, 2025
+
+The brain/neuron view of CONV Layer
+
+32
+
+28
+
+28
+
+32
+3
+
+5
+
+Stanford CS231n 10 th Anniversary
+
+E.g. with 5 filters,
+CONV layer consists of neurons
+arranged in a 3D grid
+(28x28x5)
+There will be 5 different neurons
+all looking at the same region in
+the input volume
+Lecture 5 - 118
+
+April 15, 2025
+
+Reminder: Fully Connected Layer
+
+Each neuron
+looks at the full
+input volume
+
+32x32x3 image -> stretch to 3072 x 1
+input
+1
+
+3072
+
+activation
+10 x 3072
+weights
+
+1
+
+10
+
+1 number:
+the result of taking a dot product
+between a row of W and the input (a
+3072-dimensional dot product)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 119
+
+April 15, 2025
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 120
+
+April 15, 2025
+
+Pooling layer
+-
+
+makes the representations smaller and more manageable
+operates over each activation map independently
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 121
+
+April 15, 2025
+
+MAX POOLING
+Single depth slice
+x
+
+1
+
+1
+
+2
+
+4
+
+5
+
+6
+
+7
+
+8
+
+3
+
+2
+
+1
+
+0
+
+1
+
+2
+
+3
+
+4
+
+max pool with 2x2 filters
+and stride 2
+
+6
+
+8
+
+3
+
+4
+
+y
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 122
+
+April 15, 2025
+
+MAX POOLING
+Single depth slice
+x
+
+1
+
+1
+
+2
+
+4
+
+5
+
+6
+
+7
+
+8
+
+3
+
+2
+
+1
+
+0
+
+1
+
+2
+
+3
+
+4
+
+max pool with 2x2 filters
+and stride 2
+
+6
+
+8
+
+3
+
+4
+
+• No learnable parameters
+• Introduces spatial invariance
+
+y
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 123
+
+April 15, 2025
+
+Pooling layer: summary
+Let’s assume input is W1 x H1 x C
+Conv layer needs 2 hyperparameters:
+- The spatial extent F
+- The stride S
+
+This will produce an output of W 2 x H2 x C where:
+- W2 = (W1 - F )/S + 1
+- H2 = (H1 - F)/S + 1
+Number of parameters: 0
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 124
+
+April 15, 2025
+
+Summary
+- ConvNets stack CONV,POOL,FC layers
+- Trend towards smaller filters and deeper architectures
+- Trend towards getting rid of POOL/FC layers (just CONV)
+- Historically architectures looked like
+[(CONV-RELU)*N-POOL?]*M-(FC-RELU)*K,SOFTMAX
+where N is usually up to ~5, M is large, 0 <= K <= 2.
+- But recent advances such as ResNet/GoogLeNet have
+challenged this paradigm
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 125
+
+April 15, 2025
+
+Fully Connected Layer (FC layer)
+-
+
+Contains neurons that connect to the entire input volume, as in ordinary Neural
+Networks
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 126
+
+April 15, 2025
+
+[ConvNetJS demo: training on CIFAR-10]
+
+http://cs.stanford.edu/people/karpathy/convnetjs/demo/cifar10.html
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 127
+
+April 15, 2025
+
+Deep Learning Overview
+1.
+
+Encode your problem as y = f(x)
+where x and y are grids of numbers.
+Get a dataset of (x, y) pairs.
+
+Image Classification
+Image: x
+
+Scores: y
+Scores for
+each class
+
+[32 x 32 x 3]
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 128
+
+[10]
+
+April 15, 2025
+
+Deep Learning Overview
+1.
+2.
+
+Encode your problem as y = f(x)
+where x and y are grids of numbers.
+Get a dataset of (x, y) pairs.
+Define a loss function L(ypred, ygt)
+that measures the correctness of
+predictions with a single number
+
+Softmax Loss
+s: vector of n scores
+y: int in [0, n)
+𝐿(𝑠, 𝑦) = − log
+
+𝑒 −𝑠𝑦
+σ𝑖 𝑒 −𝑠𝑖
+
+Scores for y should be +inf
+s
+Others should be -inf
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 129
+
+April 15, 2025
+
+Deep Learning Overview
+1.
+2.
+3.
+
+Encode your problem as y = f(x)
+where x and y are grids of numbers.
+Get a dataset of (x, y) pairs.
+Define a loss function L(ypred, ygt)
+that measures the correctness of
+predictions with a single number
+Define a computational graph that
+predicts y from x using learnable
+weights w
+
+Stanford CS231n 10 th Anniversary
+
+Linear Classifiers
+
+𝑓 𝑥, 𝑤, 𝑏 = 𝑊𝑥 + 𝑏
+
+Lecture 5 - 130
+
+April 15, 2025
+
+Deep Learning Overview
+1.
+2.
+3.
+
+Encode your problem as y = f(x)
+where x and y are grids of numbers.
+Get a dataset of (x, y) pairs.
+Define a loss function L(ypred, ygt)
+that measures the correctness of
+predictions with a single number
+Define a computational graph that
+predicts y from x using learnable
+weights w
+
+Stanford CS231n 10 th Anniversary
+
+Linear Classifiers
+
+𝑓 𝑥, 𝑤, 𝑏 = 𝑊𝑥 + 𝑏
+
+Lecture 5 - 131
+
+April 15, 2025
+
+Deep Learning Overview
+1.
+2.
+3.
+
+4.
+5.
+
+Encode your problem as y = f(x)
+where x and y are grids of numbers.
+Get a dataset of (x, y) pairs.
+Define a loss function L(ypred, ygt)
+that measures the correctness of
+predictions with a single number
+Define a computational graph that
+predicts y from x using learnable
+weights w
+Compute gradients dL/dw using
+backpropagation
+Find w that minimizes the loss using
+optimization algorithms
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 132
+
+April 15, 2025
+
+A bit of history...
+The Mark I Perceptron machine was the first
+implementation of the perceptron algorithm.
+The machine was connected to a camera that used 20×20
+cadmium sulfide photocells to produce a 400-pixel image.
+recognized
+letters of the alphabet
+update rule:
+
+Frank Rosenblatt, ~1957: Perceptron
+This image by Rocky Acosta is licensed under CC-BY 3.0
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 133
+
+April 15, 2025
+
+A bit of history...
+
+Widrow and Hoff, ~1960: Adaline/Madaline
+Stanford CS231n 10 th Anniversary
+
+These figures are reproduced from Widrow 1960, Stanford Electronics Laboratories Technical
+Report with permission from Stanford University Special Collections.
+
+Lecture 5 - 134
+
+April 15, 2025
+
+A bit of history...
+
+recognizable math
+
+Illustration of Rumelhart et al., 1986 by Lane McIntosh,
+copyright CS231n 2017
+
+Rumelhart et al., 1986: First time back-propagation became popular
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 135
+
+April 15, 2025
+
+A bit of history...
+[Hinton and Salakhutdinov 2006]
+
+Reinvigorated research in
+Deep Learning
+
+Illustration of Hinton and Salakhutdinov 2006 by Lane
+McIntosh, copyright CS231n 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 136
+
+April 15, 2025
+
+First strong results
+Acoustic Modeling using Deep Belief Networks
+Abdel-rahman Mohamed, George Dahl, Geoffrey Hinton, 2010
+Context-Dependent Pre-trained Deep Neural Networks
+for Large Vocabulary Speech Recognition
+George Dahl, Dong Yu, Li Deng, Alex Acero, 2012
+Imagenet classification with deep convolutional
+neural networks
+Alex Krizhevsky, Ilya Sutskever, Geoffrey E Hinton, 2012
+
+Illustration of Dahl et al. 2012 by Lane McIntosh, copyright
+CS231n 2017
+
+Figures copyright Alex Krizhevsky, Ilya Sutskever, and Geoffrey Hinton, 2012. Reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 137
+
+April 15, 2025
+
+A bit of history:
+
+Hubel & Wiesel,
+1959
+
+RECEPTIVE FIELDS OF SINGLE NEURONES IN
+THE CAT'S STRIATE CORTEX
+
+1962
+
+RECEPTIVE FIELDS, BINOCULAR INTERACTION
+AND FUNCTIONAL ARCHITECTURE IN
+THE CAT'S VISUAL CORTEX
+
+1968...
+
+Stanford CS231n 10 th Anniversary
+
+Cat image by CNX OpenStax is licensed
+under CC BY 4.0; changes made
+
+Lecture 5 - 138
+
+April 15, 2025
+
+A bit of history
+
+Human brain
+
+Topographical mapping in the cortex:
+nearby cells in cortex represent
+nearby regions in the visual field
+Visual
+cortex
+
+Retinotopy images courtesy of Jesse Gomez in the
+Stanford Vision & Perception Neuroscience Lab.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 139
+
+April 15, 2025
+
+Hierarchical organization
+
+Illustration of hierarchical organization in early visual
+pathways by Lane McIntosh, copyright CS231n 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 140
+
+April 15, 2025
+
+A bit of history:
+
+Neocognitron
+[Fukushima 1980]
+“sandwich” architecture (SCSCSC…)
+simple cells: modifiable parameters
+complex cells: perform pooling
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 5 - 141
+
+April 15, 2025
+
+

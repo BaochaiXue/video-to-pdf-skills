@@ -1,0 +1,167 @@
+
+\documentclass[a4paper]{article}
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\newtcolorbox{knowledgebox}[1]{enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black, coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm}, boxrule=1pt, sharp corners}
+\newtcolorbox{importantbox}[1]{enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black, coltitle=black, fonttitle=\bfseries, title=#1, sharp corners}
+\newtcolorbox{warningbox}[1]{enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black, coltitle=white, fonttitle=\bfseries, title=#1, sharp corners}
+\lstset{language=Python,basicstyle=\ttfamily\small,keywordstyle=\color{blue},stringstyle=\color{red!60!black},commentstyle=\color{green!60!black},breaklines=true,frame=single,numbers=left,numberstyle=\tiny\color{gray},captionpos=b,extendedchars=false}
+\newcommand{\notetitle}{CS231N Spring 2025 课程讲义：Lecture 17 Robot Learning}
+\newcommand{\noteauthors}{Codex Worker 3}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-09-02}
+\newcommand{\videoduration}{1:18:32}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=XSfmOH_xVSU}
+\newcommand{\videocoverpath}{cover.jpg}
+\begin{document}
+\begin{titlepage}\centering
+{\Large 课程讲义\par}\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}\vspace{0.8cm}
+{\large \noteauthors\par}\vspace{0.3cm}
+{\large \notedate\par}\vspace{1.2cm}
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+\tableofcontents\newpage
+
+    \section{从视觉任务到机器人决策：问题形式与感知环路}
+
+    这讲最重要的转折，是把课程从“给定输入预测输出”的视觉范式，推向“智能体在环境中持续行动”的机器人范式。讲者一开始就用 Cart-Pole、robot locomotion、Atari、Go、text generation 和 cloth folding 等例子说明：机器人学习（robot learning）真正处理的是 action problem，而不是单次预测问题。
+
+    一个标准目标可以写成最大化期望回报：
+    \[
+    \pi^* = \arg\max_{\pi} \; \mathbb{E}\Big[\sum_{t=0}^{T} \gamma^t r_t\Big].
+    \]
+
+    这里：
+    \begin{itemize}
+    \item $\pi$ 是策略（policy），决定在状态下采取什么动作；
+    \item $r_t$ 是第 $t$ 步的即时奖励；
+    \item $\gamma$ 是折扣因子，用来平衡短期与长期收益；
+    \item 期望是对环境随机性和策略随机性求的。
+    \end{itemize}
+
+    与监督学习相比，这里没有一个现成的“正确标签动作”总是摆在眼前。机器人必须通过交互、试错、示范或模型预测来学会行动。更关键的是，机器人只能看到不完整、带噪声的观测，因此 perception 本身已经是决策问题的一部分。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-28.png}
+\caption{机器人学习的核心不是静态预测，而是 perception-action loop 中的闭环决策。}
+\end{figure}
+
+
+    课程用 sensors for robotics 与 perception-action loop 两页把这一点讲得很清楚：视觉、触觉、深度、状态估计等感知通道并不是附属输入，而是与动作共同组成闭环。机器人不是先“看完”再“做”，而是在做的同时继续看、继续修正、继续规划。
+
+    \subsection{本章小结}
+
+    Robot learning 的第一原则是闭环。只要任务需要持续交互、长期回报和部分可观测环境，问题就不再等价于普通监督学习。
+
+    \section{强化学习：成功案例、价值函数与现实瓶颈}
+
+    课程随后把 Reinforcement Learning（RL）放在机器人语境中讨论。RL 的吸引力在于，它允许智能体仅根据奖励学习策略，而不需要每一步的动作标签。以 DQN 为代表的方法，把高维感知输入直接映射为动作价值：
+    \[
+    Q(s, a) \approx Q(s, a; \theta),
+    \]
+    其中 $Q(s, a)$ 表示在状态 $s$ 选择动作 $a$ 后的长期价值估计。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-40.png}
+\caption{DQN 代表深度强化学习把高维感知输入直接映射为动作价值的经典范式。}
+\end{figure}
+
+
+    讲者用 Atari、Go、locomotion 与 dexterous manipulation 的例子说明了 RL 的力量：一旦交互足够多、奖励足够明确、环境足够可重复，trial-and-error 的方法确实可能学出超过人类的策略。但课程同样非常坦诚地指出，robotics 中的 model-free RL 直到今天仍然面临严重瓶颈：真实世界交互昂贵、训练样本需求极大、成功演示往往来自被精挑细选的视频、且对环境分布变化非常敏感。
+
+    这里的关键批评不是“RL 没用”，而是“RL 的成功条件比公开视频演示暗示得更苛刻”。很多看起来华丽的 locomotion 演示，背后仍然依赖人类高层选路、任务设定受控、环境被精心构造。真正走向家庭或开放世界时，sample efficiency 与 robustness 会立刻成为瓶颈。
+
+    \subsection{本章小结}
+
+    RL 证明了试错学习在高维决策中的潜力，但课程也明确指出：如果没有更好的先验、模型或示范，仅靠 model-free trial-and-error 很难支撑开放环境中的大规模机器人部署。
+
+    \section{模型学习与 model-based planning}
+
+    为了缓解 RL 的低效，课程转向 model learning 与 model-based planning。核心思想是：先学一个环境动力学模型，让机器人在“想象”里预测未来，再把规划或搜索建立在这个模型之上，而不是每一步都去真实世界撞南墙。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-56.png}
+\caption{Model learning 通过预测未来视觉状态或关键变量，把规划问题变成可模拟、可搜索的问题。}
+\end{figure}
+
+
+    讲者列举了 pixel dynamics、keypoint dynamics、particle dynamics 等路线，它们的共同点是把复杂环境压缩成更容易滚动预测的状态表示。课程给出的多个物理操作案例很有代表性：颗粒重排、字母堆积、面团塑形、dumpling-making robot 等任务都说明，一旦模型能预测未来状态，机器人就能通过 rollout、采样或优化，在执行前先比较“哪条动作序列更接近目标”。
+
+    这部分最值得注意的是蒸馏思想：纯粹在测试时大量采样动作很慢，所以可以先用模型做离线规划或搜索，生成高质量轨迹，再训练一个快得多的 policy network 近似这些规划结果。于是，model-based planning 与 policy learning 并不是对立，而是可以形成“模型搜索生成老师，策略网络学习学生”的两阶段系统。
+
+    \subsection{本章小结}
+
+    model learning 的价值不只是“预测下一帧”，而是把行动问题变成可内化的搜索问题。只要模型足够准，机器人就能把昂贵的试错从真实世界转移到内部模拟中。
+
+    \section{模仿学习：从 behavior cloning 到 diffusion policy}
+
+    机器人并不只靠试错学习，人类示范（demonstrations）本身就是强监督信号。课程在 imitation learning 部分把这条路线分成几种层次：最直接的是 behavior cloning（BC），即把示范当监督数据，学习从观测到动作的映射；更高级的路线包括 inverse reinforcement learning（IRL）、implicit behavior cloning（IBC）以及 diffusion policy。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-77.png}
+\caption{Diffusion policy 把生成模型思想带回 imitation learning，用来处理多模态动作分布。}
+\end{figure}
+
+
+    讲者解释 diffusion policy 的方式很有启发性：很多操作任务的动作分布本来就是多模态的，不存在唯一“正确动作”。生成模型恰好擅长表达多模态分布，因此可以把动作序列当作要生成的对象，用 diffusion 或 energy-based 方法做推断。这样一来，生成式学习和机器人控制在这里再次汇合。
+
+    课程借此给出一个重要方法论：robot learning 并没有单一宗教。试错学习、模型学习、模仿学习、生成建模彼此之间并非竞争关系，而更像是在不同数据条件和任务约束下互相补位的工具箱。
+
+    \subsection{本章小结}
+
+    当示范可得时，模仿学习往往能比纯 RL 更高效；而 diffusion policy 等方法说明，生成模型不仅能生成图像，也能生成动作分布和控制策略。
+
+    \section{机器人 foundation models、world models 与评测难题}
+
+    课程结尾把主题提升到 robotic foundation models。讲者提到 RT-1、RT-2、RT-X、OpenVLA、Pi-Zero 等一系列系统，强调过去两年该方向的爆发式增长。它们共同追求的是：不要只在一个实验台上学一个 policy，而要学一个能跨任务、跨物体、跨环境迁移的底座模型。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-84.png}
+\caption{机器人 foundation model 追求跨任务、跨场景的广泛泛化，而不仅是单任务高成功率。}
+\end{figure}
+
+
+    但课程也非常谨慎：这些模型的视频演示确实令人振奋，可“真正广泛泛化了吗”仍然很难回答，因为 evaluation 太难。真实机器人任务高度多样、部署成本高、标准 benchmark 缺乏统一性，很多系统的强弱只能通过少量公开视频去感受，而不是通过成熟、可复现实验协议直接比较。
+
+    讲者最后把话题推进到 foundation policy 和 foundation world models，并指出一个关键未来方向：单个巨大 policy 未必足以支撑复杂开放世界，也许还需要更高层抽象，例如 scene graph、symbolic structure 或长期适应机制（life-long learning）。换言之，机器人 foundation model 可能不能只靠“把所有数据都喂给一个模型”解决，还需要更结构化的中间表示与持续适应能力。
+
+    \subsection{本章小结}
+
+    机器人 foundation model 是一个高潜力方向，但课程没有把它神化。真正的难点不只是模型训练，而是任务抽象、真实世界泛化和可置信评测。
+
+    \section{总结与延伸}
+
+    Lecture 17 把本课程从静态视觉理解推向了 embodied intelligence。真正的收获不是记住若干算法名词，而是看清 robot learning 的基本结构：感知必须服务于行动；单步预测必须服从长期回报；单次演示必须能被转化为可泛化策略；而大模型愿景最终仍要落在 world interaction、evaluation 和 adaptation 上。
+
+    从教材角度看，本讲至少应记住四条线索。第一，robot learning 与监督学习的本质差别在于闭环与长期目标。第二，RL 提供试错能力，但现实机器人中的 sample efficiency 与 robustness 是硬约束。第三，model-based planning 与 imitation learning 为实际系统提供了更高效的学习路径。第四，foundation models 在机器人里很有前景，但如果没有更好的评测和中间表示，泛化能力很难被可靠证明。
+
+\end{document}

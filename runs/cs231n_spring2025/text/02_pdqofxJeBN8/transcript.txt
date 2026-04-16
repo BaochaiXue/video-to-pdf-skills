@@ -1,0 +1,1015 @@
+[00:00:05,510 --> 00:00:10,320] We will be talking today about image classification,
+[00:00:10,320 --> 00:00:13,160] basically, continuing our discussion
+[00:00:13,160 --> 00:00:15,290] on the topic of image classification
+[00:00:15,290 --> 00:00:17,430] from last lecture.
+[00:00:17,430 --> 00:00:23,750] And we'll get a little bit into some topics that gets us
+[00:00:23,750 --> 00:00:26,990] closer to neural networks and, ultimately,
+[00:00:26,990 --> 00:00:30,020] convolutional neural networks and so on.
+[00:00:30,020 --> 00:00:35,780] We will start with linear classifiers.
+[00:00:35,780 --> 00:00:43,280] Moving to the next slide, this was the syllabus
+[00:00:43,280 --> 00:00:48,350] that we've talked about last lecture,
+[00:00:48,350 --> 00:00:52,520] in the previous lecture, where we
+[00:00:52,520 --> 00:00:57,660] did talk about three major categories of topics,
+[00:00:57,660 --> 00:01:02,350] deep learning basics, perceiving and understanding
+[00:01:02,350 --> 00:01:05,620] the visual world, reconstructing and interacting
+[00:01:05,620 --> 00:01:08,590] with the visual world as the three major topics,
+[00:01:08,590 --> 00:01:14,540] and some subtopics that we will be covering in the class.
+[00:01:14,540 --> 00:01:17,860] And at the end, we will have some discussions
+[00:01:17,860 --> 00:01:21,100] around the human-centered AI aspects.
+[00:01:21,100 --> 00:01:27,880] And today, the goal is to cover the first three
+[00:01:27,880 --> 00:01:31,600] items, data-driven approaches, I will try to tell you
+[00:01:31,600 --> 00:01:38,230] what this means, and linear classification as well
+[00:01:38,230 --> 00:01:43,120] as the k-nearest neighbor algorithm.
+[00:01:43,120 --> 00:01:48,050] So like last-- the previous lecture,
+[00:01:48,050 --> 00:01:55,750] let's start with our core task of image classification.
+[00:01:55,750 --> 00:01:58,930] Again, it's a core task in computer vision.
+[00:01:58,930 --> 00:02:02,070] And we actually come back to this task
+[00:02:02,070 --> 00:02:03,840] quite often throughout the quarter
+[00:02:03,840 --> 00:02:05,440] because it's a very good benchmark.
+[00:02:05,440 --> 00:02:09,030] And we have some examples to tell you
+[00:02:09,030 --> 00:02:11,080] how the algorithms work.
+[00:02:11,080 --> 00:02:17,100] So this is one of the items that we come back to quite often.
+[00:02:17,100 --> 00:02:21,660] We want to define that image classification task today
+[00:02:21,660 --> 00:02:27,930] and then introduce two of the data-driven approaches for image
+[00:02:27,930 --> 00:02:30,480] classification, one of them, nearest neighbor,
+[00:02:30,480 --> 00:02:34,240] and one of them-- the other one, linear classifier.
+[00:02:34,240 --> 00:02:38,580] There are some other approaches which we have
+[00:02:38,580 --> 00:02:40,660] listed in our backup slides.
+[00:02:40,660 --> 00:02:45,120] And you're welcome to look at them after the class.
+[00:02:45,120 --> 00:02:49,620] But this is what we will be covering.
+[00:02:49,620 --> 00:02:53,130] So what is image classification?
+[00:02:53,130 --> 00:03:00,610] Given an image and a number of predefined labels,
+[00:03:00,610 --> 00:03:04,110] predetermined labels, a set of possible labels
+[00:03:04,110 --> 00:03:08,170] such as in this example, you see dog, cat, truck, plane,
+[00:03:08,170 --> 00:03:14,880] and so on, the job of the system is to assign one of those labels
+[00:03:14,880 --> 00:03:18,000] to this image.
+[00:03:18,000 --> 00:03:23,280] So to us, this is actually a very, very easy task
+[00:03:23,280 --> 00:03:26,850] because our brains, our cognitive system
+[00:03:26,850 --> 00:03:32,640] is wired to get a holistic understanding of this image
+[00:03:32,640 --> 00:03:34,630] and assign a label to it.
+[00:03:34,630 --> 00:03:37,950] But when it comes to coding this and looking
+[00:03:37,950 --> 00:03:41,320] at how a computer can make sense of this image,
+[00:03:41,320 --> 00:03:45,000] that's completely a different story.
+[00:03:45,000 --> 00:03:52,120] And we want to see how machines can make sense of such data.
+[00:03:52,120 --> 00:03:59,930] So images are often defined by matrices of data,
+[00:03:59,930 --> 00:04:04,430] more broadly, more generally, tensors of data.
+[00:04:04,430 --> 00:04:06,530] And often, the numbers are--
+[00:04:06,530 --> 00:04:11,130] each of the pixel values are between 0 and 255,
+[00:04:11,130 --> 00:04:15,030] which is an 8-bit data structure.
+[00:04:15,030 --> 00:04:22,010] And since this is an image, a colored image, assuming
+[00:04:22,010 --> 00:04:25,910] that it's with a resolution of 800
+[00:04:25,910 --> 00:04:30,080] by 600, since it's an RGB image, it
+[00:04:30,080 --> 00:04:33,000] has three channels of red, green, and blue, RGB,
+[00:04:33,000 --> 00:04:37,850] and therefore, it's a tensor of 800
+[00:04:37,850 --> 00:04:43,100] by 600 by 3, as you can see on this slide.
+[00:04:43,100 --> 00:04:49,850] So as you can probably guess, this
+[00:04:49,850 --> 00:04:54,610] is the semantic gap between our perception of this image
+[00:04:54,610 --> 00:04:59,520] and how the machine perceives and sees the image, right?
+[00:04:59,520 --> 00:05:04,600] And in order to be able to even understand
+[00:05:04,600 --> 00:05:07,820] how this could be very challenging,
+[00:05:07,820 --> 00:05:11,410] let's look at some challenges, some variations
+[00:05:11,410 --> 00:05:14,180] in this type of imaging data.
+[00:05:14,180 --> 00:05:16,250] So let's assume, for example--
+[00:05:16,250 --> 00:05:21,070] as one example, let's assume that we move the camera.
+[00:05:21,070 --> 00:05:23,360] If the camera is moved, for example,
+[00:05:23,360 --> 00:05:28,660] panning the camera around, even if the cat sits completely
+[00:05:28,660 --> 00:05:33,650] and perfectly still, all of those pixel values,
+[00:05:33,650 --> 00:05:40,540] every single pixel value of 800 by 600 by 3 will be changed.
+[00:05:40,540 --> 00:05:44,650] So all these pixels will have a new value.
+[00:05:44,650 --> 00:05:50,450] Again, for us humans, it's the same object.
+[00:05:50,450 --> 00:05:52,600] There is no-- absolutely no difference.
+[00:05:52,600 --> 00:05:54,870] But from a computer's perspective,
+[00:05:54,870 --> 00:05:57,510] it's completely a new data point.
+[00:05:57,510 --> 00:06:01,120] So this is one of the challenges,
+[00:06:01,120 --> 00:06:05,920] but there are quite a few others as well.
+[00:06:05,920 --> 00:06:12,060] For example, illumination is another challenge.
+[00:06:12,060 --> 00:06:15,900] So if you've seen or if you've taken courses
+[00:06:15,900 --> 00:06:20,220] in graphics or maybe other vision courses
+[00:06:20,220 --> 00:06:23,910] and/or digital image processing courses for engineering
+[00:06:23,910 --> 00:06:31,110] applications, you know that the value of each RGB pixel, the RGB
+[00:06:31,110 --> 00:06:37,590] values, are a function of the surface material, color,
+[00:06:37,590 --> 00:06:39,870] and their light source.
+[00:06:39,870 --> 00:06:46,350] And that's why same cat, same object may look differently
+[00:06:46,350 --> 00:06:48,840] in terms of numbers when it comes
+[00:06:48,840 --> 00:06:55,020] to being pictured in different illumination conditions.
+[00:06:55,020 --> 00:07:00,180] With that in mind, so whether the cat is in a dark room
+[00:07:00,180 --> 00:07:02,500] or under the sun, still, it's the cat.
+[00:07:02,500 --> 00:07:03,910] It's one cat.
+[00:07:03,910 --> 00:07:08,440] But this is creating challenges for the machine.
+[00:07:08,440 --> 00:07:11,490] Can you maybe name some other challenges
+[00:07:11,490 --> 00:07:16,890] that may change the values of the pixels
+[00:07:16,890 --> 00:07:22,440] and create problems for the machine to recognize objects,
+[00:07:22,440 --> 00:07:24,570] other than illumination and viewpoint changes
+[00:07:24,570 --> 00:07:26,400] that I mentioned?
+[00:07:26,400 --> 00:07:30,990] So background clutter, background objects, yes,
+[00:07:30,990 --> 00:07:33,120] which is actually our next slide.
+[00:07:33,120 --> 00:07:38,100] Yes, background clutter is another challenge.
+[00:07:38,100 --> 00:07:40,590] Anything else?
+[00:07:40,590 --> 00:07:44,430] Zooming in and out, yes, so scale basically
+[00:07:44,430 --> 00:07:46,630] of the object in the image.
+[00:07:46,630 --> 00:07:49,070] Yes, what else?
+[00:07:49,070 --> 00:07:52,100] The resolution of the image that is--
+[00:07:52,100 --> 00:07:54,810] that could be considered as--
+[00:07:54,810 --> 00:07:56,700] that's definitely a challenge.
+[00:07:56,700 --> 00:08:01,100] But often with machine-learning models or any model
+[00:08:01,100 --> 00:08:05,580] that you want to recognize action objects and images,
+[00:08:05,580 --> 00:08:09,210] since we normalize the size of the image,
+[00:08:09,210 --> 00:08:11,720] resolution may not be that important,
+[00:08:11,720 --> 00:08:15,230] unless there is zooming effects of the objects.
+[00:08:15,230 --> 00:08:18,120] Occlusion is one of the major problems.
+[00:08:18,120 --> 00:08:21,960] Again, as humans, it's very easy to say this is cat.
+[00:08:21,960 --> 00:08:23,430] These are cats.
+[00:08:23,430 --> 00:08:25,895] Even the last one, which is actually a very challenging,
+[00:08:25,895 --> 00:08:28,050] the one on the right.
+[00:08:28,050 --> 00:08:32,179] You can only see a tail and a little bit of probably a paw
+[00:08:32,179 --> 00:08:34,239] in the right side.
+[00:08:37,280 --> 00:08:41,690] One could say, yes, that could be a tiger, or it could be--
+[00:08:41,690 --> 00:08:46,070] I don't know-- a raccoon with a tiny tale.
+[00:08:46,070 --> 00:08:48,910] But because this is-- because of the context, because we
+[00:08:48,910 --> 00:08:52,460] know this is inside a living room on a couch,
+[00:08:52,460 --> 00:08:53,890] most probably, it's a cat.
+[00:08:53,890 --> 00:08:54,740] It's a cat.
+[00:08:54,740 --> 00:08:59,170] So again, for us humans, it's not that hard.
+[00:08:59,170 --> 00:09:02,720] Beyond that, there are many other problems.
+[00:09:02,720 --> 00:09:03,310] Deformation.
+[00:09:03,310 --> 00:09:05,930] Cats are very deformable.
+[00:09:05,930 --> 00:09:16,300] So they create challenges for algorithms to be detected,
+[00:09:16,300 --> 00:09:17,890] recognized.
+[00:09:17,890 --> 00:09:19,750] I mean, not today's algorithms.
+[00:09:19,750 --> 00:09:24,910] Generally, for building step-by-step algorithms
+[00:09:24,910 --> 00:09:26,480] that can detect objects.
+[00:09:26,480 --> 00:09:31,240] So deformation is one of the other major challenges.
+[00:09:31,240 --> 00:09:37,000] And beyond that, the intraclass variation
+[00:09:37,000 --> 00:09:44,220] is one more important challenge.
+[00:09:44,220 --> 00:09:48,340] We know that cats can come in different sizes, colors,
+[00:09:48,340 --> 00:09:51,310] patterns, or even, they can-- they have different breeds.
+[00:09:51,310 --> 00:09:55,090] And all of those are still cats.
+[00:09:55,090 --> 00:09:59,340] But for the machines, it's not that
+[00:09:59,340 --> 00:10:04,530] easy to recognize the intraclass variations.
+[00:10:04,530 --> 00:10:09,540] One other interesting challenge is the context,
+[00:10:09,540 --> 00:10:17,260] because if you only look at that part, that image on the right,
+[00:10:17,260 --> 00:10:23,170] or if an algorithm looks at this without considering the context,
+[00:10:23,170 --> 00:10:28,270] it's very easy to classify this as a tiger or some other animal.
+[00:10:28,270 --> 00:10:31,110] But because of the context and because we
+[00:10:31,110 --> 00:10:34,500] know that there is the effect of shadows
+[00:10:34,500 --> 00:10:39,876] and so on, this could probably be classified correctly.
+[00:10:45,717 --> 00:10:49,200] But the thing is that the classifiers that we have today
+[00:10:49,200 --> 00:10:52,020] can do really great job--
+[00:10:52,020 --> 00:10:57,400] good jobs at classifying the images,
+[00:10:57,400 --> 00:11:00,760] identifying the objects in images,
+[00:11:00,760 --> 00:11:04,920] thanks to efforts like ImageNet, and also all of the follow-up
+[00:11:04,920 --> 00:11:10,950] works that created larger scale benchmarks for training
+[00:11:10,950 --> 00:11:12,640] larger scale models.
+[00:11:12,640 --> 00:11:22,050] And in this class, what we want to do is to get to a place
+[00:11:22,050 --> 00:11:27,600] that we build models that can recognize activity-- recognize
+[00:11:27,600 --> 00:11:32,200] objects, and also other aspects within the image.
+[00:11:32,200 --> 00:11:34,770] For the rest of this class, we are
+[00:11:34,770 --> 00:11:38,460] going to be working towards building, step-by-step,
+[00:11:38,460 --> 00:11:40,460] the building blocks that are needed for building
+[00:11:40,460 --> 00:11:42,750] those large algorithms.
+[00:11:42,750 --> 00:11:51,200] And before doing so, we have to look at the most basic building
+[00:11:51,200 --> 00:11:58,260] block of classifying an image, and that is building,
+[00:11:58,260 --> 00:12:01,110] implementing a function like this.
+[00:12:01,110 --> 00:12:06,020] So if you've taken some of the computer science
+[00:12:06,020 --> 00:12:11,000] or engineering courses that often build frameworks
+[00:12:11,000 --> 00:12:16,130] through algorithms, like, for example, sorting as a computer
+[00:12:16,130 --> 00:12:18,020] algorithm, it's often--
+[00:12:18,020 --> 00:12:21,200] it often comes with some if-then-else rules
+[00:12:21,200 --> 00:12:24,000] and some for-loops and so on.
+[00:12:24,000 --> 00:12:31,770] So there is a clear flowchart of tasks and steps,
+[00:12:31,770 --> 00:12:35,670] if-then-else steps that creates an algorithm for sorting.
+[00:12:35,670 --> 00:12:39,160] But when it comes to images and understanding
+[00:12:39,160 --> 00:12:45,230] the visual world, that is not happening, that is a challenge,
+[00:12:45,230 --> 00:12:50,660] there is no way to hard code the steps for classifying images.
+[00:12:50,660 --> 00:12:56,000] Although there has been some efforts in this space.
+[00:12:56,000 --> 00:13:04,180] There are papers that they've tried to come up with algorithms
+[00:13:04,180 --> 00:13:06,590] and steps to recognize objects.
+[00:13:06,590 --> 00:13:13,510] And one of those was based on edge detectors,
+[00:13:13,510 --> 00:13:19,130] finding the edges in the image as a first step,
+[00:13:19,130 --> 00:13:23,930] and then after creating all of these patterns,
+[00:13:23,930 --> 00:13:29,480] look at the important patterns, for example, corners,
+[00:13:29,480 --> 00:13:32,630] extract some features that are around the corners,
+[00:13:32,630 --> 00:13:36,360] or counts the number of specific types of corners,
+[00:13:36,360 --> 00:13:44,110] and based on, from those, try to map that into the output class.
+[00:13:44,110 --> 00:13:48,840] So while this has been an interesting effort
+[00:13:48,840 --> 00:13:55,590] and it had some success on very limited variability type
+[00:13:55,590 --> 00:13:59,200] of images, but this is very hard to-- first,
+[00:13:59,200 --> 00:14:01,900] it's very hard to scale these types of algorithms.
+[00:14:01,900 --> 00:14:06,660] Even if it works, it's very hard to scale
+[00:14:06,660 --> 00:14:09,300] because you have to create these rules
+[00:14:09,300 --> 00:14:11,190] and everything for every single object
+[00:14:11,190 --> 00:14:12,670] that you want to recognize.
+[00:14:12,670 --> 00:14:17,100] And second, finding the logic for each of those
+[00:14:17,100 --> 00:14:20,920] requires a lot of effort by itself as well.
+[00:14:20,920 --> 00:14:23,040] So because of these challenges, I
+[00:14:23,040 --> 00:14:27,210] think these types of algorithms, which
+[00:14:27,210 --> 00:14:34,350] are based on creating logics and procedures for detecting objects
+[00:14:34,350 --> 00:14:38,380] or classifying images have not been quite successful.
+[00:14:38,380 --> 00:14:42,850] And machine learning comes with this data-driven approach.
+[00:14:42,850 --> 00:14:46,320] So with this new paradigm of--
+[00:14:46,320 --> 00:14:50,220] and another paradigm of looking at this problem
+[00:14:50,220 --> 00:14:56,070] from a data-driven perspective, we
+[00:14:56,070 --> 00:15:00,070] define a procedure of a three-step process.
+[00:15:00,070 --> 00:15:06,420] And the first one is to collect data sets
+[00:15:06,420 --> 00:15:09,400] of images and their labels.
+[00:15:09,400 --> 00:15:11,850] So there are many different ways of if you
+[00:15:11,850 --> 00:15:17,040] want to recognize a specific type of object
+[00:15:17,040 --> 00:15:20,550] or specific types of objects, we can
+[00:15:20,550 --> 00:15:26,130] look for data sets or single data points over the internet
+[00:15:26,130 --> 00:15:32,040] to create data, many samples from each of the examples.
+[00:15:32,040 --> 00:15:35,340] We used to be doing this 10, 20 years ago,
+[00:15:35,340 --> 00:15:41,270] using search engines and image search engines over the internet
+[00:15:41,270 --> 00:15:44,220] to create these types of data sets.
+[00:15:44,220 --> 00:15:47,902] Now we have all of the data sets.
+[00:15:47,902 --> 00:15:51,350] And then the second step is using machine learning
+[00:15:51,350 --> 00:15:53,610] algorithms to train a classifier.
+[00:15:53,610 --> 00:15:57,680] Basically, build a function train
+[00:15:57,680 --> 00:16:01,730] that takes the images in the training
+[00:16:01,730 --> 00:16:04,500] data and their associated labels,
+[00:16:04,500 --> 00:16:08,240] and builds a model that can relate,
+[00:16:08,240 --> 00:16:10,170] associate images with the labels.
+[00:16:10,170 --> 00:16:15,050] And then the last step would be evaluating
+[00:16:15,050 --> 00:16:20,570] the classifier on new images, but which
+[00:16:20,570 --> 00:16:23,630] means implementing a function called
+[00:16:23,630 --> 00:16:28,830] predict that takes the model and some test images,
+[00:16:28,830 --> 00:16:32,470] and for those test images that were not part of the training
+[00:16:32,470 --> 00:16:39,080] images, predicts the labels and returns those as the output.
+[00:16:39,080 --> 00:16:42,110] So a very simple procedure.
+[00:16:42,110 --> 00:16:46,300] But instead of building a logic, we
+[00:16:46,300 --> 00:16:50,110] are building a data-driven approach for it.
+[00:16:50,110 --> 00:16:55,390] As I said, we want to talk about two popular methods
+[00:16:55,390 --> 00:16:56,570] and classifiers.
+[00:16:56,570 --> 00:16:59,080] One of them is nearest neighbor classifier.
+[00:16:59,080 --> 00:17:03,220] This is the easiest form of classification,
+[00:17:03,220 --> 00:17:09,579] and we specifically want to go over this because we
+[00:17:09,579 --> 00:17:15,099] can learn some of the concepts around building
+[00:17:15,099 --> 00:17:16,160] these classifiers.
+[00:17:16,160 --> 00:17:22,190] And it's easier to explain some of the details.
+[00:17:22,190 --> 00:17:26,089] And then we'll move to the topic of linear classification.
+[00:17:26,089 --> 00:17:30,870] OK to do that, what we do to build the nearest neighbor
+[00:17:30,870 --> 00:17:31,990] classifier.
+[00:17:31,990 --> 00:17:37,720] As I said, we need to build the train and predict functions.
+[00:17:37,720 --> 00:17:40,890] The train function needs to just memorize
+[00:17:40,890 --> 00:17:43,270] all of the data and labels.
+[00:17:43,270 --> 00:17:44,940] So the training function basically
+[00:17:44,940 --> 00:17:47,070] doesn't do anything other than keeping everything
+[00:17:47,070 --> 00:17:48,130] in the memory.
+[00:17:48,130 --> 00:17:50,320] And then the prediction function--
+[00:17:50,320 --> 00:17:56,680] the predict function looks for the most similar training image.
+[00:17:56,680 --> 00:18:00,300] Basically, it creates a lookup table of all of the images
+[00:18:00,300 --> 00:18:02,140] and all of their labels.
+[00:18:02,140 --> 00:18:08,070] And during the prediction or testing time, what it does
+[00:18:08,070 --> 00:18:12,910] is tries to find the closest one, the most similar image,
+[00:18:12,910 --> 00:18:17,620] and outputs the label for that image.
+[00:18:17,620 --> 00:18:19,060] Let's look at an example.
+[00:18:19,060 --> 00:18:26,430] So assuming that we have these five as in our training data,
+[00:18:26,430 --> 00:18:27,420] then--
+[00:18:27,420 --> 00:18:29,830] yes, you see my cursor.
+[00:18:29,830 --> 00:18:33,280] And then this is the query image,
+[00:18:33,280 --> 00:18:35,830] the input image for prediction.
+[00:18:35,830 --> 00:18:39,540] What we want to do is to see which of these training data
+[00:18:39,540 --> 00:18:43,480] and training images is the most similar to this one.
+[00:18:43,480 --> 00:18:46,210] And for that, we need the distance function.
+[00:18:46,210 --> 00:18:49,560] So this distance function needs to take
+[00:18:49,560 --> 00:18:53,280] the two images, each pair of images, each of these images
+[00:18:53,280 --> 00:18:58,950] compared to the query image, and return a value which
+[00:18:58,950 --> 00:19:05,370] defines the similarity between these two inputs, these two
+[00:19:05,370 --> 00:19:06,600] images.
+[00:19:06,600 --> 00:19:09,790] There are many different ways of doing that.
+[00:19:09,790 --> 00:19:14,560] One of the most popular ones is L1 distance,
+[00:19:14,560 --> 00:19:19,680] which is defined as the sum over all absolute values
+[00:19:19,680 --> 00:19:25,980] of pixel differences between the two images, Image I1 and I2.
+[00:19:25,980 --> 00:19:28,940] As an example, if this is a testing image,
+[00:19:28,940 --> 00:19:34,460] if we want to calculate the distance of this image
+[00:19:34,460 --> 00:19:38,450] with an image in the training data,
+[00:19:38,450 --> 00:19:43,580] we do a pixel wise subtraction and the difference
+[00:19:43,580 --> 00:19:46,100] between the pixel values and then sum them up,
+[00:19:46,100 --> 00:19:54,470] which defines this new-- this value as the distance
+[00:19:54,470 --> 00:19:55,860] between these two images.
+[00:19:55,860 --> 00:20:01,710] So this is the most basic distance function,
+[00:20:01,710 --> 00:20:06,030] but it's actually very useful in many applications.
+[00:20:06,030 --> 00:20:10,310] We'll be coming back to this L1 and other variations
+[00:20:10,310 --> 00:20:13,280] of distances in the class quite often.
+[00:20:13,280 --> 00:20:15,080] With this very simple definition,
+[00:20:15,080 --> 00:20:16,530] we want to see how we can get it.
+[00:20:16,530 --> 00:20:17,940] Get this implemented.
+[00:20:17,940 --> 00:20:22,860] As I said, the first step is to just memorize the training data.
+[00:20:22,860 --> 00:20:28,390] So the train function just keeps the data in the memory.
+[00:20:28,390 --> 00:20:32,920] And then what the predict function
+[00:20:32,920 --> 00:20:39,380] does, using actually some Python libraries and NumPy and so on,
+[00:20:39,380 --> 00:20:42,080] we can implement this in just four lines.
+[00:20:42,080 --> 00:20:46,720] We calculate the distances between each of the testing
+[00:20:46,720 --> 00:20:54,760] samples and the training data, take the minimum
+[00:20:54,760 --> 00:20:59,530] for each of the testing samples, and then output
+[00:20:59,530 --> 00:21:05,000] the label for the one with mean index.
+[00:21:05,000 --> 00:21:10,090] So this is going to be the implementation
+[00:21:10,090 --> 00:21:12,370] for the predict function.
+[00:21:12,370 --> 00:21:21,160] Yeah, the pixel values, as I explained, the simplest form,
+[00:21:21,160 --> 00:21:28,120] this is a tensor of 800 by 600 by 3 and three channels,
+[00:21:28,120 --> 00:21:32,200] and these are RGB values for each of the pixel locations.
+[00:21:32,200 --> 00:21:35,850] So yes, I should actually repeat the questions
+[00:21:35,850 --> 00:21:37,630] for online students too.
+[00:21:37,630 --> 00:21:41,520] And the question was the pixel values, what do they represent?
+[00:21:41,520 --> 00:21:46,290] Yeah, so the next question is why it's between 0 and 255.
+[00:21:46,290 --> 00:21:52,320] So there are many different standards for storing images.
+[00:21:52,320 --> 00:21:57,690] The most popular one that we use in almost all images
+[00:21:57,690 --> 00:22:01,920] that you see online and here they are RGB.
+[00:22:01,920 --> 00:22:05,580] RGB is a 24-bit format, sometimes 32
+[00:22:05,580 --> 00:22:08,070] because there's another channel alpha.
+[00:22:08,070 --> 00:22:10,540] We don't want to get into those.
+[00:22:10,540 --> 00:22:16,000] But the 24-bit format, it means that for each of the channels,
+[00:22:16,000 --> 00:22:19,060] for each of the three channels of red, green, and blue,
+[00:22:19,060 --> 00:22:22,590] which creates all of our color combinations,
+[00:22:22,590 --> 00:22:24,340] we can have 8 bits.
+[00:22:24,340 --> 00:22:27,940] So that's the standard that is defined.
+[00:22:27,940 --> 00:22:30,220] There are some other frameworks too,
+[00:22:30,220 --> 00:22:33,900] but this is the most popular one.
+[00:22:33,900 --> 00:22:40,820] So with that, let me go back to the code and ask you a question.
+[00:22:46,080 --> 00:22:53,010] So I know some of the students, most of the students
+[00:22:53,010 --> 00:22:55,680] come with engineering backgrounds and a little bit
+[00:22:55,680 --> 00:23:01,200] of computer science as well, but we want to see with,
+[00:23:01,200 --> 00:23:04,380] say, n samples n examples that we have in the training
+[00:23:04,380 --> 00:23:08,333] data how fast the training and prediction happens.
+[00:23:11,550 --> 00:23:15,420] I'm hoping that you're familiar with the big O notation
+[00:23:15,420 --> 00:23:21,170] that we often represents computational and sometimes
+[00:23:21,170 --> 00:23:23,310] space complexities with.
+[00:23:23,310 --> 00:23:27,260] But here, if you look at the algorithms,
+[00:23:27,260 --> 00:23:28,850] I'll go with the training data.
+[00:23:28,850 --> 00:23:31,790] In the training function-- and then
+[00:23:31,790 --> 00:23:36,890] I want you to help me with the answer for prediction.
+[00:23:36,890 --> 00:23:40,730] For the training step, the training
+[00:23:40,730 --> 00:23:44,550] is of O1 because we are not actually doing anything.
+[00:23:44,550 --> 00:23:46,770] We are not even moving any data.
+[00:23:46,770 --> 00:23:50,010] We are just keeping the copy of the data in the memory.
+[00:23:50,010 --> 00:23:53,340] So no operations, it means that without operations,
+[00:23:53,340 --> 00:23:56,600] with an operations of order 1, we
+[00:23:56,600 --> 00:24:00,780] can complete the training step.
+[00:24:00,780 --> 00:24:03,650] What about the prediction step for each
+[00:24:03,650 --> 00:24:12,570] of the single examples of the training-- the testing data?
+[00:24:12,570 --> 00:24:15,590] How many operations should we take?
+[00:24:15,590 --> 00:24:17,370] N, yes.
+[00:24:17,370 --> 00:24:19,990] If we have n training data, it means
+[00:24:19,990 --> 00:24:23,590] that we have to calculate the distance of every single testing
+[00:24:23,590 --> 00:24:26,960] image with all of the images in the training data,
+[00:24:26,960 --> 00:24:33,490] so at least in the order of n operations.
+[00:24:33,490 --> 00:24:43,480] So this is not really good because what we often want to do
+[00:24:43,480 --> 00:24:45,890] is-- because training is not doing anything.
+[00:24:45,890 --> 00:24:49,190] But during testing, during prediction time,
+[00:24:49,190 --> 00:24:51,700] we are spending so much time just
+[00:24:51,700 --> 00:24:54,220] to do comparisons between the data
+[00:24:54,220 --> 00:25:00,010] and the single data points and the training examples.
+[00:25:00,010 --> 00:25:03,880] This would be similar to the fact
+[00:25:03,880 --> 00:25:07,840] that each single time that you ask ChatGPT a question,
+[00:25:07,840 --> 00:25:11,650] it will try to see what the answer is and compare it
+[00:25:11,650 --> 00:25:15,510] with all of the possible answers over the internet, which
+[00:25:15,510 --> 00:25:19,270] will take years and then return your response.
+[00:25:19,270 --> 00:25:22,710] So it wouldn't work when it wants to scale
+[00:25:22,710 --> 00:25:24,520] for very simple problems.
+[00:25:24,520 --> 00:25:26,850] We used to be using these types of approaches.
+[00:25:26,850 --> 00:25:34,920] So what we often want is to build classifiers that
+[00:25:34,920 --> 00:25:37,090] are fast during prediction.
+[00:25:37,090 --> 00:25:40,860] They do it much faster, but it's OK if they take a lot of time
+[00:25:40,860 --> 00:25:42,960] to do during the training because that
+[00:25:42,960 --> 00:25:44,890] could be done offline.
+[00:25:44,890 --> 00:25:49,350] So with that in mind, although there
+[00:25:49,350 --> 00:25:55,530] has been a lot of efforts making nearest neighbor more--
+[00:25:55,530 --> 00:25:59,320] much faster using GPUs and so on,
+[00:25:59,320 --> 00:26:01,545] which are beyond the scope of this class,
+[00:26:01,545 --> 00:26:03,670] if you're interested, you can take a look at those.
+[00:26:03,670 --> 00:26:08,460] But with that, I want to look at some of the visualizations
+[00:26:08,460 --> 00:26:11,580] and how this algorithm in general works.
+[00:26:11,580 --> 00:26:15,630] So given this space that we have five
+[00:26:15,630 --> 00:26:19,050] classes of red, blue, green, purple and red--
+[00:26:19,050 --> 00:26:26,880] sorry, yellow, and each dot represents one training, sample
+[00:26:26,880 --> 00:26:32,880] in that class, if we partition the space for every single point
+[00:26:32,880 --> 00:26:37,440] you see that we can create these five partitions--
+[00:26:37,440 --> 00:26:41,580] let's say five or in this case six different partitions--
+[00:26:41,580 --> 00:26:48,210] that each point, if you have a testing sample that
+[00:26:48,210 --> 00:26:51,780] is in that specific region, the color of that region
+[00:26:51,780 --> 00:26:57,010] shows what the nearest neighbor for that sample will be.
+[00:26:57,010 --> 00:27:02,670] So this is going to be the nearest neighbor algorithm, one
+[00:27:02,670 --> 00:27:04,530] nearest neighbor algorithm partitions
+[00:27:04,530 --> 00:27:07,330] the space in this setting.
+[00:27:07,330 --> 00:27:12,500] But do you see a problem here in this example?
+[00:27:12,500 --> 00:27:14,750] So the yellow one is exactly--
+[00:27:14,750 --> 00:27:17,220] is in the middle of all of the greens.
+[00:27:17,220 --> 00:27:20,370] And this means that probably that's an outlier.
+[00:27:20,370 --> 00:27:21,750] That's probably a noise.
+[00:27:21,750 --> 00:27:24,200] And this is the case for many, many problems
+[00:27:24,200 --> 00:27:25,500] that we have to solve.
+[00:27:25,500 --> 00:27:32,300] And with that, the reason that there
+[00:27:32,300 --> 00:27:35,090] is this big yellow region in the middle
+[00:27:35,090 --> 00:27:38,010] is just this single point.
+[00:27:38,010 --> 00:27:41,880] And because we are only using one nearest neighbor,
+[00:27:41,880 --> 00:27:42,600] this happens.
+[00:27:42,600 --> 00:27:44,760] So to make it a little bit more robust,
+[00:27:44,760 --> 00:27:48,450] we can increase the number of nearest neighbors that we take,
+[00:27:48,450 --> 00:27:50,750] which turns the nearest neighbor algorithm
+[00:27:50,750 --> 00:27:52,650] into a k-nearest neighbor.
+[00:27:52,650 --> 00:28:00,810] And we often select more than one point or sample.
+[00:28:00,810 --> 00:28:04,370] And we often take the majority voting
+[00:28:04,370 --> 00:28:10,450] for identifying the label for any given testing
+[00:28:10,450 --> 00:28:13,750] sample, testing image.
+[00:28:13,750 --> 00:28:16,840] But the problem that you can see here
+[00:28:16,840 --> 00:28:19,970] is now we have some white regions.
+[00:28:19,970 --> 00:28:23,480] Those white regions are areas that we cannot make a decision,
+[00:28:23,480 --> 00:28:28,150] a complete decision because those areas are areas that we
+[00:28:28,150 --> 00:28:34,240] have equal number of samples from the neighbors from
+[00:28:34,240 --> 00:28:36,350] the three different classes.
+[00:28:36,350 --> 00:28:39,130] And there is no way to identify what
+[00:28:39,130 --> 00:28:43,970] the label of that example in the white region is.
+[00:28:43,970 --> 00:28:47,080] And for you, if you create these types
+[00:28:47,080 --> 00:28:49,750] of spaces for your problems, this
+[00:28:49,750 --> 00:28:52,730] means that if you look at these spaces,
+[00:28:52,730 --> 00:28:55,540] it means that those are good regions to go and collect
+[00:28:55,540 --> 00:28:56,600] more data for.
+[00:28:56,600 --> 00:28:59,300] So those are unclear spaces.
+[00:28:59,300 --> 00:29:01,840] So it's a good way of finding regions
+[00:29:01,840 --> 00:29:05,380] that are important for data--
+[00:29:05,380 --> 00:29:06,650] more data collection.
+[00:29:06,650 --> 00:29:10,870] So we can go larger on the value of the k.
+[00:29:10,870 --> 00:29:14,690] But one of the choices that we have, one of the.
+[00:29:17,940 --> 00:29:22,270] Factors that plays an important role is the value of k.
+[00:29:22,270 --> 00:29:25,290] But if you remember, we had another decision
+[00:29:25,290 --> 00:29:27,960] to make which was the distance function.
+[00:29:27,960 --> 00:29:31,290] We talked about the L1 distance again sum
+[00:29:31,290 --> 00:29:37,320] of all of the absolute values between pairwise differences
+[00:29:37,320 --> 00:29:41,130] of the pixels.
+[00:29:41,130 --> 00:29:47,640] And if I visualize the L1 distance or sometimes
+[00:29:47,640 --> 00:29:52,440] in some context, we call it Manhattan distance,
+[00:29:52,440 --> 00:29:57,090] the distance function is kind of visualized in this way.
+[00:29:59,620 --> 00:30:05,860] If I look at this square that I have in this space,
+[00:30:05,860 --> 00:30:10,815] all of the points on that square are--
+[00:30:10,815 --> 00:30:13,620] they have the same distance from the origin
+[00:30:13,620 --> 00:30:15,400] from the center point.
+[00:30:15,400 --> 00:30:19,560] So this is a good way of visualizing and seeing
+[00:30:19,560 --> 00:30:22,930] how this L1 distance function works.
+[00:30:22,930 --> 00:30:26,280] Another popular framework, another popular distance
+[00:30:26,280 --> 00:30:29,040] function that we use is L2, which
+[00:30:29,040 --> 00:30:34,050] instead of the absolute value, calculates the square
+[00:30:34,050 --> 00:30:36,910] of the differences, sums it up.
+[00:30:36,910 --> 00:30:39,900] But because of the square, we also do a square root.
+[00:30:39,900 --> 00:30:49,320] And visualizing that, we'll get the circle visualization, where
+[00:30:49,320 --> 00:30:52,770] each of the points on the circle are-- they
+[00:30:52,770 --> 00:30:56,590] have the same distance from the center, from the origin.
+[00:30:56,590 --> 00:30:58,530] So this visualization actually helps
+[00:30:58,530 --> 00:31:01,750] us understand the differences between these distances too.
+[00:31:01,750 --> 00:31:04,590] And these are the most basic and easiest distance functions
+[00:31:04,590 --> 00:31:05,370] that we can use.
+[00:31:05,370 --> 00:31:08,250] So there are, again, a lot more.
+[00:31:08,250 --> 00:31:12,710] The reason this visualization is helpful
+[00:31:12,710 --> 00:31:16,430] is because sometimes if you rotate the-- so x
+[00:31:16,430 --> 00:31:18,410] and y in these two visualizations
+[00:31:18,410 --> 00:31:20,000] are basically the features.
+[00:31:20,000 --> 00:31:23,280] If you have two pixel values, two features,
+[00:31:23,280 --> 00:31:25,140] then we have this 2D space.
+[00:31:25,140 --> 00:31:29,450] And this x and y are often those features.
+[00:31:29,450 --> 00:31:33,830] So if I rotate these features, meaning,
+[00:31:33,830 --> 00:31:36,210] if I use other types of features,
+[00:31:36,210 --> 00:31:40,140] this L1 will have a different framework, different value,
+[00:31:40,140 --> 00:31:42,330] while it's not any different for L2.
+[00:31:42,330 --> 00:31:46,950] So that's why this is a big difference between L1 and L2.
+[00:31:46,950 --> 00:31:50,930] And sometimes if our features are very specific and meaningful
+[00:31:50,930 --> 00:31:53,040] and we want to preserve their information,
+[00:31:53,040 --> 00:31:56,510] often L1 is more important, is better
+[00:31:56,510 --> 00:32:03,020] because it has kind of, as you can see,
+[00:32:03,020 --> 00:32:07,690] a shape that preserves and enforces distances
+[00:32:07,690 --> 00:32:09,140] based on the features.
+[00:32:09,140 --> 00:32:12,880] But if those features are more arbitrary,
+[00:32:12,880 --> 00:32:15,250] then L2 distance makes more sense.
+[00:32:15,250 --> 00:32:19,250] If I want to calculate the distance--
+[00:32:19,250 --> 00:32:22,630] so the distance of all of the points on this shape
+[00:32:22,630 --> 00:32:29,350] from the origin are exactly the same, if I use the L1 distance,
+[00:32:29,350 --> 00:32:34,300] but for L2 distance, the points on this circle
+[00:32:34,300 --> 00:32:38,020] have the same distance from the center
+[00:32:38,020 --> 00:32:43,370] or the origin of this space.
+[00:32:43,370 --> 00:32:47,003] So that's basically the main--
+[00:32:51,200 --> 00:32:52,720] what these two images are showing.
+[00:32:52,720 --> 00:32:57,760] Any point on this shape, when using an L1 distance,
+[00:32:57,760 --> 00:33:00,080] have the same distance from the origin.
+[00:33:00,080 --> 00:33:03,180] And for the circle, any point on the circle,
+[00:33:03,180 --> 00:33:05,340] if you're using L2 distance, you'll
+[00:33:05,340 --> 00:33:08,490] have the same distance from the origin.
+[00:33:08,490 --> 00:33:11,280] Yeah, why It's important to--
+[00:33:11,280 --> 00:33:15,630] it's better to use L1 if we want to preserve the features.
+[00:33:15,630 --> 00:33:21,210] So to answer that question, if I rotate the feature
+[00:33:21,210 --> 00:33:24,780] axis, the distances and this distance
+[00:33:24,780 --> 00:33:27,540] function changes completely.
+[00:33:27,540 --> 00:33:33,040] While if I do the same here, nothing changes.
+[00:33:33,040 --> 00:33:37,404] It's the exact same value of the features--
+[00:33:37,404 --> 00:33:38,200] distance.
+[00:33:38,200 --> 00:33:38,700] Sorry.
+[00:33:38,700 --> 00:33:44,490] So in this case, L1 is very sensitive on the feature values,
+[00:33:44,490 --> 00:33:46,710] while L2 is not.
+[00:33:46,710 --> 00:33:49,440] If you select another feature in the same space that
+[00:33:49,440 --> 00:33:52,920] is having a different creates a different shape, then
+[00:33:52,920 --> 00:33:57,210] your L function, the distance function changes as well.
+[00:33:57,210 --> 00:34:01,270] So if I draw the lines here, again,
+[00:34:01,270 --> 00:34:05,200] the question for online students is why it changes if you rotate.
+[00:34:05,200 --> 00:34:09,914] If I select another feature that goes from this side,
+[00:34:09,914 --> 00:34:13,199] then the lines will look different.
+[00:34:13,199 --> 00:34:20,559] So if you rotate this thing, but for that shape it's not-- it's
+[00:34:20,559 --> 00:34:21,059] agnostic.
+[00:34:23,610 --> 00:34:27,370] So with these two distance functions that we talked about,
+[00:34:27,370 --> 00:34:33,840] if I visualize the space, you can
+[00:34:33,840 --> 00:34:38,920] see with k equals to 1 with one nearest neighbor with L1 and L2,
+[00:34:38,920 --> 00:34:41,949] these are the space partitionings.
+[00:34:41,949 --> 00:34:44,340] One of the interesting things that you can see here
+[00:34:44,340 --> 00:34:51,870] is that with L1 function, most of the boundaries
+[00:34:51,870 --> 00:34:57,180] are parallel to the two axes, the two features,
+[00:34:57,180 --> 00:35:01,345] x1 and x2, very much sensitive to the features.
+[00:35:01,345 --> 00:35:02,720] While there, we have a little bit
+[00:35:02,720 --> 00:35:07,820] of more smooth boundary separation.
+[00:35:07,820 --> 00:35:11,660] So there is a tool online on the lab website
+[00:35:11,660 --> 00:35:16,640] that you can play around with this, with different distance
+[00:35:16,640 --> 00:35:18,570] functions and different number of k.
+[00:35:18,570 --> 00:35:21,630] You can see, you can create a different setup.
+[00:35:21,630 --> 00:35:23,760] So you can play around with it.
+[00:35:23,760 --> 00:35:28,050] But why did we talk about nearest neighbor to begin with?
+[00:35:28,050 --> 00:35:33,560] First, yes, it's the easiest problem to solve,
+[00:35:33,560 --> 00:35:39,230] easiest solution, easiest data-driven approach, and great
+[00:35:39,230 --> 00:35:40,080] to start with.
+[00:35:40,080 --> 00:35:45,950] But one of the main reasons that we want to iterate and discuss
+[00:35:45,950 --> 00:35:49,250] nearest neighbor is the fact that we
+[00:35:49,250 --> 00:35:55,080] can look into the topic of hyperparameters.
+[00:35:55,080 --> 00:36:01,430] Hyperparameters are often some of the variables
+[00:36:01,430 --> 00:36:03,380] that you have to make a decision on
+[00:36:03,380 --> 00:36:05,820] to be able to run your algorithm.
+[00:36:05,820 --> 00:36:12,320] In this case, the value of k, the number of nearest neighbors
+[00:36:12,320 --> 00:36:14,850] is defined as-- is a hyperparameter.
+[00:36:14,850 --> 00:36:19,770] Depending on how many number of nearest neighbors you take,
+[00:36:19,770 --> 00:36:21,960] your outputs will be different.
+[00:36:21,960 --> 00:36:24,500] And then another choice that you have here
+[00:36:24,500 --> 00:36:27,050] is the distance function.
+[00:36:27,050 --> 00:36:33,320] So the choice of hyperparameters are often
+[00:36:33,320 --> 00:36:39,830] very much data set-dependent and sometimes problem-dependent.
+[00:36:39,830 --> 00:36:43,700] And we have to have a way to identify
+[00:36:43,700 --> 00:36:50,270] those to optimize for them for each single problem.
+[00:36:50,270 --> 00:36:52,370] And that's what is often referred
+[00:36:52,370 --> 00:36:56,080] to as hyperparameter tuning in machine-learning algorithms,
+[00:36:56,080 --> 00:36:58,200] in deep learning algorithms and so on.
+[00:36:58,200 --> 00:36:59,560] And how to do that?
+[00:36:59,560 --> 00:37:03,220] How to set the hyperparameters?
+[00:37:03,220 --> 00:37:04,720] There are different approaches.
+[00:37:04,720 --> 00:37:08,520] One of them is to choose the hyperparameters that work
+[00:37:08,520 --> 00:37:10,980] the best for the training data.
+[00:37:10,980 --> 00:37:14,140] So you have a set of images or data.
+[00:37:14,140 --> 00:37:19,290] In your training data, you look for the best set
+[00:37:19,290 --> 00:37:23,940] of hyperparameters that generates the best training
+[00:37:23,940 --> 00:37:27,700] or minimum training loss.
+[00:37:27,700 --> 00:37:30,700] While it works for the training data,
+[00:37:30,700 --> 00:37:34,710] it's not a good idea at all because, especially
+[00:37:34,710 --> 00:37:39,660] with nearest neighbor, k equal to 1 is always the best value.
+[00:37:39,660 --> 00:37:43,620] Because you're memorizing training data, so k equal to 1
+[00:37:43,620 --> 00:37:47,280] will give you, always, the 100% accuracy.
+[00:37:47,280 --> 00:37:51,580] So we know that this is not a great idea.
+[00:37:51,580 --> 00:37:56,520] The second one is choosing hyperparameter that works
+[00:37:56,520 --> 00:38:00,570] best for held-out testing sets.
+[00:38:00,570 --> 00:38:05,250] While this is a little bit better than the first one,
+[00:38:05,250 --> 00:38:07,630] there is also a big problem here.
+[00:38:07,630 --> 00:38:11,610] Can anybody say why this is a problem.
+[00:38:11,610 --> 00:38:15,390] Exactly, so it's kind of cheating because you are trying
+[00:38:15,390 --> 00:38:18,910] to find the best hyperparameter that works on the testing data,
+[00:38:18,910 --> 00:38:24,030] and you don't know how the model will work on any other data
+[00:38:24,030 --> 00:38:26,200] points, not in the testing set.
+[00:38:26,200 --> 00:38:30,630] So yes, that is exactly right.
+[00:38:30,630 --> 00:38:33,450] It's not a good idea because we don't know
+[00:38:33,450 --> 00:38:35,260] how the model will generalize.
+[00:38:35,260 --> 00:38:39,070] And for sure never do this.
+[00:38:39,070 --> 00:38:41,620] As we talked about, it's kind of cheating.
+[00:38:41,620 --> 00:38:47,040] And a better idea is to always separate,
+[00:38:47,040 --> 00:38:51,020] take some part of the training data as validation set.
+[00:38:51,020 --> 00:38:54,530] And train your model on the training data
+[00:38:54,530 --> 00:38:59,060] on the train portion of the new portion that we call train.
+[00:38:59,060 --> 00:39:04,160] And then try to find or optimize your hyperparameter
+[00:39:04,160 --> 00:39:06,230] on the validation set.
+[00:39:06,230 --> 00:39:10,710] And after you've found the best set of hyperparameters,
+[00:39:10,710 --> 00:39:13,820] then use those hyperparameters to replicate
+[00:39:13,820 --> 00:39:16,370] the results for the testing set and do the predictions
+[00:39:16,370 --> 00:39:17,280] for the testing set.
+[00:39:17,280 --> 00:39:20,460] So this is a much better approach,
+[00:39:20,460 --> 00:39:25,763] although it does have some challenges itself because.
+[00:39:28,760 --> 00:39:32,340] Sometimes the validation set that you've selected,
+[00:39:32,340 --> 00:39:34,220] it may not be a good representative
+[00:39:34,220 --> 00:39:37,850] of the entire landscape because your validation set
+[00:39:37,850 --> 00:39:40,770] is almost always much smaller.
+[00:39:40,770 --> 00:39:44,780] And that's why one of the-- a better approach
+[00:39:44,780 --> 00:39:52,160] is to use cross-validation for setting hyperparameters.
+[00:39:52,160 --> 00:39:54,940] Basically, you split your training data
+[00:39:54,940 --> 00:39:59,350] into a number of folds, a number of partitions.
+[00:39:59,350 --> 00:40:01,120] Here, in this case, five.
+[00:40:01,120 --> 00:40:08,140] And each of the folds plays as the validation set once.
+[00:40:08,140 --> 00:40:10,660] And iteratively, you run this five times
+[00:40:10,660 --> 00:40:12,530] for five-fold cross-validation.
+[00:40:12,530 --> 00:40:17,810] You do this five times and average the accuracies.
+[00:40:17,810 --> 00:40:20,510] So you set a value of the hyperparameter.
+[00:40:20,510 --> 00:40:25,460] You run this for all these five sets, define the accuracy,
+[00:40:25,460 --> 00:40:29,690] calculate the accuracy on the validation set, average it.
+[00:40:29,690 --> 00:40:31,600] And then you do this multiple times
+[00:40:31,600 --> 00:40:34,250] to find the best setting for the hyperparameter.
+[00:40:34,250 --> 00:40:36,620] After you found the hyperparameter setting,
+[00:40:36,620 --> 00:40:39,160] you apply it to the testing set.
+[00:40:39,160 --> 00:40:41,500] This is a little bit more reliable
+[00:40:41,500 --> 00:40:44,270] and generates much better results,
+[00:40:44,270 --> 00:40:46,360] although in larger scale deep learning,
+[00:40:46,360 --> 00:40:52,860] it is less practiced because repeating this multiple times
+[00:40:52,860 --> 00:40:56,290] and five times with huge data sets is very hard.
+[00:40:56,290 --> 00:41:00,040] So we often use intuitions for setting hyperparameters,
+[00:41:00,040 --> 00:41:03,720] and the single validation set is sometimes
+[00:41:03,720 --> 00:41:05,200] the approach we go with.
+[00:41:05,200 --> 00:41:09,150] But this is pretty much advised.
+[00:41:09,150 --> 00:41:13,570] Again, outside computer vision, outside larger scale data sets,
+[00:41:13,570 --> 00:41:16,200] often research papers require doing
+[00:41:16,200 --> 00:41:22,710] these types of cross-validation and these types
+[00:41:22,710 --> 00:41:27,780] of statistical frameworks to make sure your results are
+[00:41:27,780 --> 00:41:29,650] reproducible on a testing set.
+[00:41:29,650 --> 00:41:32,590] Anyways, so there are different approaches.
+[00:41:32,590 --> 00:41:36,420] Let's finalize the topic, wrap up
+[00:41:36,420 --> 00:41:42,720] the topic of nearest neighbor, and look
+[00:41:42,720 --> 00:41:45,540] at some examples, some results.
+[00:41:45,540 --> 00:41:50,268] So let me introduce you to the CIFAR10 data set.
+[00:41:50,268 --> 00:41:51,810] It's one of the data sets that you're
+[00:41:51,810 --> 00:41:56,470] going to be using in your assignments quite often.
+[00:41:56,470 --> 00:42:01,260] It has 10 classes with a number of training images and testing
+[00:42:01,260 --> 00:42:02,170] images.
+[00:42:02,170 --> 00:42:03,960] The 10 classes, some of the examples
+[00:42:03,960 --> 00:42:07,590] are shown here with nearest neighbor
+[00:42:07,590 --> 00:42:09,580] for each of the testing images.
+[00:42:09,580 --> 00:42:14,790] If we run nearest neighbor and select
+[00:42:14,790 --> 00:42:22,980] the top 10 nearest neighbors, they are all visualized there.
+[00:42:22,980 --> 00:42:26,880] As you can imagine and guess, one of the first questions
+[00:42:26,880 --> 00:42:28,260] to answer is how many--
+[00:42:31,290 --> 00:42:32,930] what should be the value for k?
+[00:42:32,930 --> 00:42:34,680] How many nearest neighbors should we take?
+[00:42:34,680 --> 00:42:39,960] And want to study one of the quick experiments
+[00:42:39,960 --> 00:42:42,660] with five-fold, each of those points
+[00:42:42,660 --> 00:42:47,960] is one of the folds in five-fold for each of the values of k,
+[00:42:47,960 --> 00:42:52,080] shows different values here.
+[00:42:52,080 --> 00:42:56,880] And as you can probably see here, k equal to 7,
+[00:42:56,880 --> 00:43:01,440] it generates the best results in terms of accuracy,
+[00:43:01,440 --> 00:43:03,740] which is close to 29%--
+[00:43:03,740 --> 00:43:10,190] to 28% accuracy, which is actually not too bad
+[00:43:10,190 --> 00:43:14,700] because this is a 10-class classification problem.
+[00:43:14,700 --> 00:43:17,190] And with a 10-class classification problem,
+[00:43:17,190 --> 00:43:21,600] often the random guess gets you a 10% accuracy.
+[00:43:21,600 --> 00:43:24,630] So this is much better than random guess.
+[00:43:24,630 --> 00:43:25,680] So it's working.
+[00:43:25,680 --> 00:43:30,980] It's doing something, but there is a lot of room to improve.
+[00:43:30,980 --> 00:43:35,700] So if we go back and look at the examples,
+[00:43:35,700 --> 00:43:38,900] we can actually see there are so many mistakes, especially
+[00:43:38,900 --> 00:43:41,040] with the one that is closest.
+[00:43:41,040 --> 00:43:44,150] For example, the fourth row, if you look at that, it's a frog.
+[00:43:44,150 --> 00:43:47,690] But the first example seems to be a cat.
+[00:43:47,690 --> 00:43:48,770] Sorry, a dog.
+[00:43:48,770 --> 00:43:54,340] And you can guess why this is happening because the distance
+[00:43:54,340 --> 00:43:57,580] is being applied on pixels.
+[00:43:57,580 --> 00:44:01,970] And pixel wise, they look like each other.
+[00:44:01,970 --> 00:44:05,570] They have the same type of colors in most pixels,
+[00:44:05,570 --> 00:44:08,330] so they are much closer.
+[00:44:08,330 --> 00:44:10,390] This example and many other examples
+[00:44:10,390 --> 00:44:15,250] show that distances that work on pixels and pixel values
+[00:44:15,250 --> 00:44:16,880] are not the best choices.
+[00:44:16,880 --> 00:44:18,860] We never practice them.
+[00:44:18,860 --> 00:44:21,370] There are much better approaches that we'll
+[00:44:21,370 --> 00:44:29,420] be discussing at the end of-- more in the future lectures.
+[00:44:29,420 --> 00:44:34,340] And just to wrap up the topic, this is another example.
+[00:44:34,340 --> 00:44:37,820] If you look at this original image, those three images,
+[00:44:37,820 --> 00:44:40,090] while they look very much different in terms
+[00:44:40,090 --> 00:44:46,770] of color or maybe occlusion, or the one in the third one
+[00:44:46,770 --> 00:44:51,000] from the left side is just same pixel-- it's
+[00:44:51,000 --> 00:44:55,660] the same image with one pixel shifting to the right, I think.
+[00:44:55,660 --> 00:44:58,590] Although from a human eyes perspective,
+[00:44:58,590 --> 00:45:00,640] there is no-- absolutely no difference.
+[00:45:00,640 --> 00:45:05,310] But the distance between that and the original image
+[00:45:05,310 --> 00:45:08,590] is the same as the other two examples that you see here.
+[00:45:08,590 --> 00:45:11,680] I'll stop for a couple of questions,
+[00:45:11,680 --> 00:45:13,870] and this is the summary of what we've discussed.
+[00:45:13,870 --> 00:45:16,680] So the question is, how do we make a decision.
+[00:45:16,680 --> 00:45:20,700] In those cases, you often go with randomly selected one
+[00:45:20,700 --> 00:45:21,750] of the tops.
+[00:45:21,750 --> 00:45:27,450] So if you are to collect more data, if you're--
+[00:45:27,450 --> 00:45:30,180] for example, you're solving a problem now in genetics
+[00:45:30,180 --> 00:45:33,450] or you're solving a problem in medical imaging
+[00:45:33,450 --> 00:45:40,200] when you visualize your examples, your features
+[00:45:40,200 --> 00:45:41,020] or whatever.
+[00:45:41,020 --> 00:45:43,570] And then in this nearest neighbor space,
+[00:45:43,570 --> 00:45:47,610] you do see pockets of space that you don't have any good samples
+[00:45:47,610 --> 00:45:52,920] for, or there is ambiguity, then you often
+[00:45:52,920 --> 00:45:55,440] try to go and find other samples that
+[00:45:55,440 --> 00:45:58,890] lie in that same area in that space.
+[00:45:58,890 --> 00:46:03,960] OK, so summarizing what we've talked
+[00:46:03,960 --> 00:46:06,330] about with k-nearest neighbor, it
+[00:46:06,330 --> 00:46:12,900] was mostly about understanding the easiest
+[00:46:12,900 --> 00:46:17,250] algorithm, data-driven approach, and then talking
+[00:46:17,250 --> 00:46:19,080] a little bit about hyperparameter tuning
+[00:46:19,080 --> 00:46:23,040] and how distance metrics and the value of k
+[00:46:23,040 --> 00:46:26,070] play a very important role.
+[00:46:26,070 --> 00:46:30,570] Moving on to the next topic, which is linear classifiers.
+[00:46:30,570 --> 00:46:35,640] 25 minutes time to cover this, I want
+[00:46:35,640 --> 00:46:40,190] to spend the remaining time of this lecture
+[00:46:40,190 --> 00:46:43,770] to talk about this very important topic.
+[00:46:43,770 --> 00:46:50,960] This is the most important building block for almost.
+[00:46:50,960 --> 00:46:53,930] All of deep learning.
+[00:46:53,930 --> 00:47:04,200] And we need to see how this approach is different.
+[00:47:04,200 --> 00:47:07,740] So first we want to see how it's different from nearest neighbor.
+[00:47:07,740 --> 00:47:09,900] So this is a parametric approach,
+[00:47:09,900 --> 00:47:14,180] meaning that now we are learning we are finding
+[00:47:14,180 --> 00:47:17,900] some parameters, w, or some weights that
+[00:47:17,900 --> 00:47:22,850] map the input image into the output classes, the output
+[00:47:22,850 --> 00:47:23,850] numbers.
+[00:47:23,850 --> 00:47:26,720] In this case, when we create this function
+[00:47:26,720 --> 00:47:30,290] f that maps input to the output, often
+[00:47:30,290 --> 00:47:35,830] those outputs are kind of membership scores
+[00:47:35,830 --> 00:47:41,900] of the image to each of those 10 output classes labels.
+[00:47:41,900 --> 00:47:49,060] So with this setup that we build, a linear classifier
+[00:47:49,060 --> 00:47:53,830] first maps uses w uses these parameters
+[00:47:53,830 --> 00:48:01,010] to map each of the inputs x into a value, which is the output y.
+[00:48:01,010 --> 00:48:04,640] And how this is done is very simple.
+[00:48:04,640 --> 00:48:10,250] This image is basically an area of, say, 32 by 32 by 3,
+[00:48:10,250 --> 00:48:14,150] so 3,072 numbers.
+[00:48:14,150 --> 00:48:23,000] And this defines our x, which is 3,072 by one vector.
+[00:48:23,000 --> 00:48:26,360] And we know that we have 10 output classes.
+[00:48:26,360 --> 00:48:28,430] So we need 10 different scores.
+[00:48:28,430 --> 00:48:29,650] And the scores are--
+[00:48:29,650 --> 00:48:34,690] the output will be kind of a vector of 10 by 1.
+[00:48:34,690 --> 00:48:38,910] And this means that we have to identify to find a weight matrix
+[00:48:38,910 --> 00:48:47,520] w that is a 10 by 3,072 that maps x into the output scores.
+[00:48:47,520 --> 00:48:50,020] Just to complete this linear function,
+[00:48:50,020 --> 00:48:56,380] we often use this bias term as well.
+[00:48:56,380 --> 00:49:01,620] It's an input-independent value, which actually has
+[00:49:01,620 --> 00:49:03,400] a lot of different use cases.
+[00:49:03,400 --> 00:49:07,990] I can talk about it when I do some geometric visualizations,
+[00:49:07,990 --> 00:49:13,500] but it sometimes creates a shift for different class scores
+[00:49:13,500 --> 00:49:20,470] and helps with much better separation of each class.
+[00:49:20,470 --> 00:49:23,730] So as I said, these linear functions
+[00:49:23,730 --> 00:49:28,270] are actually building blocks for building neural networks.
+[00:49:28,270 --> 00:49:32,700] Each of these linear classifiers, linear functions
+[00:49:32,700 --> 00:49:35,170] when put together, one after the other,
+[00:49:35,170 --> 00:49:39,240] create these large neural networks.
+[00:49:39,240 --> 00:49:42,480] Although there are a lot of other things
+[00:49:42,480 --> 00:49:45,720] that need to be added here, but this
+[00:49:45,720 --> 00:49:48,190] is one of the most important components.
+[00:49:48,190 --> 00:49:56,200] If we look at some of the popular neural networks,
+[00:49:56,200 --> 00:50:00,570] we can see that linear functions are everywhere
+[00:50:00,570 --> 00:50:03,600] in the architectures.
+[00:50:03,600 --> 00:50:08,040] So, to better understand what this mapping and this function
+[00:50:08,040 --> 00:50:11,880] is doing, let's go back to our example of CIFAR10
+[00:50:11,880 --> 00:50:15,580] and our training and testing samples and so on,
+[00:50:15,580 --> 00:50:18,160] and even make it a little bit simpler.
+[00:50:18,160 --> 00:50:22,120] Instead of looking at large images of 32 by 32,
+[00:50:22,120 --> 00:50:25,680] let's look at images of 2 by 2, an input image
+[00:50:25,680 --> 00:50:27,540] that has four pixels.
+[00:50:27,540 --> 00:50:34,560] This means that the input image is turned into a vector.
+[00:50:34,560 --> 00:50:42,260] As you can see here, we have to find a w and the values of b.
+[00:50:42,260 --> 00:50:49,200] So the input image is mapped into some scores as the output.
+[00:50:49,200 --> 00:50:54,710] So this is how the linear function
+[00:50:54,710 --> 00:50:58,050] from an algebraic viewpoint looks like.
+[00:50:58,050 --> 00:51:01,310] The output scores here, we are considering three classes
+[00:51:01,310 --> 00:51:02,940] of cat, dog, and ship.
+[00:51:02,940 --> 00:51:10,040] And as you can see, this function
+[00:51:10,040 --> 00:51:13,520] maps the image, the vector, representing the image
+[00:51:13,520 --> 00:51:16,820] into those scores.
+[00:51:16,820 --> 00:51:21,780] So algebraic viewpoint of linear classification.
+[00:51:21,780 --> 00:51:26,000] Now let's look at some visual perspectives
+[00:51:26,000 --> 00:51:27,910] of this linear classifier.
+[00:51:27,910 --> 00:51:33,190] As you can see, we often create each of these images,
+[00:51:33,190 --> 00:51:38,540] as we talked about for this image.
+[00:51:38,540 --> 00:51:45,310] For each of the classes, we define some sort of-- we have
+[00:51:45,310 --> 00:51:46,330] a row of this--
+[00:51:46,330 --> 00:51:48,506] row in the matrix w.
+[00:51:48,506 --> 00:51:51,070] So this row is kind of a template
+[00:51:51,070 --> 00:51:52,760] for that specific class.
+[00:51:52,760 --> 00:51:57,370] If I separate it like this, so this image
+[00:51:57,370 --> 00:52:01,030] is multiplied by w and b, and w is--
+[00:52:01,030 --> 00:52:03,940] this is the template from each of the three
+[00:52:03,940 --> 00:52:06,140] classes of cat, dog, and ship.
+[00:52:06,140 --> 00:52:12,740] And after training or building the model on the CIFAR data set,
+[00:52:12,740 --> 00:52:18,880] if I look at the visual perspective, a visual point,
+[00:52:18,880 --> 00:52:21,170] viewpoint of the linear classifier,
+[00:52:21,170 --> 00:52:23,740] if I look at those templates that
+[00:52:23,740 --> 00:52:26,120] are learned for each of the 10 classes,
+[00:52:26,120 --> 00:52:27,910] you can see these templates.
+[00:52:27,910 --> 00:52:30,570] So it's very interesting that in some
+[00:52:30,570 --> 00:52:34,360] of these cases, for example, for the example for car,
+[00:52:34,360 --> 00:52:39,640] you do see a front of a car template-ish,
+[00:52:39,640 --> 00:52:45,870] and although this is all done with just one linear classifier.
+[00:52:45,870 --> 00:52:48,900] So the visual aspect, visual viewpoint
+[00:52:48,900 --> 00:52:51,030] of the linear classifier, and there
+[00:52:51,030 --> 00:52:55,800] is another aspect of geometric viewpoint.
+[00:52:55,800 --> 00:53:01,290] What this linear classifier often does is finding those
+[00:53:01,290 --> 00:53:05,910] lines if it's in 2D space, finding those lines that
+[00:53:05,910 --> 00:53:09,240] separates each class from the others.
+[00:53:09,240 --> 00:53:12,570] And as you can see here, red, blue, and green
+[00:53:12,570 --> 00:53:20,260] are defining different classes, and in higher dimensional space,
+[00:53:20,260 --> 00:53:22,990] instead of those lines, it's these hyperplanes,
+[00:53:22,990 --> 00:53:27,450] as you can see in this example on the left.
+[00:53:27,450 --> 00:53:33,240] So you can also see the use of the bias term
+[00:53:33,240 --> 00:53:36,420] here, because if we didn't have the bias, all of these lines
+[00:53:36,420 --> 00:53:38,250] should have passed through the origin
+[00:53:38,250 --> 00:53:42,580] from the center of that space, which doesn't really make sense.
+[00:53:42,580 --> 00:53:44,640] But with the bias, we can actually
+[00:53:44,640 --> 00:53:53,220] create more reliable functions and decision boundaries.
+[00:53:53,220 --> 00:53:57,190] So a linear function is very useful.
+[00:53:57,190 --> 00:54:01,150] A linear classifier is very useful for many applications,
+[00:54:01,150 --> 00:54:02,650] as we talked about.
+[00:54:02,650 --> 00:54:08,050] And it's a building block of more complex neural networks.
+[00:54:08,050 --> 00:54:10,410] But it does have its own challenges
+[00:54:10,410 --> 00:54:18,250] because it can't classify many instances of separate data.
+[00:54:18,250 --> 00:54:20,910] For example, in this case, if class 1
+[00:54:20,910 --> 00:54:24,200] is the first and third quadrant and the second class
+[00:54:24,200 --> 00:54:26,100] is second and the fourth.
+[00:54:26,100 --> 00:54:28,170] There is no way to linearly separate these.
+[00:54:28,170 --> 00:54:34,580] Another example is if we have this type of separation
+[00:54:34,580 --> 00:54:37,970] between class 1 and class 2, that
+[00:54:37,970 --> 00:54:41,570] shows the distance from the origin being between 1 and 2
+[00:54:41,570 --> 00:54:44,580] as class 1, and then everything else as class 2.
+[00:54:44,580 --> 00:54:47,100] Similarly, if there are three modes,
+[00:54:47,100 --> 00:54:50,760] three areas in the space that are one class, and then
+[00:54:50,760 --> 00:54:52,260] the second class is everything else.
+[00:54:52,260 --> 00:54:54,620] So in all of these cases, it's actually very hard
+[00:54:54,620 --> 00:54:57,770] to do the separation.
+[00:54:57,770 --> 00:55:04,260] So what we should do--
+[00:55:04,260 --> 00:55:06,380] so we talked about linear classifiers
+[00:55:06,380 --> 00:55:12,200] and how they can actually map the input images into any form
+[00:55:12,200 --> 00:55:14,580] of labels in the output.
+[00:55:14,580 --> 00:55:20,480] But now what remains is how to choose the value w, that
+[00:55:20,480 --> 00:55:22,690] for each of these images maps the image
+[00:55:22,690 --> 00:55:27,130] into a score for each single class as the output.
+[00:55:27,130 --> 00:55:31,970] And in order to do that, we need to define a loss function,
+[00:55:31,970 --> 00:55:34,330] sometimes referred to as objective function,
+[00:55:34,330 --> 00:55:38,960] that quantifies how bad the classifier,
+[00:55:38,960 --> 00:55:42,140] how bad the model is working.
+[00:55:42,140 --> 00:55:45,940] So the level of unhappiness with respect
+[00:55:45,940 --> 00:55:49,210] to the score on the training data.
+[00:55:49,210 --> 00:55:54,700] After defining those, we need to find a way to efficiently change
+[00:55:54,700 --> 00:56:01,730] the values of w to be able to minimize that unhappiness,
+[00:56:01,730 --> 00:56:05,180] basically, minimize the loss function.
+[00:56:05,180 --> 00:56:09,260] And this is the optimization process.
+[00:56:09,260 --> 00:56:12,620] So the topic of next class, next lecture.
+[00:56:12,620 --> 00:56:18,610] And in order to do that, again for simplicity
+[00:56:18,610 --> 00:56:23,160] let's look at an easier and easier example, having
+[00:56:23,160 --> 00:56:27,520] these three classes a linear function, as you can see here,
+[00:56:27,520 --> 00:56:35,430] and the three classes of cat, car, and frog.
+[00:56:35,430 --> 00:56:37,590] We need a loss function that tells how
+[00:56:37,590 --> 00:56:40,270] good our current classifier is.
+[00:56:40,270 --> 00:56:45,210] And in order to do that, we need to parameterize the problem, xi
+[00:56:45,210 --> 00:56:50,580] and yi defining the input image, label images,
+[00:56:50,580 --> 00:56:52,900] and the corresponding labels.
+[00:56:52,900 --> 00:56:56,340] And then we need the loss function and distance
+[00:56:56,340 --> 00:56:59,550] function that maps--
+[00:56:59,550 --> 00:57:05,190] looks at the differences and how bad the scores are compared
+[00:57:05,190 --> 00:57:10,170] to the ones that are predicted, the predicted scores fx and w,
+[00:57:10,170 --> 00:57:13,950] and the ground truth values, the values that are already given,
+[00:57:13,950 --> 00:57:15,760] yi.
+[00:57:15,760 --> 00:57:19,300] We often normalize them based on the number of samples as well,
+[00:57:19,300 --> 00:57:20,830] but it's not that important.
+[00:57:20,830 --> 00:57:23,160] So this defines the loss function,
+[00:57:23,160 --> 00:57:26,460] the objective function.
+[00:57:26,460 --> 00:57:32,670] So how we can do the optimization,
+[00:57:32,670 --> 00:57:40,510] and how can we really find the w's?
+[00:57:40,510 --> 00:57:44,370] There are different ways of defining this l--
+[00:57:44,370 --> 00:57:44,980] li.
+[00:57:44,980 --> 00:57:50,790] And I want to talk about softmax classifier right now.
+[00:57:50,790 --> 00:57:57,030] As an example for that cat, if you
+[00:57:57,030 --> 00:57:59,010] remember the scores that were given
+[00:57:59,010 --> 00:58:04,710] were 3.2, 5.1, and a minus 1.7, these
+[00:58:04,710 --> 00:58:10,530] are the scores that are the output of the function we
+[00:58:10,530 --> 00:58:13,290] discussed, f, xi and w.
+[00:58:13,290 --> 00:58:18,570] And in order to turn these scores--
+[00:58:18,570 --> 00:58:20,210] because these scores are unbounded
+[00:58:20,210 --> 00:58:22,730] and the values are often not very much
+[00:58:22,730 --> 00:58:26,870] controllable because this is just a linear function.
+[00:58:26,870 --> 00:58:34,740] In order to turn these into some scoring functions, the best--
+[00:58:34,740 --> 00:58:37,130] the best possible way is to turn these
+[00:58:37,130 --> 00:58:39,080] into probabilities, which defines
+[00:58:39,080 --> 00:58:45,050] the probability of the class being this class
+[00:58:45,050 --> 00:58:49,320] k for each input image xi.
+[00:58:49,320 --> 00:58:53,510] And in order to do that, we first--
+[00:58:53,510 --> 00:58:58,350] this is the function that we use, the softmax function.
+[00:58:58,350 --> 00:59:02,900] We first exponentiate the values of the scores
+[00:59:02,900 --> 00:59:05,580] to create these numbers.
+[00:59:05,580 --> 00:59:08,190] When we use exp on these numbers,
+[00:59:08,190 --> 00:59:10,110] the numbers will always be--
+[00:59:10,110 --> 00:59:12,550] the outputs will always be positive.
+[00:59:12,550 --> 00:59:15,370] And we need to make sure that the probabilities are always
+[00:59:15,370 --> 00:59:16,220] positive.
+[00:59:16,220 --> 00:59:19,660] And after creating these numbers, what we can do
+[00:59:19,660 --> 00:59:22,150] is just normalize them.
+[00:59:22,150 --> 00:59:24,370] So exponentiate and then normalize
+[00:59:24,370 --> 00:59:26,690] based on the sum of all of the samples.
+[00:59:26,690 --> 00:59:32,930] So then we normalize them based on sum of all samples.
+[00:59:32,930 --> 00:59:37,360] And this creates a very, very good set
+[00:59:37,360 --> 00:59:41,060] of values that define a probability function.
+[00:59:41,060 --> 00:59:43,280] So this is a distribution function.
+[00:59:43,280 --> 00:59:44,510] They sum to 1.
+[00:59:44,510 --> 00:59:48,580] And if I want to interpret these,
+[00:59:48,580 --> 00:59:56,500] it's very simple to say it's this set of w's, parameters,
+[00:59:56,500 --> 01:00:02,260] thinks that this image is a cat with a probability
+[01:00:02,260 --> 01:00:06,224] of 13% or 0.13.
+[01:00:06,224 --> 01:00:11,440] And obviously, this is making a mistake in this example
+[01:00:11,440 --> 01:00:14,230] because the w is not a good setting.
+[01:00:14,230 --> 01:00:17,410] We should optimize it and change it.
+[01:00:17,410 --> 01:00:21,120] So these probabilities are the counterparts
+[01:00:21,120 --> 01:00:26,190] of these unnormalized log probabilities, which are often
+[01:00:26,190 --> 01:00:27,850] referred to as logits.
+[01:00:27,850 --> 01:00:33,120] So if you've taken other machine-learning courses,
+[01:00:33,120 --> 01:00:33,960] or if you--
+[01:00:33,960 --> 01:00:39,280] I'm sure in other fields, you've used logistic regression,
+[01:00:39,280 --> 01:00:41,560] this is a similar type of framework.
+[01:00:41,560 --> 01:00:45,660] This is the exact same framework as logistic regression.
+[01:00:45,660 --> 01:00:49,200] And since we have multiple classes here,
+[01:00:49,200 --> 01:00:54,540] it's a multinomial logistic regression.
+[01:00:54,540 --> 01:00:57,553] How do we define the function l?
+[01:00:57,553 --> 01:00:59,220] I told you that there are different ways
+[01:00:59,220 --> 01:01:01,980] of defining the function l.
+[01:01:01,980 --> 01:01:05,590] We want to define a loss function that--
+[01:01:05,590 --> 01:01:06,750] what's objective here?
+[01:01:06,750 --> 01:01:13,950] We want to maximize the probability of the sample
+[01:01:13,950 --> 01:01:15,820] belonging to the correct class.
+[01:01:15,820 --> 01:01:21,810] So we want to maximize the value of 0.13.
+[01:01:21,810 --> 01:01:28,150] Now we have other larger values in that set.
+[01:01:28,150 --> 01:01:34,600] So if you want to maximize this, this is a maximization problem.
+[01:01:34,600 --> 01:01:38,100] In order to turn it-- because all of the objectives
+[01:01:38,100 --> 01:01:42,720] that we define, we try to build a minimization objective
+[01:01:42,720 --> 01:01:49,170] function, the first step is just to negate the values.
+[01:01:49,170 --> 01:01:52,020] We negate it so the maximization problem turns
+[01:01:52,020 --> 01:01:53,860] into a minimization problem.
+[01:01:53,860 --> 01:01:55,980] And then we also take the log of the value
+[01:01:55,980 --> 01:02:00,130] just to make the numbers a little bit more manageable.
+[01:02:00,130 --> 01:02:03,570] So negative log of that value will
+[01:02:03,570 --> 01:02:06,810] define the objective function, the loss function
+[01:02:06,810 --> 01:02:10,050] for solving this problem.
+[01:02:10,050 --> 01:02:10,740] Very simple.
+[01:02:10,740 --> 01:02:12,440] That's the objective, or the loss
+[01:02:12,440 --> 01:02:20,540] function for softmax and for this logistic regression
+[01:02:20,540 --> 01:02:21,270] function.
+[01:02:21,270 --> 01:02:28,490] And if you've taken, as I said, other classes like CS-229,
+[01:02:28,490 --> 01:02:31,550] it's often referred to as maximum likelihood estimation
+[01:02:31,550 --> 01:02:32,160] as well.
+[01:02:32,160 --> 01:02:34,040] It's the same algorithm.
+[01:02:34,040 --> 01:02:42,540] So with that in mind, I want to say that-- so as we discussed,
+[01:02:42,540 --> 01:02:45,140] it's the negative of the log of that probability
+[01:02:45,140 --> 01:02:49,580] of the correct class, which defines the objective function
+[01:02:49,580 --> 01:02:50,560] the loss function.
+[01:02:53,690 --> 01:02:56,130] And that's basically that simple.
+[01:02:56,130 --> 01:02:59,930] But there are other types of interpreting this framework
+[01:02:59,930 --> 01:03:00,720] as well.
+[01:03:00,720 --> 01:03:08,830] So one way of redefining this loss function
+[01:03:08,830 --> 01:03:12,560] is saying that we have some estimated probabilities,
+[01:03:12,560 --> 01:03:15,640] and we also have a probability function that defines
+[01:03:15,640 --> 01:03:18,200] the correct probabilities.
+[01:03:18,200 --> 01:03:23,080] What we want to do is to match these two probability functions.
+[01:03:23,080 --> 01:03:29,840] And in order to do that, we want to minimize the KL divergence,
+[01:03:29,840 --> 01:03:32,210] Kullback-Leibler divergence.
+[01:03:32,210 --> 01:03:36,640] This is a information theoretic perspective
+[01:03:36,640 --> 01:03:39,140] of looking at this loss function.
+[01:03:39,140 --> 01:03:43,760] And again, those are exactly the same.
+[01:03:43,760 --> 01:03:49,360] This KL divergence in this setting
+[01:03:49,360 --> 01:03:53,290] simplifies into the same negative log function
+[01:03:53,290 --> 01:03:54,410] that we defined.
+[01:03:54,410 --> 01:04:01,660] And even going further, this is exactly the cross entropy
+[01:04:01,660 --> 01:04:09,750] function, because if we define this, use this entropy of p,
+[01:04:09,750 --> 01:04:14,500] which is entropy of the correct values,
+[01:04:14,500 --> 01:04:19,210] correct probabilities plus that same KL divergence, again,
+[01:04:19,210 --> 01:04:22,300] this simplifies into the same negative log function.
+[01:04:22,300 --> 01:04:26,160] And that's because when we use one hot encoding
+[01:04:26,160 --> 01:04:29,920] setting for the classes, the entropy is 0.
+[01:04:29,920 --> 01:04:31,920] So that's one of the reasons that we
+[01:04:31,920 --> 01:04:34,650] call this function cross entropy or binary cross
+[01:04:34,650 --> 01:04:36,160] entropy function.
+[01:04:36,160 --> 01:04:39,870] In all of deep learning, you've probably--
+[01:04:39,870 --> 01:04:42,790] if you've used any of the neural network frameworks,
+[01:04:42,790 --> 01:04:45,240] you've heard about BCE, Binary Cross Entropy,
+[01:04:45,240 --> 01:04:47,980] or you will be hearing about it a lot.
+[01:04:47,980 --> 01:04:50,850] So this is the same framework.
+[01:04:50,850 --> 01:04:57,600] We start very simple, but we got to the similarities
+[01:04:57,600 --> 01:05:00,490] and differences between each of those.
+[01:05:00,490 --> 01:05:03,810] So the objective-- sorry, the loss function
+[01:05:03,810 --> 01:05:06,250] was defined as negative log of this probability,
+[01:05:06,250 --> 01:05:09,600] and the probability was defined by the softmax, which
+[01:05:09,600 --> 01:05:11,650] we talked about.
+[01:05:11,650 --> 01:05:15,600] And then optimizing for this, which is the topic of next
+[01:05:15,600 --> 01:05:19,450] session, will give us the right w's.
+[01:05:19,450 --> 01:05:23,790] But before I end, I want to ask a couple of questions
+[01:05:23,790 --> 01:05:26,140] with this definition that you see here.
+[01:05:26,140 --> 01:05:29,550] What is the mean and maximum value
+[01:05:29,550 --> 01:05:33,450] that you can see for the loss function li?
+[01:05:33,450 --> 01:05:37,090] Yes, it's 0, which turns into minus minus infinity.
+[01:05:37,090 --> 01:05:41,470] But we have a negative negation there, so it would be infinity.
+[01:05:41,470 --> 01:05:42,520] That is correct.
+[01:05:42,520 --> 01:05:44,285] But then we also have to--
+[01:05:47,430 --> 01:05:52,240] yes, that's definitely-- that's right.
+[01:05:52,240 --> 01:05:56,740] And let me actually look at a second question.
+[01:05:56,740 --> 01:05:59,850] Yes, this one.
+[01:05:59,850 --> 01:06:05,550] So when we initialize all of the si, so basically, the w's,
+[01:06:05,550 --> 01:06:07,990] in the beginning, it's almost random.
+[01:06:07,990 --> 01:06:11,730] So the probabilities of each of the classes
+[01:06:11,730 --> 01:06:18,030] becomes mostly equal.
+[01:06:18,030 --> 01:06:22,403] What is the softmax li, assuming we have c classes?
+[01:06:30,435 --> 01:06:31,560] And especially if it's c10.
+[01:06:34,140 --> 01:06:37,780] So because the probabilities are equal,
+[01:06:37,780 --> 01:06:40,740] it means that all of the probabilities are around 1
+[01:06:40,740 --> 01:06:47,110] over C. And then that will be defined as log of C.
+[01:06:47,110 --> 01:06:49,080] And we have 10-- if we have 10 classes,
+[01:06:49,080 --> 01:06:54,730] then the log or ln of 10 is 2.3, which is the exp.
+[01:06:54,730 --> 01:06:57,020] We know about it.

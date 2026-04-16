@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import os
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_DIR = ROOT / "build"
+DELIVERABLE_DIR = ROOT / "deliverable"
 
 
 def latex_escape(text: str) -> str:
@@ -35,6 +37,13 @@ def compile_tex(tex_path: Path) -> None:
             stderr=subprocess.STDOUT,
             text=True,
         )
+
+
+def publish_deliverables(*paths: Path) -> None:
+    DELIVERABLE_DIR.mkdir(parents=True, exist_ok=True)
+    for path in paths:
+        if path.exists():
+            shutil.copy2(path, DELIVERABLE_DIR / path.name)
 
 
 def main() -> None:
@@ -87,6 +96,7 @@ def main() -> None:
     lines.append(r"\end{document}")
     tex_path.write_text("\n".join(lines) + "\n")
     compile_tex(tex_path)
+    publish_deliverables(tex_path, tex_path.with_suffix(".pdf"))
     print(tex_path)
 
 

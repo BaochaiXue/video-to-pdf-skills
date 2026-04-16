@@ -1,0 +1,102 @@
+
+\documentclass[a4paper]{article}
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\newtcolorbox{knowledgebox}[1]{enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black, coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm}, boxrule=1pt, sharp corners}
+\newtcolorbox{importantbox}[1]{enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black, coltitle=black, fonttitle=\bfseries, title=#1, sharp corners}
+\newtcolorbox{warningbox}[1]{enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black, coltitle=white, fonttitle=\bfseries, title=#1, sharp corners}
+\lstset{language=Python,basicstyle=\ttfamily\small,keywordstyle=\color{blue},stringstyle=\color{red!60!black},commentstyle=\color{green!60!black},breaklines=true,frame=single,numbers=left,numberstyle=\tiny\color{gray},captionpos=b,extendedchars=false}
+\newcommand{\notetitle}{CS231N Spring 2025 课程讲义：Lecture 18 Human-Centered AI}
+\newcommand{\noteauthors}{Codex Worker 3}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-09-02}
+\newcommand{\videoduration}{1:05:15}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=g8UaBfj6Sh8}
+\newcommand{\videocoverpath}{cover.jpg}
+\begin{document}
+\begin{titlepage}\centering
+{\Large 课程讲义\par}\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}\vspace{0.8cm}
+{\large \noteauthors\par}\vspace{0.3cm}
+{\large \notedate\par}\vspace{1.2cm}
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+\tableofcontents\newpage
+
+\section{从“我们看见什么”到“我们珍视什么”}
+
+作为课程最后一讲，这一节并不继续讲某个新算法，而是把整门课重新放回“human perspective”下审视。讲者一开始就说明：这不是一次普通的技术递进课，而是一次研究与价值取向上的回望。她把主题概括为 what we see and what we value，意思是 AI 不仅关心能不能看见、能不能识别、能不能生成，更关心我们究竟希望它看见什么、帮助什么、以及在什么边界内行动。
+
+\begin{warningbox}{Source Gap}
+本讲在 Spring 2025 课程页上没有公开官方 slides。本章完全依据公开视频字幕、课程页上下文与已有 structured evidence 做 best effort 重建，因此组织方式更接近 transcript-grounded 教材化整理，而不是 slide-by-slide 对齐讲义。
+\end{warningbox}
+
+讲者随后把计算机视觉和 AI 的发展粗略回顾为几波：早期 parts-based object recognition 假设物体可由预定义部件组合而成，思想很优雅，但实际效果有限；随后统计机器学习时代到来，编程与统计模型结合，让系统开始真正从数据中学习；再后来深度学习把表示学习推到大规模阶段，性能大幅跃升，但也把社会影响、偏见与价值问题重新推到台前。
+
+她之所以在课程终点讲这段历史，不是为了做怀旧回顾，而是为了提醒学生：每一波技术进展都扩大了“我们可以让机器看见什么”的能力，但也同时扩大了“机器看见以后会做什么”的责任范围。
+
+\subsection{本章小结}
+
+本讲开头最重要的收束是：技术路线并不是价值中立的。视觉能力越强，我们越需要明确地问，系统该服务于谁、在哪些场景里部署、又应当拒绝什么。
+
+\section{从场景理解到社会语义：看见关系、差异与隐藏结构}
+
+课程中段回顾了 scene understanding 的一条研究线：如果视觉系统只会识别孤立对象，它对现实世界的理解依然很浅。于是，研究开始转向 object relationships、scene graphs、story descriptions 等更结构化的表示。讲者以 Visual Genome 为例，说明即使是一张看似简单的图像，也可能包含对象、属性、关系、动作与叙事层级的密集结构。
+
+她特别喜欢举 unusual relationships 的例子，例如 person riding a horse 很常见，但 horse wearing a hat 就非常少见。这个例子看似轻松，实际上指出了一个深刻问题：长尾世界（long tail world）中的罕见组合，往往才是真正考验模型泛化与常识约束的地方。只在海量常见共现上训练，模型容易学会统计频率，却未必真正学会结构关系。
+
+讲者接着讨论 fine-grained recognition。无论是鸟类细粒度分类还是汽车 make/model/year 分类，都说明“看见某个大类”与“真正理解细微差异”之间还隔着很长距离。更有意思的是，这些细粒度视觉信号还可能被拿来推断区域、收入、消费水平等社会属性。也就是说，视觉系统不仅在做识别，还可能间接进入社会判断。
+
+\subsection{本章小结}
+
+场景图、细粒度识别与关系推理共同说明：视觉系统越深入现实世界，就越会从“物体识别器”变成“社会语义提取器”。这使得准确性与责任问题开始交织在一起。
+
+\section{当“不看见”同样重要：隐私、医疗与 dark spaces of health}
+
+讲者在这一部分提出了一个非常有力的观点：很多时候，AI 的目标不是尽可能多看，而是有边界地看。她把这类问题概括为 not seen。某些不可见空间本身是技术盲区，例如医院病房、病人家庭、制药现场、护理流程等缺乏足够人工关注的 dark spaces of health；另一些不可见则是我们主动希望保留的隐私边界。
+
+因此，human-centered AI 在这里体现为一个双重任务：一方面，利用智能传感器和机器学习进入传统上“缺少眼睛”的空间，帮助医生、家庭成员或护理人员更早发现问题；另一方面，又要避免系统过度窥视，侵犯病人和家庭成员不希望暴露的信息。
+
+讲者举了 patient room / home camera、hand hygiene、ambient intelligence for health 等实验室工作，想表达的不是某个特定论文细节，而是一个研究取向：AI 不该只去那些数据最干净、benchmark 最成熟的地方，也应该进入真正对人有帮助但长期被忽视的场景。可一旦进入这些场景，隐私、尊严、授权和解释责任就会立刻变成一等问题。
+
+\subsection{本章小结}
+
+“看得更多”并不自动等于“更好”。在医疗与家庭等敏感环境中，AI 的价值常常来自有边界、可审计、尊重隐私的帮助，而不是最大化感知覆盖。
+
+\section{把 AI 带回真实世界：机器人、偏好与以人为中心的任务选择}
+
+课程最后把话题转向机器人，但切入点不是控制算法，而是 task choice。讲者对“robots in the wild”给出的表述非常明确：如果我们总是在封闭环境里预定义任务集合，机器人系统看起来会很强，但并不真正面向现实世界。相比之下，人们真正需要的，往往是开放指令、开放场景和开放任务组合下的可靠帮助。
+
+她提到实验室如何尝试让机器人接受开放式 instruction，并且讨论一个非常重要的问题：哪些任务值得优先教给机器人？答案不应只由技术可行性决定，还应由 human preference 决定。课程引用了对用户需求的排序结果：人们更希望机器人承担清洁、重复、低情感价值但高体力消耗的任务，而不是去替自己完成高度私人或高社会意义的活动。
+
+这一点非常符合“human-centered”一词的真正含义。以人为中心，不只是让人更方便下 prompt，也不是让机器人看起来更聪明，而是要从任务定义开始，就把人的需求、偏好、伦理边界和社会接受度放进系统设计里。
+
+\subsection{本章小结}
+
+真正的 human-centered robotics，不是先造出一个能做很多事的机器人再找场景，而是先问清楚：哪些帮助是人真正想要的、愿意接受的、并且不会侵蚀自主性与尊严的。
+
+\section{总结与延伸}
+
+Lecture 18 之所以重要，不在于它增加了新的技术细节，而在于它为整门课加上了价值维度。前面 17 讲不断扩展了视觉系统的能力边界：识别、检测、分割、生成、三维理解、语言 grounding、机器人决策。最后这一讲提醒我们，能力边界的每一次扩展，都会把 AI 更深地带入社会结构、制度环境和人与人的关系中。
+
+如果把这门课当成一本教材的最后一章来读，那么本讲给出的最终结论可以概括成三点。第一，AI 研究的历史从来不仅是算法历史，也是问题设定与价值设定的历史。第二，视觉与具身系统一旦进入健康、家庭、城市和劳动力场景，隐私、尊严、偏好和公平不再是附录，而是主问题。第三，以人为中心并不意味着放慢技术创新，而是要求我们从一开始就把“谁受益、谁承担风险、谁拥有选择权”写进系统设计中。
+
+\end{document}

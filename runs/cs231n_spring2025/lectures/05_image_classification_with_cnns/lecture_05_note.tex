@@ -1,0 +1,200 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{CS231N 2025 第5讲：卷积神经网络与图像分类}
+\newcommand{\noteauthors}{Codex Harness Worker 1}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-09-02}
+\newcommand{\videoduration}{1:08:04}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=f3g1zGdxptI}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%% --- 正文内容开始 --- %%
+
+
+\section{为什么要从全连接走向卷积}
+虽然上一讲的多层感知机已经比线性分类器强得多，但它仍然把图像视为一长串无结构的像素向量。这样做的问题在于：图像具有明显的二维局部性与平移结构，邻近像素通常相关，边缘与纹理会在局部区域中重复出现，而全连接层并不会自动利用这些归纳偏置。
+
+因此，课程在一开始就通过多个例子说明：如果仍然在像素空间里做全连接学习，模型不仅参数巨大，而且对平移、局部扰动和组合结构缺乏天然鲁棒性。卷积神经网络（CNN）之所以重要，不是因为它“又深了一些”，而是因为它把图像的空间结构直接编码进了模型架构。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-20.png}
+\caption{像素空间中的线性分类器缺乏对局部结构的归纳偏置，因此面对平移、形变和组合结构时表现脆弱。}
+\end{figure}
+
+全连接网络忽略了图像的二维结构，这会带来参数低效和泛化不足。
+卷积网络的价值首先来自对视觉输入结构的尊重，而不是单纯参数更多。
+\subsection{本章小结}
+
+\section{卷积网络的历史角色：从 LeNet 到现代视觉}
+课程先用历史回顾提醒读者：CNN 并不是突然出现的。它吸收了生物视觉中的层级感受野直觉，也继承了早期 Neocognitron 和 LeNet 的结构思想。在 ImageNet 时代，AlexNet 把这种结构与大规模数据和 GPU 训练结合起来，才让 CNN 成为计算机视觉的默认主干。
+
+这段历史尤其重要，因为它说明“卷积”并不是一个只服务于某个 benchmark 的技巧，而是一种长期有效的表示假设：低层提取局部边缘与纹理，中层组合成部件，高层形成类别相关的语义激活。即使在 Transformer 盛行之后，卷积关于局部性和层级性的直觉仍然持续影响视觉模型设计。
+
+CNN 的成功既依赖结构设计，也依赖数据、算力和训练机制的成熟。
+局部到全局的层级表示，是卷积网络最持久的思想遗产。
+\subsection{本章小结}
+
+\section{卷积层：局部连接与参数共享}
+卷积层的核心操作可以写成
+\[
+ y_{o, i, j} = b_o + \sum_{c=1}^{C_{\mathrm{in}}} \sum_{u=1}^{K} \sum_{v=1}^{K} W_{o,c,u,v} \, x_{c, i+u, j+v}.
+\]
+其中，$x$ 是输入特征图，$W$ 是卷积核权重，$b_o$ 是第 $o$ 个输出通道的偏置，$y_{o,i,j}$ 是第 $o$ 个输出通道在空间位置 $(i,j)$ 的响应。这个公式表达了两件事：卷积核在空间维上滑动，同时对输入的所有通道做加权求和。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-30.png}
+\caption{卷积与池化把“局部特征提取 + 空间下采样”组织成层级表示，是早期深度视觉系统的核心套路。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-50.png}
+\caption{卷积核在空间维上滑动、在通道维上全连接，输出是一组激活图。图中把输入体、卷积核和输出体的维度关系画得很清楚。}
+\end{figure}
+
+和全连接层相比，卷积层最大的不同是参数共享（parameter sharing）：同一个卷积核会被应用到整张图的多个位置，因此模型不需要为每个空间位置单独学习一组权重。这既大幅减少参数量，也自然引入了对平移的等变性（translation equivariance）。
+
+卷积层通过局部连接降低参数复杂度，通过参数共享提升对重复模式的利用效率。
+卷积核在整个图像上扫描，形成一组激活图而不是一个单独分数。
+\subsection{本章小结}
+
+\section{池化、步幅与感受野}
+卷积网络不仅要提取局部特征，还要逐步扩大上下文范围并控制空间分辨率。池化（pooling）与步幅（stride）就是实现这件事的标准工具。它们减少特征图的空间尺寸，提升局部扰动下的稳定性，也让更深层神经元能够“看到”更大输入区域。
+
+课程中一个必须掌握的量是输出尺寸。若输入宽度为 $W$，卷积核大小为 $F$，填充为 $P$，步幅为 $S$，则常见输出宽度为
+\[
+W_{\mathrm{out}} = \frac{W - F + 2P}{S} + 1.
+\]
+其中，$W_{\mathrm{out}}$ 是输出特征图尺寸。这个公式直接决定了网络每层的空间分辨率，也是检查架构是否可行的基本算术。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-80.png}
+\caption{感受野（receptive field）把“某个高层神经元到底看到了输入的哪一块区域”具体化，是理解 CNN 层级结构的关键概念。}
+\end{figure}
+
+感受野则回答另一个问题：某个高层激活到底受原图哪一块区域影响？随着卷积层、步幅和池化的堆叠，有效感受野会不断增大。这就是为什么浅层卷积倾向于响应边缘和纹理，而深层卷积更容易响应部件和对象。
+
+池化与步幅让网络在保持关键信息的同时逐层压缩空间维度。
+感受野把“层级表示”落成了可计算的空间依赖范围。
+\subsection{本章小结}
+
+\section{卷积网络的典型堆叠方式与视觉表征}
+从系统视角看，一个典型 CNN 往往由若干重复模块组成：卷积层提取特征，激活函数提供非线性，池化层调整空间尺度，最后用全连接层或全局池化把高维表示映射到类别空间。课程多次把这种模式画成从输入体到输出体的连续变换。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-140.png}
+\caption{从边缘、纹理到部件再到对象类别的层级组织，说明 CNN 为什么适合视觉感知任务。}
+\end{figure}
+
+Lecture 5 的收束点不是“卷积已经解决了一切”，而是说明卷积网络建立了现代视觉表征的基线。后续无论是更深的 CNN、混合架构还是视觉 Transformer，几乎都在和 CNN 的三个关键问题对话：局部性如何编码？层级表示如何形成？全局上下文如何整合？
+
+CNN 是现代视觉表示学习的起点，而不是终点。
+后续更强模型往往是在保留卷积核心直觉的同时，引入更强的全局建模能力。
+\subsection{本章小结}
+
+\section{总结与延伸}
+Lecture 5 解释了卷积网络为什么会成为视觉中的基本架构：它把图像的二维结构、局部统计规律和层级组合关系直接写进了模型。通过卷积、池化和感受野这些概念，课程把“为什么视觉需要特殊网络结构”这件事讲得非常清楚。
+
+从教材脉络看，这一讲的地位类似一个桥梁：它把前几讲的优化、损失和反向传播，真正装进了能够处理图像结构的网络中。下一讲转向 CNN 的训练技巧和经典架构时，读者要持续带着一个问题：这些新技巧究竟是在改善优化、增加表达能力，还是改变归纳偏置？
+
+\subsection{拓展阅读}
+\begin{itemize}
+\item \href{http://cs231n.github.io/convolutional-networks}{Convolutional Networks}
+\end{itemize}
+
+
+%% --- 正文内容结束 --- %%
+
+\end{document}

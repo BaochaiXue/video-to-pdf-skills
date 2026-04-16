@@ -1,0 +1,3434 @@
+Lecture 14:
+Generative Models (part 2)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 1
+
+May 20, 2025
+
+Administrative
+● Assignment 3 due on 5/30
+● Project Report due on 6/4
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 2
+
+May 20, 2025
+
+Last Time: Generative vs Discriminative Models
+Discriminative Model:
+Learn a probability
+distribution p(y|x)
+
+Density Function
+p(x) assigns a positive
+number to each possible
+x; higher numbers mean
+x is more likely.
+
+Data: x
+
+Generative Model:
+Learn a probability
+distribution p(x)
+
+Density functions are
+normalized:
+
+න 𝑝 𝑥 𝑑𝑥 = 1
+Conditional Generative
+Model: Learn p(x|y)
+Stanford CS231n 10 th Anniversary
+
+𝑋
+
+Label: y
+Cat
+
+Different values of x
+compete for density
+
+Lecture 14 - 3
+
+May 20, 2025
+
+Figure ada pte d from Ian
+Go odfellow, Tuto rial on
+Ge nerative A dve rsa rial
+Networ ks, 20 17
+
+Last Time: Generative Models
+Generative models
+
+Model can
+compute P(x)
+
+Cannot compute p(x) but
+can sample from P(x)
+
+Explicit density
+Really
+compute
+P(x)
+
+Implicit density
+
+Approximate
+P(x)
+
+Can directly
+sample
+from P(x)
+
+Iterative
+procedure to
+approximate
+samples
+from P(x)
+
+Tractable density
+
+Approximate density
+
+Direct
+
+Indirect
+
+Autoregressive
+
+Variational Autoencoder
+(VAE)
+
+Generative Adversarial
+Network (GAN)
+
+Diffusion Models
+
+Lecture 14 - 4
+
+May 20, 2025
+
+Stanford CS231n 10 th Anniversary
+
+Last Time: Autoregressive Models
+Treat data as a sequence
+(e.g. image as sequence of pixels)
+𝑝 𝑥 = 𝑝 𝑥1 , 𝑥2 , … , 𝑥𝑁
+= 𝑝 𝑥1 𝑝 𝑥2 𝑥1 )𝑝 𝑥3 𝑥1 , 𝑥2 ) …
+= ς𝑇𝑡=1 𝑝 𝑥𝑡 𝑥1 , … , 𝑥𝑡−1 )
+
+…
+
+Model with an RNN or Transformer
+
+…
+
+…
+
+Lecture 14 - 5
+
+…
+
+…
+
+Stanford CS231n 10 th Anniversary
+
+May 20, 2025
+
+Last Time: Variational Autoencoders
+Jointly train encoder q and decoder p to maximize
+the variational lower bound on the data likelihood
+Also called Evidence Lower Bound (ELBo)
+
+log 𝑝𝜃 (𝑥) ≥ 𝐸𝑧~𝑞𝜙(𝑧|𝑥) [log 𝑝𝜃 (𝑥|𝑧)] − 𝐷𝐾𝐿 𝑞𝜙 𝑧 𝑥 , 𝑝 𝑧
+Encoder Network
+
+Decoder Network
+
+𝑞𝜙 𝑧 | 𝑥 = 𝑁(𝜇𝑧|𝑥 , Σ𝑧|𝑥 )
+
+𝑝𝜃 𝑥 | 𝑧 = 𝑁(𝜇𝑥|𝑧 , 𝜎 2 )
+
+𝜇𝑧|𝑥
+
+Σ𝑧|𝑥
+
+𝑥
+Stanford CS231n 10 th Anniversary
+
+𝜇𝑥|𝑧
+
+𝑧
+Lecture 14 - 6
+
+May 20, 2025
+
+Figure ada pte d from Ian
+Go odfellow, Tuto rial on
+Ge nerative A dve rsa rial
+Networ ks, 20 17
+
+Today: More Generative Models
+Generative models
+
+Model can
+compute P(x)
+
+Cannot compute p(x) but
+can sample from P(x)
+
+Explicit density
+Really
+compute
+P(x)
+
+Implicit density
+
+Approximate
+P(x)
+
+Can directly
+sample
+from P(x)
+
+Iterative
+procedure to
+approximate
+samples
+from P(x)
+
+Tractable density
+
+Approximate density
+
+Direct
+
+Indirect
+
+Autoregressive
+
+Variational Autoencoder
+(VAE)
+
+Generative Adversarial
+Network (GAN)
+
+Diffusion Models
+
+Last Time
+
+Stanford CS231n 10 th Anniversary
+
+Today
+
+Lecture 14 - 7
+
+May 20, 2025
+
+Generative Adversarial Networks
+(GANs)
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 8
+
+May 20, 2025
+
+Generative Models So Far
+Autoregressive Models directly maximize likelihood of training data:
+𝑁
+
+𝑝𝜃 𝑥 = ෑ 𝑝𝜃 (𝑥𝑖 |𝑥1, … , 𝑥𝑖−1)
+𝑖=1
+
+Variational Autoencoders introduce a latent z, and maximize a lower bound:
+𝑝𝜃 𝑥 = න 𝑝𝜃 𝑥 𝑧 𝑝 𝑧 𝑑𝑧 ≥ 𝐸𝑧~𝑞𝜙 𝑧 𝑥 [log 𝑝𝜃 (𝑥|𝑧)] − 𝐷𝐾𝐿 𝑞𝜙 𝑧 𝑥 , 𝑝 𝑧
+𝑍
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 9
+
+May 20, 2025
+
+Generative Models So Far
+Autoregressive Models directly maximize likelihood of training data:
+𝑁
+
+𝑝𝜃 𝑥 = ෑ 𝑝𝜃 (𝑥𝑖 |𝑥1, … , 𝑥𝑖−1)
+𝑖=1
+
+Variational Autoencoders introduce a latent z, and maximize a lower bound:
+𝑝𝜃 𝑥 = න 𝑝𝜃 𝑥 𝑧 𝑝 𝑧 𝑑𝑧 ≥ 𝐸𝑧~𝑞𝜙 𝑧 𝑥 [log 𝑝𝜃 (𝑥|𝑧)] − 𝐷𝐾𝐿 𝑞𝜙 𝑧 𝑥 , 𝑝 𝑧
+𝑍
+
+Generative Adversarial Networks give up on modeling p(x), but allow us to
+draw samples from p(x)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 10
+
+May 20, 2025
+
+Generative Adversarial Networks
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Setup: Have data xi drawn from distribution pdata(x). Want to sample from pdata
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 11
+
+May 20, 2025
+
+Generative Adversarial Networks
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Setup: Have data xi drawn from distribution pdata(x). Want to sample from pdata
+Idea: Introduce a latent variable z with simple prior p(z) (e.g. unit Gaussian)
+Sample 𝑧 ∼ 𝑝(𝑧) and pass to a Generator Network x = G(z)
+Then x is a sample from the Generator distribution pG. Want pG = pdata!
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 12
+
+May 20, 2025
+
+Generative Adversarial Networks
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Setup: Have data xi drawn from distribution pdata(x). Want to sample from pdata
+Idea: Introduce a latent variable z with simple prior p(z) (e.g. unit Gaussian)
+Sample 𝑧 ∼ 𝑝(𝑧) and pass to a Generator Network x = G(z)
+Then x is a sample from the Generator distribution pG. Want pG = pdata!
+
+Sample
+z from pz
+
+Generator
+Network
+
+z
+
+Generated
+image
+
+G
+
+Train Generator Network G to convert
+z into fake data x sampled from pG
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 13
+
+May 20, 2025
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Generative Adversarial Networks
+
+Setup: Have data xi drawn from distribution pdata(x). Want to sample from pdata
+Idea: Introduce a latent variable z with simple prior p(z) (e.g. unit Gaussian)
+Sample 𝑧 ∼ 𝑝(𝑧) and pass to a Generator Network x = G(z)
+Then x is a sample from the Generator distribution pG. Want pG = pdata!
+
+Sample
+z from pz
+
+Generator
+Network
+
+z
+
+Generated
+image
+
+G
+
+Train Generator Network G to convert
+z into fake data x sampled from pG
+By fooling the discriminator D
+
+Stanford CS231n 10 th Anniversary
+
+Discriminator
+Network
+
+Fake
+
+D
+Real
+Real
+image
+
+Train Discriminator Network D
+to classify data as real or fake
+
+Lecture 14 - 14
+
+May 20, 2025
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Generative Adversarial Networks
+
+Setup: Have data xi drawn from distribution pdata(x). Want to sample from pdata
+Idea: Introduce a latent variable z with simple prior p(z) (e.g. unit Gaussian)
+Sample 𝑧 ∼ 𝑝(𝑧) and pass to a Generator Network x = G(z)
+Then x is a sample from the Generator distribution pG. Want pG = pdata!
+
+Sample
+z from pz
+
+Generator
+Network
+
+z
+
+Generated
+image
+
+G
+
+Train Generator Network G to convert
+z into fake data x sampled from pG
+By fooling the discriminator D
+
+Stanford CS231n 10 th Anniversary
+
+Discriminator
+Network
+
+Jointly train G and
+D. Hopefully pG
+converges to pdata
+
+Fake
+
+D
+Real
+Real
+image
+
+Train Discriminator Network D
+to classify data as real or fake
+
+Lecture 14 - 15
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝐺
+
+𝐷
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 16
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+D(x) = P(x is real)
+D(x) = 0 => fake
+D(x) = 1 => real
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 17
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+Discriminator wants
+D(x) = 1 for real data
+
+Imagine
+fixing G
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
+Discriminator wants
+D(x) = 0 for fake data
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+D(x) = P(x is real)
+D(x) = 0 => fake
+D(x) = 1 => real
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 18
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+Imagine
+fixing D
+
+This term does not
+depend on G
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
+Generator wants
+D(x) = 1 for fake data
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+D(x) = P(x is real)
+D(x) = 0 => fake
+D(x) = 1 => real
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 19
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+Train G and D using alternating gradient updates
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+
+= min max 𝑉(𝐺, 𝐷)
+𝑮
+
+𝑫
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 20
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+Train G and D using alternating gradient updates
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
+= min max 𝑉(𝐺, 𝐷)
+𝑮
+
+𝑫
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+While True:
+𝑑𝑉
+𝐷 = 𝐷 + 𝛼𝐷
+𝑑𝐷
+𝑑𝑉
+𝐺 = 𝐺 − 𝛼𝐺
+𝑑𝐺
+Lecture 14 - 21
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+Train G and D using alternating gradient updates
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
+= min max 𝑉(𝐺, 𝐷)
+𝑮
+
+𝑫
+
+We are not minimizing any overall
+loss! No training curves to look at!
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+While True:
+𝑑𝑉
+𝐷 = 𝐷 + 𝛼𝐷
+𝑑𝐷
+𝑑𝑉
+𝐺 = 𝐺 − 𝛼𝐺
+𝑑𝐺
+Lecture 14 - 22
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+
+At start of training, generator is very
+bad and discriminator can easily tell apart
+real/fake, so D(G(z)) close to 0
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 23
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+
+At start of training, generator is very
+bad and discriminator can easily tell apart
+real/fake, so D(G(z)) close to 0
+Problem: Gradients for G are close to 0
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 24
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+
+At start of training, generator is very
+bad and discriminator can easily tell apart
+real/fake, so D(G(z)) close to 0
+Problem: Gradients for G are close to 0
+Solution: Generator wants D(G(z)) = 1.
+Train generator to minimize –log(D(G(z))
+and discriminator to maximize log(1-D(G(z))
+so generator gets strong gradients at start
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 25
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+
+Why is this a good objective?
+
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 26
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+
+Why is this a good objective?
+Inner objective is maximized by
+𝑝𝑑𝑎𝑡𝑎 𝑥
+∗
+𝐷𝐺 𝑥 =
+𝑝𝑑𝑎𝑡𝑎 𝑥 + 𝑝𝐺 (𝑥)
+(for any pG)
+(Proof omitted)
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 27
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+
+Why is this a good objective?
+Inner objective is maximized by
+𝑝𝑑𝑎𝑡𝑎 𝑥
+∗
+𝐷𝐺 𝑥 =
+𝑝𝑑𝑎𝑡𝑎 𝑥 + 𝑝𝐺 (𝑥)
+(for any pG)
+
+Outer objective is
+then minimized by
+𝑝𝐺 𝑥 = 𝑝𝑑𝑎𝑡𝑎 𝑥
+
+(Proof omitted)
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 28
+
+May 20, 2025
+
+Generative Adversarial Networks: Training Objective
+Jointly train generator G and discriminator D with a minimax game
+
+min max 𝐸𝑥~𝑝𝑑𝑎𝑡𝑎 log 𝐷 𝑥
+𝑮
+
+𝑫
+
++ 𝐸𝑧~𝑝(𝑧) log 1 − 𝐷 𝐺 𝑧
+
+Why is this a good objective?
+Inner objective is maximized by
+𝑝𝑑𝑎𝑡𝑎 𝑥
+∗
+𝐷𝐺 𝑥 =
+𝑝𝑑𝑎𝑡𝑎 𝑥 + 𝑝𝐺 (𝑥)
+(for any pG)
+(Proof omitted)
+Goodfellow et al, “Generative
+Adversarial Nets”, NeurIPS 2014
+
+Stanford CS231n 10 th Anniversary
+
+Outer objective is
+then minimized by
+𝑝𝐺 𝑥 = 𝑝𝑑𝑎𝑡𝑎 𝑥
+Caveats:
+1. Neural nets with fixed capacity may not
+be able to represent optimal D and G
+2. This tells us nothing about convergence
+to the solution with finite data
+
+Lecture 14 - 29
+
+May 20, 2025
+
+GAN Architectures: DC-GAN
+Generator G and discriminator D
+are both neural networks
+
+Usually CNNs … GANs fell out of
+favor before ViT became popular
+DC-GAN was the first GAN
+architecture that worked on nontoy data
+Radford et al, ICLR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 30
+
+May 20, 2025
+
+GAN Architectures: DC-GAN
+GPT-1 Paper (2018)
+
+Generator G and discriminator D
+are both neural networks
+
+Usually CNNs … GANs fell out of
+favor before ViT became popular
+DC-GAN was the first GAN
+architecture that
+worked
+on nonGPT-2
+Paper
+(2019)
+toy data
+Radford et al, ICLR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 31
+
+May 20, 2025
+
+GAN Architectures: StyleGAN
+Generator G and discriminator D
+are both neural networks
+
+StyleGAN uses a more complex
+architecture that injects noise via
+adaptive normalization.
+At each layer predict a scale w
+and shift b the same shape as x:
+
+𝑥𝑖 − 𝜇(𝑥)
+𝐴𝑑𝑎𝐼𝑁 𝑥, 𝑤, 𝑏 𝑖 = 𝑤𝑖
++ 𝑏𝑖
+𝜎(𝑥)
+Stanford CS231n 10 th Anniversary
+
+Karras et al, ”A Stye-Based Generator Architecture
+for Generative Adversarial Networks”, CVPR 2019
+
+Lecture 14 - 32
+
+May 20, 2025
+
+GANs: Latent Space Interpolation
+Latent space is smooth.
+
+Given latent vectors z0 and z1, we
+can interpolate between them:
+𝑧𝑡 = 𝑡𝑧𝑜 + 1 − 𝑡 𝑧1
+𝑥𝑡 = 𝐺 𝑧𝑡
+The resulting image xt smoothly
+interpolate between samples!
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 33
+
+May 20, 2025
+
+GANs: Latent Space Interpolation
+Latent space is smooth.
+
+Given latent vectors z0 and z1, we
+can interpolate between them:
+𝑧𝑡 = 𝑡𝑧𝑜 + 1 − 𝑡 𝑧1
+𝑥𝑡 = 𝐺 𝑧𝑡
+The resulting image xt smoothly
+interpolate between samples!
+Karras et al, ”Alias-Free Generative Adversarial Networks”, NeurIPS 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 34
+
+May 20, 2025
+
+Generative Adversarial Networks: Summary
+Jointly train Generator and
+Discriminator with a minimax game
+Pros:
+- Simple formulation
+- Very good image quality
+Cons:
+- No loss curve to look at
+- Unstable training
+- Hard to scale to big models + data
+Stanford CS231n 10 th Anniversary
+
+These were the go-to generative
+models from ~2016 – 2021
+
+Lecture 14 - 35
+
+May 20, 2025
+
+Diffusion Models
+Sohl-Dickstein et al, “Deep Unsupervised Learning using noneuilibrium thermodynamics”, ICML 2015
+Song and Ermon, “Generative modeling by estimnating gradients of the data distribution”, NaurIPS 2019
+Ho et al, “Denoising Diffusion Probabalistic Models”, NeurIPS 2020
+Song et al, “Score-Based Generative Modeling through Stochastic Differential Equations”, ICLR 2021
+Song et al, “Denoising Diffusion Implicit Models”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 36
+
+May 20, 2025
+
+Warning: Terminology and
+notation in this area is a mess!
+
+Diffusion Models
+
+There are many different
+mathematical formalisms; tons
+of variance in terminology and
+notation between papers.
+We’ll just cover the basics of a
+modern “clean” implementation
+(Rectified Flow)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 37
+
+May 20, 2025
+
+Diffusion Models: Intuition
+Pick a noise distribution 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+(Usually unit Gaussian)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 38
+
+May 20, 2025
+
+Diffusion Models: Intuition
+
+t=0
+No noise
+
+Pick a noise distribution 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+(Usually unit Gaussian)
+
+Consider data x corrupted under varying
+noise levels t to give noisy data xt
+
+t=1
+Full noise
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 39
+
+May 20, 2025
+
+Diffusion Models: Intuition
+
+t=0
+No noise
+
+Pick a noise distribution 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+(Usually unit Gaussian)
+
+Consider data x corrupted under varying
+noise levels t to give noisy data xt
+Train a neural network to remove a little
+bit of noise: 𝑓𝜃 (𝑥𝑡 , 𝑡)
+
+t=1
+Full noise
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 40
+
+May 20, 2025
+
+Diffusion Models: Intuition
+
+t=0
+No noise
+
+Pick a noise distribution 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+(Usually unit Gaussian)
+
+Consider data x corrupted under varying
+noise levels t to give noisy data xt
+Train a neural network to remove a little
+bit of noise: 𝑓𝜃 (𝑥𝑡 , 𝑡)
+At inference time, sample 𝑥1 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒 and
+apply 𝑓𝜃 many times in sequence to
+generate a noiseless sample x0
+Stanford CS231n 10 th Anniversary
+
+t=1
+Full noise
+Lecture 14 - 41
+
+May 20, 2025
+
+Diffusion Models: Rectified Flow
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Suppose we have a simple pnoise
+(e.g. Gaussian) and samples from pdata
+
+𝑝𝑑𝑎𝑡𝑎
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 42
+
+May 20, 2025
+
+Diffusion Models: Rectified Flow
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Suppose we have a simple pnoise
+(e.g. Gaussian) and samples from pdata
+
+𝑧
+
+On each training iteration, sample:
+𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 𝑡 ∼ 𝑈𝑛𝑖𝑓𝑜𝑟𝑚 0, 1
+
+𝑥
+𝑝𝑑𝑎𝑡𝑎
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 43
+
+May 20, 2025
+
+Diffusion Models: Rectified Flow
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Suppose we have a simple pnoise
+(e.g. Gaussian) and samples from pdata
+
+𝑧
+
+On each training iteration, sample:
+𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 𝑡 ∼ 𝑈𝑛𝑖𝑓𝑜𝑟𝑚 0, 1
+
+𝑣
+
+Set 𝑥𝑡 = 1 − 𝑡 𝑥 + 𝑡𝑧, 𝑣 = 𝑧 − 𝑥
+
+𝑥
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 44
+
+May 20, 2025
+
+Diffusion Models: Rectified Flow
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Suppose we have a simple pnoise
+(e.g. Gaussian) and samples from pdata
+
+𝑧
+
+On each training iteration, sample:
+𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 𝑡 ∼ 𝑈𝑛𝑖𝑓𝑜𝑟𝑚 0, 1
+
+𝑣
+
+Set 𝑥𝑡 = 1 − 𝑡 𝑥 + 𝑡𝑧, 𝑣 = 𝑧 − 𝑥
+
+Train a neural network to predict v:
+𝐿 = 𝑓𝜃 𝑥𝑡 , 𝑡 − 𝑣 22
+
+𝑥
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 45
+
+May 20, 2025
+
+Diffusion Models: Rectified Flow
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Core training loop is just
+a few lines of code!
+
+𝑧
+𝑣
+
+𝑥
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 46
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+𝑝𝑑𝑎𝑡𝑎
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 47
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+Sample 𝑥 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+
+𝑥1
+
+𝑝𝑑𝑎𝑡𝑎
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 48
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+Sample 𝑥 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+1
+2
+For t in [1, 1 − 𝑇 , 1 − 𝑇 , … , 0]:
+Evaluate 𝑣𝑡 = 𝑓𝜃 (𝑥𝑡 , 𝑡)
+
+𝑥1
+𝑣1
+
+𝑝𝑑𝑎𝑡𝑎
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 49
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+Sample 𝑥 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+1
+2
+For t in [1, 1 − 𝑇 , 1 − 𝑇 , … , 0]:
+Evaluate 𝑣𝑡 = 𝑓𝜃 (𝑥𝑡 , 𝑡)
+Step 𝑥 = 𝑥 − 𝑣𝑡 /𝑇
+
+𝑥1
+𝑣1 𝑥2/3
+
+𝑝𝑑𝑎𝑡𝑎
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 50
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+Sample 𝑥 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+1
+2
+For t in [1, 1 − 𝑇 , 1 − 𝑇 , … , 0]:
+Evaluate 𝑣𝑡 = 𝑓𝜃 (𝑥𝑡 , 𝑡)
+Step 𝑥 = 𝑥 − 𝑣𝑡 /𝑇
+
+𝑥1
+𝑥2/3
+𝑣2/3
+𝑝𝑑𝑎𝑡𝑎
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 51
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+Sample 𝑥 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+1
+2
+For t in [1, 1 − 𝑇 , 1 − 𝑇 , … , 0]:
+Evaluate 𝑣𝑡 = 𝑓𝜃 (𝑥𝑡 , 𝑡)
+Step 𝑥 = 𝑥 − 𝑣𝑡 /𝑇
+
+𝑥1
+𝑥2/3
+𝑣2/3
+
+𝑥1/3
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 52
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+Sample 𝑥 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+1
+2
+For t in [1, 1 − 𝑇 , 1 − 𝑇 , … , 0]:
+Evaluate 𝑣𝑡 = 𝑓𝜃 (𝑥𝑡 , 𝑡)
+Step 𝑥 = 𝑥 − 𝑣𝑡 /𝑇
+
+𝑥1
+𝑥2/3
+𝑣1/3
+
+𝑥1/3
+𝑥0
+
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 53
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+Sample 𝑥 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+1
+2
+For t in [1, 1 − 𝑇 , 1 − 𝑇 , … , 0]:
+Evaluate 𝑣𝑡 = 𝑓𝜃 (𝑥𝑡 , 𝑡)
+Step 𝑥 = 𝑥 − 𝑣𝑡 /𝑇
+
+𝑥1
+𝑥2/3
+𝑣1/3
+
+𝑥1/3
+𝑥0
+
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 54
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+Sample 𝑥 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+1
+2
+For t in [1, 1 − 𝑇 , 1 − 𝑇 , … , 0]:
+Evaluate 𝑣𝑡 = 𝑓𝜃 (𝑥𝑡 , 𝑡)
+Step 𝑥 = 𝑥 − 𝑣𝑡 /𝑇
+Return x
+
+𝑥1
+𝑥2/3
+𝑥1/3
+𝑥0
+
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 55
+
+May 20, 2025
+
+Rectified Flow: Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Choose number of steps T (often T=50)
+
+Sample 𝑥 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+1
+2
+For t in [1, 1 − 𝑇 , 1 − 𝑇 , … , 0]:
+Evaluate 𝑣𝑡 = 𝑓𝜃 (𝑥𝑡 , 𝑡)
+Step 𝑥 = 𝑥 − 𝑣𝑡 /𝑇
+Return x
+
+𝑥1
+𝑥2/3
+𝑥1/3
+𝑥0
+
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 56
+
+May 20, 2025
+
+Rectified Flow: Summary
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Training
+
+𝑧
+𝑣
+Sampling
+
+𝑥
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 57
+
+May 20, 2025
+
+Conditional Rectified Flow
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Training
+
+𝑧
+𝑣
+Sampling
+
+𝑥
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 58
+
+May 20, 2025
+
+Conditional Rectified Flow
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Training
+
+𝑧
+𝑣
+Sampling
+
+𝑥
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 59
+
+May 20, 2025
+
+Conditional Rectified Flow
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Training
+
+𝑧
+𝑣
+Sampling
+
+𝑥
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 60
+
+May 20, 2025
+
+Conditional Rectified Flow
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+𝑧
+𝑣
+
+Sampling
+
+𝑥
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎
+
+Liu et al, “Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow”, 2022
+Lipman et al, “Flow Matching for Generative Modeling”, 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 61
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+𝑧
+𝑣
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Randomly drop y during training.
+Now the same model is conditional and unconditional!
+
+𝑥
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎
+
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 62
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Randomly drop y during training.
+Now the same model is conditional and unconditional!
+Consider a noisy 𝑥𝑡 :
+
+𝑝𝑑𝑎𝑡𝑎
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 63
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+𝑣∅
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Randomly drop y during training.
+Now the same model is conditional and unconditional!
+Consider a noisy 𝑥𝑡 :
+𝑣 ∅ = 𝑓𝜃 (𝑥𝑡 , 𝑦∅ , 𝑡) points toward 𝑝(𝑥)
+
+𝑝𝑑𝑎𝑡𝑎
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 64
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+∅ 𝑣𝑦
+
+𝑣
+𝑥𝑡
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Randomly drop y during training.
+Now the same model is conditional and unconditional!
+Consider a noisy 𝑥𝑡 :
+𝑣 ∅ = 𝑓𝜃 (𝑥𝑡 , 𝑦∅ , 𝑡) points toward 𝑝(𝑥)
+𝑣 𝑦 = 𝑓𝜃 (𝑥𝑡 , 𝑦, 𝑡) points toward 𝑝 𝑥 𝑦
+
+𝑝𝑑𝑎𝑡𝑎
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 65
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+∅ 𝑣𝑦
+
+𝑣
+𝑥𝑡 𝑣 𝑐𝑓𝑔
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Randomly drop y during training.
+Now the same model is conditional and unconditional!
+Consider a noisy 𝑥𝑡 :
+𝑣 ∅ = 𝑓𝜃 (𝑥𝑡 , 𝑦∅ , 𝑡) points toward 𝑝(𝑥)
+𝑣 𝑦 = 𝑓𝜃 (𝑥𝑡 , 𝑦, 𝑡) points toward 𝑝 𝑥 𝑦
+𝑣 𝑐𝑓𝑔 = 1 + 𝑤 𝑣 𝑦 − 𝑤𝑣 ∅ points more toward 𝑝 𝑥 𝑦
+
+𝑝𝑑𝑎𝑡𝑎
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 66
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+∅ 𝑣𝑦
+
+𝑣
+𝑥𝑡 𝑣 𝑐𝑓𝑔
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Randomly drop y during training.
+Now the same model is conditional and unconditional!
+Consider a noisy 𝑥𝑡 :
+𝑣 ∅ = 𝑓𝜃 (𝑥𝑡 , 𝑦∅ , 𝑡) points toward 𝑝(𝑥)
+𝑣 𝑦 = 𝑓𝜃 (𝑥𝑡 , 𝑦, 𝑡) points toward 𝑝 𝑥 𝑦
+𝑣 𝑐𝑓𝑔 = 1 + 𝑤 𝑣 𝑦 − 𝑤𝑣 ∅ points more toward 𝑝 𝑥 𝑦
+During sampling, step according to 𝑣 𝑐𝑓𝑔
+
+Stanford CS231n 10 th Anniversary
+
+𝑝𝑑𝑎𝑡𝑎
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Lecture 14 - 67
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+∅ 𝑣𝑦
+
+𝑣
+𝑥𝑡 𝑣 𝑐𝑓𝑔
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Sampling
+
+𝑝𝑑𝑎𝑡𝑎
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 68
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+∅ 𝑣𝑦
+
+𝑣
+𝑥𝑡 𝑣 𝑐𝑓𝑔
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Sampling
+
+𝑝𝑑𝑎𝑡𝑎
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 69
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+Sampling
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+∅ 𝑣𝑦
+
+𝑣
+𝑥𝑡 𝑣 𝑐𝑓𝑔
+”Classifier-Free” because
+earlier methods
+used
+𝑝𝑑𝑎𝑡𝑎
+𝑥 ∣ 𝑦a
+=∎
+separate discriminative
+model 𝑝(𝑦 ∣ 𝑥) to compute
+𝜕
+step direction 𝜕𝑥 log 𝑝(𝑦 ∣ 𝑥)
+
+𝑝𝑑𝑎𝑡𝑎
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 70
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+∅ 𝑣𝑦
+
+𝑣
+𝑥𝑡 𝑣 𝑐𝑓𝑔
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Sampling
+
+Used everywhere in
+practice! Very important
+for high-quality outputs
+
+𝑝𝑑𝑎𝑡𝑎
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 71
+
+May 20, 2025
+
+Classifier-Free Guidance (CFG)
+Training
+
+Can we control how
+much we “emphasize”
+the conditioning y?
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+∅ 𝑣𝑦
+
+𝑣
+𝑥𝑡 𝑣 𝑐𝑓𝑔
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+Sampling
+
+Used everywhere in
+practice! Very important
+for high-quality outputs
+
+𝑝𝑑𝑎𝑡𝑎
+
+Doubles the cost
+of sampling…
+
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 72
+
+May 20, 2025
+
+Optimal Prediction
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Q: What is the
+optimal prediction
+for the network?
+
+∅ 𝑣𝑦
+
+𝑣
+𝑥𝑡 𝑣 𝑐𝑓𝑔
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+𝑝𝑑𝑎𝑡𝑎
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 73
+
+May 20, 2025
+
+Optimal Prediction
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Q: What is the
+optimal prediction
+for the network?
+
+𝑥𝑡
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+There may be many pairs (x, z) that give the
+same xt; network must average over them
+
+𝑝𝑑𝑎𝑡𝑎
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 74
+
+May 20, 2025
+
+Optimal Prediction
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Q: What is the
+optimal prediction
+for the network?
+
+𝑥𝑡
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+There may be many pairs (x, z) that give the
+same xt; network must average over them
+Full noise (t=1) is easy: optimal v is mean of pdata
+
+𝑣 𝑜𝑝𝑡
+
+𝑝𝑑𝑎𝑡𝑎
+
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 75
+
+May 20, 2025
+
+Optimal Prediction
+Training
+
+Q: What is the
+optimal prediction
+for the network?
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+𝑣 𝑜𝑝𝑡
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+There may be many pairs (x, z) that give the
+same xt; network must average over them
+
+𝑥𝑡
+
+Full noise (t=1) is easy: optimal v is mean of pdata
+No noise (t=0) is easy: optimal v is mean of pnoise
+
+𝑝𝑑𝑎𝑡𝑎
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 76
+
+May 20, 2025
+
+Optimal Prediction
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Q: What is the
+optimal prediction
+for the network?
+
+𝑥𝑡
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+There may be many pairs (x, z) that give the
+same xt; network must average over them
+Full noise (t=1) is easy: optimal v is mean of pdata
+No noise (t=0) is easy: optimal v is mean of pnoise
+Middle noise is hardest, most ambiguous
+
+𝑝𝑑𝑎𝑡𝑎
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 77
+
+May 20, 2025
+
+Optimal Prediction
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Q: What is the
+optimal prediction
+for the network?
+
+𝑥𝑡
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+There may be many pairs (x, z) that give the
+same xt; network must average over them
+Full noise (t=1) is easy: optimal v is mean of pdata
+No noise (t=0) is easy: optimal v is mean of pnoise
+Middle noise is hardest, most ambiguous
+But we give equal weight to all noise levels!
+
+𝑝𝑑𝑎𝑡𝑎
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 78
+
+May 20, 2025
+
+Optimal Prediction
+Training
+
+𝑝𝑛𝑜𝑖𝑠𝑒
+
+Q: What is the
+optimal prediction
+for the network?
+
+𝑥𝑡
+
+𝑝𝑑𝑎𝑡𝑎 𝑥 ∣ 𝑦 = ∎
+
+There may be many pairs (x, z) that give the
+same xt; network must average over them
+Full noise (t=1) is easy: optimal v is mean of pdata
+No noise (t=0) is easy: optimal v is mean of pnoise
+Middle noise is hardest, most ambiguous
+But we give equal weight to all noise levels!
+Solution: Use a non-uniform noise schedule
+
+Stanford CS231n 10 th Anniversary
+
+𝑝𝑑𝑎𝑡𝑎
+Dhariwal and Nichol, “Diffusion Models beat GANs on Image Synthesis”, arXiv 2021
+Ho and Salimans, “Classifier-Free Diffusion Guidance”, arXiv 2022
+
+Lecture 14 - 79
+
+May 20, 2025
+
+Noise Schedules
+Training
+
+p(t)
+
+t
+There may be many pairs (x, z) that give the
+same xt; network must average over them
+Full noise (t=1) is easy: optimal v is mean of pdata
+No noise (t=0) is easy: optimal v is mean of pnoise
+Middle noise is hardest, most ambiguous
+But we give equal weight to all noise levels!
+Solution: Use a non-uniform noise schedule
+
+Stanford CS231n 10 th Anniversary
+
+Put more emphasis on middle noise
+
+Esser et al, “Scaling Rectified Flow Transformers for High-Resolution Image Synthesis”, arX iv 202 4
+
+Lecture 14 - 80
+
+May 20, 2025
+
+Noise Schedules
+Training
+
+p(t)
+
+t
+There may be many pairs (x, z) that give the
+same xt; network must average over them
+Full noise (t=1) is easy: optimal v is mean of pdata
+No noise (t=0) is easy: optimal v is mean of pnoise
+Middle noise is hardest, most ambiguous
+But we give equal weight to all noise levels!
+Solution: Use a non-uniform noise schedule
+
+Stanford CS231n 10 th Anniversary
+
+Put more emphasis on middle noise
+Common choice: logit-normal sampling
+
+Esser et al, “Scaling Rectified Flow Transformers for High-Resolution Image Synthesis”, arX iv 202 4
+
+Lecture 14 - 81
+
+May 20, 2025
+
+Noise Schedules
+Training
+
+p(t)
+
+t
+There may be many pairs (x, z) that give the
+same xt; network must average over them
+Full noise (t=1) is easy: optimal v is mean of pdata
+No noise (t=0) is easy: optimal v is mean of pnoise
+Middle noise is hardest, most ambiguous
+But we give equal weight to all noise levels!
+Solution: Use a non-uniform noise schedule
+
+Stanford CS231n 10 th Anniversary
+
+Put more emphasis on middle noise
+Common choice: logit-normal sampling
+For high-res data, often shift to higher
+noise to account for pixel correlations
+
+Esser et al, “Scaling Rectified Flow Transformers for High-Resolution Image Synthesis”, arX iv 202 4
+
+Lecture 14 - 82
+
+May 20, 2025
+
+Diffusion: Rectified Flow
+Training
+
+Simple and scalable setup
+for many generative
+modeling problems! p(t)
+
+t
+Sampling
+
+Put more emphasis on middle noise
+Common choice: logit-normal sampling
+For high-res data, often shift to higher
+noise to account for pixel correlations
+
+Esser et al, “Scaling Rectified Flow Transformers for High-Resolution Image Synthesis”, arX iv 202 4
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 83
+
+May 20, 2025
+
+Diffusion: Rectified Flow
+Training
+
+Simple and scalable setup
+for many generative
+modeling problems! p(t)
+
+t
+Sampling
+
+Problem: Does not
+Put more emphasis on middle noise
+work naively on high- Common choice: logit-normal sampling
+resolution data
+For high-res data, often shift to higher
+noise to account for pixel correlations
+
+Esser et al, “Scaling Rectified Flow Transformers for High-Resolution Image Synthesis”, arX iv 202 4
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 84
+
+May 20, 2025
+
+Latent Diffusion Models (LDMs)
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Train encoder + decoder to
+convert images to latents
+Image
+HxWx3
+Decoder
+Latent
+H/D x W/D x C
+Encoder
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 85
+
+May 20, 2025
+
+Latent Diffusion Models (LDMs)
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Train encoder + decoder to
+convert images to latents
+Image
+HxWx3
+Common setting: D=8, C=16
+Decoder
+Latent
+H/D x W/D x C
+
+Image: 256 x 256 x 3
+=> Latent: 32 x 32 x 16
+Encoder / Decoder are CNNs with attention
+
+Encoder
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 86
+
+May 20, 2025
+
+Latent Diffusion Models (LDMs)
+Train encoder + decoder to
+convert images to latents
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Train diffusion model to
+remove noise from latents
+(Encoder is frozen)
+Denoised Latent
+H/D x W/D x C
+
+Image
+HxWx3
+Decoder
+Latent
+H/D x W/D x C
+Encoder
+
+Noisy Latent
+H/D x W/D x C
+
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 87
+
+May 20, 2025
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Latent Diffusion Models (LDMs)
+Train encoder + decoder to
+convert images to latents
+
+Train diffusion model to
+remove noise from latents
+(Encoder is frozen)
+
+After training:
+
+Denoised Latent
+H/D x W/D x C
+
+Image
+HxWx3
+Decoder
+Latent
+H/D x W/D x C
+Encoder
+
+Noisy Latent
+H/D x W/D x C
+
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 88
+
+May 20, 2025
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Latent Diffusion Models (LDMs)
+Train encoder + decoder to
+convert images to latents
+
+Train diffusion model to
+remove noise from latents
+(Encoder is frozen)
+Denoised Latent
+H/D x W/D x C
+
+Image
+HxWx3
+
+After training:
+
+Sample random
+latent
+
+Decoder
+Latent
+H/D x W/D x C
+Encoder
+
+Noisy Latent
+H/D x W/D x C
+
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 89
+
+May 20, 2025
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Latent Diffusion Models (LDMs)
+Train encoder + decoder to
+convert images to latents
+
+Train diffusion model to
+remove noise from latents
+(Encoder is frozen)
+Denoised Latent
+H/D x W/D x C
+
+Image
+HxWx3
+
+After training:
+
+Sample random
+latent
+Iteratively apply
+diffusion model
+to remove noise
+
+Decoder
+
+…
+
+Latent
+H/D x W/D x C
+Encoder
+
+Noisy Latent
+H/D x W/D x C
+
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 90
+
+May 20, 2025
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Latent Diffusion Models (LDMs)
+Train encoder + decoder to
+convert images to latents
+
+Train diffusion model to
+remove noise from latents
+(Encoder is frozen)
+Denoised Latent
+H/D x W/D x C
+
+Image
+HxWx3
+
+After training:
+
+Sample random
+latent
+Iteratively apply
+diffusion model
+to remove noise
+
+Decoder
+Latent
+H/D x W/D x C
+
+…
+
+run decoder to
+get image
+Encoder
+
+Noisy Latent
+H/D x W/D x C
+
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 91
+
+May 20, 2025
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Latent Diffusion Models (LDMs)
+Train encoder + decoder to
+convert images to latents
+
+Train diffusion model to
+remove noise from latents
+(Encoder is frozen)
+Denoised Latent
+H/D x W/D x C
+
+Image
+HxWx3
+
+After training:
+
+Sample random
+latent
+Iteratively apply
+diffusion model
+to remove noise
+
+Decoder
+Latent
+H/D x W/D x C
+
+…
+
+run decoder to
+get image
+Encoder
+
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Noisy Latent
+H/D x W/D x C
+
+Latent diffusion is the most
+common form today
+
+Lecture 14 - 92
+
+May 20, 2025
+
+Latent Diffusion Models (LDMs)
+Train encoder + decoder to
+convert images to latents
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+How do we train the
+encoder+decoder?
+
+Image
+HxWx3
+Decoder
+Latent
+H/D x W/D x C
+Encoder
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 93
+
+May 20, 2025
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Latent Diffusion Models (LDMs)
+How do we train the
+encoder+decoder?
+
+Train encoder + decoder to
+convert images to latents
+
+Recall: VAE
+
+Solution: It’s a VAE!
+Typically with very
+small KL prior weight
+
+Image
+HxWx3
+Decoder
+Latent
+H/D x W/D x C
+Encoder
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 94
+
+May 20, 2025
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Latent Diffusion Models (LDMs)
+How do we train the
+encoder+decoder?
+
+Train encoder + decoder to
+convert images to latents
+
+Recall: VAE
+
+Solution: It’s a VAE!
+Typically with very
+small KL prior weight
+
+Image
+HxWx3
+Decoder
+Latent
+H/D x W/D x C
+
+Problem: Decoder
+outputs often blurry
+
+Encoder
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 95
+
+May 20, 2025
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Latent Diffusion Models (LDMs)
+How do we train the
+encoder+decoder?
+
+Discriminator
+Fake
+image
+
+Real
+image
+
+Recall: VAE
+
+Solution: It’s a VAE!
+Typically with very
+small KL prior weight
+
+Decoder
+Latent
+H/D x W/D x C
+Encoder
+
+Problem: Decoder
+outputs often blurry
+
+Recall: GAN
+
+Solution: Add a
+discriminator!
+
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 96
+
+May 20, 2025
+
+Rombach et al, “High-Resolution Image Synthesis
+with La ten t Diffusion Models”, CVPR 2022
+
+Latent Diffusion Models (LDMs)
+Train diffusion model to
+remove noise from latents
+(Encoder is frozen)
+
+Discriminator
+Fake
+image
+
+Real
+image
+Decoder
+Latent
+H/D x W/D x C
+
+After training:
+
+Sample random
+latent
+Iteratively apply
+diffusion model
+to remove noise
+
+…
+
+run decoder to
+get image
+Encoder
+
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+Modern LDM pipelines use
+VAE + GAN + diffusion!
+Lecture 14 - 97
+
+May 20, 2025
+
+Pee bles an d Xie, ” Sca lable Diffusion
+Models with Transfo rmer”, ICCV 20 23
+
+Diffusion Transformer (DiT)
+Diffusion uses standard Transformer blocks!
+Main question: How to inject conditioning (timestep t, text, …)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 98
+
+May 20, 2025
+
+Pee bles an d Xie, ” Sca lable Diffusion
+Models with Transfo rmer”, ICCV 20 23
+
+Diffusion Transformer (DiT)
+Diffusion uses standard Transformer blocks!
+Main question: How to inject conditioning (timestep t, text, …)
+
+Predict scale/shift:
+Most common for
+diffusion timestep t
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 99
+
+May 20, 2025
+
+Pee bles an d Xie, ” Sca lable Diffusion
+Models with Transfo rmer”, ICCV 20 23
+
+Diffusion Transformer (DiT)
+Diffusion uses standard Transformer blocks!
+Main question: How to inject conditioning (timestep t, text, …)
+
+Predict scale/shift:
+Most common for
+diffusion timestep t
+
+Stanford CS231n 10 th Anniversary
+
+Cross-Attention / Joint Attention:
+Common for text, image, etc conditioning
+
+Lecture 14 - 100
+
+May 20, 2025
+
+Text-to-Image
+Noisy latents
+hxwxc
+Text embeddings
+DxL
+
+Diffusion
+timestep
+(scalar)
+
+Diffusion
+Transformer
+
+Clean latents
+hxwxc
+
+Decoder
+
+Output image
+HxWx3
+
+Pretrained
+text encoder
+(e.g. T5, CLIP)
+
+Text Prompt
+A professional documentary photograph of a
+monkey shaking hands with a tiger in front of
+the Eiffel tower. The monkey is wearing a hat
+made out of bananas, and the tiger is
+standing on two legs and wearing a suit.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 101
+
+May 20, 2025
+
+Text-to-Image
+
+Diffusion
+timestep
+(scalar)
+
+Noisy latents
+128 x 128 x 16
+
+Diffusion
+Transformer
+
+Text embeddings
+DxL
+Pretrained
+text encoder
+(e.g. T5, CLIP)
+
+Text Prompt
+A professional documentary photograph of a
+monkey shaking hands with a tiger in front of
+the Eiffel tower. The monkey is wearing a hat
+made out of bananas, and the tiger is
+standing on two legs and wearing a suit.
+
+Clean latents
+128 x 128 x 16
+
+Decoder
+
+Output image
+1024 x 1024 x 3
+
+Example: FLUX.1 [dev]
+Text Encoder: T5 + CLIP
+Encoder/Decoder: 8x8 downsampling
+Diffusion model: 12B parameter model
+2x2 patchify => 64x64 = 1024 image tokens
+https://github.com/black-forest-labs/flux
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 102
+
+May 20, 2025
+
+Text-to-Video
+Noisy latents
+txhxwxc
+Text embeddings
+DxL
+
+Diffusion
+timestep
+(scalar)
+
+Diffusion
+Transformer
+
+Gupta et al, “Photorealistic Video Generation with Diffusion Models”, arXiv 2023 (Dec)
+OpenAI, “Sora: Creating Video from Text”, 2024 (Feb)
+Polyak et al, “Movie Gen: A Cast of Media Foundation Models”, arXiv 2024 (Oct)
+Kong et al, “HunyuanVideo: A Systematic Framework for Large Video Generative Models”, arXiv 2024 (Dec)
+NVIDIA, “Cosmos World Foundation Model Platform for Physical AI”, arXiv 2025 (Jan)
+Team Wan, “Wan: Open and Advanced Large-Scale Video Generative Models”, arXiv 2025 (March)
+
+Clean latents
+txhxwxc
+
+Decoder
+
+Output video
+TxHxWx3
+
+Pretrained
+text encoder
+(e.g. T5, CLIP)
+
+Text Prompt
+A red-faced monkey with white fur is bathing in a
+natural hot spring. The monkey is playing in the water
+with a miniature sail ship in front of it, made of wood
+with a white sail and a small rudder. The hot spring is
+surrounded by lush greenery, with rocks and trees.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 103
+
+May 20, 2025
+
+Text-to-Video
+Noisy latents
+txhxwxc
+Text embeddings
+DxL
+
+Diffusion
+timestep
+(scalar)
+
+Diffusion
+Transformer
+
+Gupta et al, “Photorealistic Video Generation with Diffusion Models”, arXiv 2023 (Dec)
+OpenAI, “Sora: Creating Video from Text”, 2024 (Feb)
+Polyak et al, “Movie Gen: A Cast of Media Foundation Models”, arXiv 2024 (Oct)
+Kong et al, “HunyuanVideo: A Systematic Framework for Large Video Generative Models”, arXiv 2024 (Dec)
+NVIDIA, “Cosmos World Foundation Model Platform for Physical AI”, arXiv 2025 (Jan)
+Team Wan, “Wan: Open and Advanced Large-Scale Video Generative Models”, arXiv 2025 (March)
+
+Clean latents
+txhxwxc
+
+Decoder
+
+Output video
+TxHxWx3
+
+Pretrained
+text encoder
+(e.g. T5, CLIP)
+
+Text Prompt
+A red-faced monkey with white fur is bathing in a
+natural hot spring. The monkey is playing in the water
+with a miniature sail ship in front of it, made of wood
+with a white sail and a small rudder. The hot spring is
+surrounded by lush greenery, with rocks and trees.
+
+Stanford CS231n 10 th Anniversary
+
+Video from Meta Movie Gen
+(https://ai.meta.com/research/movie-gen/)
+
+Lecture 14 - 104
+
+May 20, 2025
+
+Text-to-Video
+
+Diffusion
+timestep
+(scalar)
+
+Noisy latents
+32 x 128 x 72 x 16
+
+Diffusion
+Transformer
+
+Text embeddings
+DxL
+Pretrained
+text encoder
+(e.g. T5, CLIP)
+
+Text Prompt
+A red-faced monkey with white fur is bathing in a
+natural hot spring. The monkey is playing in the water
+with a miniature sail ship in front of it, made of wood
+with a white sail and a small rudder. The hot spring is
+surrounded by lush greenery, with rocks and trees.
+
+Gupta et al, “Photorealistic Video Generation with Diffusion Models”, arXiv 2023 (Dec)
+OpenAI, “Sora: Creating Video from Text”, 2024 (Feb)
+Polyak et al, “Movie Gen: A Cast of Media Foundation Models”, arXiv 2024 (Oct)
+Kong et al, “HunyuanVideo: A Systematic Framework for Large Video Generative Models”, arXiv 2024 (Dec)
+NVIDIA, “Cosmos World Foundation Model Platform for Physical AI”, arXiv 2025 (Jan)
+Team Wan, “Wan: Open and Advanced Large-Scale Video Generative Models”, arXiv 2025 (March)
+
+Clean latents
+33 x 128 x 72 x 16
+
+Decoder
+
+Output video
+257 x 1024 x 576 x 3
+
+Example: Meta MovieGen
+Text Encoder: UL2, ByT5, MetaCLIP
+Encoder/Decoder: 8x8x8 downsample
+Diffusion model: 30B param DiT
+1x2x2 patchify => 76K tokens
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 105
+
+May 20, 2025
+
+The Era of Video Diffusion Models
+Cosmos
+(NVIDIA)
+14B params
+
+Open-Source Model
+Technical Report
+No technical info
+
+Ray 2 (Luma)
+
+Sora (OpenAI)
+
+WALT (Google)
+460M params
+
+January
+2024
+
+March
+2024
+
+Veo 2
+CogVideoX
+(Google)
+(Zhipu)
+Mochi
+5B params (Genmo)
+LTX-Video Step-Video
+Gen3 (Runway)
+10B params (Lightricks) (StepFun) Kling 2.0
+(Kuaishou)
+2B params 30B params
+Dream Machine
+MovieGen
+Wan
+(Luma)
+(Meta)
+Hunyuan
+(Alibaba)
+30B params (Tencent)
+14B params
+13B params
+
+May
+2024
+
+July
+2024
+
+Sept
+2024
+
+Nov
+2024
+
+January
+2025
+
+March
+2024
+
+May
+2024
+Gup ta et al, “Photo realistic Video Ge nerat io n with Diffusion Models” , ar Xiv 202 3 (Dec)
+Ope nAI , “ So ra: Cr eating Video from Text ”, 20 4 (F eb)
+Polyak et al, “M ovie Gen: A Ca st of M edia F ounda tion Mo dels”, ar Xiv 202 4 (Oct )
+Kong e t al, “Hunyua nVide o: A System atic Fr amewor k for Larg e Vid eo Gen erative Models” , ar Xiv 202 4 (Dec)
+NVIDIA, “Cosmo s World F ounda tion Mo del Pla tform for Ph ysica l AI” , ar Xiv 202 5 (Jan )
+T eam Wan , “Wan: Open and Advance d Lar ge-Scale Video Ge nerat ive Mode ls” , ar Xiv 202 5 (M arch)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 106
+
+May 20, 2025
+
+Diffusion Distillation
+After training:
+
+During sampling we need to run the diffusion model
+many times (~30 – 50 for rectified flow)
+
+Sample random
+latent
+
+This is really slow!
+
+Iteratively apply
+diffusion model
+to remove noise
+
+…
+
+run decoder to
+get image
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 107
+
+May 20, 2025
+
+Diffusion Distillation
+After training:
+
+During sampling we need to run the diffusion model
+many times (~30 – 50 for rectified flow)
+
+Sample random
+latent
+
+This is really slow!
+
+Iteratively apply
+diffusion model
+to remove noise
+
+Solution: distillation algorithms reduce the number
+of steps (sometimes all the way to 1),
+can also bake in CFG
+
+…
+
+run decoder to
+get image
+
+Saliman s and Ho, “ Progre ssive Distilla tion for Fast Sampling of Diffusio n Mod els” , ICLR 2022
+Son g e t al, “ Con sistency Models”, ICML 2 023
+Sau er et al, “Adversarial Diffusion Distillation”, E CCV 2024
+Sau er et al, “Fa st High-Resolution Image Synthesis with L ate nt Adversaria l Diffusion Distillation”, arX iv 202 4
+Lu and So ng, “S imp lifying, Sta bilizin g a nd Sca ling Con sistency Models”, ICLR 20 25
+Saliman s et al, “Multistep Distillation of Diffusio n Mod els via Mo me nt Match ing”, NeurIPS 202 5
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 108
+
+May 20, 2025
+
+Generalized Diffusion
+Rectified Flow
+Sample 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 , 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+Sample 𝑡 ∼ 𝑝𝑡
+Set 𝑥𝑡 = 1 − 𝑡 𝑥 + 𝑡𝑧
+Set 𝑣𝑔𝑡 = 𝑧 − 𝑥
+Compute 𝑣𝑝𝑟𝑒𝑑 = 𝑓𝜃 𝑥𝑡 , 𝑡
+2
+
+Compute loss 𝑣𝑔𝑡 − 𝑣𝑝𝑟𝑒𝑑 2
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 109
+
+May 20, 2025
+
+Generalized Diffusion
+Rectified Flow
+
+Generalized Diffusion
+
+Sample 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 , 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+Sample 𝑡 ∼ 𝑝𝑡
+Set 𝑥𝑡 = 1 − 𝑡 𝑥 + 𝑡𝑧
+Set 𝑣𝑔𝑡 = 𝑧 − 𝑥
+Compute 𝑣𝑝𝑟𝑒𝑑 = 𝑓𝜃 𝑥𝑡 , 𝑡
+
+Sample 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 , 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+Sample 𝒕 ∼ 𝑝𝑡
+Set 𝑥𝑡 = 𝒂 𝒕 𝑥 + 𝒃(𝒕)𝑧
+Set 𝑦𝑔𝑡 = 𝒄(𝒕)𝑥 + 𝒅(𝒕)𝑧
+Compute 𝑦𝑝𝑟𝑒𝑑 = 𝑓𝜃 𝑥𝑡 , 𝒕
+
+2
+
+Compute loss 𝑦𝑔𝑡 − 𝑦𝑝𝑟𝑒𝑑 2
+
+Compute loss 𝑣𝑔𝑡 − 𝑣𝑝𝑟𝑒𝑑 2
+
+Stanford CS231n 10 th Anniversary
+
+2
+
+Lecture 14 - 110
+
+May 20, 2025
+
+Generalized Diffusion
+Rectified Flow
+
+Generalized Diffusion
+
+Sample 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 , 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+Sample 𝑡 ∼ 𝑝𝑡
+Set 𝑥𝑡 = 1 − 𝑡 𝑥 + 𝑡𝑧
+Set 𝑣𝑔𝑡 = 𝑧 − 𝑥
+Compute 𝑣𝑝𝑟𝑒𝑑 = 𝑓𝜃 𝑥𝑡 , 𝑡
+
+Sample 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 , 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+Sample 𝒕 ∼ 𝑝𝑡
+Set 𝑥𝑡 = 𝒂 𝒕 𝑥 + 𝒃(𝒕)𝑧
+Set 𝑦𝑔𝑡 = 𝒄(𝒕)𝑥 + 𝒅(𝒕)𝑧
+Compute 𝑦𝑝𝑟𝑒𝑑 = 𝑓𝜃 𝑥𝑡 , 𝒕
+
+2
+
+Compute loss 𝑦𝑔𝑡 − 𝑦𝑝𝑟𝑒𝑑 2
+
+Compute loss 𝑣𝑔𝑡 − 𝑣𝑝𝑟𝑒𝑑 2
+
+2
+
+𝒂 𝒕 =1−𝑡
+𝒃(𝒕) = 𝑡
+𝒄(𝒕) = −1
+𝒅(𝒕) = 1
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 111
+
+May 20, 2025
+
+Generalized Diffusion
+Variance Preserving (VP)
+
+Generalized Diffusion
+
+𝒂𝒕 = 𝜎 𝑡
+𝒃(𝒕) = 1 − 𝜎 𝑡
+
+Sample 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 , 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+Sample 𝒕 ∼ 𝑝𝑡
+Set 𝑥𝑡 = 𝒂 𝒕 𝑥 + 𝒃(𝒕)𝑧
+Set 𝑦𝑔𝑡 = 𝒄(𝒕)𝑥 + 𝒅(𝒕)𝑧
+Compute 𝑦𝑝𝑟𝑒𝑑 = 𝑓𝜃 𝑥𝑡 , 𝒕
+
+If x and z are independent and
+variance=1, then xt also has
+variance=1
+
+2
+
+Compute loss 𝑦𝑔𝑡 − 𝑦𝑝𝑟𝑒𝑑 2
+
+Son g e t al, “ Sco re-Based Ge nerative Mod eling th rough Stochastic Differential Equa tion s”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 112
+
+May 20, 2025
+
+Generalized Diffusion
+Variance Exploding (VE)
+
+Generalized Diffusion
+
+𝒂 𝒕 =1
+𝒃(𝒕) = 𝜎 𝑡
+
+Sample 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 , 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+Sample 𝒕 ∼ 𝑝𝑡
+Set 𝑥𝑡 = 𝒂 𝒕 𝑥 + 𝒃(𝒕)𝑧
+Set 𝑦𝑔𝑡 = 𝒄(𝒕)𝑥 + 𝒅(𝒕)𝑧
+Compute 𝑦𝑝𝑟𝑒𝑑 = 𝑓𝜃 𝑥𝑡 , 𝒕
+
+𝜎 1 Needs to be big enough
+to drown out all signal in x
+
+2
+
+Compute loss 𝑦𝑔𝑡 − 𝑦𝑝𝑟𝑒𝑑 2
+
+Son g e t al, “ Sco re-Based Ge nerative Mod eling th rough Stochastic Differential Equa tion s”, ICLR 2021
+Kar ras et al, “Elu cida ting the Desig n S pace o f Diffusion-Based Ge nerative Mod els” , NeurIPS 202 2
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 113
+
+May 20, 2025
+
+Generalized Diffusion
+x-prediction
+
+Generalized Diffusion
+
+𝑦𝑔𝑡 = 𝑥 [𝒄 𝒕 = 1; 𝒅(𝒕) = 0]
+
+Sample 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 , 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+Sample 𝒕 ∼ 𝑝𝑡
+Set 𝑥𝑡 = 𝒂 𝒕 𝑥 + 𝒃(𝒕)𝑧
+Set 𝑦𝑔𝑡 = 𝒄(𝒕)𝑥 + 𝒅(𝒕)𝑧
+Compute 𝑦𝑝𝑟𝑒𝑑 = 𝑓𝜃 𝑥𝑡 , 𝒕
+
+ε-prediction
+𝑦𝑔𝑡 = 𝒛 [𝒄 𝒕 = 0; 𝒅(𝒕) = 1]
+
+2
+
+Compute loss 𝑦𝑔𝑡 − 𝑦𝑝𝑟𝑒𝑑 2
+
+v-prediction
+𝑦𝑔𝑡 = 𝒃 𝒕 𝑧 − 𝒂 𝒕 𝑥
+
+[𝒄 𝒕 = 𝒃 𝒕 ; 𝒅(𝒕) = − 𝒂 𝒕 ]
+
+Saliman s and Ho, “ Progre ssive Distilla tion of Diffusion Mo dels”, ICL R 2022
+Ho et al, “Imag en Video: High Definition Video Gen eration with Diffusion Models”, arX iv 202 2
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 114
+
+May 20, 2025
+
+Generalized Diffusion
+Generalized Diffusion
+How do we choose these
+functions?
+Usually through some
+mathematical formalism
+
+Sample 𝑥 ∼ 𝑝𝑑𝑎𝑡𝑎 , 𝑧 ∼ 𝑝𝑛𝑜𝑖𝑠𝑒
+Sample 𝒕 ∼ 𝑝𝑡
+Set 𝑥𝑡 = 𝒂 𝒕 𝑥 + 𝒃(𝒕)𝑧
+Set 𝑦𝑔𝑡 = 𝒄(𝒕)𝑥 + 𝒅(𝒕)𝑧
+Compute 𝑦𝑝𝑟𝑒𝑑 = 𝑓𝜃 𝑥𝑡 , 𝒕
+2
+
+Compute loss 𝑦𝑔𝑡 − 𝑦𝑝𝑟𝑒𝑑 2
+
+Saliman s and Ho, “ Progre ssive Distilla tion of Diffusion Mo dels”, ICL R 2022
+Ho et al, “Imag en Video: High Definition Video Gen eration with Diffusion Models”, arX iv 202 2
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 115
+
+May 20, 2025
+
+Diffusion is a Latent Variable Model
+We know the forward process: Add Gaussian noise
+
+Learn a network to approximate the backward process
+Optimize variational lower bound (same as VAE)
+Soh l-Dickste in e t al, “ Dee p Unsuper vised Lear ning using Non equilibriu m Thermodynamics”, NeurIPS 201 5
+Figure from Ho et al, “Denoising Diffusion Prob abilistic Mo dels”, NeurIPS 202 0
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 116
+
+May 20, 2025
+
+Diffusion Learns the Score Function
+For any distribution 𝑝 𝑥 over 𝑥 ∈ ℝ𝑁 the score function
+𝑁
+
+𝑁
+
+𝑠: ℝ → ℝ
+
+𝜕
+𝑠 𝑥 =
+log 𝑝(𝑥)
+𝜕𝑥
+
+Is a vector field pointing toward areas of high probability density
+Diffusion learns a neural network to approximate the score
+function of pdata
+Son g a nd Ermon, “ Gener ative Modeling by Estimating Gra dients of the Data Distribution”, NeurIPS 201 9
+Ho et al, “De noising Diffusio n P robabilistic Models”, NeurIPS 202 0
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 117
+
+May 20, 2025
+
+Diffusion Solves Stochastic Differential Equations
+We can describe a continuous noising process
+as an SDE
+𝑑𝒙 = 𝑓 𝒙, 𝑡 𝑑𝑡 + 𝑔 𝑡 𝑑𝒘
+
+Gives a relationship between infinitesimal
+changes in data x, time t, and noise w.
+Diffusion learns a neural network to
+approximately solve this SDE
+Son g e t al, “ Sco re-Based Ge nerative Mod eling th rough Stochastic Differential Equa tion s”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 118
+
+May 20, 2025
+
+Perspectives on Diffusion
+
+Great blog post by Sander Dieleman:
+https://sander.ai/2023/07/20/perspectives.html
+(All his blog posts are great)
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 119
+
+May 20, 2025
+
+Autoregressive Models Strike Back
+Recall autoregressive models
+Too slow on raw pixels
+
+They work great on
+(discrete) latents!
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 120
+
+May 20, 2025
+
+Autoregressive Models Strike Back
+Train encoder + decoder
+to convert images to
+discrete latents
+
+Train autoregressive model
+to model sequences of
+discrete latents
+
+Image
+HxWx3
+Decoder
+Latent
+H/D x W/D
+integers!
+
+Sample discrete latents from
+the autoregressive model,
+pass to decoder to get an
+image
+
+Encoder
+Image
+HxWx3
+
+Stanford CS231n 10 th Anniversary
+
+van den Oord et al, “Neural Discrete Representation Learning”, NeurIPS 2017
+Razavi et al, “Generating Diverse High-Fidelity Images with VQ-VAE-2”, NeurIPS 2019
+Esser et al, “Taming Transformers for High-Resolution Image Synthesis”, CVPR 2021
+Yu et al, “Scaling Autoregressive Models for Content-Rich Text-to-Image Generation”, arXiv 2022
+
+Lecture 14 - 121
+
+May 20, 2025
+
+Summary
+Generative Adversarial Networks
+Latent Diffusion Models
+
+Diffusion Models
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 122
+
+May 20, 2025
+
+Next Time:
+Vision + Language
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 14 - 123
+
+May 20, 2025
+
+

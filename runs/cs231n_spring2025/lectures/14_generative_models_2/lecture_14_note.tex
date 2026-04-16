@@ -1,0 +1,173 @@
+
+\documentclass[a4paper]{article}
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\newtcolorbox{knowledgebox}[1]{enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black, coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm}, boxrule=1pt, sharp corners}
+\newtcolorbox{importantbox}[1]{enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black, coltitle=black, fonttitle=\bfseries, title=#1, sharp corners}
+\newtcolorbox{warningbox}[1]{enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black, coltitle=white, fonttitle=\bfseries, title=#1, sharp corners}
+\lstset{language=Python,basicstyle=\ttfamily\small,keywordstyle=\color{blue},stringstyle=\color{red!60!black},commentstyle=\color{green!60!black},breaklines=true,frame=single,numbers=left,numberstyle=\tiny\color{gray},captionpos=b,extendedchars=false}
+\newcommand{\notetitle}{CS231N Spring 2025 课程讲义：Lecture 14 Generative Models 2}
+\newcommand{\noteauthors}{Codex Worker 3}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-09-02}
+\newcommand{\videoduration}{1:12:08}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=Edr4uZFh4EE}
+\newcommand{\videocoverpath}{cover.jpg}
+\begin{document}
+\begin{titlepage}\centering
+{\Large 课程讲义\par}\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}\vspace{0.8cm}
+{\large \noteauthors\par}\vspace{0.3cm}
+{\large \notedate\par}\vspace{1.2cm}
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+\tableofcontents\newpage
+
+    \section{从上一讲回顾到本讲主线：为什么还需要新的生成模型}
+
+    Lecture 14 一开始并没有直接跳进新模型，而是先把上一讲的生成式版图重新摆了一遍：自回归模型直接最大化似然，VAE 用潜变量和 ELBO 近似似然，而今天要讲的两条新路线是 GAN 与 diffusion。这个过渡很重要，因为它表明新模型不是“替代概率建模”，而是在不同环节上重新选择了优化目标与采样路径。
+
+    讲者的隐含比较标准非常清楚：自回归模型目标干净，但采样串行、表示顺序敏感；VAE 有潜空间和明确下界，但样本往往偏模糊；GAN 强调高质量样本，却放弃显式似然；diffusion 则用逐步去噪或概率流方式，在样本质量、训练稳定性和可扩展性之间取得新的平衡。
+
+    \subsection{本章小结}
+
+    本讲承接上一讲，但评价标准已经从“能否训练一个生成模型”转向“生成质量、稳定性、条件控制与规模扩展能力如何平衡”。后续的 GAN 与 diffusion，都应放在这个更高层的设计问题里理解。
+
+    \section{生成对抗网络：从概率匹配到对抗博弈}
+
+    GAN（Generative Adversarial Networks）的 setup 在课程里被描述得非常直接：真实数据来自分布 $p_{data}(x)$，生成器 $G$ 把随机噪声 $z \sim p(z)$ 映射成伪样本 $G(z)$，判别器 $D$ 则尝试分辨一个样本究竟来自真实数据还是来自生成器。训练目标是一个最小最大博弈：
+    \[
+    \min_G \max_D \, \mathbb{E}_{x \sim p_{data}} [\log D(x)]
+    + \mathbb{E}_{z \sim p(z)} [\log(1 - D(G(z)))] .
+    \]
+
+    符号解释如下：
+    \begin{itemize}
+    \item $D(x)$：判别器认为样本 $x$ 真实的概率；
+    \item $G(z)$：生成器把随机噪声变换成伪样本；
+    \item 第一项奖励判别器把真实样本判对；
+    \item 第二项奖励判别器把生成样本判成假，同时迫使生成器去“骗过”判别器。
+    \end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-16.png}
+\caption{GAN 的核心是生成器与判别器之间的 minimax 对抗博弈；同一个目标函数对双方的含义不同。}
+\end{figure}
+
+
+    课程特别强调了一个理解要点：对判别器来说，这是分类问题；对生成器来说，这其实是通过判别器提供的梯度来间接匹配数据分布。GAN 不像自回归或 VAE 那样显式写出 $p_\theta(x)$，但它希望通过“真实样本无法与伪样本区分”的状态，把生成分布 $p_G$ 推近真实分布 $p_{data}$。
+
+    这也解释了 GAN 的优点与弱点为什么同时出现。优点是它直接围绕“样本是否看起来真实”展开优化，因此很容易得到锐利、逼真的视觉结果；弱点是它缺少显式似然和稳定的全局目标，训练很容易出现 mode collapse、梯度失衡和振荡。讲者在讲 training objective 时不断切换“从判别器看”和“从生成器看”的视角，正是为了让学生看清这些不稳定性来自哪里。
+
+    课程随后讨论了 GAN 架构演进。DCGAN 代表了把生成器和判别器都做成卷积网络的早期稳定套路；StyleGAN 则进一步把潜变量注入方式、噪声控制和风格调制做得更细，使得不同层次语义能够被更清晰地操控。这里的重点不是记住某个架构细节，而是理解 GAN 社区为何不断把“潜空间可控性”与“训练稳定性”作为优化方向。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-33.png}
+\caption{潜空间插值展示了生成器学习到的连续表示：沿着潜变量路径移动时，语义属性也平滑变化。}
+\end{figure}
+
+
+    潜空间插值（latent space interpolation）是课程用来解释 GAN 表示能力的一个重要例子。若两个噪声向量 $z_0$ 与 $z_1$ 对应两个样本，那么中间向量
+    \[
+    z_t = t z_0 + (1-t) z_1
+    \]
+    往往会对应语义平滑变化的中间图像。这说明生成器学到的不只是“记住训练图像”，而是学到了一片可导航的表示空间。当然，课程也提醒我们，这种“平滑”并不意味着模型真的理解了世界结构，它更像是在训练分布附近形成了一张连续插值图谱。
+
+    \begin{warningbox}{GAN 为什么难训练}
+    GAN 的优化不是单一目标下降，而是两个玩家同时更新的动态系统。一个玩家过强、另一个玩家梯度消失、训练分布过窄、超参数微小变化，都可能让训练不稳定。这也是后来 diffusion 模型重新赢得主流关注的重要背景。
+    \end{warningbox}
+
+    \subsection{本章小结}
+
+    GAN 通过对抗博弈绕开了显式似然建模，换来非常强的样本质量，但也把训练变成了更脆弱的动态平衡问题。理解 GAN 的关键，不是记住“生成器加判别器”，而是理解为什么样本逼真度与训练稳定性会在同一个目标里互相拉扯。
+
+    \section{扩散模型与 Rectified Flow：从去噪到概率流}
+
+    讲者用非常直观的语言引入 diffusion：先选一个简单噪声分布 $p_{noise}$，通常是高斯；然后把真实数据逐渐加噪，得到不同噪声级别下的 $x_t$；模型的任务就是学会沿着相反方向一步步把噪声拉回数据分布。这样一来，生成就不再是“从一个 latent 一次性跳到图像”，而是“从噪声出发，经过许多小步修正回到真实样本”。
+
+    这套思路的优点在于训练信号通常更平滑。GAN 直接问“你是真还是假”，而 diffusion 问的是“在这个噪声级别下，应该往哪个方向修正”，后者往往更容易形成稳定监督。Rectified Flow 则进一步把这类过程表述为一条从噪声流向数据的连续路径，模型学习的是速度场（velocity field）而不是离散去噪器。
+
+    一个有代表性的写法是把数据 $x$ 与噪声 $z$ 之间的直线插值写为：
+    \[
+    x_t = (1-t)x + tz,
+    \]
+    然后学习把当前状态 $x_t$ 朝“更像数据”的方向推动的速度函数。这里：
+    \begin{itemize}
+    \item $t$ 是噪声时间或流动时间；
+    \item $x$ 是真实数据点；
+    \item $z$ 是从简单先验采样的噪声；
+    \item 模型输出的不是最终样本，而是“下一小步往哪里走”。
+    \end{itemize}
+
+    课程在中段花了不少篇幅解释条件生成。以文本到图像为例，模型既要理解当前噪声图像，也要接收文本条件、时间步等额外信息。Classifier-Free Guidance（CFG）之所以重要，是因为它提供了一种极其实用的推理控制机制：同一个模型同时学条件预测与无条件预测，然后在推理时做线性组合，调节“忠于文本条件”与“保留多样性”之间的权衡。
+
+    一种常见写法是：
+    \[
+    \hat{\epsilon}(x_t, c) = \epsilon_\theta(x_t, c)
+    + w \big(\epsilon_\theta(x_t, c) - \epsilon_\theta(x_t, \varnothing)\big),
+    \]
+    其中 $w$ 是 guidance strength，越大通常越贴合条件，但也可能越牺牲样本多样性。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-62.png}
+\caption{Classifier-Free Guidance 通过在条件与无条件预测之间做线性组合，控制保真度与多样性的平衡。}
+\end{figure}
+
+
+    讲者还讨论了噪声调度（noise schedules）和“模型到底预测什么”这两个设计自由度。有的 diffusion 变体预测干净数据，有的预测噪声，有的预测二者的线性组合；Rectified Flow 则更强调速度向量本身。课程给出的总体结论是：这些选择看似只是公式差异，实际上会决定训练稳定性、采样路径、推理步数乃至和 Transformer 架构的兼容方式。
+
+    \subsection{本章小结}
+
+    diffusion/Rectified Flow 把生成改写成一条逐步修正的路径，因此训练上通常比 GAN 更稳定，也更容易纳入条件控制。它们的本质优势不只是“图片更好看”，而是把生成过程分解成了很多局部可学的小决策。
+
+    \section{规模化生成：DiT、视频扩散与多种数学视角}
+
+    后半讲的重点是：当 diffusion 成为主流之后，整个社区开始把它与更大模型、更强条件、更长时序结合。Diffusion Transformer（DiT）并没有什么“神秘 special sauce”，它更像是把 diffusion 目标塞进标准 Transformer 块里，然后认真解决三个输入如何注入：当前噪声样本、时间步 $t$，以及文本等条件信号。讲者提到的几个主流策略包括用 modulation 注入时间条件，或把多种条件直接拼成序列 token 一并交给 Transformer。
+
+    课程随后把视野扩展到文本到视频和视频 diffusion。这里的关键困难不再只是“单帧像不像”，而是时序一致性、条件注入以及规模化训练。讲者把 Sora 视为一个里程碑：它让产业界意识到，把 diffusion transformer 与更强工程堆栈结合，视频生成会出现爆发式进展。随后几乎每周都有更强的视频 diffusion 系统出现，课程甚至现场提到了 Google 在当天发布的新模型。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-103.png}
+\caption{课程把图像 diffusion 的思路推广到视频生成，强调时间一致性、条件注入和规模化训练。}
+\end{figure}
+
+
+    最后，讲者试图把 diffusion 放回更广的数学图景里。他指出，社区常从三个角度理解 diffusion：把它看成 latent variable model；把它看成 score function learning；把它看成随机微分方程（SDE）或连续流的一种数值实现。这三个角度并不是互斥解释，而是不同层次的建模语言。前者告诉我们 diffusion 仍然属于概率生成模型家族，中者强调它学习的是“数据流形周围的方向信息”，后者则解释了为什么采样过程天然像在解一个时间演化系统。
+
+    \subsection{本章小结}
+
+    本讲后半部分说明，diffusion 真正赢下来的地方不仅是样本质量，更是规模化兼容性：它能自然接入 Transformer、文本条件、视频时序和多种数学解释，因此成为现阶段生成系统的重要骨干。
+
+    \section{总结与延伸}
+
+    Lecture 14 把生成式模型从“概率建模能否成立”推进到“生成系统如何在真实世界里扩展”。GAN 展示了对抗目标如何直接服务于样本逼真度，但也暴露了训练不稳定、模式崩塌和评估困难等结构性问题；diffusion 和 rectified flow 则用逐步修正、条件控制与连续流视角，为大规模生成提供了更稳定的工程支点。
+
+    从教材式梳理看，本讲最重要的收获有三条。第一，GAN 与 diffusion 的差异，不只是样本效果差异，而是训练目标和优化几何完全不同。第二，CFG、DiT、文本到视频等内容说明现代生成模型的关键能力已经从“会生成”变成“能在条件约束下稳定、可控地生成”。第三，讲者在结尾引入 latent variable、score function 和 SDE 三种数学视角，提醒我们不要把 diffusion 只当作经验 recipe，而要把它看成一整套概率路径建模方法。
+
+\end{document}

@@ -1,0 +1,244 @@
+
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+\newcommand{\notetitle}{CS231N Spring 2025 课程讲义：Lecture 13 Generative Models 1}
+\newcommand{\noteauthors}{Codex Worker 3}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-09-02}
+\newcommand{\videoduration}{1:12:30}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=zbHXQRUNlH0}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程讲义\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+    \section{生成式模型的任务定义与动机}
+
+    这一讲首先把上一讲的自监督学习（self-supervised learning）重新拉回到一个更宽的视角里：如果我们能只靠数据本身学习表示，那么能否进一步直接学习“数据是如何被生成出来的”？这正是生成式模型（generative models）要回答的问题。讲者没有把它当作一个孤立分支，而是把它放在无监督学习、概率建模和现代大模型发展的共同背景下讨论。
+
+    课程先对监督学习与无监督学习做了重新定位。监督学习以带标签样本 $(x, y)$ 为输入，目标是学得一个从输入到目标的映射；无监督学习则只有 $x$，目标往往不是“立刻输出标签”，而是理解数据结构、提炼潜在变量、或学习可迁移表示。生成式建模就是其中一种更强的目标：不仅学习特征，还要学习数据分布本身。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-24.png}
+\caption{生成式模型与判别式模型在概率对象上的差异：前者试图刻画数据分布或联合分布，后者直接刻画条件分布。}
+\end{figure}
+
+
+    在这个框架里，判别式模型（discriminative models）通常学习 $p(y \mid x)$，也就是“已知输入时输出类别的条件概率”；而生成式模型则学习 $p(x)$ 或 $p(x, y)$。这两者并不只是“一个做分类，一个做生成”这么简单，差别在于它们的归一化对象与建模目标完全不同。讲者反复强调，生成式模型试图把概率质量分配到所有可能的数据上，因此如果你想提高一个样本的概率，就必须重新分配整张概率版图。
+
+    利用 Bayes 规则，两类模型之间还存在可转换关系：
+    \[
+    p(y \mid x)=\frac{p(x \mid y)p(y)}{p(x)}
+    \]
+
+    这里：
+    \begin{itemize}
+    \item $x$ 是观测数据，例如一张图像；
+    \item $y$ 是标签或条件；
+    \item $p(x \mid y)$ 描述某一类别如何“生成”观测；
+    \item $p(y)$ 是先验；
+    \item $p(x)$ 是对所有可能类别边缘化后的证据项。
+    \end{itemize}
+
+    这也是为什么讲者会说，生成式模型不仅能做“生成”，还能够通过组合概率项来支持条件预测、补全和推断。换言之，学习数据分布往往意味着获得更通用的建模能力，而不是仅获得一个会“画图”的模型。
+
+    \begin{importantbox}{为什么生成式建模在今天重新重要}
+    讲者给出的理由并不是单一的“图像更好看了”，而是：现代深度学习终于有能力把早年“模糊垃圾图”的生成模型扩展到真正有表达力的规模。随着数据、算力和模型容量上升，生成式方法第一次在实践里兑现了其概率建模承诺。
+    \end{importantbox}
+
+    \subsection{本章小结}
+
+    本讲前半部分完成了两个关键定位：第一，生成式模型不是和分类无关的旁枝，而是更底层的概率建模视角；第二，它的目标是刻画数据分布本身，因此天然能支持采样、条件推断和表示学习。后面所有具体模型，都是对这一目标的不同工程化实现。
+
+    \section{自回归模型：把生成问题改写成链式条件概率}
+
+    讲者接下来介绍了第一类最直接、也最“概率论教科书化”的方法：自回归模型（autoregressive models）。它的核心思想非常简单：把一个高维样本拆成序列，然后利用链式法则逐步生成。
+
+    对一个序列化后的样本 $x=(x_1, x_2, \ldots, x_T)$，模型写作：
+    \[
+    p_\theta(x)=\prod_{t=1}^{T} p_\theta(x_t \mid x_1, \ldots, x_{t-1})
+    \]
+
+    符号说明如下：
+    \begin{itemize}
+    \item $x_t$：第 $t$ 个 token、像素或离散化后的局部变量；
+    \item $T$：序列长度；
+    \item $p_\theta$：由参数 $\theta$ 决定的条件分布；
+    \item 条件项 $p_\theta(x_t \mid x_{<t})$ 表示“在前文已知的情况下，当前元素最可能是什么”。
+    \end{itemize}
+
+    训练时通常直接做最大似然（maximum likelihood estimation, MLE），也就是最大化训练样本在模型下的概率，或者等价地最小化负对数似然。课程在这里把“显式写下 $p(x)=f(x, W)$”作为最大似然建模的出发点：你需要先承诺一个明确的概率模型，然后再通过数据拟合参数。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-57.png}
+\caption{把图像改写为序列之后，自回归模型就可以像语言模型一样逐步预测下一个 token 或像素。}
+\end{figure}
+
+
+    这种方法的优势在于概率目标非常明确：每一步都在优化真正的似然，而不是某种代理目标。它与大语言模型（LLMs are autoregressive models）之间也有天然联系。讲者专门点出，语言模型之所以能统一训练和采样，是因为“下一个 token 预测”本身就是严格的自回归分解。
+
+    但把图像转换成序列时，自回归模型也会暴露一些代价。首先，图像原本是二维结构，序列化之后会引入人为顺序；其次，长程依赖会把采样过程变成严格串行；最后，虽然训练时 teacher forcing 很稳定，推理时却要一步一步滚动生成，速度天然受限。
+
+    \begin{knowledgebox}{自回归方法为什么仍然重要}
+    课程并没有把自回归模型当作“旧时代方案”。相反，它把它视为生成建模的一条基线：如果你愿意接受串行采样，自回归方法提供了最干净、最可解释的似然目标。后来很多方法，本质上都在试图保留这种明确概率语义，同时缓解它的采样或表示局限。
+    \end{knowledgebox}
+
+    \subsection{本章小结}
+
+    自回归模型把复杂生成问题拆成一串条件预测问题，因此目标函数最直接、理论最干净。它的局限主要来自表示方式和串行采样成本，而不是来自概率建模本身。
+
+    \section{变分自编码器：从自动编码器到概率生成模型}
+
+    在引出 VAE 之前，讲者先回顾了普通自动编码器（autoencoder）。普通自动编码器通过 encoder 把输入压缩到潜变量，再由 decoder 试图重建原始输入。它能学到压缩表示，但并不自动提供一个“好的、可采样的”潜空间。原因在于：编码后的 latent code 只是训练样本的压缩结果，空间中不同点未必对应合理样本，也没有统一的概率结构可供采样。
+
+    于是，VAE 的核心改造是：不要让 encoder 输出一个点，而是输出一个分布 $q_\phi(z \mid x)$；同时假设一个简单先验 $p(z)$，并通过训练让每个样本对应的后验分布都尽量贴近这个先验。这样，潜空间就变成一个被规则化的概率空间，而不再只是离散散点云。
+
+    课程在这里强调了 latent variable model 的张力：如果我们有联合分布
+    \[
+    p_\theta(x, z)=p_\theta(x \mid z) p(z),
+    \]
+    那么理论上只要把 $z$ 积分掉，就能得到
+    \[
+    p_\theta(x)=\int p_\theta(x \mid z) p(z) \, dz.
+    \]
+
+    问题恰恰出在这个积分上。讲者反复指出，这个积分“杀死了我们”：当 decoder 是神经网络时，$p_\theta(x \mid z)$ 会是一个复杂非线性函数，几乎不可能直接精确边缘化。所以 VAE 的难点从来不是“有没有潜变量”，而是“如何在不可解积分面前仍然训练生成模型”。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-92.png}
+\caption{ELBO 把难以直接优化的对数似然下界化为重建项与 KL 正则项之和，是 VAE 训练的核心。}
+\end{figure}
+
+
+    为了绕开这个困难，VAE 采用变分近似：用一个可学习的近似后验 $q_\phi(z \mid x)$ 去逼近真实后验 $p_\theta(z \mid x)$，并优化证据下界（Evidence Lower Bound, ELBO）：
+    \[
+    \log p_\theta(x) 
+    \ge 
+    \mathbb{E}_{q_\phi(z \mid x)} [\log p_\theta(x \mid z)]
+    - D_{KL}\big(q_\phi(z \mid x) \| p(z)\big).
+    \]
+
+    这条公式的两部分各有明确职责：
+    \begin{itemize}
+    \item 第一项是重建项（reconstruction term），要求 decoder 在给定 $z$ 时能够重建出输入 $x$；
+    \item 第二项是 KL 散度，要求 encoder 输出的潜变量分布不要偏离简单先验 $p(z)$ 太远；
+    \item 当 $p(z)$ 选成单位高斯时，潜空间就会被压成一个结构规整、可直接采样的区域。
+    \end{itemize}
+
+    讲者随后结合 transcript 解释了实际参数化方式：encoder 不直接输出样本，而输出潜变量高斯分布的均值 $\mu(x)$ 与标准差或方差参数 $\sigma(x)$。这使得一个神经网络可以输出“一个分布”，而不是只输出单个向量。
+
+    在采样时，课程强调的直觉非常清楚：如果你只是让 decoder 学习“某个 code 到某个样本”的映射，那么随机采样 code 并不可靠；但如果 KL 正则让所有样本的后验都围绕一个简单先验展开，那么我们就可以直接从 $p(z)$ 采样，再交给 decoder 生成新数据。
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-111.png}
+\caption{当潜变量空间被规则化后，可以直接从简单先验采样，再通过解码器生成新样本。}
+\end{figure}
+
+
+    \begin{knowledgebox}{为什么 VAE 通常比普通自编码器更适合“生成”}
+    普通 autoencoder 学到的是压缩映射；VAE 学到的是带概率语义的潜空间。前者擅长表示压缩，后者才真正具备“从先验出发生成新样本”的机制。
+    \end{knowledgebox}
+
+    课程最后还提到 disentangling 的愿景：如果潜变量的不同维度学到相对可分离的语义属性，那么我们就可以通过操控潜空间局部方向，分别控制形状、风格、姿态等属性。这里讲者保持了谨慎态度，没有把 disentanglement 说成必然结果，而是把它作为 VAE 类模型一个很有吸引力、但需要额外条件才能稳定出现的目标。
+
+    \subsection{拓展阅读}
+
+    官方 reading 链接到一篇 ELBO 解释博客。把它与本讲一起看时，最有价值的不是记住推导细节，而是抓住 ELBO 的两个工程含义：一是它用近似后验替代了不可解积分，二是它把“生成质量”和“潜空间规整性”写进了同一个训练目标。
+
+    \subsection{本章小结}
+
+    VAE 解决的是“如何让潜变量生成模型既能训练又能采样”的问题。它通过近似后验、ELBO 和 KL 正则，把潜空间从普通 autoencoder 的压缩空间变成了可解释、可采样的概率空间。
+
+    \section{总结与延伸}
+
+    Lecture 13 的真正主线不是罗列三类模型，而是把生成建模的三种典型思路摆在同一张地图上：自回归模型直接分解似然；普通 autoencoder 学表示但不保证可采样；VAE 通过变分推断把潜变量生成模型变成可训练对象。三者都在回答同一个问题：如何让模型学会“数据从哪里来”。
+
+    如果从自学角度整理，本讲最应掌握的有三点。第一，生成式模型和判别式模型的差别首先是概率对象不同，不是输出形式不同。第二，自回归方法提供了最直接的似然建模基线，因此后续方法的改进都应与它对照。第三，VAE 的关键不在于“encoder-decoder”外观，而在于 ELBO 让不可解边缘似然获得了可优化下界。
+
+    从课程安排看，本讲把生成式建模的概率基础、序列化思路和潜变量思路都铺好了；下一讲进一步进入 GAN、diffusion 等更强调样本质量和大规模生成能力的方法时，读者就能更清楚地看见：不同生成模型之间，真正竞争的是训练目标、潜空间约束、采样路径和工程稳定性，而不是一句“谁生成得更像”。
+
+\end{document}

@@ -1,0 +1,1165 @@
+[00:00:05,600 --> 00:00:12,000] Last time, on Tuesday this week, we had a lecture on GPUs
+[00:00:12,000 --> 00:00:14,380] and how to train, how to use them,
+[00:00:14,380 --> 00:00:18,700] and how to use multiple GPUs for training, larger scaling,
+[00:00:18,700 --> 00:00:20,920] your trainings, and so on.
+[00:00:20,920 --> 00:00:23,440] An exciting, a new topic that we've
+[00:00:23,440 --> 00:00:26,400] added to this class this year, which
+[00:00:26,400 --> 00:00:29,360] is, I think, timely and very important
+[00:00:29,360 --> 00:00:34,960] with the increase of model sizes and applications
+[00:00:34,960 --> 00:00:39,840] that you see the AI models have these days.
+[00:00:39,840 --> 00:00:47,800] And before that, we talked about we covered all of the key tasks
+[00:00:47,800 --> 00:00:50,660] in computer vision, from classification,
+[00:00:50,660 --> 00:00:53,400] semantic segmentation, object detection, instance
+[00:00:53,400 --> 00:00:56,880] segmentation, and so on.
+[00:00:56,880 --> 00:00:59,810] And we're going to revisit some of these topics, some
+[00:00:59,810 --> 00:01:02,790] of the results of the models we talk about today.
+[00:01:02,790 --> 00:01:09,410] So those tasks are still quite important.
+[00:01:09,410 --> 00:01:12,650] And then we talked about visualizing and understanding
+[00:01:12,650 --> 00:01:19,490] the models and seeing what the models are learning.
+[00:01:19,490 --> 00:01:21,130] One of the things that we've discussed
+[00:01:21,130 --> 00:01:27,830] was, for example, using just in the early sessions,
+[00:01:27,830 --> 00:01:31,130] we talked about nearest neighbor and in the pixel space
+[00:01:31,130 --> 00:01:37,690] and how we can actually do find the class of images
+[00:01:37,690 --> 00:01:40,550] based on only pixels-based distances,
+[00:01:40,550 --> 00:01:45,330] and we discussed how it's actually not efficient.
+[00:01:45,330 --> 00:01:47,250] And one of the things that we talked about
+[00:01:47,250 --> 00:01:53,130] was if we use the embedding layers or the feature
+[00:01:53,130 --> 00:01:56,730] space, feature layers, one of those fully connected layers
+[00:01:56,730 --> 00:02:03,060] in the feature maps there, from a convolutional neural network
+[00:02:03,060 --> 00:02:05,780] or any other network architecture that we
+[00:02:05,780 --> 00:02:10,020] use there, that could actually be a good representation
+[00:02:10,020 --> 00:02:11,280] of images.
+[00:02:11,280 --> 00:02:14,520] And we talked about the L2 distance,
+[00:02:14,520 --> 00:02:19,260] if we use that as the metric for nearest neighbor
+[00:02:19,260 --> 00:02:23,540] in the feature space, feature of these models, right?
+[00:02:23,540 --> 00:02:25,300] So this means that these features
+[00:02:25,300 --> 00:02:28,380] are quite meaningful for the specific task
+[00:02:28,380 --> 00:02:30,260] that we had at hand.
+[00:02:30,260 --> 00:02:34,460] And this means that specifically, OK,
+[00:02:34,460 --> 00:02:39,660] if we run a neural network, a CNN, a ResNet, or even
+[00:02:39,660 --> 00:02:46,800] the transformer models, and look at the representations,
+[00:02:46,800 --> 00:02:49,200] the learned representations, in different contexts,
+[00:02:49,200 --> 00:02:54,740] you may see these as referred to with different names.
+[00:02:54,740 --> 00:02:56,890] Learned large representations, features,
+[00:02:56,890 --> 00:02:59,810] embeddings, latent space, and so on.
+[00:02:59,810 --> 00:03:04,230] But these learned representations or features
+[00:03:04,230 --> 00:03:07,590] are very good representatives of the images.
+[00:03:07,590 --> 00:03:12,970] And if we have a way to extract those,
+[00:03:12,970 --> 00:03:17,470] we can always get the class labels out of those features
+[00:03:17,470 --> 00:03:21,350] as well by a simple linear model, as you can see at the end
+[00:03:21,350 --> 00:03:22,430] here.
+[00:03:22,430 --> 00:03:24,910] But the major challenge that exists
+[00:03:24,910 --> 00:03:30,190] is training or building these networks
+[00:03:30,190 --> 00:03:33,530] at larger scale is always challenging.
+[00:03:33,530 --> 00:03:37,350] And can you tell me why there is a challenge here?
+[00:03:37,350 --> 00:03:40,690] So the thing is that at larger scale,
+[00:03:40,690 --> 00:03:45,110] we need a lot of labeled data because this network is trained
+[00:03:45,110 --> 00:03:49,270] starting from an image, and at the end, we have class labels.
+[00:03:49,270 --> 00:03:51,550] If we train this network, yes, these features
+[00:03:51,550 --> 00:03:56,190] are going to be very useful for getting those class labels out,
+[00:03:56,190 --> 00:03:57,370] right?
+[00:03:57,370 --> 00:04:02,410] But at scale, we need a lot of manual labeling efforts
+[00:04:02,410 --> 00:04:05,148] to sit down and label the images one by one.
+[00:04:05,148 --> 00:04:06,690] If the task is segmentation, you have
+[00:04:06,690 --> 00:04:10,850] to label the pixels one by one in every image,
+[00:04:10,850 --> 00:04:14,650] and that is going to be very challenging.
+[00:04:14,650 --> 00:04:18,130] So the question is is there a way
+[00:04:18,130 --> 00:04:22,490] we can train neural networks without the need for huge
+[00:04:22,490 --> 00:04:25,190] manually labeled data sets?
+[00:04:25,190 --> 00:04:29,470] So these manual labels are the challenge,
+[00:04:29,470 --> 00:04:32,970] and we want to see if we can bypass them
+[00:04:32,970 --> 00:04:36,290] in a way to train a neural network that
+[00:04:36,290 --> 00:04:39,410] gets us very good features.
+[00:04:39,410 --> 00:04:44,330] And with that, the topic of self-supervised learning
+[00:04:44,330 --> 00:04:45,270] comes in light.
+[00:04:45,270 --> 00:04:48,570] And that's what we are going to cover today.
+[00:04:48,570 --> 00:04:58,700] So having a large data set of, say, images without any labels,
+[00:04:58,700 --> 00:05:02,020] our hypothesis is that we can train a neural network
+[00:05:02,020 --> 00:05:08,460] using an objective function, a pretext task that gets us good
+[00:05:08,460 --> 00:05:12,600] features from images.
+[00:05:12,600 --> 00:05:17,860] And then when it comes to learning on a specific data set
+[00:05:17,860 --> 00:05:23,860] with a smaller set of data points, which have labels,
+[00:05:23,860 --> 00:05:28,740] we can basically train, we can transfer this trained encoder
+[00:05:28,740 --> 00:05:32,260] and use that to extract features for a downstream task
+[00:05:32,260 --> 00:05:34,500] or downstream objective.
+[00:05:34,500 --> 00:05:38,780] So here, we want to define a pretext task, a task that
+[00:05:38,780 --> 00:05:43,540] is general enough to be able to learn
+[00:05:43,540 --> 00:05:47,500] some good features from the images
+[00:05:47,500 --> 00:05:53,750] and then use that encoder, let's call it encoder,
+[00:05:53,750 --> 00:05:56,870] to solve another problem, what we call
+[00:05:56,870 --> 00:05:59,990] downstream task, downstream objective, which
+[00:05:59,990 --> 00:06:02,330] is the application that you care about.
+[00:06:02,330 --> 00:06:06,630] Like for example, we have a lot of natural images downloaded
+[00:06:06,630 --> 00:06:08,130] from the internet.
+[00:06:08,130 --> 00:06:10,330] We can train something out of it.
+[00:06:10,330 --> 00:06:13,290] And then we have a small data set of, for example,
+[00:06:13,290 --> 00:06:14,910] one of these industrial applications
+[00:06:14,910 --> 00:06:18,870] or medical applications that we have few labeled images on.
+[00:06:18,870 --> 00:06:21,990] And we can now use that transferred knowledge
+[00:06:21,990 --> 00:06:26,270] to extract features and then classify or perform the task
+[00:06:26,270 --> 00:06:29,350] that we are interested in.
+[00:06:29,350 --> 00:06:32,390] So we want to delve into this topic
+[00:06:32,390 --> 00:06:35,430] and go a little bit deeper in understanding
+[00:06:35,430 --> 00:06:37,590] the different components.
+[00:06:37,590 --> 00:06:40,810] In a nutshell, what self-supervised learning is,
+[00:06:40,810 --> 00:06:45,590] as I said, defining this pretext task on the data
+[00:06:45,590 --> 00:06:47,110] set with no labels.
+[00:06:47,110 --> 00:06:55,140] Encoder often gets us some learned representations.
+[00:06:55,140 --> 00:06:59,640] And then another module of the same neural network
+[00:06:59,640 --> 00:07:04,080] generates or does transfer the learned representations
+[00:07:04,080 --> 00:07:06,240] into the output space, which could
+[00:07:06,240 --> 00:07:10,440] be labels or outputs that automatically
+[00:07:10,440 --> 00:07:11,980] are generated from the data.
+[00:07:11,980 --> 00:07:14,880] They are not manual annotations.
+[00:07:14,880 --> 00:07:22,720] So if we can do this, then we have an objective function,
+[00:07:22,720 --> 00:07:25,400] a loss function, and a neural network
+[00:07:25,400 --> 00:07:29,280] to be trained with loss function.
+[00:07:29,280 --> 00:07:33,680] As you can see here, we call the second part sometimes decoder,
+[00:07:33,680 --> 00:07:36,600] a classifier, a regressor, depending on how
+[00:07:36,600 --> 00:07:38,420] we define our pretext task.
+[00:07:38,420 --> 00:07:40,920] I will give you some examples, but these
+[00:07:40,920 --> 00:07:44,120] could be any form of framework.
+[00:07:44,120 --> 00:07:47,230] But when it's encoder and then a decoder,
+[00:07:47,230 --> 00:07:49,810] this is more of an autoencoding framework
+[00:07:49,810 --> 00:07:52,570] that I'll talk briefly about.
+[00:07:52,570 --> 00:07:59,810] So after we do this training with the pretext task,
+[00:07:59,810 --> 00:08:03,890] now we can use the encoder and the learn representations
+[00:08:03,890 --> 00:08:07,050] for a downstream task, which we just
+[00:08:07,050 --> 00:08:12,830] need to add one layer or even a fully connected neural network,
+[00:08:12,830 --> 00:08:16,010] a linear function, or a fully connected neural network that
+[00:08:16,010 --> 00:08:18,410] predicts the labels, and these labels are coming now
+[00:08:18,410 --> 00:08:20,570] from the data set.
+[00:08:20,570 --> 00:08:24,450] So that's the major, that's the main concept
+[00:08:24,450 --> 00:08:31,230] of self-supervised learning, that the pretext version of it,
+[00:08:31,230 --> 00:08:35,929] a portion of it doesn't require any labeled data to do
+[00:08:35,929 --> 00:08:37,289] the training.
+[00:08:37,289 --> 00:08:39,210] But how to define the pretext task
+[00:08:39,210 --> 00:08:43,169] itself is not that straightforward.
+[00:08:43,169 --> 00:08:46,560] There are many different ways of defining those.
+[00:08:46,560 --> 00:08:50,740] For example, just keep in mind that we
+[00:08:50,740 --> 00:08:56,500] want to define the pretext task in a way
+[00:08:56,500 --> 00:09:02,020] that it's, first, general enough that can get us good features
+[00:09:02,020 --> 00:09:04,120] and doesn't require manual labeling.
+[00:09:04,120 --> 00:09:07,492] So the labels should come from the data itself, right?
+[00:09:07,492 --> 00:09:14,540] So one example would be image completion, where we half
+[00:09:14,540 --> 00:09:16,360] of the image or parts of the image.
+[00:09:16,360 --> 00:09:21,460] And we define a task to given the parts that are unmasked,
+[00:09:21,460 --> 00:09:23,960] predict the parts that are masked.
+[00:09:23,960 --> 00:09:28,740] Or for example, we rotate the image with a specific angle,
+[00:09:28,740 --> 00:09:32,660] and the task is to take the image as input
+[00:09:32,660 --> 00:09:37,340] and predict what's the rotation angle that it's gone through.
+[00:09:37,340 --> 00:09:41,740] And the other one could be a jigsaw puzzle,
+[00:09:41,740 --> 00:09:44,850] where we have patches of the image that are not ordered,
+[00:09:44,850 --> 00:09:50,590] but the task is to output the correct order of these patches.
+[00:09:50,590 --> 00:09:53,550] And colorization is one of the popular ones
+[00:09:53,550 --> 00:09:55,070] that these are the four that we'll
+[00:09:55,070 --> 00:09:58,350] be covering very quickly today.
+[00:09:58,350 --> 00:10:04,850] But given the black and white version of the image,
+[00:10:04,850 --> 00:10:08,350] predict the colors for each of the pixels.
+[00:10:08,350 --> 00:10:12,350] So solving the pretext task allows the model
+[00:10:12,350 --> 00:10:13,810] to learn good features.
+[00:10:13,810 --> 00:10:15,730] That's what we wanted.
+[00:10:15,730 --> 00:10:18,070] And we can automatically generate
+[00:10:18,070 --> 00:10:20,210] labels for the pretext tasks.
+[00:10:20,210 --> 00:10:22,430] So the two points that I mentioned
+[00:10:22,430 --> 00:10:27,350] we need for a task that could be qualified as a good pretext
+[00:10:27,350 --> 00:10:30,270] task for self-supervised learning.
+[00:10:30,270 --> 00:10:34,470] Some other quick considerations to always
+[00:10:34,470 --> 00:10:38,510] keep in mind, how to evaluate a self-supervised learning
+[00:10:38,510 --> 00:10:39,510] framework.
+[00:10:39,510 --> 00:10:44,560] There are many different pieces and areas that you can actually
+[00:10:44,560 --> 00:10:47,240] look into the pretext task itself
+[00:10:47,240 --> 00:10:50,160] because we are generating the labels and so on.
+[00:10:50,160 --> 00:10:53,880] It gives us the power to do some evaluation
+[00:10:53,880 --> 00:10:59,080] of how good the model is able to solve that pretext task.
+[00:10:59,080 --> 00:11:03,700] So that's one of the factors.
+[00:11:03,700 --> 00:11:06,120] Then representation quality itself
+[00:11:06,120 --> 00:11:08,840] is sometimes very important.
+[00:11:08,840 --> 00:11:14,200] Looking at, for example, only representations
+[00:11:14,200 --> 00:11:15,960] without any fine tuning or anything
+[00:11:15,960 --> 00:11:17,760] that I'll be talking about or even
+[00:11:17,760 --> 00:11:20,680] clustering the representations to see,
+[00:11:20,680 --> 00:11:23,160] do we see a pattern in the representations?
+[00:11:23,160 --> 00:11:27,000] And sometimes, there are some good dimensionality reduction
+[00:11:27,000 --> 00:11:28,060] algorithms.
+[00:11:28,060 --> 00:11:33,120] I'm referring to t-SNE here, which we didn't very much talk
+[00:11:33,120 --> 00:11:35,240] about, but this is a dimensionality reduction
+[00:11:35,240 --> 00:11:37,880] framework that you can reduce the dimensionality
+[00:11:37,880 --> 00:11:41,940] of the learned representations and then visualize it in 2D
+[00:11:41,940 --> 00:11:45,060] or 3D and see if there is a pattern that you can find
+[00:11:45,060 --> 00:11:48,140] in your representations.
+[00:11:48,140 --> 00:11:52,440] So robustness, generalization, and computational efficiency,
+[00:11:52,440 --> 00:11:54,540] these are all quite important.
+[00:11:54,540 --> 00:11:59,660] But the most important thing, the most important aspect
+[00:11:59,660 --> 00:12:04,780] that we are after is the performance
+[00:12:04,780 --> 00:12:06,880] on the downstream task.
+[00:12:06,880 --> 00:12:11,380] Because we are doing the entire self-supervised learning
+[00:12:11,380 --> 00:12:14,020] and define the tasks, pretext tasks,
+[00:12:14,020 --> 00:12:17,180] and so on to be able to improve results
+[00:12:17,180 --> 00:12:21,100] for a task of interest or something that we care about.
+[00:12:21,100 --> 00:12:25,700] Let's see some quick examples of how this could be done.
+[00:12:25,700 --> 00:12:31,260] This is an example of let's rotate the images
+[00:12:31,260 --> 00:12:36,280] and then predict the degree of rotation as the output.
+[00:12:36,280 --> 00:12:39,270] So we can train this in a self-supervised manner
+[00:12:39,270 --> 00:12:43,110] without the need for labels of the objects in the image.
+[00:12:43,110 --> 00:12:45,350] And we have a bunch of convolutional layers
+[00:12:45,350 --> 00:12:48,510] in this example and then a fully connected neural network
+[00:12:48,510 --> 00:12:52,550] at the end to do this either regression or classification
+[00:12:52,550 --> 00:12:53,590] task.
+[00:12:53,590 --> 00:12:56,430] And this means that this is giving us
+[00:12:56,430 --> 00:13:02,270] a set of good features, a good feature extractor, which
+[00:13:02,270 --> 00:13:07,990] we can at the end remove these tasks, pretext
+[00:13:07,990 --> 00:13:13,630] task, specific parts, the FC layers, and put one layer,
+[00:13:13,630 --> 00:13:17,990] or in some cases, multiple layers
+[00:13:17,990 --> 00:13:21,490] to classify the features into the object label.
+[00:13:21,490 --> 00:13:26,070] So this time, we use the object labels to do the prediction
+[00:13:26,070 --> 00:13:30,370] and train this linear function itself.
+[00:13:30,370 --> 00:13:33,770] So we often look for a shallow network
+[00:13:33,770 --> 00:13:35,960] because if the features are good enough, then
+[00:13:35,960 --> 00:13:42,760] we don't need to do a lot of training
+[00:13:42,760 --> 00:13:47,000] on getting the class labels out.
+[00:13:47,000 --> 00:13:52,360] So this is self-supervised learning in general.
+[00:13:52,360 --> 00:13:56,200] And although we are talking about the computer vision
+[00:13:56,200 --> 00:13:57,480] applications.
+[00:13:57,480 --> 00:14:01,360] But this paradigm of self-supervised learning
+[00:14:01,360 --> 00:14:07,080] was actually what enabled all of these large language models.
+[00:14:07,080 --> 00:14:10,000] GPT-4 and all of these frameworks
+[00:14:10,000 --> 00:14:18,440] are trained with mostly raw data without any manual labeling.
+[00:14:18,440 --> 00:14:21,940] And not just in language models, in speech,
+[00:14:21,940 --> 00:14:25,840] and these days, quite a lot in robot
+[00:14:25,840 --> 00:14:29,640] and robotics and reinforcement learning.
+[00:14:29,640 --> 00:14:34,390] Because when we don't need any me labeling data,
+[00:14:34,390 --> 00:14:41,410] we can start capturing data, raw data without any manual
+[00:14:41,410 --> 00:14:43,310] labeling and use those for training.
+[00:14:43,310 --> 00:14:47,410] And that's why you see so many self-driving cars in the Bay
+[00:14:47,410 --> 00:14:51,550] Area collecting data because that's getting them the data,
+[00:14:51,550 --> 00:14:53,790] and they don't have to really annotate the data,
+[00:14:53,790 --> 00:14:57,690] but they can still train models based on.
+[00:14:57,690 --> 00:15:03,410] So with that, today's agenda will cover some of these pretext
+[00:15:03,410 --> 00:15:06,990] tasks from image transformations,
+[00:15:06,990 --> 00:15:08,570] and then I will talk a little bit
+[00:15:08,570 --> 00:15:13,490] about a set of algorithms that are
+[00:15:13,490 --> 00:15:19,330] around contrastive representation learning that
+[00:15:19,330 --> 00:15:22,730] are slightly different from these image transformation based
+[00:15:22,730 --> 00:15:26,450] pretext tasks but have shown promise.
+[00:15:26,450 --> 00:15:30,450] So let's start with the first part.
+[00:15:30,450 --> 00:15:36,460] And there we will cover the tasks one by one.
+[00:15:36,460 --> 00:15:41,720] So I talked quite a lot about rotation, predicting rotations.
+[00:15:41,720 --> 00:15:45,820] Let's see if we can actually rotate the images
+[00:15:45,820 --> 00:15:54,300] with random or arbitrary degrees and predict the rotation
+[00:15:54,300 --> 00:15:56,840] angle with a model.
+[00:15:56,840 --> 00:16:00,860] And our hypothesis here is that the model, a model
+[00:16:00,860 --> 00:16:05,380] could recognize the correct rotation of an object
+[00:16:05,380 --> 00:16:09,940] only if it has the common sense visual common
+[00:16:09,940 --> 00:16:14,660] sense of what the object should look like unperturbed.
+[00:16:14,660 --> 00:16:19,940] So these models mostly are designed around this concept
+[00:16:19,940 --> 00:16:23,420] of visual common sense.
+[00:16:23,420 --> 00:16:28,700] And then if the model is able to capture
+[00:16:28,700 --> 00:16:32,870] that it means that it is also able to summarize
+[00:16:32,870 --> 00:16:40,050] the image, the entire image, into a useful set of features,
+[00:16:40,050 --> 00:16:42,150] good features.
+[00:16:42,150 --> 00:16:48,590] This paper published in 2018 implemented this
+[00:16:48,590 --> 00:16:53,350] with just exploring four different angles of 0,
+[00:16:53,350 --> 00:17:03,750] 19, 90, 180, and 270, these rotating images with one
+[00:17:03,750 --> 00:17:08,790] of these angles and then using a convolutional neural network
+[00:17:08,790 --> 00:17:12,150] to basically predict what each of these
+[00:17:12,150 --> 00:17:14,190] rotations the output is.
+[00:17:14,190 --> 00:17:17,210] And because they only created four different outputs,
+[00:17:17,210 --> 00:17:19,510] this is a classification task because it only
+[00:17:19,510 --> 00:17:21,230] has four different cases.
+[00:17:21,230 --> 00:17:23,990] It doesn't have to predict the exact value
+[00:17:23,990 --> 00:17:26,089] of the angle, the degrees.
+[00:17:26,089 --> 00:17:31,280] But it's actually just predicting
+[00:17:31,280 --> 00:17:38,016] one of these four classes of 0, 1, 2, or 3.
+[00:17:38,016 --> 00:17:42,000] y0, 1, 2, or 3.
+[00:17:42,000 --> 00:17:49,040] So with that, the authors were able to learn
+[00:17:49,040 --> 00:17:50,920] good representations.
+[00:17:50,920 --> 00:17:55,840] And with those representations, they
+[00:17:55,840 --> 00:17:57,880] started training the neural network
+[00:17:57,880 --> 00:18:00,640] at a downstream application, basically fine
+[00:18:00,640 --> 00:18:07,520] tuning the neural network based on fine tuning the encoders
+[00:18:07,520 --> 00:18:12,740] and also the classifier.
+[00:18:12,740 --> 00:18:19,560] Actually, in this case, they froze first and second layers,
+[00:18:19,560 --> 00:18:23,560] and then they fine tuned the last convolution
+[00:18:23,560 --> 00:18:25,060] layer and the linear layer.
+[00:18:25,060 --> 00:18:32,010] So it's not entirely fine tuning the entire network,
+[00:18:32,010 --> 00:18:35,910] but they were able to get very good results.
+[00:18:35,910 --> 00:18:39,890] This is on CIFAR10 data set, one of the data
+[00:18:39,890 --> 00:18:42,330] sets that we've talked about earlier.
+[00:18:42,330 --> 00:18:45,350] You see that when the model is pre-trained,
+[00:18:45,350 --> 00:18:48,430] it starts with a good accuracy to start with.
+[00:18:48,430 --> 00:18:52,650] So it means that it already is in a good shape,
+[00:18:52,650 --> 00:18:57,330] and it's having a good understanding of the objects,
+[00:18:57,330 --> 00:19:01,810] even in the very first iterations.
+[00:19:01,810 --> 00:19:04,150] But if the task is simple enough,
+[00:19:04,150 --> 00:19:09,250] CIFAR10 is actually not too hard to train a model for.
+[00:19:09,250 --> 00:19:12,470] If the task is simple enough, the supervised version,
+[00:19:12,470 --> 00:19:14,810] the fully supervised version, and the one that
+[00:19:14,810 --> 00:19:17,510] starts with pre-training, often converge to the same number,
+[00:19:17,510 --> 00:19:19,450] same accuracy.
+[00:19:19,450 --> 00:19:22,130] But again, if the task is simple enough,
+[00:19:22,130 --> 00:19:25,130] in very hard application, in much harder to applications,
+[00:19:25,130 --> 00:19:27,390] often the supervised learning frameworks, if we don't
+[00:19:27,390 --> 00:19:29,590] do any pre-training, large scale pre-training,
+[00:19:29,590 --> 00:19:31,270] we don't get as good results.
+[00:19:31,270 --> 00:19:34,270] OK.
+[00:19:34,270 --> 00:19:42,590] So they've done also some applications,
+[00:19:42,590 --> 00:19:51,110] some experiments on this PASCAL VOC 2017 data
+[00:19:51,110 --> 00:19:53,890] sets which involves a number of tasks,
+[00:19:53,890 --> 00:19:59,510] including classification, detection, and segmentation.
+[00:19:59,510 --> 00:20:03,910] And of these three sets of tasks,
+[00:20:03,910 --> 00:20:08,470] they've used different setups of just training
+[00:20:08,470 --> 00:20:10,870] a few fully connected layers or all
+[00:20:10,870 --> 00:20:13,870] of the layers for the classification, detection,
+[00:20:13,870 --> 00:20:16,550] and segmentation tasks.
+[00:20:16,550 --> 00:20:19,390] If you look at the ImageNet labels,
+[00:20:19,390 --> 00:20:23,360] like if we have a huge labeled data set,
+[00:20:23,360 --> 00:20:27,160] and we pre-train on that data set.
+[00:20:27,160 --> 00:20:29,340] We already get a very high accuracy.
+[00:20:29,340 --> 00:20:31,440] But again, have this in mind that this
+[00:20:31,440 --> 00:20:34,080] is ImageNet with all of the labels involved
+[00:20:34,080 --> 00:20:36,360] for the pre-training.
+[00:20:36,360 --> 00:20:40,880] But if we don't do any supervised pre-training,
+[00:20:40,880 --> 00:20:44,140] and the pre-training is all based on self-supervised,
+[00:20:44,140 --> 00:20:49,760] it's showing that this rotation framework is
+[00:20:49,760 --> 00:20:54,780] doing a much better job than many of the other counterparts,
+[00:20:54,780 --> 00:21:01,560] any of the other methods that we don't actually
+[00:21:01,560 --> 00:21:04,540] go into many of the detail of many of those,
+[00:21:04,540 --> 00:21:09,720] but it's showing efficacy for this rotation pretext task.
+[00:21:09,720 --> 00:21:12,800] And see how it's different, how much better it
+[00:21:12,800 --> 00:21:17,960] is if you start with a random initialization of the weights.
+[00:21:17,960 --> 00:21:21,530] So the random initialization versus this pretraining
+[00:21:21,530 --> 00:21:24,130] with rotation, pretext task.
+[00:21:24,130 --> 00:21:29,970] The difference is huge, and this rotation pretext task is not
+[00:21:29,970 --> 00:21:33,610] equal, but it's close to pre-training
+[00:21:33,610 --> 00:21:35,730] on the entire ImageNet.
+[00:21:35,730 --> 00:21:40,610] So one other thing that they've looked
+[00:21:40,610 --> 00:21:43,410] into in this paper was looking at the features
+[00:21:43,410 --> 00:21:48,850] and how the learned features are meaningful.
+[00:21:48,850 --> 00:21:54,330] I mentioned earlier that one of the ways of evaluating
+[00:21:54,330 --> 00:21:56,930] the pretext tasks, generally self-supervised
+[00:21:56,930 --> 00:21:59,070] learning frameworks, is to look at the features.
+[00:21:59,070 --> 00:22:01,730] And you can always go from the features
+[00:22:01,730 --> 00:22:03,730] from the fully connected layers.
+[00:22:03,730 --> 00:22:07,770] We talked about grad cam and all of those other attention-based
+[00:22:07,770 --> 00:22:10,690] frameworks, how we can go from the features
+[00:22:10,690 --> 00:22:12,330] back to the image space.
+[00:22:12,330 --> 00:22:15,730] So this evaluation involves projecting those
+[00:22:15,730 --> 00:22:19,380] into the image space and seeing what the model is looking at.
+[00:22:19,380 --> 00:22:22,760] If you look at the attention maps for the supervised model,
+[00:22:22,760 --> 00:22:25,180] often the supervised model has more
+[00:22:25,180 --> 00:22:29,900] focused maps because it's only trying
+[00:22:29,900 --> 00:22:33,080] to solve one single task of classification.
+[00:22:33,080 --> 00:22:36,460] So if it captures the eye and the shape around it,
+[00:22:36,460 --> 00:22:39,460] it doesn't care about the other parts very much.
+[00:22:39,460 --> 00:22:42,640] But in cases of self-supervised learning,
+[00:22:42,640 --> 00:22:45,940] often, more features, more areas are
+[00:22:45,940 --> 00:22:50,580] covered because it has to have a more holistic understanding
+[00:22:50,580 --> 00:22:52,340] of the image because we don't know what
+[00:22:52,340 --> 00:22:55,460] the downstream task is, but the goal
+[00:22:55,460 --> 00:23:00,060] is to perform equally well in many of those.
+[00:23:00,060 --> 00:23:02,940] So that's one of the tasks.
+[00:23:02,940 --> 00:23:05,240] If you do have any questions, keep it.
+[00:23:05,240 --> 00:23:08,540] I'll stop after going over some of the tasks.
+[00:23:08,540 --> 00:23:10,980] And if your question was not answered,
+[00:23:10,980 --> 00:23:13,940] then I would be happy to answer that.
+[00:23:13,940 --> 00:23:16,710] OK.
+[00:23:16,710 --> 00:23:21,910] Another one, another popular pretext task
+[00:23:21,910 --> 00:23:26,910] was to basically create this 3 by 3 grid
+[00:23:26,910 --> 00:23:33,030] and then use networks to predict the location of each
+[00:23:33,030 --> 00:23:36,310] of the given patches with respect to the sensor patch.
+[00:23:36,310 --> 00:23:40,790] So for this patch, which is from here,
+[00:23:40,790 --> 00:23:46,950] the output should be 3 because we only have 8--
+[00:23:46,950 --> 00:23:50,450] This is 3 by 3, and the center patch is the reference.
+[00:23:50,450 --> 00:23:56,270] So this also turns out to be an eight-way classification task.
+[00:23:56,270 --> 00:23:59,270] It's getting any of these patches,
+[00:23:59,270 --> 00:24:04,630] and it's trying to output what the location of that given patch
+[00:24:04,630 --> 00:24:11,300] is with respect to the center patch.
+[00:24:16,200 --> 00:24:18,780] So this was another example.
+[00:24:18,780 --> 00:24:25,040] But this other follow-up paper, paper publication,
+[00:24:25,040 --> 00:24:29,520] which turned this into a jigsaw puzzle framework,
+[00:24:29,520 --> 00:24:34,480] was instead of asking the model to just predict
+[00:24:34,480 --> 00:24:37,240] which of these eight patches it is,
+[00:24:37,240 --> 00:24:41,060] it tried to predict the exact permutation,
+[00:24:41,060 --> 00:24:42,020] the right permutation.
+[00:24:42,020 --> 00:24:46,160] So what they've done was they used the same three by three
+[00:24:46,160 --> 00:24:50,960] grid, took all of the patches, shuffled them randomly, and then
+[00:24:50,960 --> 00:24:59,080] ask the neural network to say which one should
+[00:24:59,080 --> 00:25:01,480] be the correct permutation.
+[00:25:01,480 --> 00:25:04,277] So they basically predict the correct permutations.
+[00:25:04,277 --> 00:25:06,360] Can you tell me what is the number of permutations
+[00:25:06,360 --> 00:25:11,840] you can have for this setup?
+[00:25:11,840 --> 00:25:13,250] Say again?
+[00:25:13,250 --> 00:25:14,110] 9 factorial.
+[00:25:14,110 --> 00:25:14,750] Yes, exactly.
+[00:25:14,750 --> 00:25:16,570] So it's a huge number, right?
+[00:25:16,570 --> 00:25:19,930] 300,000 something, I think.
+[00:25:19,930 --> 00:25:22,410] But what they've done was they've
+[00:25:22,410 --> 00:25:32,130] created this lookup table with only 64 plausible, possible
+[00:25:32,130 --> 00:25:33,410] permutations.
+[00:25:33,410 --> 00:25:38,030] And then only they consider 64 permutations.
+[00:25:38,030 --> 00:25:41,450] And then they're shuffling that, they do the shuffling
+[00:25:41,450 --> 00:25:43,230] based on one of these 64.
+[00:25:43,230 --> 00:25:48,330] And then the output will also be just the 60, 64 sized vector.
+[00:25:48,330 --> 00:25:52,050] So again, this turns out to be just a simple classification
+[00:25:52,050 --> 00:25:56,090] task with 64 output classes.
+[00:25:56,090 --> 00:25:59,170] And they've shown this is also a great idea
+[00:25:59,170 --> 00:26:04,470] for solving to define as a pretext task,
+[00:26:04,470 --> 00:26:09,130] and on the same data set with similar type of tasks
+[00:26:09,130 --> 00:26:14,110] that I talked about and how the supervision is done.
+[00:26:14,110 --> 00:26:17,550] They've shown their method was outperforming
+[00:26:17,550 --> 00:26:25,190] some of the more previous models, previous frameworks.
+[00:26:25,190 --> 00:26:30,870] And again, remember that this was published in 2016.
+[00:26:30,870 --> 00:26:36,590] So next pretext task is just inpainting
+[00:26:36,590 --> 00:26:38,710] predicting what is missing.
+[00:26:38,710 --> 00:26:44,310] So what they have done here was a simple masking strategy,
+[00:26:44,310 --> 00:26:47,590] you mask parts of the image and then you
+[00:26:47,590 --> 00:26:51,230] ask the model to inpaint those parts that are masked.
+[00:26:51,230 --> 00:26:57,010] So how it was done, simple masking on the input image.
+[00:26:57,010 --> 00:27:00,170] But because we have all of the images,
+[00:27:00,170 --> 00:27:02,790] we actually have the desired output.
+[00:27:02,790 --> 00:27:06,610] So an encoder turns this into a feature space,
+[00:27:06,610 --> 00:27:08,816] and then that feature space is also,
+[00:27:08,816 --> 00:27:12,300] there are some fully connected layers in the middle,
+[00:27:12,300 --> 00:27:14,840] and then there is a decoder that decodes
+[00:27:14,840 --> 00:27:16,920] the parts that is missing.
+[00:27:16,920 --> 00:27:22,760] And the loss function is comparing the output
+[00:27:22,760 --> 00:27:27,720] with what the ground truth was.
+[00:27:27,720 --> 00:27:32,680] And this is basically learning to reconstruct the missing
+[00:27:32,680 --> 00:27:34,560] pixels.
+[00:27:34,560 --> 00:27:38,800] Again, we've talked about autoencoders a couple of times
+[00:27:38,800 --> 00:27:43,360] before, and this is also some form of an autoencoder that
+[00:27:43,360 --> 00:27:47,720] encodes the input image into a representation
+[00:27:47,720 --> 00:27:51,860] that you want to decode the output.
+[00:27:51,860 --> 00:27:57,600] But this autoencoder is trained with a masking strategy, masking
+[00:27:57,600 --> 00:27:58,760] objective.
+[00:27:58,760 --> 00:28:03,080] So just to show you some examples,
+[00:28:03,080 --> 00:28:07,930] the inpainting evaluations are a little bit
+[00:28:07,930 --> 00:28:10,710] interesting and tricky because when you want to inpaint,
+[00:28:10,710 --> 00:28:13,630] there are so many different ways of inpainting this image, right?
+[00:28:13,630 --> 00:28:26,570] And we can say there is just one output to do in this case here.
+[00:28:26,570 --> 00:28:28,770] Reconstruction-based frameworks, earlier
+[00:28:28,770 --> 00:28:31,370] reconstruction-based frameworks were actually
+[00:28:31,370 --> 00:28:42,410] creating a lot of fuzzy and very smooth outputs.
+[00:28:42,410 --> 00:28:49,530] And that's why this paper that I'm referring to here
+[00:28:49,530 --> 00:28:54,250] was actually using an additional adversarial objective
+[00:28:54,250 --> 00:28:56,890] function, which I'm not going to go into details because this
+[00:28:56,890 --> 00:29:00,950] is a topic of discussion for the next lecture, generative models.
+[00:29:00,950 --> 00:29:05,730] But generally, how these frameworks work,
+[00:29:05,730 --> 00:29:07,680] we have a reconstruction loss.
+[00:29:07,680 --> 00:29:09,580] And reconstruction loss is basically
+[00:29:09,580 --> 00:29:13,620] calculating the difference between the patch,
+[00:29:13,620 --> 00:29:18,660] between the image x and the image after it's
+[00:29:18,660 --> 00:29:24,340] passed through the encoder.
+[00:29:24,340 --> 00:29:33,340] And then this is element wise multiplication.
+[00:29:33,340 --> 00:29:35,740] And we also have this mask here because we
+[00:29:35,740 --> 00:29:38,300] want to only calculate the loss function,
+[00:29:38,300 --> 00:29:41,520] the objective function, only on the masked area.
+[00:29:41,520 --> 00:29:45,180] So we do element wise multiplication with the mask
+[00:29:45,180 --> 00:29:46,020] as well.
+[00:29:46,020 --> 00:29:51,460] And this basically gives us the reconstruction loss
+[00:29:51,460 --> 00:29:55,800] for that part of the mask that we had.
+[00:29:55,800 --> 00:29:59,260] So as I said, it's also supplemented
+[00:29:59,260 --> 00:30:02,820] with an adversarial objective adversarial learning loss
+[00:30:02,820 --> 00:30:09,070] function, which ensures the images that are generated
+[00:30:09,070 --> 00:30:10,910] are real looking.
+[00:30:10,910 --> 00:30:17,350] So with that, they have been able to improve
+[00:30:17,350 --> 00:30:24,830] the parts that are reconstructed to look a little bit better.
+[00:30:24,830 --> 00:30:31,630] But again, details will be discussed in the next lecture.
+[00:30:31,630 --> 00:30:35,990] So this reconstruction framework was actually
+[00:30:35,990 --> 00:30:39,550] able to again provide, and this ours
+[00:30:39,550 --> 00:30:43,190] is the same, provide additional benefit when
+[00:30:43,190 --> 00:30:46,830] it's run on the same classification, detection,
+[00:30:46,830 --> 00:30:52,710] and segmentation task on same set of data sets.
+[00:30:52,710 --> 00:30:56,710] I will come back to this reconstruction-based frameworks
+[00:30:56,710 --> 00:30:59,110] and masking in a bit because it's
+[00:30:59,110 --> 00:31:05,440] one of the most used models or pretext tasks that these days
+[00:31:05,440 --> 00:31:07,800] are used for pre-training.
+[00:31:07,800 --> 00:31:10,140] So I'll come back to this.
+[00:31:10,140 --> 00:31:15,520] But before that, let me introduce this other pretext
+[00:31:15,520 --> 00:31:19,200] task of image coloring.
+[00:31:19,200 --> 00:31:24,400] And this is another very simple framework setup
+[00:31:24,400 --> 00:31:30,023] that we turn a colored image because our data set is mostly
+[00:31:30,023 --> 00:31:30,940] colored images, right?
+[00:31:30,940 --> 00:31:36,680] We turn that colored image into its components or channels
+[00:31:36,680 --> 00:31:41,880] that separate the lightness, the illumination from the color
+[00:31:41,880 --> 00:31:42,500] itself.
+[00:31:42,500 --> 00:31:44,560] There are several color spaces if you've
+[00:31:44,560 --> 00:31:47,160] taken courses like computer graphics
+[00:31:47,160 --> 00:31:51,060] or CS-131, other computer vision class.
+[00:31:51,060 --> 00:31:54,900] You know that there are so many different color spaces.
+[00:31:54,900 --> 00:31:57,960] Mostly, in computer vision, we use RGB.
+[00:31:57,960 --> 00:32:02,130] But if you want to separate lightness, illumination
+[00:32:02,130 --> 00:32:04,830] from color, there are some other color spaces.
+[00:32:04,830 --> 00:32:08,330] For example, LAB color space, LAB,
+[00:32:08,330 --> 00:32:12,930] is one of those color spaces that separates lightness
+[00:32:12,930 --> 00:32:14,410] from color.
+[00:32:14,410 --> 00:32:18,170] So we have one channel for lightness and two channels
+[00:32:18,170 --> 00:32:21,970] for defining the actual color.
+[00:32:21,970 --> 00:32:27,897] And if we add these two all together L, A, and B,
+[00:32:27,897 --> 00:32:29,730] all three channels together, we can actually
+[00:32:29,730 --> 00:32:31,850] get the colored image.
+[00:32:31,850 --> 00:32:34,770] So the pretext task here is simple.
+[00:32:34,770 --> 00:32:40,690] Given the L channel, predict the A and B channels, right?
+[00:32:40,690 --> 00:32:44,310] So again, we don't need to do any manual annotation.
+[00:32:44,310 --> 00:32:47,530] It's already in the data.
+[00:32:47,530 --> 00:32:52,150] And this was extended into other frameworks.
+[00:32:52,150 --> 00:32:56,730] Why should we only look at like given L, predict A and B.
+[00:32:56,730 --> 00:32:58,860] We can also do the reverse, right?
+[00:32:58,860 --> 00:33:03,180] And that led us to split, something
+[00:33:03,180 --> 00:33:06,660] that we call a split brain autoencoder, where
+[00:33:06,660 --> 00:33:12,300] the input image is split, is basically turned into one.
+[00:33:12,300 --> 00:33:16,140] The L channel, lightness channel, and the color channels.
+[00:33:16,140 --> 00:33:18,480] These two images, this is one channel.
+[00:33:18,480 --> 00:33:20,340] This is two channels of color.
+[00:33:20,340 --> 00:33:24,120] And we train two functions, two neural networks,
+[00:33:24,120 --> 00:33:26,780] sets of layers to predict the other one.
+[00:33:26,780 --> 00:33:30,780] And then at the end, in order to calculate the loss function
+[00:33:30,780 --> 00:33:34,300] and backprop, we just merge these two
+[00:33:34,300 --> 00:33:39,600] to generate the actual image and a loss an L2 loss.
+[00:33:39,600 --> 00:33:42,900] Any distance function can help with training
+[00:33:42,900 --> 00:33:45,180] this neural network.
+[00:33:45,180 --> 00:33:49,560] In a more generic framework or formulation,
+[00:33:49,560 --> 00:33:55,280] the idea is given one channel or a set of channels,
+[00:33:55,280 --> 00:34:00,920] predict the others, and do the same for X2.
+[00:34:00,920 --> 00:34:04,760] So sets of channels X1, sets of channels X2.
+[00:34:04,760 --> 00:34:07,440] So given one we can predict the other one, and these
+[00:34:07,440 --> 00:34:09,360] are the neural networks for those.
+[00:34:09,360 --> 00:34:16,159] Merging them we'll get the value the image
+[00:34:16,159 --> 00:34:18,800] and then loss function would be simple.
+[00:34:18,800 --> 00:34:21,120] So if we have such a framework we
+[00:34:21,120 --> 00:34:25,470] can run it on everything, not just color and illumination.
+[00:34:25,470 --> 00:34:32,040] We can have data from some of these RGBD sensors, those
+[00:34:32,040 --> 00:34:35,980] that have RGB channels and depth channels,
+[00:34:35,980 --> 00:34:38,880] like for example, connect and other sensors
+[00:34:38,880 --> 00:34:40,719] that they use in robotics.
+[00:34:40,719 --> 00:34:46,400] And given the RGB channel, predict the depth and vice
+[00:34:46,400 --> 00:34:47,320] versa.
+[00:34:47,320 --> 00:34:51,000] And this was a very successful downstream task
+[00:34:51,000 --> 00:34:54,800] that was used for different applications.
+[00:34:54,800 --> 00:34:59,770] And as you can see this model and this paper
+[00:34:59,770 --> 00:35:06,330] that I just the split brain and the papers that the model that
+[00:35:06,330 --> 00:35:12,150] predicts colorizes the images is those features themselves.
+[00:35:12,150 --> 00:35:14,330] They do have actually a very good level
+[00:35:14,330 --> 00:35:19,110] of accuracy for predicting the class labels.
+[00:35:19,110 --> 00:35:22,650] And you can see, there are many different other frameworks
+[00:35:22,650 --> 00:35:29,250] that are used also in terms of comparisons.
+[00:35:29,250 --> 00:35:32,290] Again, this is not as good as supervised learning
+[00:35:32,290 --> 00:35:36,170] because there is no label involved here
+[00:35:36,170 --> 00:35:40,450] and it's just based on the learned features
+[00:35:40,450 --> 00:35:43,690] with concatenated features out of F1 and F2.
+[00:35:43,690 --> 00:35:49,090] OK, so the image coloring pretext task
+[00:35:49,090 --> 00:35:55,100] was actually very interesting because now we could not only
+[00:35:55,100 --> 00:35:57,520] use it for pre-training neural networks,
+[00:35:57,520 --> 00:35:59,600] but it was also itself useful somehow,
+[00:35:59,600 --> 00:36:03,460] because now we could colorize images that we
+[00:36:03,460 --> 00:36:05,560] don't have a colored version.
+[00:36:05,560 --> 00:36:09,900] So we could colorize images and videos
+[00:36:09,900 --> 00:36:15,100] that we don't have a colored version of those.
+[00:36:15,100 --> 00:36:18,420] And not only that, one of the other interesting results
+[00:36:18,420 --> 00:36:21,220] that they've shown in the paper was
+[00:36:21,220 --> 00:36:27,900] this image of Yosemite and the Half Dome that they colorized.
+[00:36:27,900 --> 00:36:32,540] The interesting thing that is seen in this image
+[00:36:32,540 --> 00:36:36,720] is the consistency between the actual object,
+[00:36:36,720 --> 00:36:40,100] the Half Dome or trees, or the bridge and its reflection
+[00:36:40,100 --> 00:36:41,420] in the water.
+[00:36:41,420 --> 00:36:44,700] So the model was also able to understand
+[00:36:44,700 --> 00:36:47,380] that this reflection should also somehow
+[00:36:47,380 --> 00:36:51,430] preserve the color based on how it was trained
+[00:36:51,430 --> 00:36:53,430] on vast amounts of data.
+[00:36:53,430 --> 00:36:57,510] Again, keep in mind that these models
+[00:36:57,510 --> 00:37:01,690] are all pre-large language, large vision models.
+[00:37:01,690 --> 00:37:04,390] And they have been trained on specific tasks.
+[00:37:04,390 --> 00:37:09,830] So they're not trained for solving everything.
+[00:37:09,830 --> 00:37:14,250] So this could be actually extended into video settings.
+[00:37:14,250 --> 00:37:17,590] Because now if we have a video, we can have a reference frame
+[00:37:17,590 --> 00:37:21,270] that has the color and do the coloring for the follow-up
+[00:37:21,270 --> 00:37:23,330] frames and how this is done.
+[00:37:23,330 --> 00:37:26,750] This is very simple because with--
+[00:37:26,750 --> 00:37:32,350] this is also very useful because with colorizing future frames
+[00:37:32,350 --> 00:37:34,510] in the video, what we are doing is
+[00:37:34,510 --> 00:37:41,870] we basically try to track pixels and objects in the video,
+[00:37:41,870 --> 00:37:44,390] and the model implicitly learns how
+[00:37:44,390 --> 00:37:47,570] these tracks should be formed.
+[00:37:47,570 --> 00:37:51,040] So the hypothesis is learning to color video frames
+[00:37:51,040 --> 00:37:54,200] should allow a model to learn to track regions
+[00:37:54,200 --> 00:37:56,610] or objects without labels.
+[00:37:59,720 --> 00:38:02,600] And learning to color videos because there
+[00:38:02,600 --> 00:38:06,740] are a lot of correspondences is an interesting task by itself.
+[00:38:06,740 --> 00:38:10,660] I would suggest taking a look at the details.
+[00:38:10,660 --> 00:38:13,760] I'll very briefly to talk about them.
+[00:38:13,760 --> 00:38:16,960] So if you have a reference frame, what
+[00:38:16,960 --> 00:38:20,180] we need to do is for coloring the input frame,
+[00:38:20,180 --> 00:38:23,360] we need to find the pointers of where that's
+[00:38:23,360 --> 00:38:26,520] a specific object or pixel is.
+[00:38:26,520 --> 00:38:28,680] And then based on that see what the color
+[00:38:28,680 --> 00:38:31,760] is and copy what the color is as the color
+[00:38:31,760 --> 00:38:36,280] for that pixel as the output, as the target color.
+[00:38:36,280 --> 00:38:39,600] And how this is done is very much similar
+[00:38:39,600 --> 00:38:43,680] to the same topic of attention that we talked about.
+[00:38:43,680 --> 00:38:48,130] So it's about forming attention for each
+[00:38:48,130 --> 00:38:51,730] of the pixels for each input frame, sorry reference
+[00:38:51,730 --> 00:38:53,610] frame and target frame.
+[00:38:53,610 --> 00:38:58,450] We often run a CNN to see what features around those pixels
+[00:38:58,450 --> 00:38:59,550] should be used.
+[00:38:59,550 --> 00:39:02,970] And using those features, now we can calculate,
+[00:39:02,970 --> 00:39:05,330] for each of the target pixels, we
+[00:39:05,330 --> 00:39:09,370] can calculate the attention or the distance
+[00:39:09,370 --> 00:39:13,970] to all of the frames, all of the pixels in the reference frame.
+[00:39:13,970 --> 00:39:18,530] And then after defining this attention with respect
+[00:39:18,530 --> 00:39:25,930] to the pixel of interest in the target
+[00:39:25,930 --> 00:39:31,510] frame with all of the pixels in the reference frame.
+[00:39:31,510 --> 00:39:37,050] Now we can do an average color of all of based
+[00:39:37,050 --> 00:39:38,830] on those attention modules.
+[00:39:38,830 --> 00:39:42,170] So attention is basically just similarity between the two.
+[00:39:42,170 --> 00:39:45,130] So anyways with that, what we can do
+[00:39:45,130 --> 00:39:48,180] is we can just get the output color
+[00:39:48,180 --> 00:39:55,300] as an average with that tension and then ultimately calculate
+[00:39:55,300 --> 00:40:00,360] the loss function because we have the values of the colors,
+[00:40:00,360 --> 00:40:04,580] the right colors of those pixels in our data.
+[00:40:04,580 --> 00:40:08,220] And this was able to, with this reference frame,
+[00:40:08,220 --> 00:40:10,280] colorize the images.
+[00:40:10,280 --> 00:40:15,480] You see how consistent this becomes in terms of coloring.
+[00:40:15,480 --> 00:40:18,620] If we color them separately without this consistency
+[00:40:18,620 --> 00:40:25,100] over time, you often see, for example, the person's shirt
+[00:40:25,100 --> 00:40:32,180] or clothing changes color because there is no constraint
+[00:40:32,180 --> 00:40:34,220] to keep it consistent.
+[00:40:34,220 --> 00:40:38,780] And then there has been also some very interesting
+[00:40:38,780 --> 00:40:42,500] applications, because now that you are calculating attention
+[00:40:42,500 --> 00:40:44,750] to a reference frame, you're actually
+[00:40:44,750 --> 00:40:48,670] able to track objects, track segments in videos,
+[00:40:48,670 --> 00:40:54,710] and even identify key points in the videos.
+[00:40:54,710 --> 00:40:56,010] That's a good question.
+[00:40:56,010 --> 00:41:03,030] You're asking your question is about this slide basically,
+[00:41:03,030 --> 00:41:09,270] and how the encoder knows about the data to begin with
+[00:41:09,270 --> 00:41:13,450] and gets us good learned representations.
+[00:41:13,450 --> 00:41:18,870] So all of these tasks that I presented and defined
+[00:41:18,870 --> 00:41:26,030] are trying to do something here at either decoding, classifying,
+[00:41:26,030 --> 00:41:30,950] or using regression to generate some outputs to be
+[00:41:30,950 --> 00:41:32,730] able to train this encoder.
+[00:41:32,730 --> 00:41:34,830] So if your original images, if these
+[00:41:34,830 --> 00:41:37,990] are all natural images taken off of internet or ImageNet
+[00:41:37,990 --> 00:41:41,350] or whatever, then you are learning an encoder
+[00:41:41,350 --> 00:41:45,730] that can extract features from those types of images
+[00:41:45,730 --> 00:41:47,330] with the pretext task.
+[00:41:47,330 --> 00:41:50,410] And then when you remove the decoder
+[00:41:50,410 --> 00:41:52,990] and add this classifier to the end,
+[00:41:52,990 --> 00:41:56,310] you only need to train this part,
+[00:41:56,310 --> 00:41:58,930] because this encoder was already trained with all
+[00:41:58,930 --> 00:42:02,467] of these pre-training tasks that I just talked about.
+[00:42:02,467 --> 00:42:04,050] You're asking if the labels are coming
+[00:42:04,050 --> 00:42:07,290] from the decoder for pre-training the encoder,
+[00:42:07,290 --> 00:42:09,950] and the answer to that is, yes.
+[00:42:09,950 --> 00:42:12,550] That's why we define the pretext tasks,
+[00:42:12,550 --> 00:42:16,030] because we want to have some labels, some outputs.
+[00:42:16,030 --> 00:42:20,130] And then based on those outputs we try
+[00:42:20,130 --> 00:42:23,270] to train this entire network.
+[00:42:23,270 --> 00:42:28,490] And on the way of predicting the right labels,
+[00:42:28,490 --> 00:42:31,290] this encoder is also trained.
+[00:42:31,290 --> 00:42:32,070] Good question.
+[00:42:32,070 --> 00:42:34,690] You're asking if encoder and decoder are one big neural
+[00:42:34,690 --> 00:42:37,610] network or there is differences.
+[00:42:37,610 --> 00:42:41,120] In different papers, in different works,
+[00:42:41,120 --> 00:42:44,380] it has been completely different.
+[00:42:44,380 --> 00:42:47,800] In some cases, your encoder and not just decoder,
+[00:42:47,800 --> 00:42:49,700] that's why I'm calling it classifier.
+[00:42:49,700 --> 00:42:54,940] In the example that I showed you about predicting the degree,
+[00:42:54,940 --> 00:42:57,060] this is just a simple neural network.
+[00:42:57,060 --> 00:42:59,680] The decoder is these FC layers.
+[00:42:59,680 --> 00:43:02,700] So this could be one entire network.
+[00:43:02,700 --> 00:43:04,980] And then you're replacing it with something
+[00:43:04,980 --> 00:43:06,580] for your downstream task.
+[00:43:06,580 --> 00:43:09,580] But in some cases, for example, when I talked about auto
+[00:43:09,580 --> 00:43:14,500] encoding an image and then decoding another image,
+[00:43:14,500 --> 00:43:16,620] you often have two neural networks
+[00:43:16,620 --> 00:43:19,580] that are trained end-to-end because you
+[00:43:19,580 --> 00:43:21,500] want to make use of that representation space
+[00:43:21,500 --> 00:43:22,660] in the middle.
+[00:43:22,660 --> 00:43:26,200] And in the next thing that I want to talk about,
+[00:43:26,200 --> 00:43:31,260] masked autoencoders, even there is no symmetry between encoders
+[00:43:31,260 --> 00:43:32,320] and decoders.
+[00:43:32,320 --> 00:43:35,660] They can be just two different frameworks,
+[00:43:35,660 --> 00:43:39,590] two different neural networks, even without any symmetry
+[00:43:39,590 --> 00:43:43,330] to train the task.
+[00:43:43,330 --> 00:43:45,490] So this is very much task dependent,
+[00:43:45,490 --> 00:43:47,150] pretext task dependent.
+[00:43:47,150 --> 00:43:51,470] But there could be belonging to the same architecture
+[00:43:51,470 --> 00:43:55,230] that we know about, say, CNN or ResNet,
+[00:43:55,230 --> 00:43:58,310] or there could be two different architectures, even
+[00:43:58,310 --> 00:44:00,390] without any symmetry.
+[00:44:00,390 --> 00:44:05,990] Remember that these are the very first methods
+[00:44:05,990 --> 00:44:08,270] for self-supervised learning.
+[00:44:08,270 --> 00:44:11,070] So they're not supposed to be solving everything.
+[00:44:11,070 --> 00:44:15,070] That's just a quick disclaimer, but the idea
+[00:44:15,070 --> 00:44:17,230] is, the hypothesis here is, if the model is
+[00:44:17,230 --> 00:44:20,250] able to say this is 90 degree rotated,
+[00:44:20,250 --> 00:44:22,790] it means that implicitly, it's understanding
+[00:44:22,790 --> 00:44:28,970] the right rotation, sorry, right orientation and direction.
+[00:44:28,970 --> 00:44:33,870] And then it will be able to if given
+[00:44:33,870 --> 00:44:39,360] a right an unrotated image, it's able to recognize
+[00:44:39,360 --> 00:44:42,260] what it is in it.
+[00:44:42,260 --> 00:44:46,440] But this is a limited task by itself, I agree with that.
+[00:44:46,440 --> 00:44:49,240] The question that you have is why here they use 64.
+[00:44:52,680 --> 00:44:54,480] That's a good question.
+[00:44:54,480 --> 00:44:59,000] But that's also an arbitrary choice, almost arbitrary choice.
+[00:44:59,000 --> 00:45:01,520] As I said, there are many different types
+[00:45:01,520 --> 00:45:05,920] of different number of permutations here 9 factorial.
+[00:45:05,920 --> 00:45:07,520] So it's a very big number.
+[00:45:07,520 --> 00:45:10,620] It doesn't make sense for us to be predicting all of those.
+[00:45:10,620 --> 00:45:12,800] What the authors did here, they decided
+[00:45:12,800 --> 00:45:16,400] to select a few of those perturbations
+[00:45:16,400 --> 00:45:19,080] that there is enough variation because many
+[00:45:19,080 --> 00:45:24,420] of those perturbations is just like one patch switched only.
+[00:45:24,420 --> 00:45:30,200] So they selected 64 of those that they have the largest
+[00:45:30,200 --> 00:45:31,660] difference distance between them,
+[00:45:31,660 --> 00:45:33,840] and they just selected 64 because they wanted
+[00:45:33,840 --> 00:45:36,290] to solve the classification problem instead
+[00:45:36,290 --> 00:45:38,960] of other types of tasks.
+[00:45:41,570 --> 00:45:42,410] OK.
+[00:45:42,410 --> 00:45:47,730] So I've been talking about these frameworks that
+[00:45:47,730 --> 00:45:54,130] often do some transformation on the image or the videos
+[00:45:54,130 --> 00:45:55,070] and so on.
+[00:45:55,070 --> 00:45:58,630] And this brings us to this newer framework,
+[00:45:58,630 --> 00:46:00,950] which is published in 2021.
+[00:46:00,950 --> 00:46:05,250] And then there has been so many follow-ups on this,
+[00:46:05,250 --> 00:46:11,670] and it's been a great framework for pre-training for many tasks,
+[00:46:11,670 --> 00:46:14,250] even if these days when we want to pre-train
+[00:46:14,250 --> 00:46:21,850] on a data set on raw data sets, we often use this MAE framework.
+[00:46:21,850 --> 00:46:24,410] It's called Masked Auto Encoders.
+[00:46:24,410 --> 00:46:27,610] It is also reconstruction based framework
+[00:46:27,610 --> 00:46:30,670] similar to that masking strategy in painting that I mentioned,
+[00:46:30,670 --> 00:46:34,900] but this is far more detailed.
+[00:46:34,900 --> 00:46:39,100] And as you can see, this framework
+[00:46:39,100 --> 00:46:41,680] is not just selecting one mask.
+[00:46:41,680 --> 00:46:44,460] There are so many different patches and places
+[00:46:44,460 --> 00:46:48,940] that they do masking with even more aggressive sampling
+[00:46:48,940 --> 00:46:54,900] rates, 50% masking or 75 masking rates and ratios.
+[00:46:54,900 --> 00:46:58,960] And through training in larger scale,
+[00:46:58,960 --> 00:47:00,900] they have shown that not only they
+[00:47:00,900 --> 00:47:05,140] are able to reconstruct all of those masked areas,
+[00:47:05,140 --> 00:47:11,220] they are also getting very good encoders that can summarize
+[00:47:11,220 --> 00:47:14,340] the images into good features.
+[00:47:14,340 --> 00:47:20,340] And how this was done was through defining
+[00:47:20,340 --> 00:47:22,358] a encoder and a decoder.
+[00:47:22,358 --> 00:47:23,900] And that's one of the examples that I
+[00:47:23,900 --> 00:47:26,700] said these are not symmetric.
+[00:47:26,700 --> 00:47:30,900] And encoders and decoder, so a large portion
+[00:47:30,900 --> 00:47:32,750] of the input masks.
+[00:47:32,750 --> 00:47:37,110] Input patches are masked and the ones that are not masked,
+[00:47:37,110 --> 00:47:43,470] they are given to the encoder to encode in two features that
+[00:47:43,470 --> 00:47:49,430] are then passed through decoder to generate the complete image.
+[00:47:49,430 --> 00:47:53,890] But let's go a little bit into details of what this means.
+[00:47:53,890 --> 00:47:56,510] I do have some of the details on how
+[00:47:56,510 --> 00:47:59,030] these models are trained here.
+[00:47:59,030 --> 00:48:04,590] But I very briefly just explained to you
+[00:48:04,590 --> 00:48:07,750] how these models often work.
+[00:48:07,750 --> 00:48:13,350] The encoder here is very much similar to ViTs.
+[00:48:13,350 --> 00:48:16,990] All of them are based on transformers, the ViTs
+[00:48:16,990 --> 00:48:18,870] that we've talked about.
+[00:48:18,870 --> 00:48:23,090] Similar to the ViTs, the images are split into patches.
+[00:48:23,090 --> 00:48:29,560] The patches are then sampled, so uniform sampling
+[00:48:29,560 --> 00:48:32,960] is what they've done and they've shown 75%
+[00:48:32,960 --> 00:48:40,240] sampling was quite efficient in the experiments.
+[00:48:40,240 --> 00:48:45,520] And they use a high masking ratio,
+[00:48:45,520 --> 00:48:50,440] and then this makes the prediction task very challenging
+[00:48:50,440 --> 00:48:54,040] and challenging in the set of pretext
+[00:48:54,040 --> 00:48:56,880] for pretext tasks in self-supervised learning
+[00:48:56,880 --> 00:48:58,700] means the task is meaningful.
+[00:48:58,700 --> 00:49:00,640] The task is very good because the model
+[00:49:00,640 --> 00:49:05,560] has to learn good features to be able to reconstruct it.
+[00:49:05,560 --> 00:49:09,960] So with that high sampling, high ratio
+[00:49:09,960 --> 00:49:14,040] of sampling, what it can do is they can actually
+[00:49:14,040 --> 00:49:17,280] augment the data by a lot too, because each time you
+[00:49:17,280 --> 00:49:20,840] mask 75% of the data, so you can reuse the same image
+[00:49:20,840 --> 00:49:23,220] multiple and multiple times during training.
+[00:49:23,220 --> 00:49:29,620] So you will have so much of data to train this encoder with.
+[00:49:29,620 --> 00:49:36,460] And then that's why they use a huge encoder, a large ViT
+[00:49:36,460 --> 00:49:38,040] in as their encoder.
+[00:49:38,040 --> 00:49:43,320] So this encoder itself only sees 25% of the samples.
+[00:49:43,320 --> 00:49:49,620] The patches embeds those two with first linear projection
+[00:49:49,620 --> 00:49:51,320] to some embedding spaces.
+[00:49:51,320 --> 00:49:55,420] Then positional embeddings are added exactly same
+[00:49:55,420 --> 00:49:59,700] as what we mentioned for ViTs.
+[00:49:59,700 --> 00:50:02,140] And all of these are transformer blocks.
+[00:50:02,140 --> 00:50:09,600] And the encoder is very large, that's what I just mentioned.
+[00:50:09,600 --> 00:50:13,500] And then when it comes to the decoding part,
+[00:50:13,500 --> 00:50:17,060] so we have the embeddings of all of those patches
+[00:50:17,060 --> 00:50:21,820] that were present for the patches that were masked
+[00:50:21,820 --> 00:50:23,260] or were missing.
+[00:50:23,260 --> 00:50:26,530] For those, there is a trainable parameter,
+[00:50:26,530 --> 00:50:29,230] very much similar to that class token that we had.
+[00:50:29,230 --> 00:50:34,270] A shared masked masked token that is basically
+[00:50:34,270 --> 00:50:36,990] in some sort of average.
+[00:50:36,990 --> 00:50:39,390] We can consider that as an average patch,
+[00:50:39,390 --> 00:50:43,750] an average representation that is put for the ones that
+[00:50:43,750 --> 00:50:48,950] are missing are masked, and then the decoder has to transfer them
+[00:50:48,950 --> 00:50:54,270] to the image patches of the entire image,
+[00:50:54,270 --> 00:51:02,190] and then the entire image is the output target is the output.
+[00:51:02,190 --> 00:51:06,430] So how we train this, this is a simple MSE
+[00:51:06,430 --> 00:51:16,150] based mean squared error loss function for between the image
+[00:51:16,150 --> 00:51:18,790] and the reconstructed image, the loss function
+[00:51:18,790 --> 00:51:21,830] is only computed for the masked patches
+[00:51:21,830 --> 00:51:25,960] similar to the previous one that I just talked about.
+[00:51:25,960 --> 00:51:30,960] And then what it has is--
+[00:51:30,960 --> 00:51:33,520] When we do the training, they've shown in the paper
+[00:51:33,520 --> 00:51:42,192] that you can do either linear probing or full fine tuning
+[00:51:42,192 --> 00:51:44,900] to use it for your downstream tasks,
+[00:51:44,900 --> 00:51:47,560] for any of the applications that you have in mind.
+[00:51:47,560 --> 00:51:50,680] And in linear probing, what happens
+[00:51:50,680 --> 00:51:55,000] is you often have your encoder frozen and then use
+[00:51:55,000 --> 00:51:58,800] the learned representations and only learn a linear function
+[00:51:58,800 --> 00:52:00,740] for the final task.
+[00:52:00,740 --> 00:52:04,240] And this mark, it means that it's being trained,
+[00:52:04,240 --> 00:52:06,460] but in full fine tuning, in fine tuning,
+[00:52:06,460 --> 00:52:08,320] the pre-trained encoders are also
+[00:52:08,320 --> 00:52:14,560] fine tuned, either all of them or just few transformer blocks.
+[00:52:14,560 --> 00:52:19,420] And that's the fine tuning framework.
+[00:52:19,420 --> 00:52:22,570] The linear probing provides a measure
+[00:52:22,570 --> 00:52:25,890] of representation quality, how those representations
+[00:52:25,890 --> 00:52:31,890] features are, and fine tuning always exploits models
+[00:52:31,890 --> 00:52:37,250] near to potential to adapt for new tasks.
+[00:52:37,250 --> 00:52:43,250] OK, so if you're interested in this topic
+[00:52:43,250 --> 00:52:45,310] and if you're planning to use this paper,
+[00:52:45,310 --> 00:52:49,030] I highly advise looking at the paper in its follow-ups.
+[00:52:49,030 --> 00:52:53,210] There are so many discussions around different aspects
+[00:52:53,210 --> 00:52:56,490] model choices, hyperparameters, masking ratio
+[00:52:56,490 --> 00:53:00,450] is one thing they've shown with the masking ratio that the 75%
+[00:53:00,450 --> 00:53:04,150] is actually giving them a very high accuracy.
+[00:53:04,150 --> 00:53:07,810] So 75% that's the reason that it was chosen.
+[00:53:07,810 --> 00:53:13,530] Decoder depth, decoder width, mask tokens, reconstruction
+[00:53:13,530 --> 00:53:18,530] targets, data augmentation how it's helpful
+[00:53:18,530 --> 00:53:22,160] and mask sampling method I'm showing the results here again.
+[00:53:22,160 --> 00:53:25,180] Mask sampling method is mostly around
+[00:53:25,180 --> 00:53:30,500] should they use some random masking blocks or grid
+[00:53:30,500 --> 00:53:31,520] type of masking.
+[00:53:31,520 --> 00:53:35,660] You see the examples here, and they've came to the conclusion
+[00:53:35,660 --> 00:53:39,620] that this random masking was the best choice.
+[00:53:39,620 --> 00:53:43,500] And finally they've been able to show
+[00:53:43,500 --> 00:53:49,340] that MAE is doing a much better job compared
+[00:53:49,340 --> 00:53:53,960] to many of the other methods that were used.
+[00:53:53,960 --> 00:53:56,460] So some of the other state of the art methods
+[00:53:56,460 --> 00:53:58,760] were actually Dino and Moco V3.
+[00:53:58,760 --> 00:54:00,980] If you have time, I will briefly go over them.
+[00:54:00,980 --> 00:54:06,540] But this framework was actually outperforming
+[00:54:06,540 --> 00:54:13,660] those that are more at the time, advanced frameworks
+[00:54:13,660 --> 00:54:16,220] of contrastive learning.
+[00:54:16,220 --> 00:54:22,850] So I'll stop for a few questions if you have any.
+[00:54:22,850 --> 00:54:28,050] Let me just summarize what we've talked about.
+[00:54:28,050 --> 00:54:30,970] Pretext tasks were actually very important.
+[00:54:30,970 --> 00:54:33,910] And as I said their focus is on understanding
+[00:54:33,910 --> 00:54:36,230] the visual common sense.
+[00:54:36,230 --> 00:54:40,630] And one of the things that also related
+[00:54:40,630 --> 00:54:44,150] to some of the questions that were asked, we can see
+[00:54:44,150 --> 00:54:48,790] is coming up with an individual pretext task is often
+[00:54:48,790 --> 00:54:52,270] challenging because the learned representations may not
+[00:54:52,270 --> 00:54:58,190] be general enough because of the type of tasks that you define.
+[00:54:58,190 --> 00:55:05,170] For example, if you're using completion, rotation prediction,
+[00:55:05,170 --> 00:55:08,070] or jigsaw puzzle or colorization,
+[00:55:08,070 --> 00:55:11,670] you learned representations are good for solving
+[00:55:11,670 --> 00:55:14,030] those specific tasks, and they may not
+[00:55:14,030 --> 00:55:19,680] be very good for general pretext tasks.
+[00:55:19,680 --> 00:55:22,420] So the question is in split brain autoencoder,
+[00:55:22,420 --> 00:55:28,880] how does the model know how to predict the other channel given
+[00:55:28,880 --> 00:55:33,340] for example L channel, the illumination channel,
+[00:55:33,340 --> 00:55:34,720] lightness channel.
+[00:55:34,720 --> 00:55:39,040] So let me answer your question with a question.
+[00:55:39,040 --> 00:55:43,000] When you're training a model to predict classes of objects
+[00:55:43,000 --> 00:55:45,400] in the image, how does the encoder
+[00:55:45,400 --> 00:55:51,880] know what features to extract to predict the class of models?
+[00:55:51,880 --> 00:55:55,960] Labeled data, because what you're doing is you're
+[00:55:55,960 --> 00:55:59,280] back propagating a loss value that is
+[00:55:59,280 --> 00:56:02,280] calculated around those labels.
+[00:56:02,280 --> 00:56:03,660] It's the same story here.
+[00:56:03,660 --> 00:56:07,760] We define the network that takes one of the channels
+[00:56:07,760 --> 00:56:09,480] and outputs the other channel.
+[00:56:09,480 --> 00:56:13,040] How this was trained was by back propagating
+[00:56:13,040 --> 00:56:15,060] what the output should be.
+[00:56:15,060 --> 00:56:17,400] The output was the other channel.
+[00:56:17,400 --> 00:56:20,020] We do have the other channel in the data.
+[00:56:20,020 --> 00:56:23,700] So instead of defining the task being a classification
+[00:56:23,700 --> 00:56:26,460] of predicting the class of the objects,
+[00:56:26,460 --> 00:56:28,900] here we define the task to be predicting
+[00:56:28,900 --> 00:56:32,100] the color of the pixels.
+[00:56:32,100 --> 00:56:33,740] And the color of the pixels, we already
+[00:56:33,740 --> 00:56:36,980] have them in the data set, so the loss function still
+[00:56:36,980 --> 00:56:40,220] can be calculated and back propagated.
+[00:56:40,220 --> 00:56:42,540] So the question is how these outputs are
+[00:56:42,540 --> 00:56:44,540] used as input to the decoder.
+[00:56:44,540 --> 00:56:51,020] So this is, again, a VIT transformer style framework
+[00:56:51,020 --> 00:56:58,660] encoder that turns every input to a token as the output that
+[00:56:58,660 --> 00:57:02,700] is representation of that specific input patch.
+[00:57:02,700 --> 00:57:04,700] So we've talked about this.
+[00:57:04,700 --> 00:57:10,040] But then we know that this is not the list of all patches,
+[00:57:10,040 --> 00:57:12,740] there are some of the patches that are masked.
+[00:57:12,740 --> 00:57:15,830] For those that are masked, we also
+[00:57:15,830 --> 00:57:20,350] train this encoder outputs a shared mask
+[00:57:20,350 --> 00:57:25,490] token, a token that is basically an average token, for example.
+[00:57:25,490 --> 00:57:27,110] It's a learnable parameter.
+[00:57:27,110 --> 00:57:29,290] We can't necessarily interpret it,
+[00:57:29,290 --> 00:57:31,510] but we can say it's probably something
+[00:57:31,510 --> 00:57:35,670] that is similar to a mask like an average token.
+[00:57:35,670 --> 00:57:40,990] So that's shared mask token is put in the place of those
+[00:57:40,990 --> 00:57:42,130] that are missing.
+[00:57:42,130 --> 00:57:46,230] And then this long vector, long sequence is created.
+[00:57:46,230 --> 00:57:49,550] Decoder, another transformer framework
+[00:57:49,550 --> 00:57:55,990] takes this long set of tokens and outputs those
+[00:57:55,990 --> 00:57:58,540] that are projected as the output pixel value.
+[00:58:01,790 --> 00:58:12,600] Perfect, so we only have 15 minutes and a lot of things
+[00:58:12,600 --> 00:58:14,880] to cover.
+[00:58:14,880 --> 00:58:21,300] But I think what I wanted to get out of this session,
+[00:58:21,300 --> 00:58:24,800] was for you to understand what pretext tasks are,
+[00:58:24,800 --> 00:58:26,020] and how we define them.
+[00:58:26,020 --> 00:58:29,400] And one of the most used frameworks
+[00:58:29,400 --> 00:58:32,720] right now is the masked autoencoder, which we actually
+[00:58:32,720 --> 00:58:36,120] covered to some extent.
+[00:58:36,120 --> 00:58:42,200] But anyways, I was here that we did look
+[00:58:42,200 --> 00:58:45,040] at these transformations, and then we
+[00:58:45,040 --> 00:58:49,280] know that all of these transformations
+[00:58:49,280 --> 00:58:52,940] are actually the same object as the original image,
+[00:58:52,940 --> 00:58:54,540] just in a different form.
+[00:58:54,540 --> 00:58:59,360] But then we also have the knowledge that in the data set,
+[00:58:59,360 --> 00:59:02,660] we have other objects that look completely different.
+[00:59:02,660 --> 00:59:08,720] So if I define a task that can say
+[00:59:08,720 --> 00:59:11,990] these that belong to the same object, same pixel,
+[00:59:11,990 --> 00:59:15,510] try to bring them close in the representation space,
+[00:59:15,510 --> 00:59:18,210] basically attract them to each other in the representation
+[00:59:18,210 --> 00:59:21,890] space, and those that are not--
+[00:59:21,890 --> 00:59:27,930] that they do not belong to the same object,
+[00:59:27,930 --> 00:59:30,610] try to maximize the distance between them
+[00:59:30,610 --> 00:59:34,650] in the latent space, basically repel the representation
+[00:59:34,650 --> 00:59:37,130] of these two images.
+[00:59:37,130 --> 00:59:40,530] Then this is another task that is often
+[00:59:40,530 --> 00:59:44,330] referred to as contrastive learning, contrastive
+[00:59:44,330 --> 00:59:46,290] representation learning, and there
+[00:59:46,290 --> 00:59:52,530] are quite a number of very interesting methods to look at.
+[00:59:52,530 --> 00:59:56,830] We have sampled there are so many papers in this space,
+[00:59:56,830 --> 01:00:04,530] especially around 2019's to 2020's, and so
+[01:00:04,530 --> 01:00:07,010] on around those years.
+[01:00:07,010 --> 01:00:10,840] Sinclair McCaw, CBC, and then ultimately dyno,
+[01:00:10,840 --> 01:00:13,900] which actually borrows concepts from contrastive learning
+[01:00:13,900 --> 01:00:16,440] but is not necessarily contrastive learning framework.
+[01:00:19,060 --> 01:00:26,940] And what we do there is in order to define, attract and repel
+[01:00:26,940 --> 01:00:33,260] functions, characteristics or regularize the model based
+[01:00:33,260 --> 01:00:38,740] on those, we define the reference image as x, and then
+[01:00:38,740 --> 01:00:40,500] all of those that are transformations
+[01:00:40,500 --> 01:00:44,140] of the same as positive samples and all
+[01:00:44,140 --> 01:00:46,540] of the other objects in the data set,
+[01:00:46,540 --> 01:00:49,940] or in the batch as negative samples.
+[01:00:49,940 --> 01:00:52,300] And these positive and negative samples
+[01:00:52,300 --> 01:00:55,260] will basically define a way for us
+[01:00:55,260 --> 01:00:58,500] to calculate the loss function.
+[01:00:58,500 --> 01:01:00,740] How can we do that?
+[01:01:00,740 --> 01:01:02,720] Assume we have a scoring function.
+[01:01:02,720 --> 01:01:04,420] We want to get a scoring function that
+[01:01:04,420 --> 01:01:09,290] says the score for the reference image encoded version,
+[01:01:09,290 --> 01:01:11,550] features of the reference image and the features
+[01:01:11,550 --> 01:01:15,810] of a positive sample should be larger than the score that is,
+[01:01:15,810 --> 01:01:24,150] comparing the reference image and the negative samples.
+[01:01:24,150 --> 01:01:30,910] So with this type of scoring function, if we--
+[01:01:30,910 --> 01:01:35,110] so basically to define this type of scoring function,
+[01:01:35,110 --> 01:01:38,370] we define a loss function based on that.
+[01:01:38,370 --> 01:01:43,750] After training the scoring function S,
+[01:01:43,750 --> 01:01:46,150] you can see this S is the same as the score
+[01:01:46,150 --> 01:01:48,510] in the previous slide.
+[01:01:48,510 --> 01:01:50,590] So if we have that scoring function,
+[01:01:50,590 --> 01:01:54,350] now in order to attract and repel,
+[01:01:54,350 --> 01:01:58,830] we can use this framework of turn
+[01:01:58,830 --> 01:02:05,400] them a softmax setup with exp that turn those scores
+[01:02:05,400 --> 01:02:07,260] into probability values.
+[01:02:07,260 --> 01:02:09,920] And then in the denominator, you see
+[01:02:09,920 --> 01:02:15,040] all of the other negative samples that are used
+[01:02:15,040 --> 01:02:17,480] are considered.
+[01:02:17,480 --> 01:02:18,920] In order to implement actually we
+[01:02:18,920 --> 01:02:21,780] use this we use the batch learning framework.
+[01:02:21,780 --> 01:02:23,680] All of the other negative samples
+[01:02:23,680 --> 01:02:27,800] that belong to other objects in the batch
+[01:02:27,800 --> 01:02:31,120] are taken as negative samples, and one of the transform
+[01:02:31,120 --> 01:02:33,540] is as the positive sample.
+[01:02:33,540 --> 01:02:36,600] So we define the loss function like this.
+[01:02:36,600 --> 01:02:39,440] And a score for the positive pair,
+[01:02:39,440 --> 01:02:43,880] score for all of the other negative pairs.
+[01:02:43,880 --> 01:02:48,080] And this function is very similar to what we've actually
+[01:02:48,080 --> 01:02:50,160] discussed before.
+[01:02:50,160 --> 01:02:51,840] Any ideas?
+[01:02:51,840 --> 01:02:54,520] This is the cross entropy for multi classes.
+[01:02:54,520 --> 01:02:57,960] So if we have n samples--
+[01:02:57,960 --> 01:03:04,990] sorry n samples, yes, then in this case, we have n samples.
+[01:03:04,990 --> 01:03:09,190] So the softmax is if you have multiple classes,
+[01:03:09,190 --> 01:03:11,430] if you have 10 classes as the output,
+[01:03:11,430 --> 01:03:15,210] it wants to maximize the score for one of those 10,
+[01:03:15,210 --> 01:03:17,070] and minimize for the rest of it.
+[01:03:17,070 --> 01:03:19,070] It's the same story here.
+[01:03:19,070 --> 01:03:23,170] We want to maximize this score, but minimize
+[01:03:23,170 --> 01:03:26,050] the score between a negative and reference.
+[01:03:26,050 --> 01:03:29,530] So it's the same concept that we discussed
+[01:03:29,530 --> 01:03:31,910] about multi-class classification,
+[01:03:31,910 --> 01:03:34,690] but put it in the form of formulation
+[01:03:34,690 --> 01:03:37,450] of contrastive for this loss function
+[01:03:37,450 --> 01:03:39,610] as contrastive learning.
+[01:03:39,610 --> 01:03:44,850] This function is called info NCE or the information Noise
+[01:03:44,850 --> 01:03:47,930] Contrastive Estimation loss, which
+[01:03:47,930 --> 01:03:51,170] was proposed in this paper.
+[01:03:51,170 --> 01:03:55,370] And there are a lot of theoretical discussions
+[01:03:55,370 --> 01:03:58,890] in the paper that this objective, this loss function
+[01:03:58,890 --> 01:04:04,630] measures the dependencies, sorry that it's a lower bound
+[01:04:04,630 --> 01:04:07,790] on mutual information.
+[01:04:07,790 --> 01:04:12,070] And what mutual information is, when you have two images
+[01:04:12,070 --> 01:04:14,790] and you calculate the mutual information between them,
+[01:04:14,790 --> 01:04:18,270] it's basically measuring the dependencies
+[01:04:18,270 --> 01:04:21,090] or shared information between these two images.
+[01:04:21,090 --> 01:04:23,790] So what we want to do is, we want
+[01:04:23,790 --> 01:04:27,430] to maximize shared information between x and x plus,
+[01:04:27,430 --> 01:04:32,330] but minimize the shared information for x and x minuses.
+[01:04:32,330 --> 01:04:38,230] So the paper says and again, this will itself
+[01:04:38,230 --> 01:04:40,130] take half an hour to go into.
+[01:04:40,130 --> 01:04:42,750] So you should definitely take a look at the paper
+[01:04:42,750 --> 01:04:47,830] if you're interested, that the negative of this loss function
+[01:04:47,830 --> 01:04:52,750] info NCE, is a lower bound on mutual information between x
+[01:04:52,750 --> 01:04:54,070] and x plus.
+[01:04:54,070 --> 01:04:57,390] So a lower bound on mutual information
+[01:04:57,390 --> 01:05:03,400] if the negative of it is a lower bound on mutual information.
+[01:05:03,400 --> 01:05:07,240] If I minimize the info NCE, I'm basically
+[01:05:07,240 --> 01:05:10,280] maximizing the mutual information
+[01:05:10,280 --> 01:05:11,940] between x and x plus.
+[01:05:11,940 --> 01:05:14,000] So this is what I really want.
+[01:05:14,000 --> 01:05:17,920] So that's why we take this as the loss function
+[01:05:17,920 --> 01:05:23,480] and start minimizing that value.
+[01:05:23,480 --> 01:05:25,800] There is also another theoretical aspect
+[01:05:25,800 --> 01:05:29,920] in the info NCE paper that says the larger
+[01:05:29,920 --> 01:05:33,300] the number of negative samples the tighter the bound.
+[01:05:33,300 --> 01:05:36,600] So it tightens the bound based on the number
+[01:05:36,600 --> 01:05:38,520] of negative samples.
+[01:05:38,520 --> 01:05:43,680] So that's why for training and loss function a neural network
+[01:05:43,680 --> 01:05:47,880] with this type of loss function, we need a huge batch size.
+[01:05:47,880 --> 01:05:51,040] With a larger number of negative samples,
+[01:05:51,040 --> 01:05:59,770] we'll get better and much faster training convergence.
+[01:05:59,770 --> 01:06:03,570] And then this loss function was used in a number
+[01:06:03,570 --> 01:06:06,230] of different frameworks.
+[01:06:06,230 --> 01:06:09,210] And in the next few minutes, I'm just
+[01:06:09,210 --> 01:06:12,190] going to tell you what those frameworks are.
+[01:06:12,190 --> 01:06:16,570] For example, Sinclair is a simple framework
+[01:06:16,570 --> 01:06:22,210] for contrastive learning, is basically taking each image,
+[01:06:22,210 --> 01:06:24,550] do the two transformations of the same image,
+[01:06:24,550 --> 01:06:27,110] transfer it into the representation space.
+[01:06:27,110 --> 01:06:29,650] And what it does is it calculates
+[01:06:29,650 --> 01:06:36,390] the cosine similarity between embeddings representations.
+[01:06:36,390 --> 01:06:40,530] But before doing that, it does a linear or non-linear projection
+[01:06:40,530 --> 01:06:47,690] into a set of features z, that calculates the distance
+[01:06:47,690 --> 01:06:49,970] between those in this space.
+[01:06:49,970 --> 01:06:55,280] And this is the way that they do this,
+[01:06:55,280 --> 01:06:57,580] generating this positive samples.
+[01:06:57,580 --> 01:07:00,920] And for generating positive samples,
+[01:07:00,920 --> 01:07:05,020] all sorts of transformations would make sense.
+[01:07:05,020 --> 01:07:09,700] The details are basically covered here.
+[01:07:09,700 --> 01:07:14,500] Generate a positive pair by sampling data augmentation
+[01:07:14,500 --> 01:07:15,580] functions.
+[01:07:15,580 --> 01:07:20,060] So we sample a few of those then we calculate the inverse
+[01:07:20,060 --> 01:07:22,660] and see loss on the pairs.
+[01:07:22,660 --> 01:07:29,580] And this is what we iterate because each sample has 2n
+[01:07:29,580 --> 01:07:32,940] multiplied by n samples that we have created.
+[01:07:32,940 --> 01:07:39,980] So what happens is we take a list of images
+[01:07:39,980 --> 01:07:43,140] in the mini batch, in the batch that we have,
+[01:07:43,140 --> 01:07:48,620] and pass them through encoder for both variations
+[01:07:48,620 --> 01:07:49,820] of the same image.
+[01:07:49,820 --> 01:07:55,310] So each of the images basically will have a transformed version
+[01:07:55,310 --> 01:07:56,110] of it.
+[01:07:56,110 --> 01:08:02,830] And next, so we have sub 2n samples in the batch now.
+[01:08:02,830 --> 01:08:05,950] And then this means that for each
+[01:08:05,950 --> 01:08:10,550] of the samples the next one, these two are positive samples,
+[01:08:10,550 --> 01:08:12,050] and everything else is negative.
+[01:08:12,050 --> 01:08:16,010] So for the first one, the second image is positive.
+[01:08:16,010 --> 01:08:17,569] Everything else is negative.
+[01:08:17,569 --> 01:08:19,710] For the second one the first is positive
+[01:08:19,710 --> 01:08:21,310] and everything else is negative.
+[01:08:21,310 --> 01:08:24,990] And this repeats for all of the samples there.
+[01:08:24,990 --> 01:08:31,710] So this is a high level definition of SimCLR.
+[01:08:31,710 --> 01:08:36,870] Please note that we have in assignment 3, a question
+[01:08:36,870 --> 01:08:42,510] related to SimCLR that you will be exploring this framework
+[01:08:42,510 --> 01:08:44,069] a little bit more.
+[01:08:44,069 --> 01:08:47,350] But be careful that the definition is slightly
+[01:08:47,350 --> 01:08:49,790] different from what the standard definition that I
+[01:08:49,790 --> 01:08:51,120] presented here.
+[01:08:51,120 --> 01:08:57,080] And make sure you follow the instructions in the assignment.
+[01:08:57,080 --> 01:08:59,620] So SimCLR was actually very successful.
+[01:08:59,620 --> 01:09:05,160] It was able to without the use of labels or--
+[01:09:05,160 --> 01:09:07,600] and then a training a linear classifier
+[01:09:07,600 --> 01:09:13,279] on top of the features, it was able to surpass
+[01:09:13,279 --> 01:09:19,240] all of the previous works and even basically generate
+[01:09:19,240 --> 01:09:22,939] results comparable to the supervised learning,
+[01:09:22,939 --> 01:09:25,140] fully supervised learning frameworks.
+[01:09:25,140 --> 01:09:28,080] Although we need a larger neural network because now
+[01:09:28,080 --> 01:09:30,420] we are learning more generic features.
+[01:09:30,420 --> 01:09:32,120] But in terms of accuracy, this was
+[01:09:32,120 --> 01:09:38,760] not as it was comparable to what we had for supervised learning.
+[01:09:38,760 --> 01:09:44,040] So the interesting thing with SimCLR
+[01:09:44,040 --> 01:09:47,479] and some of the results around it
+[01:09:47,479 --> 01:09:53,630] was that there are a few choices.
+[01:09:53,630 --> 01:09:58,530] Actually, let me spend time on the main choices.
+[01:09:58,530 --> 01:10:02,850] You may have this question of why did we project the features
+[01:10:02,850 --> 01:10:06,850] into a new variable instead of using the same representations?
+[01:10:06,850 --> 01:10:10,910] So this was a design choice that they made in SimCLR,
+[01:10:10,910 --> 01:10:16,050] because they rightly so assume that when
+[01:10:16,050 --> 01:10:17,810] we have an objective function that
+[01:10:17,810 --> 01:10:20,490] does this contrast between samples,
+[01:10:20,490 --> 01:10:24,110] you often lose some more information,
+[01:10:24,110 --> 01:10:26,050] some extra information that do not
+[01:10:26,050 --> 01:10:28,070] help with the contrastive learning framework.
+[01:10:28,070 --> 01:10:34,490] So in order to preserve all of those extra features,
+[01:10:34,490 --> 01:10:36,830] representations are defined as h,
+[01:10:36,830 --> 01:10:40,010] but then there is this linear or non-linear projection--
+[01:10:40,010 --> 01:10:42,770] in their paper they use non-linear projection,
+[01:10:42,770 --> 01:10:49,540] to get the z values that they can calculate influencer.
+[01:10:49,540 --> 01:10:52,280] So that's one important design choice.
+[01:10:52,280 --> 01:10:56,680] And the other one is I mentioned earlier large batch sizes.
+[01:10:56,680 --> 01:10:59,300] You need huge batch sizes, larger batch sizes
+[01:10:59,300 --> 01:11:04,040] to be able to get better SimCLR performance.
+[01:11:04,040 --> 01:11:08,100] And we talked about it, how and why this is the case.
+[01:11:08,100 --> 01:11:11,340] But we can't always do large batch sizes
+[01:11:11,340 --> 01:11:13,580] for many of the tasks that we have
+[01:11:13,580 --> 01:11:20,060] at hand because of constraints in memory and so on.
+[01:11:20,060 --> 01:11:23,640] And that was why a number of follow ups,
+[01:11:23,640 --> 01:11:29,920] for example, mocha was proposed momentum contrastive learning.
+[01:11:29,920 --> 01:11:34,980] Instead of using the samples, all of the negative samples
+[01:11:34,980 --> 01:11:39,260] in the batch, what it does is it creates a queue
+[01:11:39,260 --> 01:11:46,440] and keeps a history of the negative samples
+[01:11:46,440 --> 01:11:49,260] across batches over time in the model.
+[01:11:49,260 --> 01:11:53,840] So it doesn't only depend on the negative samples in the batch,
+[01:11:53,840 --> 01:11:57,360] it has a separate queue that is defined
+[01:11:57,360 --> 01:12:01,640] and keeps a number of negative samples and changes it,
+[01:12:01,640 --> 01:12:11,560] updates it over time to train, to do the inference loss,
+[01:12:11,560 --> 01:12:13,360] the contrastive loss here.
+[01:12:13,360 --> 01:12:17,240] But because we have this queue, we cannot back propagate
+[01:12:17,240 --> 01:12:19,540] because those samples are not in the batch anymore.
+[01:12:19,540 --> 01:12:25,260] So we cannot back propagate for the negative samples,
+[01:12:25,260 --> 01:12:27,560] and that's why it had to separate the encoder
+[01:12:27,560 --> 01:12:30,800] for positive samples, which are now called query.
+[01:12:30,800 --> 01:12:32,600] And the negative samples which are now
+[01:12:32,600 --> 01:12:38,240] called key in this architecture.
+[01:12:38,240 --> 01:12:42,760] So the training only impacts encoder and over time
+[01:12:42,760 --> 01:12:51,590] the Q encoder, using a momentum m, it updates the key encoder,
+[01:12:51,590 --> 01:12:53,130] the momentum encoder.
+[01:12:53,130 --> 01:12:57,370] So this is a framework that has actually
+[01:12:57,370 --> 01:13:01,490] been very successful in terms of implementation,
+[01:13:01,490 --> 01:13:03,670] and follow up versions of it.
+[01:13:03,670 --> 01:13:07,930] There is a lot of interesting results,
+[01:13:07,930 --> 01:13:13,170] but then what they've done was basically
+[01:13:13,170 --> 01:13:19,530] tried hybrid versions of using some non-linear projection heads
+[01:13:19,530 --> 01:13:22,210] and data augmentation from SimCLR
+[01:13:22,210 --> 01:13:26,010] and using this mini batch style, the decoupling of the mini batch
+[01:13:26,010 --> 01:13:29,170] and negative samples from MoCo, and they've
+[01:13:29,170 --> 01:13:34,490] shown that actually if you do this together, MoCo version 2,
+[01:13:34,490 --> 01:13:39,950] it improves the performance by a lot.
+[01:13:39,950 --> 01:13:45,740] So I will stop here, but there was some notions
+[01:13:45,740 --> 01:13:50,140] of CPC, the Contrastive Predictive Coding,
+[01:13:50,140 --> 01:13:55,020] as another example, that you can look at in the slides.
+[01:13:55,020 --> 01:14:00,580] And then a better version of MoCo, MoCo version 3 and DINO
+[01:14:00,580 --> 01:14:04,580] is also one of the widely used frameworks which actually
+[01:14:04,580 --> 01:14:11,220] has a similar type of architecture as MoCo,
+[01:14:11,220 --> 01:14:14,020] but it's not necessarily contrastive
+[01:14:14,020 --> 01:14:17,640] learning because now we have students and teacher networks.
+[01:14:17,640 --> 01:14:20,280] So I'll leave that for a separate discussion,
+[01:14:20,280 --> 01:14:24,220] and if you're interested, we can discuss maybe
+[01:14:24,220 --> 01:14:27,520] in the future slides, in future lectures.
+[01:14:27,520 --> 01:14:32,380] But anyways, this is also one of the widely used frameworks
+[01:14:32,380 --> 01:14:35,140] for extracting features from images and also videos
+[01:14:35,140 --> 01:14:36,990] sometimes.

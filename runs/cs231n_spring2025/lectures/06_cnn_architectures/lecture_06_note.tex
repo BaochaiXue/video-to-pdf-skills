@@ -1,0 +1,201 @@
+\documentclass[a4paper]{article}
+
+% Basic packages
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\IfFileExists{pgfplots.sty}{
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=1.18}
+}{}
+
+% Highlight boxes
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+% Listings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red!60!black},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    extendedchars=false
+}
+
+% Front-page metadata
+\newcommand{\notetitle}{CS231N 2025 第6讲：CNN 训练技巧与经典架构}
+\newcommand{\noteauthors}{Codex Harness Worker 1}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online}
+\newcommand{\videopublishdate}{2025-09-02}
+\newcommand{\videoduration}{1:11:07}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=aVJy4O5TOk8}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+
+\ifdefempty{\videocoverpath}{
+{\small 请在生成笔记时填入视频封面图的本地路径。\par}
+}{
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+}
+
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频时长}：\videoduration\par
+\textbf{视频链接}：
+\ifdefempty{\videourl}{
+未填写
+}{
+\href{\videourl}{\nolinkurl{\videourl}}
+}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%% --- 正文内容开始 --- %%
+
+
+\section{训练深 CNN：归一化、激活与初始化}
+当卷积网络加深之后，问题不再只是“结构是否合理”，还包括“能否稳定训练”。Lecture 6 一开始就把训练深网络的几个核心组件并列起来：归一化层（normalization layer）、激活函数（activation function）、权重初始化（weight initialization）和优化策略。它们共同决定前向信号和反向梯度在深层网络中是否会失真。
+
+以归一化为例，课程用 LayerNorm 说明其基本机制：先把输入标准化，再通过可学习参数恢复必要的尺度和偏移。写成公式就是
+\[
+\hat{x} = \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}}, \qquad y = \gamma \hat{x} + \beta.
+\]
+其中，$\mu$ 与 $\sigma^2$ 是所选归一化维度上的均值与方差，$\epsilon$ 用于数值稳定，$\gamma, \beta$ 是可学习的缩放与平移参数。这个公式说明归一化不是把特征“洗平”，而是在可控标准化之后再交还表达能力。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-10.png}
+\caption{归一化层通过“标准化 + 可学习缩放平移”改善优化地形，使更深网络更容易训练。}
+\end{figure}
+
+深 CNN 的训练稳定性取决于信号如何在层间传播，而不仅仅是模型深度。
+归一化、激活与初始化是深网络可训练性的三根支柱。
+\subsection{本章小结}
+
+\section{Normalization layer 到底在做什么}
+课程虽然用 LayerNorm 举例，但它真正要学生掌握的是一类统一思想：通过控制中间表示的统计分布，让优化更平滑、梯度更稳定、训练更快收敛。BatchNorm、LayerNorm、GroupNorm 的差别，主要在于统计量是沿 batch、特征还是分组维度计算，以及它们各自适合的任务与 batch 设置。
+
+教材化理解时，可以把归一化层看成“可学习的数值调节器”。它不是直接增加模型表达能力，而是改善优化几何，使更深、更复杂的网络也能被标准的一阶优化器训练起来。换句话说，归一化层的最大贡献往往不是测试时多了几个点，而是让原本训练不了的网络变得可训练。
+
+不同 normalization 变体的核心目标相同：改善优化条件。
+它们的区别主要来自统计量计算维度以及与 batch 大小的耦合方式。
+\subsection{本章小结}
+
+\section{训练细节：正则化、数据增强与学习率}
+深 CNN 的性能不只来自主干结构，还来自训练细节。课程把 dropout、数据增强、学习率策略与训练时长放在同一章节中，正是在强调这一点。Dropout 的核心是训练期随机屏蔽一部分激活，抑制神经元之间的共适应（co-adaptation）；数据增强则通过人工扩展输入分布，让模型把注意力放在更稳定的语义模式上，而不是偶然像素细节。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-70.png}
+\caption{Dropout 通过训练期随机失活神经元抑制共适应，是经典的正则化工具。}
+\end{figure}
+
+这些技巧表面上彼此不同，但其实都在围绕泛化展开：dropout 从模型内部增加随机性，数据增强从输入侧增加变化，学习率策略则从优化动力学上影响最终收敛点。真正成熟的 CNN 训练流程，往往不是押宝某一项单独技巧，而是把这些因素作为一个整体系统去调。
+
+深网络训练效果往往由一串“细节决策”共同决定，而不是单一技巧决定。
+正则化、增强和学习率共同服务于泛化，而不只是服务于训练误差。
+\subsection{本章小结}
+
+\section{架构案例：AlexNet、VGG、ResNet}
+Lecture 6 的下半部分通过几个经典架构把“如何设计 CNN”具体化。AlexNet 代表了 ImageNet 时代深卷积网络的起点：更深、更宽、使用 ReLU、配合大规模数据和 GPU 训练。VGG 则展示了另一种思路：用大量统一的 $3\times 3$ 卷积堆叠深度，以结构简洁换取表示能力和可分析性。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-40.png}
+\caption{VGG 用大量 3×3 卷积堆叠深度，展示了“简单模块重复”也能形成强大表征。}
+\end{figure}
+
+ResNet 的贡献更像是训练理论上的突破。它不直接让若干层去逼近目标映射 $H(x)$，而是改成学习残差映射 $F(x)$，使输出满足
+\[
+ y = F(x) + x.
+\]
+其中，$x$ 是输入特征，$F(x)$ 是由若干卷积层学习到的残差。这个公式的意义在于：如果最优映射接近恒等映射，网络只需把残差学成接近零即可，从而显著缓解深层优化困难。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-50.png}
+\caption{ResNet 通过残差连接让网络学习 F(x)+x，而不是直接学习 H(x)，从而缓解深层优化困难。}
+\end{figure}
+
+经典架构的价值在于它们各自解决了不同历史阶段的核心瓶颈。
+学架构时，应优先理解它“解决了什么问题”，其次才是背具体配置。
+\subsection{本章小结}
+
+\section{迁移学习：把预训练网络变成通用视觉骨干}
+课程最后把训练好的 CNN 放回更大的应用图景中，这就是迁移学习（transfer learning）。一个在大规模数据集上预训练好的视觉主干，往往学到了足够通用的底层与中层特征，因此面对新任务时，可以选择两条常见路径：要么把 backbone 当成固定特征提取器，只训练上层分类头；要么以较小学习率对整个网络进行微调（fine-tuning）。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{pdf_pages/page-80.png}
+\caption{迁移学习（transfer learning）展示了预训练视觉特征的通用性：同一个 backbone 可以作为固定特征提取器，也可以端到端微调。}
+\end{figure}
+
+这部分内容之所以重要，是因为它把“经典 CNN 架构”与今天的大模型实践连接起来。无论是 ViT、CLIP 还是多模态 backbone，本质上都在重复同一个模式：先在大规模任务上学通用表示，再在下游任务上复用或微调。
+
+迁移学习说明视觉 backbone 的价值不只体现在原任务上，更体现在可复用的表示。
+从预训练到微调的工作流，后来成为视觉大模型和多模态模型的共同范式。
+\subsection{本章小结}
+
+\section{总结与延伸}
+Lecture 6 把“会搭 CNN”提升为“会训练、会分析、会复用 CNN”。归一化、激活、初始化、正则化与学习率策略解决的是训练可行性问题；AlexNet、VGG、ResNet 解决的是架构设计问题；迁移学习则把这些架构变成了可复用的视觉骨干。
+
+如果把前六讲合起来看，到这里课程已经建立了一个完整的深视觉基础：任务定义、损失函数、优化方法、神经网络、卷积结构和经典架构。之后进入检测、分割、视频、自监督、生成、多模态与机器人学习时，这些工具会不断重现，只是输入输出接口和归纳偏置发生变化。
+
+\subsection{拓展阅读}
+\begin{itemize}
+\item \href{https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf}{AlexNet}
+\item \href{https://arxiv.org/abs/1409.1556}{VGGNet}
+\item \href{https://arxiv.org/abs/1409.4842}{GoogLeNet}
+\item \href{https://arxiv.org/abs/1512.03385}{ResNet}
+\end{itemize}
+
+
+%% --- 正文内容结束 --- %%
+
+\end{document}

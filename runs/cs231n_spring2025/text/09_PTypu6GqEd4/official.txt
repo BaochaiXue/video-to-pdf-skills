@@ -1,0 +1,5088 @@
+Lecture 9:
+Detection, Segmentation,
+Visualization, and Understanding
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+1
+
+April 29, 2025
+
+Administrative Announcements
+•
+
+Make sure to start Assignment 2 early. It is the longest of the three assignments,
+and the midterm and project milestone deadlines follow closely after the
+Assignment 2 deadline.
+
+•
+
+Be sure to check out this Ed post for the best Colab practices to avoid
+unnecessary bugs and delays.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+2
+
+April 29, 2025
+
+Last time: Transformer
+
+Encoder
+Stanford CS231n 10 th Anniversary
+
+Decoder
+
+Lecture 9 -
+
+3
+
+April 29, 2025
+
+Three Ways of Processing Sequences
+Convolution
+
+Recurrent Neural Network
+
+Self-Attention
+Y1
+
+y1
+
+y2
+
+y3
+
+Y2
+
+Y3
+
+Product(→), Sum(↑)
+
+y4
+
+y1
+
+y2
+
+y3
+
+y4
+
+V3
+
+A1,3
+
+A2,3
+
+A3,3
+
+V2
+
+A1,2
+
+A2,2
+
+A3,2
+
+V1
+
+A1,1
+
+A2,1
+
+A3,1
+
+Softmax(↑)
+
+x1
+
+x2
+
+x3
+
+x4
+
+x1
+
+x2
+
+x3
+
+x4
+
+K3
+
+E1,3
+
+E2,3
+
+E3,3
+
+K2
+
+E1,2
+
+E2,2
+
+E3,2
+
+K1
+
+E1,1
+
+E2,1
+
+E3,1
+
+Q1
+
+Q2
+
+Q3
+
+X1
+
+X2
+
+X3
+
+Works on 1D ordered sequences
+
+Works on N-dimensional grids
+
+Works on sets of vectors
+
+(+) Theoretically good at long
+sequences: O(N) compute and
+memory for a sequence of length N
+(-) Not parallelizable. Need to
+compute hidden states sequentially
+
+(-) Bad for long sequences: need to
+stack many layers to build up large
+receptive fields
+(+) Parallelizable, outputs can be
+computed in parallel
+
+(+) Great for long sequences; each
+output depends directly on all inputs
+(+) Highly parallel, it’s just 4 matmuls
+(-) Expensive: O(N2) compute, O(N)
+memory for sequence of length N
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+4
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Wort h
+16x 16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+5
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Dosovitskiy et al, “An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+6
+
+Cat image is free for commercial
+use under a Pixabay license
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+N input patches, each of
+shape 3x16x16
+
+Dosovitskiy et al, “An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+7
+
+Cat image is free for commercial
+use under a Pixabay license
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Linear projection to Ddimensional vector
+N input patches, each of
+shape 3x16x16
+
+Dosovitskiy et al, “An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+8
+
+Cat image is free for commercial
+use under a Pixabay license
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Add positional embedding:
+learned D-dim vector per
+position
+
++
+
++
+
++
+
++
+
++
+
++
+
++
+
++
+
++
+
+Linear projection to Ddimensional vector
+N input patches, each of
+shape 3x16x16
+
+Dosovitskiy et al, “An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+9
+
+Cat image is free for commercial
+use under a Pixabay license
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Output vectors
+
+Exact same as NLP
+Transformer!
+Add positional embedding:
+learned D-dim vector per
+position
+
+Transformer
++
+
++
+
++
+
++
+
++
+
++
+
++
+
++
+
++
+
+Linear projection to Ddimensional vector
+N input patches, each of
+shape 3x16x16
+
+Dosovitskiy et al, “An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+10
+
+Cat image is free for commercial
+use under a Pixabay license
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Output vectors
+
+Exact same as NLP
+Transformer!
+Add positional embedding:
+learned D-dim vector per
+position
+
+Transformer
++
+
++
+
++
+
++
+
++
+
++
+
++
+
++
+
++
+
+Special extra input:
+classification token
+(D dims, learned)
+
+Linear projection to Ddimensional vector
+N input patches, each of
+shape 3x16x16
+
+Dosovitskiy et al, “An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+11
+
+Cat image is free for commercial
+use under a Pixabay license
+
+April 29, 2025
+
+Vision Transformers (ViT)
+Linear projection to
+C-dim vector of
+predicted class
+scores
+
+Output vectors
+
+Exact same as NLP
+Transformer!
+Add positional embedding:
+learned D-dim vector per
+position
+
+Transformer
++
+
++
+
++
+
++
+
++
+
++
+
++
+
++
+
++
+
+Special extra input:
+classification token
+(D dims, learned)
+
+Linear projection to Ddimensional vector
+N input patches, each of
+shape 3x16x16
+
+Dosovitskiy et al, “An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale”, ICLR 2021
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+12
+
+Cat image is free for commercial
+use under a Pixabay license
+
+April 29, 2025
+
+Vision Transformers (ViT) – a similar approach (different classifier)
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Wort h
+16x 16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+13
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Wort h
+16x 16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10 th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+Lecture 9 -
+
+14
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Wort h
+16x 16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10 th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+Lecture 9 -
+
+D-dim vector per patch are
+the input vectors to the
+Transformer
+
+15
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Use positional
+encoding to tell
+the transformer
+the 2D position
+of each patch
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Wort h
+16x 16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10 th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+Lecture 9 -
+
+D-dim vector per patch are
+the input vectors to the
+Transformer
+
+16
+
+April 29, 2025
+
+Vision Transformers (ViT)
+Don’t use any
+masking; each
+image patch can
+look at all other
+image patches
+Use positional
+encoding to tell
+the transformer
+the 2D position
+of each patch
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Wort h
+16x 16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10 th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+Lecture 9 -
+
+D-dim vector per patch are
+the input vectors to the
+Transformer
+
+17
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Transformer
+gives an output
+vector per patch
+Don’t use any
+masking; each
+image patch can
+look at all other
+image patches
+Use positional
+encoding to tell
+the transformer
+the 2D position
+of each patch
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Wort h
+16x 16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10 th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+Lecture 9 -
+
+D-dim vector per patch are
+the input vectors to the
+Transformer
+
+18
+
+April 29, 2025
+
+Vision Transformers (ViT)
+
+Average pool NxD vectors to
+1xD, apply a linear layer D=>C to
+predict class scores
+Pooling
+
+Transformer
+gives an output
+vector per patch
+Don’t use any
+masking; each
+image patch can
+look at all other
+image patches
+Use positional
+encoding to tell
+the transformer
+the 2D position
+of each patch
+
+Input image:
+e.g. 224x224x3
+
+Dosovitskiy et al, “An Image is Wort h
+16x 16 Words: Transformers for Image
+Recognition at Scale”, ICLR 2021
+
+Break into patches
+e.g. 16x16x3
+
+Stanford CS231n 10 th Anniversary
+
+Flatten and apply a linear
+transform 768 => D
+
+Lecture 9 -
+
+D-dim vector per patch are
+the input vectors to the
+Transformer
+
+19
+
+April 29, 2025
+
+Tweaking Transformers
+
+y1
+
+The Transformer architecture has not changed
+much since 2017.
+
+y2
+
+y3
+
+y4
+
+Layer Normalization
+
++
+
+But a few changes have become common:
+
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+Layer Normalization
+
++
+Self-Attention
+
+x1
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+x2
+20
+
+x3
+
+x4
+
+April 29, 2025
+
+Pre-Norm Transformer
+
+y1
+
+y2
+
+y3
+
+y4
+
+Layer Normalization
+Layer normalization is outside the
+residual connections
+Kind of weird, the model can’t
+actually learn the identify function
+
++
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+Layer Normalization
+
++
+Self-Attention
+
+x1
+
+x2
+
+x3
+
+x4
+
+Baevski & Auli, “Adaptive Input Representations for Neural Language Modeling”, arXiv 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+21
+
+April 29, 2025
+
+Pre-Norm Transformer
+Layer normalization is outside the
+residual connections
+
+y1
+
+y2
+
+y3
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+Kind of weird, the model can’t
+actually learn the identify function
+
+MLP
+
+Layer Normalization
+
++
+
+Solution: Move layer normalization
+before the Self-Attention and MLP,
+inside the residual connections.
+Training is more stable.
+
+Self-Attention
+Layer Normalization
+
+x1
+
+x2
+
+x3
+
+x4
+
+Baevski & Auli, “Adaptive Input Representations for Neural Language Modeling”, arXiv 2018
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+22
+
+April 29, 2025
+
+RMSNorm
+
+y1
+
+y2
+
+Replace Layer Normalization
+with Root-Mean-Square
+Normalization (RMSNorm)
+Input: x [shape D]
+Output: y [shape D]
+Weight: 𝛾 [shape D]
+
+𝑦𝑖 =
+
+𝜀+
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
++
+
+𝑥𝑖
+∗𝛾
+𝑅𝑀𝑆(𝑥) 𝑖
+
+𝑅𝑀𝑆 𝑥 =
+
+y3
+
+Self-Attention
+
+𝑁
+1
+෍ 𝑥𝑖2
+𝑁 𝑖=1
+
+RMSNorm
+
+Training is a bit more stable
+
+x1
+
+x2
+
+x3
+
+x4
+
+Zhang and Sennrich, “Root Mean Square Layer Normalization”, NeurIPS 2019
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+23
+
+April 29, 2025
+
+SwiGLU MLP
+
+y1
+
+y2
+
+Classic MLP:
+Input: X [N x D]
+Weights: W1 [D x 4D]
+W2 [4D x D]
+Output: Y = σ(XW1)W2 [N x D]
+
+y3
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
++
+Self-Attention
+RMSNorm
+
+x1
+
+x2
+
+x3
+
+x4
+
+Shazeer, “GLU Variants Improve Transformers”, 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+24
+
+April 29, 2025
+
+SwiGLU MLP
+
+y1
+
+y2
+
+Classic MLP:
+Input: X [N x D]
+Weights: W1 [D x 4D]
+W2 [4D x D]
+Output: Y = σ(XW1)W2 [N x D]
+
+y3
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
+SwiGLU MLP:
+
++
+
+Input: X [N x D]
+Weights: W1 , W2 [D x H]
+W3 [H x D]
+Output:
+𝑌 = 𝜎 𝑋𝑊1 ⊙ 𝑋𝑊2 𝑊3
+
+Self-Attention
+RMSNorm
+
+Setting H = 8D/3 keeps
+same total params
+
+x1
+
+x2
+
+x3
+
+x4
+
+Shazeer, “GLU Variants Improve Transformers”, 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+25
+
+April 29, 2025
+
+Mixture of Experts (MoE)
+
+y1
+
+y2
+
+Learn E separate sets of MLP weights in
+each block; each MLP is an expert
+W1: [D x 4D] => [E x D x 4D]
+W2: [4D x D] => [E x 4D x D]
+
+y3
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
++
+Self-Attention
+RMSNorm
+
+x1
+
+x2
+
+x3
+
+x4
+
+Shazeer et al, “Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer”, 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+26
+
+April 29, 2025
+
+Mixture of Experts (MoE)
+
+y1
+
+y2
+
+Learn E separate sets of MLP weights in
+each block; each MLP is an expert
+W1: [D x 4D] => [E x D x 4D]
+W2: [4D x D] => [E x 4D x D]
+
+y3
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+Each token gets routed to A < E of the
+experts. These are the active experts.
+
+RMSNorm
+
++
+
+Increases params by E,
+But only increases compute by A
+
+Self-Attention
+RMSNorm
+
+x1
+
+x2
+
+x3
+
+x4
+
+Shazeer et al, “Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer”, 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+27
+
+April 29, 2025
+
+Mixture of Experts (MoE)
+
+y1
+
+y2
+
+Learn E separate sets of MLP weights in
+each block; each MLP is an expert
+W1: [D x 4D] => [E x D x 4D]
+W2: [4D x D] => [E x 4D x D]
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+Each token gets routed to A < E of the
+experts. These are the active experts.
+
+RMSNorm
+
++
+
+Increases params by E,
+But only increases compute by A
+
+Self-Attention
+RMSNorm
+
+All of the biggest LLMs today (e.g. GPT4o,
+GPT4.5, Claude 3.7, Gemini 2.5 Pro, etc)
+almost certainly use MoE and have > 1T
+params; but they don’t publish details
+anymore
+
+Stanford CS231n 10 th Anniversary
+
+y3
+
+x1
+Lecture 9 -
+
+x2
+28
+
+x3
+
+x4
+
+April 29, 2025
+
+Tweaking Transformers
+
+y1
+
+y2
+
+The Transformer architecture has not changed
+much since 2017.
+But a few changes have become common:
+- Pre-Norm: Move normalization inside
+residual
+- RMSNorm: Different normalization layer
+- SwiGLU: Different MLP architecture
+- Mixture of Experts (MoE): Learn E different
+MLPs, use A < E of them per token. Massively
+increase params, modest increase to
+compute cost.
+
+y4
+
+MLP
+
+MLP
+
++
+MLP
+
+MLP
+
+RMSNorm
+
++
+Self-Attention
+RMSNorm
+
+x1
+Stanford CS231n 10 th Anniversary
+
+y3
+
+Lecture 9 -
+
+x2
+29
+
+x3
+
+x4
+
+April 29, 2025
+
+Today
+● Transformers Recap
+● Computer Vision Tasks
+○ Semantic Segmentation
+○ Object Detection
+○ Instance Segmentation
+● Visualization & Understanding
+○ Model Layers Visualization
+○ Saliency Maps
+○ CAM & Grad-CAM
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+30
+
+April 29, 2025
+
+Computer Vision Tasks
+Classification
+
+Semantic
+Segmentation
+
+Object
+Detection
+
+Instance
+Segmentation
+
+CAT
+
+GRASS, CAT, TREE,
+SKY
+
+DOG, DOG, CAT
+
+DOG, DOG, CAT
+
+No spatial extent
+
+No objects, just pixels
+
+Stanford CS231n 10 th Anniversary
+
+Multiple Object
+
+Lecture 9 -
+
+31
+
+This image is CC0 public domain
+
+April 29, 2025
+
+Recall: Image Classification: A core task in Computer Vision
+(assume given a set of possible labels)
+{dog, cat, truck, plane, ...}
+
+cat
+
+This image by Nikita is
+licensed under CC-BY 2.0
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+32
+
+April 29, 2025
+
+Semantic Segmentation
+Classification
+
+Semantic
+Segmentation
+
+Object
+Detection
+
+Instance
+Segmentation
+
+CAT
+
+GRASS, CAT, TREE,
+SKY
+
+DOG, DOG, CAT
+
+DOG, DOG, CAT
+
+No spatial extent
+
+No objects, just pixels
+
+Stanford CS231n 10 th Anniversary
+
+Multiple Object
+
+Lecture 9 -
+
+33
+
+April 29, 2025
+
+Semantic Segmentation: The Problem
+
+?
+
+GRASS, CAT, TREE,
+SKY, ...
+
+At test time, classify each pixel of a new image.
+
+Paired training data: for each training image,
+each pixel is labeled with a semantic category.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+34
+
+April 29, 2025
+
+Semantic Segmentation Idea: Sliding Window
+Full image
+
+?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+35
+
+April 29, 2025
+
+Semantic Segmentation Idea: Sliding Window
+Full image
+
+?
+
+Impossible to classify without context
+Q: how do we include context?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+36
+
+April 29, 2025
+
+Semantic Segmentation Idea: Sliding Window
+Full image
+
+Q: how do we model this?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+37
+
+April 29, 2025
+
+Semantic Segmentation Idea: Sliding Window
+Extract patch
+
+Classify center pixel
+with CNN
+
+Full image
+
+Cow
+Cow
+
+Grass
+Farabet et al, “Learning Hierarchical Features for Scene Labeling,” TPAMI 2013
+Pinheiro and Collobert, “Recurrent Convolutional Neural Networks for Scene Labeling”, ICML 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+38
+
+April 29, 2025
+
+Semantic Segmentation Idea: Sliding Window
+Extract patch
+
+Classify center pixel
+with CNN
+
+Full image
+
+Cow
+Cow
+
+Grass
+Problem: Very inefficient! Not
+reusing shared features between
+overlapping patches
+
+Stanford CS231n 10 th Anniversary
+
+Farabet et al, “Learning Hierarchical Features for Scene Labeling,” TPAMI 2013
+Pinheiro and Collobert, “Recurrent Convolutional Neural Networks for Scene Labeling”, ICML 2014
+
+Lecture 9 -
+
+39
+
+April 29, 2025
+
+Semantic Segmentation Idea: Convolution
+Full image
+
+An intuitive idea: encode the entire image with conv net, and do semantic segmentation on
+top.
+Problem: classification architectures often reduce feature spatial sizes to go deeper, but
+semantic segmentation requires the output size to be the same as input size.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+40
+
+April 29, 2025
+
+Semantic Segmentation Idea: Fully Convolutional
+Design a network with only convolutional layers
+without downsampling operators to make predictions
+for pixels all at once!
+
+Conv
+
+Conv
+
+Conv
+
+Input:
+3xHxW
+Convolutions:
+DxHxW
+
+Stanford CS231n 10 th Anniversary
+
+Conv
+
+argmax
+
+Scores:
+CxHxW
+
+Lecture 9 -
+
+41
+
+Predictions:
+HxW
+
+April 29, 2025
+
+Semantic Segmentation Idea: Fully Convolutional
+Design a network with only convolutional layers
+without downsampling operators to make predictions
+for pixels all at once!
+
+Conv
+
+Conv
+
+Conv
+
+Input:
+3xHxW
+Problem: convolutions at
+original image resolution will be
+very expensive ...
+
+Convolutions:
+DxHxW
+
+Stanford CS231n 10 th Anniversary
+
+Conv
+
+argmax
+
+Scores:
+CxHxW
+
+Lecture 9 -
+
+42
+
+Predictions:
+HxW
+
+April 29, 2025
+
+Semantic Segmentation Idea: Fully Convolutional
+Design network as a bunch of convolutional layers, with
+downsampling and upsampling inside the network!
+Med-res:
+D2 x H/4 x W/4
+
+Med-res:
+D2 x H/4 x W/4
+
+Low-res:
+D3 x H/4 x W/4
+Input:
+3xHxW
+
+High-res:
+D1 x H/2 x W/2
+
+High-res: C x H x W
+D1 x H/2 x W/2
+
+Predictions:
+HxW
+
+Long, Shelhamer, and Darrell, “Fully Convolutional Networks for Semantic Segmentation”, CVPR 2015
+Noh et al, “Learning Deconvolution Network for Semantic Segmentation”, ICCV 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+43
+
+April 29, 2025
+
+Semantic Segmentation Idea: Fully Convolutional
+Downsampling:
+Pooling, strided
+convolution
+
+Design network as a bunch of convolutional layers, with
+downsampling and upsampling inside the network!
+Med-res:
+D2 x H/4 x W/4
+
+Upsampling:
+???
+
+Med-res:
+D2 x H/4 x W/4
+
+Low-res:
+D3 x H/4 x W/4
+Input:
+3xHxW
+
+High-res:
+D1 x H/2 x W/2
+
+High-res: C x H x W
+D1 x H/2 x W/2
+
+Predictions:
+HxW
+
+Long, Shelhamer, and Darrell, “Fully Convolutional Networks for Semantic Segmentation”, CVPR 2015
+Noh et al, “Learning Deconvolution Network for Semantic Segmentation”, ICCV 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+44
+
+April 29, 2025
+
+In-Network upsampling: “Unpooling”
+
+Nearest Neighbor
+
+1
+
+1
+
+2
+
+2
+
+“Bed of Nails”
+
+1
+
+0
+
+2
+
+0
+
+1
+
+2
+
+1
+
+1
+
+2
+
+2
+
+1
+
+2
+
+0
+
+0
+
+0
+
+0
+
+3
+
+4
+
+3
+
+3
+
+4
+
+4
+
+3
+
+4
+
+3
+
+0
+
+4
+
+0
+
+3
+
+3
+
+4
+
+4
+
+0
+
+0
+
+0
+
+0
+
+Input: 2 x 2
+
+Output: 4 x 4
+
+Stanford CS231n 10 th Anniversary
+
+Input: 2 x 2
+
+Lecture 9 -
+
+45
+
+Output: 4 x 4
+
+April 29, 2025
+
+In-Network upsampling: “Max Unpooling”
+Max Pooling
+Remember which element was max!
+1
+
+2
+
+6
+
+3
+
+3
+
+5
+
+2
+
+1
+
+5
+
+6
+
+1
+
+2
+
+2
+
+1
+
+7
+
+8
+
+7
+
+3
+
+4
+
+8
+
+Input: 4 x 4
+
+Output: 2 x 2
+
+Max Unpooling
+Use positions from
+pooling layer
+
+…
+Rest of the network
+
+0
+
+0
+
+2
+
+0
+
+1
+
+2
+
+0
+
+1
+
+0
+
+0
+
+3
+
+4
+
+0
+
+0
+
+0
+
+0
+
+3
+
+0
+
+0
+
+4
+
+Input: 2 x 2
+
+Output: 4 x 4
+
+Corresponding pairs of
+downsampling and
+upsampling layers
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+46
+
+April 29, 2025
+
+Learnable Upsampling
+Recall: Normal 3 x 3 convolution, stride 1 pad 1
+
+Input: 4 x 4
+
+Stanford CS231n 10 th Anniversary
+
+Output: 4 x 4
+
+Lecture 9 -
+
+47
+
+April 29, 2025
+
+Learnable Upsampling
+Recall: Normal 3 x 3 convolution, stride 1 pad 1
+
+Dot product
+between filter
+and input
+
+Input: 4 x 4
+
+Stanford CS231n 10 th Anniversary
+
+Output: 4 x 4
+
+Lecture 9 -
+
+48
+
+April 29, 2025
+
+Learnable Upsampling
+Recall: Normal 3 x 3 convolution, stride 1 pad 1
+
+Dot product
+between filter
+and input
+
+Input: 4 x 4
+
+Stanford CS231n 10 th Anniversary
+
+Output: 4 x 4
+
+Lecture 9 -
+
+49
+
+April 29, 2025
+
+Learnable Upsampling
+Recall: Normal 3 x 3 convolution, stride 2 pad 1
+
+Input: 4 x 4
+
+Stanford CS231n 10 th Anniversary
+
+Output: 2 x 2
+
+Lecture 9 -
+
+50
+
+April 29, 2025
+
+Learnable Upsampling
+Recall: Normal 3 x 3 convolution, stride 2 pad 1
+
+Dot product
+between filter
+and input
+
+Input: 4 x 4
+
+Stanford CS231n 10 th Anniversary
+
+Output: 2 x 2
+
+Lecture 9 -
+
+51
+
+April 29, 2025
+
+Learnable Upsampling
+Recall: Normal 3 x 3 convolution, stride 2 pad 1
+Filter moves 2 pixels in the
+input for every one pixel in
+the output
+
+Dot product
+between filter
+and input
+
+Input: 4 x 4
+
+Stanford CS231n 10 th Anniversary
+
+Stride gives ratio between
+movement in input and
+output
+We can interpret strided
+convolution as “learnable
+downsampling”.
+
+Output: 2 x 2
+
+Lecture 9 -
+
+52
+
+April 29, 2025
+
+Learnable Upsampling: Transposed Convolution
+3 x 3 transposed convolution, stride 2 pad 1
+
+Input: 2 x 2
+
+Stanford CS231n 10 th Anniversary
+
+Output: 4 x 4
+
+Lecture 9 -
+
+53
+
+April 29, 2025
+
+Learnable Upsampling: Transposed Convolution
+3 x 3 transposed convolution, stride 2 pad 1
+
+Input gives
+weight for
+filter
+
+Input: 2 x 2
+
+Stanford CS231n 10 th Anniversary
+
+Output: 4 x 4
+
+Lecture 9 -
+
+54
+
+April 29, 2025
+
+Learnable Upsampling: Transposed Convolution
+3 x 3 transposed convolution, stride 2 pad 1
+
+Filter moves 2 pixels in the
+output for every one pixel
+in the input
+
+Input gives
+weight for
+filter
+
+Input: 2 x 2
+
+Stanford CS231n 10 th Anniversary
+
+Stride gives ratio between
+movement in output and
+input
+Output: 4 x 4
+
+Lecture 9 -
+
+55
+
+April 29, 2025
+
+Learnable Upsampling: Transposed Convolution
+Sum where
+output overlaps
+
+3 x 3 transposed convolution, stride 2 pad 1
+
+Filter moves 2 pixels in the
+output for every one pixel
+in the input
+
+Input gives
+weight for
+filter
+
+Input: 2 x 2
+
+Stanford CS231n 10 th Anniversary
+
+Stride gives ratio between
+movement in output and
+input
+Output: 4 x 4
+
+Lecture 9 -
+
+56
+
+April 29, 2025
+
+Learnable Upsampling: Transposed Convolution
+Sum where
+output overlaps
+
+3 x 3 transposed convolution, stride 2 pad 1
+
+Filter moves 2 pixels in the
+output for every one pixel
+in the input
+
+Input gives
+weight for
+filter
+
+Input: 2 x 2
+
+Stanford CS231n 10 th Anniversary
+
+Stride gives ratio between
+movement in output and
+input
+Output: 4 x 4
+
+Lecture 9 -
+
+57
+
+April 29, 2025
+
+Learnable Upsampling: 1D Example
+Output
+Input
+a
+b
+
+Filter
+
+ax
+
+x
+
+ay
+
+y
+
+az + bx
+
+z
+
+by
+
+Output contains
+copies of the filter
+weighted by the
+input, summing at
+where at overlaps in
+the output
+
+bz
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+58
+
+April 29, 2025
+
+Semantic Segmentation Idea: Fully Convolutional
+Downsampling:
+Pooling, strided
+convolution
+
+Design network as a bunch of convolutional layers, with
+downsampling and upsampling inside the network!
+Med-res:
+D2 x H/4 x W/4
+
+Upsampling:
+Unpooling or strided
+transposed convolution
+
+Med-res:
+D2 x H/4 x W/4
+
+Low-res:
+D3 x H/4 x W/4
+Input:
+3xHxW
+
+High-res:
+D1 x H/2 x W/2
+
+High-res:
+D1 x H/2 x W/2
+
+Predictions:
+HxW
+
+Long, Shelhamer, and Darrell, “Fully Convolutional Networks for Semantic Segmentation”, CVPR 2015
+Noh et al, “Learning Deconvolution Network for Semantic Segmentation”, ICCV 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+59
+
+April 29, 2025
+
+U-Net
+
+Ronneberger et al. (2015) U-net Architecture
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+60
+
+April 29, 2025
+
+U-Net
+
+“downsampling” Phase
+- Increases field of view
+- Lose Spatial Information
+
+Ronneberger et al. (2015) U-net Architecture
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+61
+
+April 29, 2025
+
+U-Net
+
+“Upsampling” Phase
+- Create High Resolution
+Mapping
+
+Ronneberger et al. (2015) U-net Architecture
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+62
+
+April 29, 2025
+
+U-Net
+Concatenate with high-resolution feature maps
+from the downsampling Phase
+
+Ronneberger et al. (2015) U-net Architecture
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+63
+
+April 29, 2025
+
+Semantic Segmentation: Summary
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+64
+
+April 29, 2025
+
+Semantic Segmentation
+
+This image is CC0 public domain
+
+Label each pixel in the
+image with a category label
+Don’t differentiate
+instances, only care about
+pixels
+
+Sky
+
+Sky
+Cow
+
+Cat
+
+Grass
+
+Grass
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+65
+
+April 29, 2025
+
+Object Detection
+Classification
+
+Semantic
+Segmentation
+
+Object
+Detection
+
+Instance
+Segmentation
+
+CAT
+
+GRASS, CAT, TREE,
+SKY
+
+DOG, DOG, CAT
+
+DOG, DOG, CAT
+
+No spatial extent
+
+No objects, just pixels
+
+Stanford CS231n 10 th Anniversary
+
+Multiple Object
+
+Lecture 9 -
+
+66
+
+April 29, 2025
+
+Object Detection
+Classification
+
+Semantic
+Segmentation
+
+Object
+Detection
+
+Instance
+Segmentation
+
+CAT
+
+GRASS, CAT, TREE,
+SKY
+
+DOG, DOG, CAT
+
+DOG, DOG, CAT
+
+No spatial extent
+
+No objects, just pixels
+
+Stanford CS231n 10 th Anniversary
+
+Multiple Object
+
+Lecture 9 -
+
+67
+
+April 29, 2025
+
+Object Detection: Single Object
+(Classification + Localization)
+
+Fully
+Connected:
+4096 to 1000
+
+x, y
+
+Class Scores
+Cat: 0.9
+Dog: 0.05
+Car: 0.01
+...
+
+h
+w
+This image is CC0 public domain
+
+Stanford CS231n 10 th Anniversary
+
+Vector: Fully
+Connected:
+4096 4096 to 4
+
+Lecture 9 -
+
+Box
+Coordinates
+(x, y, w, h)
+
+68
+
+April 29, 2025
+
+Object Detection: Single Object
+
+Correct label:
+Cat
+
+(Classification + Localization)
+
+Fully
+Connected:
+4096 to 1000
+
+x, y
+
+Class Scores
+Cat: 0.9
+Dog: 0.05
+Car: 0.01
+...
+
+Softmax
+Loss
+
+h
+w
+
+Vector: Fully
+Connected:
+4096 4096 to 4
+
+This image is CC0 public domain
+
+Treat localization as a
+regression problem!
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+Box
+Coordinates
+(x, y, w, h)
+
+L2 Loss
+Correct box:
+(x’, y’, w’, h’)
+
+69
+
+April 29, 2025
+
+Object Detection: Single Object
+
+Correct label:
+Cat
+
+(Classification + Localization)
+
+Fully
+Connected:
+4096 to 1000
+
+x, y
+
+Class Scores
+Cat: 0.9
+Dog: 0.05
+Car: 0.01
+...
+
+Multitask Loss
+
+h
+w
+
+Vector: Fully
+Connected:
+4096 4096 to 4
+
+This image is CC0 public domain
+
+Treat localization as a
+regression problem!
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+Box
+Coordinates
+(x, y, w, h)
+
+Softmax
+Loss
+
++
+
+Loss
+
+L2 Loss
+Correct box:
+(x’, y’, w’, h’)
+
+70
+
+April 29, 2025
+
+Object Detection: Multiple Objects
+CAT: (x, y, w, h)
+
+DOG: (x, y, w, h)
+DOG: (x, y, w, h)
+CAT: (x, y, w, h)
+DUCK: (x, y, w, h)
+DUCK: (x, y, w, h)
+….
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+71
+
+April 29, 2025
+
+Each image needs a different
+number of outputs!
+
+Object Detection: Multiple Objects
+
+Stanford CS231n 10 th Anniversary
+
+CAT: (x, y, w, h)
+
+4 numbers
+
+DOG: (x, y, w, h)
+DOG: (x, y, w, h)
+CAT: (x, y, w, h)
+
+12 numbers
+
+DUCK: (x, y, w, h)
+DUCK: (x, y, w, h)
+….
+
+Many
+numbers!
+
+Lecture 9 -
+
+72
+
+April 29, 2025
+
+Object Detection: Multiple Objects
+Apply a CNN to many different crops of the
+image, CNN classifies each crop as object or
+background
+
+Dog? NO
+Cat? NO
+Background? YES
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+73
+
+April 29, 2025
+
+Object Detection: Multiple Objects
+Apply a CNN to many different crops of the
+image, CNN classifies each crop as object or
+background
+
+Dog? YES
+Cat? NO
+Background? NO
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+74
+
+April 29, 2025
+
+Object Detection: Multiple Objects
+Apply a CNN to many different crops of the
+image, CNN classifies each crop as object or
+background
+
+Dog? YES
+Cat? NO
+Background? NO
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+75
+
+April 29, 2025
+
+Object Detection: Multiple Objects
+Apply a CNN to many different crops of the
+image, CNN classifies each crop as object or
+background
+
+Dog? NO
+Cat? YES
+Background? NO
+
+Q: What’s the problem with this approach?
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+76
+
+April 29, 2025
+
+Object Detection: Multiple Objects
+Apply a CNN to many different crops of the
+image, CNN classifies each crop as object or
+background
+
+Dog? NO
+Cat? YES
+Background? NO
+Problem: Need to apply CNN to huge number
+of locations, scales, and aspect ratios, very
+computationally expensive!
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+77
+
+April 29, 2025
+
+Region Proposals: Selective Search
+● Find “blobby” image regions that are likely to contain objects
+● Relatively fast to run; e.g. Selective Search gives 2000 region
+proposals in a few seconds on CPU
+
+Alexe et al, “Measuring the objectness of image windows”, TPAMI 2012
+Uijlings et al, “Selective Search for Object Recognition”, I JCV 2013
+Cheng et al, “BING: Binarized normed gradients for objectness estimation at 300fps”, CVPR 2014
+Zitnick and Dollar, “Edge boxes: Locating object proposals from edges”, ECCV 2014
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+78
+
+April 29, 2025
+
+R-CNN
+
+Input image
+
+Stanford CS231n 10 th Anniversary
+
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic
+segmentation”, CVPR 2014.
+Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Lecture 9 -
+
+79
+
+April 29, 2025
+
+R-CNN
+
+Regions of Interest
+(RoI) from a proposal
+method (~2k)
+Input image
+
+Stanford CS231n 10 th Anniversary
+
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic
+segmentation”, CVPR 2014.
+Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Lecture 9 -
+
+80
+
+April 29, 2025
+
+R-CNN
+
+Warped image regions
+(224x224 pixels)
+Regions of Interest
+(RoI) from a proposal
+method (~2k)
+Input image
+
+Stanford CS231n 10 th Anniversary
+
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic
+segmentation”, CVPR 2014.
+Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Lecture 9 -
+
+81
+
+April 29, 2025
+
+R-CNN
+
+Conv
+Net
+
+Conv
+Net
+
+Forward each region
+through ConvNet
+(ImageNet-pretranied)
+
+Conv
+Net
+
+Warped image regions
+(224x224 pixels)
+Regions of Interest
+(RoI) from a proposal
+method (~2k)
+Input image
+
+Stanford CS231n 10 th Anniversary
+
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic
+segmentation”, CVPR 2014.
+Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Lecture 9 -
+
+82
+
+April 29, 2025
+
+R-CNN
+
+SVMs
+SVMs
+SVMs
+
+Conv
+Net
+
+Conv
+Net
+
+Forward each region
+through ConvNet
+(ImageNet-pretranied)
+
+Conv
+Net
+
+Warped image regions
+(224x224 pixels)
+Regions of Interest
+(RoI) from a proposal
+method (~2k)
+Input image
+
+Stanford CS231n 10 th Anniversary
+
+Classify regions with
+SVMs
+
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic
+segmentation”, CVPR 2014.
+Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Lecture 9 -
+
+83
+
+April 29, 2025
+
+Predict “corrections” to the RoI: 4 numbers: (dx, dy, dw, dh)
+
+R-CNN
+
+Bbox reg
+Bbox reg
+
+Bbox reg
+
+SVMs
+
+SVMs
+
+Conv
+Net
+
+SVMs
+
+Conv
+Net
+
+Conv
+Net
+
+Forward each region
+through ConvNet
+(ImageNetpretranied)
+Warped image regions
+(224x224 pixels)
+Regions of Interest
+(RoI) from a proposal
+method (~2k)
+
+Input image
+
+Stanford CS231n 10 th Anniversary
+
+Classify regions with
+SVMs
+
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic
+segmentation”, CVPR 2014.
+Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Lecture 9 -
+
+84
+
+April 29, 2025
+
+Predict “corrections” to the RoI: 4 numbers: (dx, dy, dw, dh)
+
+R-CNN
+
+Bbox reg
+Bbox reg
+
+Bbox reg
+
+SVMs
+
+SVMs
+
+Conv
+Net
+
+SVMs
+
+Conv
+Net
+
+Forward each
+region through
+ConvNet
+
+Conv
+Net
+
+Need to do ~2k
+independent forward
+passes for each image!
+
+Warped image regions
+(224x224 pixels)
+Regions of Interest
+(RoI) from a proposal
+method (~2k)
+Input image
+
+Stanford CS231n 10 th Anniversary
+
+Classify regions with Problem: Very slow!
+SVMs
+
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic
+segmentation”, CVPR 2014.
+Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Lecture 9 -
+
+85
+
+April 29, 2025
+
+Predict “corrections” to the RoI: 4 numbers: (dx, dy, dw, dh)
+
+“Slow” R-CNN
+Bbox reg
+Bbox reg
+
+Bbox reg
+SVMs
+
+SVMs
+
+Conv
+Net
+
+SVMs
+
+Conv
+Net
+
+Forward each
+region through
+ConvNet
+
+Conv
+Net
+
+Need to do ~2k
+independent forward
+passes for each image!
+
+Warped image regions
+(224x224 pixels)
+Regions of Interest
+(RoI) from a proposal
+method (~2k)
+Input image
+
+Stanford CS231n 10 th Anniversary
+
+Classify regions with Problem: Very slow!
+SVMs
+
+Idea: Pass the image
+through convnet
+before cropping! Crop
+the conv feature
+instead!
+
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic
+segmentation”, CVPR 2014.
+Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Lecture 9 -
+
+86
+
+April 29, 2025
+
+Fast R-CNN
+“Slow” R-CNN
+
+Input image
+Girshick, “Fast R-CNN”, ICCV 2015. Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+87
+
+April 29, 2025
+
+Fast R-CNN
+“Slow” R-CNN
+
+“Backbone”
+network:
+AlexNet, VGG,
+ResNet, etc
+
+“conv5”
+features
+Run whole image
+through ConvNet
+
+ConvNet
+Input image
+
+Girshick, “Fast R-CNN”, ICCV 2015. Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+88
+
+April 29, 2025
+
+Fast R-CNN
+“Slow” R-CNN
+
+Regions of
+Interest (RoIs)
+from a proposal
+method
+“Backbone”
+network:
+AlexNet, VGG,
+ResNet, etc
+
+“conv5”
+features
+Run whole image
+through ConvNet
+
+ConvNet
+Input image
+
+Girshick, “Fast R-CNN”, ICCV 2015. Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+89
+
+April 29, 2025
+
+Fast R-CNN
+“Slow” R-CNN
+
+Regions of
+Interest (RoIs)
+from a proposal
+method
+“Backbone”
+network:
+AlexNet, VGG,
+ResNet, etc
+
+Crop + Resize features
+“conv5” features
+Run whole image
+through ConvNet
+
+ConvNet
+Input image
+
+Girshick, “Fast R-CNN”, ICCV 2015. Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+90
+
+April 29, 2025
+
+Fast R-CNN
+Object
+category
+Regions of
+Interest (RoIs)
+from a proposal
+method
+“Backbone”
+network:
+AlexNet, VGG,
+ResNet, etc
+
+Linear +
+softmax
+
+Linear
+
+CNN
+
+Box offset
+
+“Slow” R-CNN
+
+Per-Region Network
+Crop + Resize features
+“conv5” features
+Run whole image
+through ConvNet
+
+ConvNet
+Input image
+
+Girshick, “Fast R-CNN”, ICCV 2015. Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+91
+
+April 29, 2025
+
+Fast R-CNN
+Object
+category
+Regions of
+Interest (RoIs)
+from a proposal
+method
+“Backbone”
+network:
+AlexNet, VGG,
+ResNet, etc
+
+Linear +
+softmax
+
+Linear
+
+CNN
+
+Box offset
+
+“Slow” R-CNN
+
+Per-Region Network
+Crop + Resize features
+“conv5” features
+Run whole image
+through ConvNet
+
+ConvNet
+Input image
+
+Girshick, “Fast R-CNN”, ICCV 2015. Figure copyright Ross Girshick, 2015; source. Reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+92
+
+April 29, 2025
+
+Region Proposal Network
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Stanford CS231n 10 th Anniversary
+
+Image features
+(e.g. 512 x 20 x 15)
+
+Lecture 9 -
+
+93
+
+April 29, 2025
+
+Region Proposal Network
+
+Imagine an anchor box of
+fixed size at each point in
+the feature map
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Stanford CS231n 10 th Anniversary
+
+Image features
+(e.g. 512 x 20 x 15)
+
+Lecture 9 -
+
+94
+
+April 29, 2025
+
+Region Proposal Network
+
+Imagine an anchor box of
+fixed size at each point in
+the feature map
+
+Conv
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Stanford CS231n 10 th Anniversary
+
+Image features
+(e.g. 512 x 20 x 15)
+
+Lecture 9 -
+
+Anchor is an object?
+1 x 20 x 15
+
+At each point, predict whether
+the corresponding anchor
+contains an object (binary
+classification)
+
+95
+
+April 29, 2025
+
+Region Proposal Network
+
+Imagine an anchor box of
+fixed size at each point in
+the feature map
+
+Conv
+
+CNN
+
+Anchor is an object?
+1 x 20 x 15
+Box corrections
+4 x 20 x 15
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Stanford CS231n 10 th Anniversary
+
+Image features
+(e.g. 512 x 20 x 15)
+
+Lecture 9 -
+
+For positive boxes, also predict a
+corrections from the anchor to
+the ground-truth box (regress 4
+numbers per pixel)
+
+96
+
+April 29, 2025
+
+In practice use K different
+anchor boxes of different
+size / scale at each point
+
+Region Proposal Network
+
+Conv
+
+CNN
+
+Anchor is an object?
+K x 20 x 15
+Box transforms
+4K x 20 x 15
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Stanford CS231n 10 th Anniversary
+
+Image features
+(e.g. 512 x 20 x 15)
+
+Lecture 9 -
+
+97
+
+April 29, 2025
+
+In practice use K different
+anchor boxes of different
+size / scale at each point
+
+Region Proposal Network
+
+Conv
+
+CNN
+
+Anchor is an object?
+K x 20 x 15
+Box transforms
+4K x 20 x 15
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Stanford CS231n 10 th Anniversary
+
+Image features
+(e.g. 512 x 20 x 15)
+
+Lecture 9 -
+
+Sort the K*20*15 boxes by
+their “objectness” score, take
+top ~300 as our proposals
+
+98
+
+April 29, 2025
+
+Single-Stage Object Detectors: YOLO / SSD / RetinaNet
+
+Input image
+3xHxW
+
+Divide image into grid
+7x7
+
+Redmon et al, “You Only Look Once:
+Unified, Real-Time Object Detection”, CVPR 2016
+Liu et al, “SSD: Single-Shot MultiBox Detector”, ECCV 2016
+Lin et al, “Focal Loss for Dense Object Detection”, ICCV 2017
+
+Image a set of base boxes
+centered at each grid cell
+Here B = 3
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+Within each grid cell:
+- Regress from each of the B
+base boxes to a final box with
+5 numbers:
+(dx, dy, dh, dw, confidence)
+- Predict scores for each of C
+classes (including
+background as a class)
+- Looks a lot like RPN, but
+category-specific!
+
+Output:
+7 x 7 x (5 * B + C)
+
+99
+
+April 29, 2025
+
+YOLO (You Only Look Once)
+real-time object detection
+
+Redmon et al. "You only look once: unified, real-time object detection (2015)."
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+100
+
+April 29, 2025
+
+YOLO
+
+SxS Grid
+Redmon et al. "You only look once: unified, real-time object detection (2015)."
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+101
+
+April 29, 2025
+
+YOLO
+For each box output:
+• P(object): probability that the box contains an object
+• B bounding boxes (x, y, h, w)
+• P(class): probability of belonging to a class
+
+SxS Grid
+Redmon et al. "You only look once: unified, real-time object detection (2015)."
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+102
+
+April 29, 2025
+
+YOLO
+For each box output:
+• P(object): probability that the box contains an object
+• B bounding boxes (x, y, h, w)
+• P(class): probability of belonging to a class
+B=2
+
+SxS Grid
+Redmon et al. "You only look once: unified, real-time object detection (2015)."
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+103
+
+April 29, 2025
+
+YOLO
+For each box output:
+• P(object): probability that the box contains an object
+• B bounding boxes (x, y, h, w)
+• P(class): probability of belonging to a class
+B=2
+
+SxS Grid
+Redmon et al. "You only look once: unified, real-time object detection (2015)."
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+104
+
+April 29, 2025
+
+YOLO
+Many bounding boxes with
+different object probabilities
+
+SxS Grid
+Redmon et al. "You only look once: unified, real-time object detection (2015)."
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+105
+
+April 29, 2025
+
+YOLO
+
+SxS Grid
+Redmon et al. "You only look once: unified, real-time object detection (2015)."
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+106
+
+April 29, 2025
+
+Object Detection with Transformers: DETR
+Simple object detection pipeline: directly output a set of boxes from a Transformer
+No anchors, no regression of box transforms
+
+Match predicted boxes to GT boxes with bipartite matching; train to regress box coordinates
+
+Carion et al, “End-to-End Object Detection with Transformers”, ECCV 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+107
+
+April 29, 2025
+
+Object Detection with Transformers: DETR
+
+Carion et al, “End-to-End Object Detection with Transformers”, ECCV 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+108
+
+April 29, 2025
+
+Object Detection with Transformers: DETR
+
+Carion et al, “End-to-End Object Detection with Transformers”, ECCV 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+109
+
+April 29, 2025
+
+Object Detection with Transformers: DETR
+
+Carion et al, “End-to-End Object Detection with Transformers”, ECCV 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+110
+
+April 29, 2025
+
+Object Detection with Transformers: DETR
+
+Carion et al, “End-to-End Object Detection with Transformers”, ECCV 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+111
+
+April 29, 2025
+
+Object Detection with Transformers: DETR
+
+Carion et al, “End-to-End Object Detection with Transformers”, ECCV 2020
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+112
+
+April 29, 2025
+
+Instance Segmentation
+Classification
+
+Semantic
+Segmentation
+
+Object
+Detection
+
+Instance
+Segmentation
+
+CAT
+
+GRASS, CAT, TREE,
+SKY
+
+DOG, DOG, CAT
+
+DOG, DOG, CAT
+
+No spatial extent
+
+No objects, just pixels
+
+Stanford CS231n 10 th Anniversary
+
+Multiple Object
+
+Lecture 9 -
+
+113
+
+April 29, 2025
+
+Object Detection:
+Faster R-CNN
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+114
+
+April 29, 2025
+
+Instance Segmentation:
+Mask R-CNN
+
+Mask Prediction
+
+Add a small mask
+network that operates
+on each RoI and
+predicts a 28x28 binary
+mask
+
+He et al, “Mask R-CNN”, ICCV 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+115
+
+April 29, 2025
+
+Mask R-CNN
+Classification Scores: C
+Box coordinates (per class): 4 * C
+
+CNN
++RPN
+
+RoI Align
+256 x 14 x 14
+
+He et al, “Mask R-CNN”, arXiv 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+116
+
+April 29, 2025
+
+Mask R-CNN
+Classification Scores: C
+Box coordinates (per class): 4 * C
+
+CNN
++RPN
+
+Conv
+
+RoI Align
+256 x 14 x 14
+
+Conv
+
+256 x 14 x 14
+
+Predict a mask for
+each of C classes
+C x 28 x 28
+
+He et al, “Mask R-CNN”, arXiv 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+117
+
+April 29, 2025
+
+Mask R-CNN: Example Mask Training Targets
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+118
+
+April 29, 2025
+
+Mask R-CNN: Example Mask Training Targets
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+119
+
+April 29, 2025
+
+Mask R-CNN: Example Mask Training Targets
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+120
+
+April 29, 2025
+
+Mask R-CNN: Example Mask Training Targets
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+121
+
+April 29, 2025
+
+Mask R-CNN: Very Good Results!
+
+He et al, “Mask R-CNN”, ICCV 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+122
+
+April 29, 2025
+
+Mask R-CNN
+Also does pose
+
+He et al, “Mask R-CNN”, ICCV 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+123
+
+April 29, 2025
+
+Open Source Frameworks
+Lots of good implementations on GitHub!
+TensorFlow Detection API:
+https://github.com/tensorflow/models/tree/master/research/object_detection
+Faster RCNN, SSD, RFCN, Mask R-CNN, ...
+
+Detectron2 (PyTorch)
+https://github.com/facebookresearch/detectron2
+
+Mask R-CNN, RetinaNet, Faster R-CNN, RPN, Fast R-CNN, R-FCN, ...
+
+Finetune on your own dataset with pre-trained models
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+124
+
+April 29, 2025
+
+Recap: Lots of computer vision tasks!
+Classification
+
+Semantic
+Segmentation
+
+Object
+Detection
+
+Instance
+Segmentation
+
+CAT
+
+GRASS, CAT, TREE,
+SKY
+
+DOG, DOG, CAT
+
+DOG, DOG, CAT
+
+No spatial extent
+
+No objects, just pixels
+
+Stanford CS231n 10 th Anniversary
+
+Multiple Object
+
+Lecture 9 -
+
+125
+
+This image is CC0 public domain
+
+April 29, 2025
+
+Today
+● Transformers Recap
+● Computer Vision Tasks
+○ Semantic Segmentation
+○ Object Detection
+○ Instance Segmentation
+● Visualization & Understanding
+○ Model Layers Visualization
+○ Saliency Maps
+○ CAM & Grad-CAM
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+126
+
+April 29, 2025
+
+Interpreting a Linear Classifier: Visual Viewpoint
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+127
+
+April 29, 2025
+
+First Layer: Visualize Filters
+
+AlexNet:
+64 x 3 x 11 x 11
+
+Krizhevsky, “On e weird trick for parallelizing convolution al n eural networks”, arXiv 2014
+He et al, “Deep Residual Learning for Image Recognition”, CVPR 2016
+Huang et al, “Densely Conn ected Convolutional Networks”, CVPR 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+128
+
+April 29, 2025
+
+First Layer: Visualize Filters
+
+ResNet-18:
+64 x 3 x 7 x 7
+
+ResNet-101:
+64 x 3 x 7 x 7
+
+DenseNet-121:
+64 x 3 x 7 x 7
+
+AlexNet:
+64 x 3 x 11 x 11
+
+Krizhevsky, “On e weird trick for parallelizing convolution al n eural networks”, arXiv 2014
+He et al, “Deep Residual Learning for Image Recognition”, CVPR 2016
+Huang et al, “Densely Conn ected Convolutional Networks”, CVPR 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+129
+
+April 29, 2025
+
+Which pixels matter: Saliency via Backprop
+Forward pass: Compute probabilities
+
+Dog
+
+Simonyan, Vedaldi, and Zisserman, “Deep Inside Convolutional Networks: Visualising Image Classification Models and
+Saliency Maps”, I CLR Workshop 2014.
+Figures copyright Karen Simonyan, Andrea Vedaldi, and Andrew Zisserman, 2014; reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+130
+
+April 29, 2025
+
+Which pixels matter: Saliency via Backprop
+Forward pass: Compute probabilities
+
+Dog
+
+Compute gradient of (unnormalized) class score
+with respect to image pixels, take absolute value
+and max over RGB channels
+Simonyan, Vedaldi, and Zisserman, “Deep Inside Convolutional Networks: Visualising Image Classification Models and
+Saliency Maps”, I CLR Workshop 2014.
+Figures copyright Karen Simonyan, Andrea Vedaldi, and Andrew Zisserman, 2014; reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+131
+
+April 29, 2025
+
+Saliency Maps
+
+Simonyan, Vedaldi, and Zisserman, “Deep Inside Convolutional Networks: Visualising Image Classification Models and
+Saliency Maps”, I CLR Workshop 2014.
+Figures copyright Karen Simonyan, Andrea Vedaldi, and Andrew Zisserman, 2014; reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+132
+
+April 29, 2025
+
+Class Activation Mapping (CAM)
+Fully Connected
+Layer, weights
+𝑤 ∈ ℝ𝐾×𝐶
+
+Global
+Average
+Pooling
+
+H
+
+K
+
+W
+Last layer CNN features:
+𝑓 ∈ ℝ𝐻×𝑊×𝐾
+
+K
+
+C
+
+Pooled features:
+𝐹 ∈ ℝ𝐾
+
+Class Scores:
+𝑆 ∈ ℝ𝐶
+
+Zhou et al, “Learning Deep Features for Discriminative Localization”, CVPR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+133
+
+April 29, 2025
+
+Class Activation Mapping (CAM)
+Fully Connected
+Layer, weights
+𝑤 ∈ ℝ𝐾×𝐶
+
+Global
+Average
+Pooling
+
+H
+
+K
+
+W
+Last layer CNN features:
+𝑓 ∈ ℝ𝐻×𝑊×𝐾
+𝐹𝑘 =
+
+K
+
+C
+
+Pooled features:
+𝐹 ∈ ℝ𝐾
+
+Class Scores:
+𝑆 ∈ ℝ𝐶
+
+1
+෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+ℎ,𝑤
+
+Zhou et al, “Learning Deep Features for Discriminative Localization”, CVPR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+134
+
+April 29, 2025
+
+Class Activation Mapping (CAM)
+Fully Connected
+Layer, weights
+𝑤 ∈ ℝ𝐾×𝐶
+
+Global
+Average
+Pooling
+
+H
+
+K
+
+K
+
+W
+Last layer CNN features:
+𝑓 ∈ ℝ𝐻×𝑊×𝐾
+1
+𝐹𝑘 =
+෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+ℎ,𝑤
+
+C
+
+Pooled features:
+𝐹 ∈ ℝ𝐾
+
+𝑆𝑐 = ෍ 𝑤𝑘,𝑐 𝐹𝑘 =
+𝑘
+
+Zhou et al, “Learning Deep Features for Discriminative Localization”, CVPR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Class Scores:
+𝑆 ∈ ℝ𝐶
+
+1
+෍ 𝑤𝑘,𝑐 ෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+𝑘
+ℎ,𝑤
+1
+=
+෍ ෍ 𝑤𝑘,𝑐 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+ℎ,𝑤
+𝑘
+
+Lecture 9 -
+
+135
+
+April 29, 2025
+
+Class Activation Mapping (CAM)
+Fully Connected
+Layer, weights
+𝑤 ∈ ℝ𝐾×𝐶
+
+Global
+Average
+Pooling
+
+H
+
+K
+
+K
+
+W
+Last layer CNN features:
+𝑓 ∈ ℝ𝐻×𝑊×𝐾
+1
+𝐹𝑘 =
+෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+ℎ,𝑤
+
+C
+
+Pooled features:
+𝐹 ∈ ℝ𝐾
+
+𝑆𝑐 = ෍ 𝑤𝑘,𝑐 𝐹𝑘 =
+𝑘
+
+Zhou et al, “Learning Deep Features for Discriminative Localization”, CVPR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Class Scores:
+𝑆 ∈ ℝ𝐶
+
+1
+෍ 𝑤𝑘,𝑐 ෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+𝑘
+ℎ,𝑤
+1
+=
+෍ ෍ 𝑤𝑘,𝑐 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+ℎ,𝑤
+𝑘
+
+Lecture 9 -
+
+136
+
+April 29, 2025
+
+Class Activation Mapping (CAM)
+Fully Connected
+Layer, weights
+𝑤 ∈ ℝ𝐾×𝐶
+
+Global
+Average
+Pooling
+
+H
+
+K
+
+K
+
+W
+Last layer CNN features:
+𝑓 ∈ ℝ𝐻×𝑊×𝐾
+1
+𝐹𝑘 =
+෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+ℎ,𝑤
+
+C
+
+Pooled features:
+𝐹 ∈ ℝ𝐾
+
+𝑆𝑐 = ෍ 𝑤𝑘,𝑐 𝐹𝑘 =
+𝑘
+
+Zhou et al, “Learning Deep Features for Discriminative Localization”, CVPR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Class Scores:
+𝑆 ∈ ℝ𝐶
+
+1
+෍ 𝑤𝑘,𝑐 ෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+𝑘
+ℎ,𝑤
+1
+=
+෍ ෍ 𝑤𝑘,𝑐 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+ℎ,𝑤
+𝑘
+
+Lecture 9 -
+
+137
+
+April 29, 2025
+
+Class Activation Mapping (CAM)
+Fully Connected
+Layer, weights
+𝑤 ∈ ℝ𝐾×𝐶
+
+Global
+Average
+Pooling
+
+H
+
+K
+
+K
+
+W
+Last layer CNN features:
+𝑓 ∈ ℝ𝐻×𝑊×𝐾
+1
+𝐹𝑘 =
+෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+ℎ,𝑤
+
+C
+
+Pooled features:
+𝐹 ∈ ℝ𝐾
+
+𝑆𝑐 = ෍ 𝑤𝑘,𝑐 𝐹𝑘 =
+𝑘
+
+Zhou et al, “Learning Deep Features for Discriminative Localization”, CVPR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Class Scores:
+𝑆 ∈ ℝ𝐶
+
+1
+෍ 𝑤𝑘,𝑐 ෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+𝑘
+ℎ,𝑤
+1
+=
+෍ ෍ 𝒘𝒌,𝒄 𝒇𝒉,𝒘,𝒌
+𝐻𝑊
+ℎ,𝑤
+𝒌
+
+Lecture 9 -
+
+138
+
+April 29, 2025
+
+Class Activation Mapping (CAM)
+Fully Connected
+Layer, weights
+𝑤 ∈ ℝ𝐾×𝐶
+
+Global
+Average
+Pooling
+
+H
+
+K
+
+K
+
+W
+Last layer CNN features:
+𝑓 ∈ ℝ𝐻×𝑊×𝐾
+1
+𝐹𝑘 =
+෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+ℎ,𝑤
+
+C
+
+Pooled features:
+𝐹 ∈ ℝ𝐾
+
+𝑆𝑐 = ෍ 𝑤𝑘,𝑐 𝐹𝑘 =
+𝑘
+
+Zhou et al, “Learning Deep Features for Discriminative Localization”, CVPR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Class Scores:
+𝑆 ∈ ℝ𝐶
+
+1
+෍ 𝑤𝑘,𝑐 ෍ 𝑓ℎ,𝑤,𝑘
+𝐻𝑊
+𝑘
+ℎ,𝑤
+1
+=
+෍ ෍ 𝒘𝒌,𝒄 𝒇𝒉,𝒘,𝒌
+𝐻𝑊
+ℎ,𝑤
+𝒌
+
+Lecture 9 -
+
+139
+
+Class Activation Maps:
+𝑴 ∈ ℝ𝑪,𝑯,𝑾
+𝑴𝒄,𝒉,𝒘 = ෍ 𝒘𝒌,𝒄 𝒇𝒉,𝒘,𝒌
+𝒌
+
+April 29, 2025
+
+Class Activation Mapping (CAM)
+
+Zhou et al, “Learning Deep Features for Discriminative Localization”, CVPR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+140
+
+April 29, 2025
+
+Class Activation Mapping (CAM)
+
+Problem: Can only
+apply to last conv layer
+
+Zhou et al, “Learning Deep Features for Discriminative Localization”, CVPR 2016
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+141
+
+April 29, 2025
+
+Gradient-Weighted Class Activation Mapping (Grad-CAM)
+1. Pick any layer, with activations 𝐴 ∈ ℝ𝐻×𝑊×𝐾
+
+Selvaraju et al, “Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization”, CVPR 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+142
+
+April 29, 2025
+
+Gradient-Weighted Class Activation Mapping (Grad-CAM)
+1. Pick any layer, with activations 𝐴 ∈ ℝ𝐻×𝑊×𝐾
+2. Compute gradient of class score 𝑆𝑐 with respect to A:
+𝜕𝑆𝑐
+∈ ℝ𝐻×𝑊×𝐾
+𝜕𝐴
+
+Selvaraju et al, “Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization”, CVPR 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+143
+
+April 29, 2025
+
+Gradient-Weighted Class Activation Mapping (Grad-CAM)
+1. Pick any layer, with activations 𝐴 ∈ ℝ𝐻×𝑊×𝐾
+2. Compute gradient of class score 𝑆𝑐 with respect to A:
+𝜕𝑆𝑐
+∈ ℝ𝐻×𝑊×𝐾
+𝜕𝐴
+3. Global Average Pool the gradients to get weights 𝛼 ∈ ℝ𝐾 :
+1
+𝜕𝑆𝑐
+𝛼𝑘 =
+෍
+𝐻𝑊
+ℎ,𝑤 𝜕𝐴ℎ,𝑤,𝑘
+
+Selvaraju et al, “Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization”, CVPR 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+144
+
+April 29, 2025
+
+Gradient-Weighted Class Activation Mapping (Grad-CAM)
+1. Pick any layer, with activations 𝐴 ∈ ℝ𝐻×𝑊×𝐾
+2. Compute gradient of class score 𝑆𝑐 with respect to A:
+𝜕𝑆𝑐
+∈ ℝ𝐻×𝑊×𝐾
+𝜕𝐴
+3. Global Average Pool the gradients to get weights 𝛼 ∈ ℝ𝐾 :
+1
+𝜕𝑆𝑐
+𝛼𝑘 =
+෍
+𝐻𝑊
+ℎ,𝑤 𝜕𝐴ℎ,𝑤,𝑘
+4. Compute activation map 𝑀𝑐 ∈ ℝ𝐻,𝑊 :
+𝑐
+𝑀ℎ,𝑤
+= 𝑅𝑒𝐿𝑈 ෍ 𝛼𝑘 𝐴ℎ,𝑤,𝑘
+𝑘
+
+Selvaraju et al, “Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization”, CVPR 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+145
+
+April 29, 2025
+
+Gradient-Weighted Class Activation Mapping (Grad-CAM)
+
+Selvaraju et al, “Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization”, CVPR 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+146
+
+April 29, 2025
+
+Visualizing ViT features
+
+Chen et al., When Vision Transformers Outperform Resnets Without Pre-training Or
+Strong Data Augmentations, ICLR 2022; Paul and Chen, Vision Transformers are Robust
+Learners, AAAI 2022. Reproduced for educational purposes.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+147
+
+April 29, 2025
+
+Today
+● Transformers Recap
+● Computer Vision Tasks
+○ Semantic Segmentation
+○ Object Detection
+○ Instance Segmentation
+● Visualization & Understanding
+○ Model Layers Visualization
+○ Saliency Maps
+○ CAM & Grad-CAM
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+148
+
+April 29, 2025
+
+Next time: Video Understanding
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+149
+
+April 29, 2025
+
+Additional Reading Material
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+150
+
+April 29, 2025
+
+Convolution as Matrix Multiplication (1D Example)
+We can express convolution in
+terms of a matrix multiplication
+
+Example: 1D conv, kernel size=3,
+stride=2, padding=1
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+151
+
+April 29, 2025
+
+Convolution as Matrix Multiplication (1D Example)
+We can express convolution in
+terms of a matrix multiplication
+
+Example: 1D conv, kernel size=3,
+stride=2, padding=1
+
+Stanford CS231n 10 th Anniversary
+
+Transposed convolution multiplies by the
+transpose of the same matrix:
+
+Example: 1D transposed conv, kernel size=3,
+stride=2, padding=0
+
+Lecture 9 -
+
+152
+
+April 29, 2025
+
+Cropping Features: RoI Pool
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+Girshick, “Fast R-CNN”, ICCV 2015.
+
+Girshick, “Fast R-CNN”, ICCV 2015.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+153
+
+April 29, 2025
+
+Cropping Features: RoI Pool
+Project proposal
+onto features
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+Girshick, “Fast R-CNN”, ICCV 2015.
+
+Girshick, “Fast R-CNN”, ICCV 2015.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+154
+
+April 29, 2025
+
+Cropping Features: RoI Pool
+Project proposal
+onto features
+
+“Snap” to
+grid cells
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+Girshick, “Fast R-CNN”, ICCV 2015.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+155
+
+April 29, 2025
+
+Cropping Features: RoI Pool
+Project proposal
+onto features
+
+“Snap” to
+grid cells
+
+Q: how do we resize the 512 x 5
+x 4 region to, e.g., a 512 x 2 x 2
+tensor?.
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+Girshick, “Fast R-CNN”, ICCV 2015.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+156
+
+April 29, 2025
+
+Cropping Features: RoI Pool
+Project proposal
+onto features
+
+“Snap” to
+grid cells
+
+Divide into 2x2
+grid of (roughly)
+equal subregions
+
+Q: how do we resize the 512 x 5
+x 4 region to, e.g., a 512 x 2 x 2
+tensor?.
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+Girshick, “Fast R-CNN”, ICCV 2015.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+157
+
+April 29, 2025
+
+Cropping Features: RoI Pool
+Project proposal
+onto features
+
+“Snap” to
+grid cells
+
+Divide into 2x2
+grid of (roughly)
+equal subregions
+Max-pool within
+each subregion
+
+CNN
+
+Region features
+(here 512 x 2 x 2;
+In practice e.g 512 x 7 x 7)
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+Region features always the
+same size even if input regions
+have different sizes!
+
+Girshick, “Fast R-CNN”, ICCV 2015.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+158
+
+April 29, 2025
+
+Cropping Features: RoI Pool
+Project proposal
+onto features
+
+“Snap” to
+grid cells
+
+Divide into 2x2
+grid of (roughly)
+equal subregions
+Max-pool within
+each subregion
+
+CNN
+
+Region features
+(here 512 x 2 x 2;
+In practice e.g 512 x 7 x 7)
+Input Image
+(e.g. 3 x 640 x 480)
+Girshick, “Fast R-CNN”, ICCV 2015.
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+Problem: Region features slightly misaligned
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+Region features always the
+same size even if input regions
+have different sizes!
+
+159
+
+April 29, 2025
+
+Cropping Features: RoI Align
+Project proposal
+onto features
+
+No “snapping”!
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+He et al, “Mask R-CNN”, ICCV 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+160
+
+April 29, 2025
+
+Cropping Features: RoI Align
+Project proposal
+onto features
+
+No “snapping”!
+
+Sample at regular points in
+each subregion using
+bilinear interpolation
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+He et al, “Mask R-CNN”, ICCV 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+161
+
+April 29, 2025
+
+Cropping Features: RoI Align
+Project proposal
+onto features
+
+No “snapping”!
+
+Sample at regular points in
+each subregion using
+bilinear interpolation
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+Feature fxy for point (x, y) is
+a linear combination of
+features at its four
+neighboring grid cells:
+
+He et al, “Mask R-CNN”, ICCV 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+162
+
+April 29, 2025
+
+Cropping Features: RoI Align
+Project proposal
+onto features
+
+No “snapping”!
+
+Sample at regular points in
+each subregion using
+bilinear interpolation
+
+f11∈R512 f21∈R512
+(x1,y1)
+
+f12∈R512 f22∈R512
+
+CNN
+
+Input Image
+(e.g. 3 x 640 x 480)
+
+(x2,y1)
+
+(x1,y2)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+(x,y)
+
+(x2,y2)
+
+Feature fxy for point (x, y) is
+a linear combination of
+features at its four
+neighboring grid cells:
+
+He et al, “Mask R-CNN”, ICCV 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+163
+
+April 29, 2025
+
+Cropping Features: RoI Align
+Project proposal
+onto features
+
+No “snapping”!
+
+Sample at regular points in
+each subregion using
+bilinear interpolation
+Max-pool within
+each subregion
+
+CNN
+
+Region features
+(here 512 x 2 x 2;
+In practice e.g 512 x 7 x 7)
+Input Image
+(e.g. 3 x 640 x 480)
+
+Image features: C x H x W
+(e.g. 512 x 20 x 15)
+
+He et al, “Mask R-CNN”, ICCV 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+164
+
+April 29, 2025
+
+R-CNN vs Fast R-CNN
+
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic segmentation”, CVPR 2014.
+He et al, “Spatial pyramid pooling in deep convolutional networks for visual recognition”, ECCV 2014
+Girshick, “Fast R-CNN”, ICCV 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+165
+
+April 29, 2025
+
+R-CNN vs Fast R-CNN
+
+Problem:
+Runtime dominated by
+region proposals!
+Girshick et al, “Rich feature hierarchies for accurate object detection and semantic segmentation”, CVPR 2014.
+He et al, “Spatial pyramid pooling in deep convolutional networks for visual recognition”, ECCV 2014
+Girshick, “Fast R-CNN”, ICCV 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+166
+
+April 29, 2025
+
+Faster R-CNN:
+
+Make CNN do proposals!
+
+Insert Region Proposal
+Network (RPN) to predict
+proposals from features
+Otherwise same as Fast R-CNN: Crop
+features for each proposal, classify
+each one
+Ren et al, “Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks”, NIPS 2015
+Figure copyright 2015, Ross Girshick; reproduced with permission
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+167
+
+April 29, 2025
+
+Faster R-CNN:
+
+Make CNN do proposals!
+
+Jointly train with 4 losses:
+1. RPN classify object / not object
+2. RPN regress box coordinates
+3. Final classification score (object
+classes)
+4. Final box coordinates
+
+Ren et al, “Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks”, NIPS 2015
+Figure copyright 2015, Ross Girshick; reproduced with permission
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+168
+
+April 29, 2025
+
+Faster R-CNN:
+
+Make CNN do proposals!
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+169
+
+April 29, 2025
+
+Faster R-CNN:
+
+Make CNN do proposals!
+Glossing over many details:
+- Ignore overlapping proposals with
+non-max suppression
+- How are anchors determined?
+- How do we sample positive /
+negative samples for training the
+RPN?
+- How to parameterize bounding box
+regression?
+Ren et al, “Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks”, NIPS 2015
+Figure copyright 2015, Ross Girshick; reproduced with permission
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+170
+
+April 29, 2025
+
+Faster R-CNN:
+
+Make CNN do proposals!
+Faster R-CNN is a
+Two-stage object detector
+First stage: Run once per image
+- Backbone network
+- Region proposal network
+
+Second stage: Run once per region
+- Crop features: RoI pool / align
+- Predict object class
+- Prediction bbox offset
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+171
+
+April 29, 2025
+
+Faster R-CNN:
+
+Make CNN do proposals!
+
+Do we really need
+the second stage?
+
+Faster R-CNN is a
+Two-stage object detector
+First stage: Run once per image
+- Backbone network
+- Region proposal network
+
+Second stage: Run once per region
+- Crop features: RoI pool / align
+- Predict object class
+- Prediction bbox offset
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+172
+
+April 29, 2025
+
+Object Detection: Lots of variables ...
+Backbone
+Network
+VGG16
+ResNet-101
+Inception V2
+Inception V3
+Inception ResNet
+MobileNet
+
+“Meta-Architecture”
+Two-stage: Faster R-CNN
+Single-stage: YOLO / SSD
+Hybrid: R-FCN
+Image Size
+# Region Proposals
+…
+
+Takeaways
+Faster R-CNN is slower but
+more accurate
+
+SSD is much faster but not
+as accurate
+Bigger / Deeper backbones
+work better
+
+Huang et al, “Speed/accuracy trade-offs for modern convolutional object detectors”, CVPR 2017
+R-FCN: Dai et al, “R-FCN: Ob ject Detect ion via Region-based Fully Convolutional Networks”, NIP S 2016
+Inception-V2: Ioffe and Szegedy, “Bat ch Normalization: Accelerating Deep Net work Training by Reducin g Internal Covariate Shift”, ICML 2015
+Inception V3: Szegedy et al, “Rethin king the In ception Architecture for Computer Vision”, arXiv 2016
+Inception ResNet: Szegedy et al, “In ception-V4, Incep tion-ResNet and the Impact of Residual Connections on Learning”, arXiv 2016
+MobileNet: Howard et al, “Efficient Convolutional Neural Networks for Mobile Vision Ap plicat ions”, arXiv 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+173
+
+April 29, 2025
+
+Object Detection: Lots of variables ...
+Backbone
+Network
+VGG16
+ResNet-101
+Inception V2
+Inception V3
+Inception ResNet
+MobileNet
+
+“Meta-Architecture”
+Two-stage: Faster R-CNN
+Single-stage: YOLO / SSD
+Hybrid: R-FCN
+Image Size
+# Region Proposals
+…
+
+Takeaways
+Faster R-CNN is slower but
+more accurate
+
+SSD is much faster but not
+as accurate
+Bigger / Deeper backbones
+work better
+
+Huang et al, “Speed/accuracy trade-offs for modern convolutional object detectors”, CVPR 2017
+Zou et al, “Object Detection in 20 Years: A Survey”, arXiv 2019
+R-FCN: Dai et al, “R-FCN: Ob ject Detect ion via Region-based Fully Convolutional Networks”, NIP S 2016
+Inception-V2: Ioffe and Szegedy, “Bat ch Normalization: Accelerating Deep Net work Training by Reducin g Internal Covariate Shift”, ICML 2015
+Inception V3: Szegedy et al, “Rethin king the In ception Architecture for Computer Vision”, arXiv 2016
+Inception ResNet: Szegedy et al, “In ception-V4, Incep tion-ResNet and the Impact of Residual Connections on Learning”, arXiv 2016
+MobileNet: Howard et al, “Efficient Convolutional Neural Networks for Mobile Vision Ap plicat ions”, arXiv 2017
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+174
+
+April 29, 2025
+
+Intermediate Features via (guided) backprop
+
+Pick a single intermediate channel, e.g. one value
+in 128 x 13 x 13 conv5 feature map
+
+Compute gradient of activation value with respect
+to image pixels
+
+Zeiler and Fergus, “Visualizing and Und erstanding Convolutional Networks”, ECCV 2014
+Springenb erg et al, “Striving for Simplicity: The All Convolution al Net”, ICLR Workshop 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+175
+
+April 29, 2025
+
+Intermediate Features via (guided) backprop
+ReLU
+
+Pick a single intermediate neuron, e.g. one value in
+128 x 13 x 13 conv5 feature map
+
+Compute gradient of neuron value with respect to
+image pixels
+
+Images come out nicer if you only
+backprop positive gradients through
+each ReLU (guided backprop)
+Figure copyright Jost Tobias Springenberg, Alexey Dosovitskiy, Thomas Brox,
+Martin Riedmiller, 2015; reproduced with permission.
+
+Zeiler and Fergus, “Visualizing and Und erstanding Convolutional Networks”, ECCV 2014
+Springenb erg et al, “Striving for Simplicity: The All Convolution al Net”, ICLR Workshop 2015
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+176
+
+April 29, 2025
+
+Intermediate features via (guided) backprop
+
+Maximally activating patches
+(Each row is a different neuron)
+
+Guided Backprop
+
+Zeiler and Fergus, “Visualizing and Understanding Convolutional Networks”, ECCV 2014
+Springenberg et al, “Striving for Simplicity: The All Convolutional Net”, ICLR Workshop 2015
+Figure copyright Jost Tobias Springenberg, Alexey Dosovitskiy, Thomas Brox, Martin Riedmiller, 2015; reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+177
+
+April 29, 2025
+
+Intermediate features via (guided) backprop
+
+Maximally activating patches
+(Each row is a different neuron)
+
+Guided Backprop
+
+Zeiler and Fergus, “Visualizing and Understanding Convolutional Networks”, ECCV 2014
+Springenberg et al, “Striving for Simplicity: The All Convolutional Net”, ICLR Workshop 2015
+Figure copyright Jost Tobias Springenberg, Alexey Dosovitskiy, Thomas Brox, Martin Riedmiller, 2015; reproduced with permission.
+
+Stanford CS231n 10 th Anniversary
+
+Lecture 9 -
+
+178
+
+April 29, 2025
+
+

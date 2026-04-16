@@ -1,0 +1,205 @@
+\documentclass[a4paper]{article}
+
+\usepackage[fontset=fandol]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+
+\newtcolorbox{knowledgebox}[1]{
+    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxrule=1pt, sharp corners
+}
+
+\newtcolorbox{importantbox}[1]{
+    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
+    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
+    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
+}
+
+\newcommand{\notetitle}{CS231n Lecture 9: Object Detection, Image Segmentation, Visualizing and Understanding}
+\newcommand{\noteauthors}{Codex Harness}
+\newcommand{\notedate}{2026-04-15}
+\newcommand{\videochannel}{Stanford Online / CS231n}
+\newcommand{\videopublishdate}{2025-04-29}
+\newcommand{\videoduration}{00:46:31+}
+\newcommand{\videourl}{https://www.youtube.com/watch?v=PTypu6GqEd4}
+\newcommand{\videocoverpath}{cover.jpg}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large 课程笔记\par}
+\vspace{1.2cm}
+{\huge\bfseries \notetitle\par}
+\vspace{0.8cm}
+{\large \noteauthors\par}
+\vspace{0.3cm}
+{\large \notedate\par}
+\vspace{1.2cm}
+\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
+\vfill
+\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
+\textbf{视频作者/频道}：\videochannel\par
+\textbf{发布日期}：\videopublishdate\par
+\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
+\end{tcolorbox}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{从分类到密集预测: 视觉任务谱系}
+% source_units: cu_09_02
+本讲的第一个重要动作，是把几类经常被混说的视觉任务摆到同一张图里比较：
+\begin{itemize}
+\item \textbf{Classification}：整张图一个标签。
+\item \textbf{Semantic Segmentation}：每个像素一个语义类别，但不区分同类实例。
+\item \textbf{Object Detection}：输出若干边界框和类别。
+\item \textbf{Instance Segmentation}：既要检测实例，也要输出像素级 mask。
+\end{itemize}
+
+这个比较的意义在于：从 classification 往后走，模型不再只是“有没有某个对象”，而是逐步承担更细的空间定位任务。也因此，前面那种单一全局向量表征已经不够了，网络必须保持更高分辨率的空间结构。
+
+\subsection{本章小结}
+本讲的统一主题是：当任务从全局分类走向密集预测和局部解释时，模型必须更精细地保留空间信息。
+
+\section{语义分割: 从滑窗到 FCN 与 U-Net}
+% source_units: cu_09_03, cu_09_04
+课程先从最朴素的思路讲起：如果想给每个像素分类，能不能在每个位置都裁一块 patch，再跑一次分类器？答案当然能，但代价极高，而且大量重复计算。
+
+于是，一个自然演进是把滑窗分类改写成卷积运算。只要把全连接分类头改成卷积层，就可以在共享特征图上一次性得到整张图的 dense prediction。这正是 \textbf{Fully Convolutional Network, FCN} 的核心思想。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-41.png}
+\caption{FCN 把分类网络改造成逐像素预测器，从而避免了滑窗分类的重复计算。}
+\end{figure}
+
+但 FCN 还有一个新问题：经过多层 stride / pooling 之后，空间分辨率会下降。因此，课程接着讲了若干恢复分辨率的方法：
+\begin{itemize}
+\item unpooling / max-unpooling：部分依赖下采样时的索引。
+\item transposed convolution：学习型上采样。
+\item skip connection：把浅层高分辨率特征直接接回解码器。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-60.png}
+\caption{U-Net 通过 encoder-decoder 和 skip connections 同时保留语义信息与空间细节。}
+\end{figure}
+
+U-Net 正是这一设计逻辑的代表：编码器负责提取抽象语义，解码器逐级恢复空间分辨率，而横向跳连保证边界和局部结构不会在下采样中被完全抹平。
+
+\begin{importantbox}{分割模型的关键张力}
+语义分割必须同时满足两件事：一方面要有足够大的感受野理解“这是什么”，另一方面又必须保留足够细的定位精度知道“它在哪里”。
+\end{importantbox}
+
+\subsection{本章小结}
+从滑窗到 FCN 再到 U-Net，本质上是在回答同一个问题：如何让网络既高效又保留空间细节。
+
+\section{目标检测一: 两阶段家族 R-CNN, Fast R-CNN, Faster R-CNN}
+% source_units: cu_09_05, cu_09_06
+目标检测的难点不是“图里有没有猫”，而是“有几个对象、每个对象在哪、分别是什么”。R-CNN 家族围绕这个问题给出了一个非常清晰的两阶段分解：
+\begin{enumerate}
+\item 先生成候选区域（proposals）。
+\item 再对每个区域做分类和框回归。
+\end{enumerate}
+
+原始 R-CNN 的痛点是太慢：每个 proposal 都要单独跑一次卷积网络。Fast R-CNN 的关键改进是共享整张图的卷积特征，然后只在 feature map 上做 RoI pooling。这样，“图像编码”从每框一次变成了每图一次。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{pdf_pages/page-90.png}
+\caption{Fast/Faster R-CNN 的核心收益来自共享卷积特征，而不是重复编码每个 proposal。}
+\end{figure}
+
+Faster R-CNN 则进一步往前迈了一步：既然 proposal generation 也是可学习的，为什么不直接把它变成网络里的 Region Proposal Network（RPN）？这样一来，候选框生成和后续检测头都可以联合优化。
+
+课程还专门在附加 slides 里对比了 RoI Pool 与 RoI Align。前者为了简化计算会把连续坐标量化到离散格点上，后者则通过更精细的采样避免这种量化误差，这一步对实例分割尤其关键。
+
+\subsection{本章小结}
+R-CNN 家族的主线很简单：先共享特征，再把 proposal generation 并入网络，最后把对齐误差从 pipeline 中尽量消除。
+
+\section{目标检测二: 单阶段方法与 DETR}
+% source_units: cu_09_07, cu_09_08
+两阶段方法通常精度高，但 pipeline 更复杂。单阶段检测器的思想是：\textbf{不再显式生成 proposals，而是直接从特征图上预测边界框和类别。}
+
+YOLO / SSD / RetinaNet 都属于这一路线。它们把检测写成密集预测，因此在速度上通常更有优势，也更适合实时场景。但代价是训练目标、正负样本分配和尺度处理往往更敏感。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-105.png}
+\caption{单阶段检测强调直接输出，而 DETR 则进一步把检测写成集合预测问题。}
+\end{figure}
+
+DETR（Detection Transformer）则提供了另一种更“结构化”的改写方式。它不再沿用传统 anchor/proposal 流水线，而是直接输出一个对象集合，并用 bipartite matching 把预测与真值对齐。教学上，这很重要，因为它说明 detection 并不一定必须依赖经典手工 pipeline；只要目标函数设计对，Transformer 也可以端到端地学会“输出若干个对象”。
+
+\subsection{本章小结}
+单阶段方法追求直接与高效，DETR 追求端到端集合预测。它们都在试图减少传统检测 pipeline 的手工分解。
+
+\section{Mask R-CNN 与实例分割}
+% source_units: cu_09_09
+实例分割可以理解为“检测 + 每个实例的像素级 mask”。课程把 Mask R-CNN 讲得很清楚：它是在 Faster R-CNN 基础上，额外增加一个 mask branch。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-121.png}
+\caption{Mask R-CNN 在检测框之上再预测实例级 mask，把框级输出扩展到像素级实例建模。}
+\end{figure}
+
+这条分支之所以有效，是因为两阶段检测已经帮我们把“哪个区域属于哪个实例”这个问题大致解决了；mask branch 只需在实例内部进一步做更细的像素判别即可。也正因如此，RoI Align 这类细节会直接影响实例 mask 的边界质量。
+
+\subsection{本章小结}
+Mask R-CNN 的贡献不在于推翻检测框架，而在于说明：一旦 region-level representation 足够好，实例分割可以自然叠加在检测框架之上。
+
+\section{从 Saliency 到 CAM / Grad-CAM: 理解模型在看什么}
+% source_units: cu_09_10
+讲义后半段从“预测什么”切换到“模型为什么这样预测”。最简单的一类方法是 saliency maps：通过反向传播，估计输出对输入像素的敏感度。
+
+但纯梯度热图往往噪声较大，因此课程进一步介绍了 CAM（Class Activation Mapping）与 Grad-CAM：
+\begin{itemize}
+\item \textbf{CAM}：要求网络结构具备 global average pooling 等特定形式，用类别权重直接组合 feature maps。
+\item \textbf{Grad-CAM}：利用目标类别对 feature maps 的梯度作为权重，适用范围更广。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{pdf_pages/page-142.png}
+\caption{Grad-CAM 通过梯度加权 feature maps，近似展示模型对当前类别最依赖的区域。}
+\end{figure}
+
+这些方法并不等价于“真正理解模型”，但它们在教学和调试上非常有价值：至少能帮助我们判断模型是否把注意力放在了合理区域上，还是被背景、纹理、边角等伪相关信号带偏。
+
+\begin{warningbox}{解释性方法的边界}
+热图是局部近似，不是完整因果解释。它更适合作为诊断工具，而不是对模型内部机制的最终证明。
+\end{warningbox}
+
+\subsection{本章小结}
+从 saliency 到 Grad-CAM，解释性方法的目标不是“替代模型”，而是给出一个可视化窗口，让我们知道模型的证据大致来自哪里。
+
+\section{总结与延伸}
+这讲把视觉任务从单标签分类扩展到了更复杂的空间预测与模型解释问题。整条主线可以概括为：
+\begin{itemize}
+\item semantic segmentation 关心每个像素的语义归属；
+\item detection 关心对象实例的位置与类别；
+\item instance segmentation 结合了对象级与像素级输出；
+\item interpretability 方法则反过来追问模型到底依赖了哪些区域。
+\end{itemize}
+
+如果说前面的课程重点在“学到一个好表征”，那么这讲开始，重点逐渐转向“如何让表征对空间位置、实例边界和诊断分析都足够敏感”。这也是下一讲视频理解的直接前置：一旦输入从二维图像变成时空视频，定位和解释问题只会更复杂，而不会更简单。
+
+\end{document}

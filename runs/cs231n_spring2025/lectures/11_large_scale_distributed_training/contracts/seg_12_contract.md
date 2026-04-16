@@ -1,0 +1,178 @@
+# seg_12 Contract
+
+Source range:
+- transcript: 01:01:40,090 -- 01:07:16,330
+- segment hint: Segment 12
+
+Must cover unit ids:
+- sub_1574
+- sub_1575
+- sub_1576
+- sub_1577
+- sub_1578
+- sub_1579
+- sub_1580
+- sub_1581
+- sub_1582
+- sub_1583
+- sub_1584
+- sub_1585
+- sub_1586
+- sub_1587
+- sub_1588
+- sub_1589
+- sub_1590
+- sub_1591
+- sub_1592
+- sub_1593
+- sub_1594
+- sub_1595
+- sub_1596
+- sub_1597
+- sub_1598
+- sub_1599
+- sub_1600
+- sub_1601
+- sub_1602
+- sub_1603
+- sub_1604
+- sub_1605
+- sub_1606
+- sub_1607
+- sub_1608
+- sub_1609
+- sub_1610
+- sub_1611
+- sub_1612
+- sub_1613
+- sub_1614
+- sub_1615
+- sub_1616
+- sub_1617
+- sub_1618
+- sub_1619
+- sub_1620
+- sub_1621
+- sub_1622
+- sub_1623
+- sub_1624
+- sub_1625
+- sub_1626
+- sub_1627
+- sub_1628
+- sub_1629
+- sub_1630
+- sub_1631
+- sub_1632
+- sub_1633
+- sub_1634
+- sub_1635
+- sub_1636
+- sub_1637
+- sub_1638
+- sub_1639
+- sub_1640
+- sub_1641
+- sub_1642
+- sub_1643
+- sub_1644
+- sub_1645
+- sub_1646
+- sub_1647
+- sub_1648
+- sub_1649
+- sub_1650
+- sub_1651
+- sub_1652
+- sub_1653
+- sub_1654
+- sub_1655
+- sub_1656
+- sub_1657
+- sub_1658
+- sub_1659
+- sub_1660
+- sub_1661
+- sub_1662
+- sub_1663
+- sub_1664
+- sub_1665
+- sub_1666
+- sub_1667
+- sub_1668
+- sub_1669
+- sub_1670
+- sub_1671
+- sub_1672
+- sub_1673
+- sub_1674
+- sub_1675
+- sub_1676
+- sub_1677
+- sub_1678
+- sub_1679
+- sub_1680
+- sub_1681
+- sub_1682
+- sub_1683
+- sub_1684
+- sub_1685
+- sub_1686
+- sub_1687
+- sub_1688
+- sub_1689
+- sub_1690
+- sub_1691
+- sub_1692
+- sub_1693
+- sub_1694
+- sub_1695
+- sub_1696
+- sub_1697
+- sub_1698
+- sub_1699
+- sub_1700
+- sub_1701
+- sub_1702
+- sub_1703
+- sub_1704
+- sub_1705
+- sub_1706
+- sub_1707
+- sub_1708
+- sub_1709
+- sub_1710
+- sub_1711
+- sub_1712
+- sub_1713
+- sub_1714
+- sub_1715
+- sub_1716
+- slide_0133
+- slide_0134
+- slide_0135
+- slide_0136
+- slide_0137
+- slide_0138
+- slide_0139
+- slide_0140
+- slide_0141
+- slide_0142
+- slide_0143
+- slide_0144
+
+Required formulas:
+- none explicitly inferred
+
+Required code units:
+- none explicitly inferred
+
+Required figures:
+- none explicitly inferred
+
+Done checks:
+- no required unit remains unclassified
+- formulas are expanded, not compressed into takeaways
+- figures, if used, are provenance-backed
+- the segment output maps into a concrete section rather than only a summary subsection
+
