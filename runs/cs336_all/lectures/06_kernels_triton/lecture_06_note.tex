@@ -101,6 +101,11 @@
 
 这个区分非常重要。只 benchmark 不 profile，你只能知道 A 比 B 快，却不知道原因；只 profile 不 benchmark，你可能知道热点在哪，却不知道这些热点对整体吞吐的实际贡献有多大。
 
+\subsection{把这套工具链真正用起来}
+课程把 benchmark / profile 讲得很具体，而不是停留在口号上。做基准测试时，\texttt{torch.utils.benchmark} 是一个现成工具，但课堂上仍然保留了一个轻量的 \texttt{benchmark} 包装器，把 warmup、CUDA synchronize 和 trial 平均显式写出来，这样你能看见每一步到底在做什么。做 profiling 时，\texttt{torch.profiler} 可以直接揭示哪些 CUDA kernels 在吃时间，课程里的 MLP 例子还会配合 flame graph 看栈信息。
+
+如果你自己在写 CUDA 扩展，\texttt{CUDA\_LAUNCH\_BLOCKING=1} 也属于同一条工具链：它能让错误在发生的调用点暴露出来，而不是拖到后面的异步 kernel 才一起炸掉。课程明确提到作业里还会继续用 Nsight 往更底层看，因此这是一条从 wall-clock 到 profiler 再到 tracer 的下钻路径，而不是彼此割裂的工具列表。
+
 \subsection{为什么矩阵乘法看起来简单，性能却并不总是可预测}
 课程专门用 square matmul 和一个小 MLP 做 benchmark，随后演示不同维度、层数、batch size 下时间变化并不总是线性可预测。这再次说明：真实 CUDA kernel 会受到 tile 形状、调度、对齐、occupancy 和库内实现细节的影响。
 
@@ -110,6 +115,17 @@
 
 \subsection{本章小结}
 优化之前先 benchmark / profile，并不是保守做法，而是唯一靠谱的起点。因为你要面对的不是抽象程序，而是某个具体环境里的某个具体 kernel。
+
+\subsection{官方脚本补充：benchmarking / profiling 到底落在哪些工具上}
+Spring 2025 的官方 lecture script 在这部分其实比现有讲义更“可执行”。它不是抽象地说“要 benchmark、要 profile”，而是明确给出了一条工具链：
+\begin{itemize}
+\item 用 \texttt{torch.utils.benchmark} 做可重复的 wall-clock benchmark；
+\item 用 \texttt{torch.profiler} 看 kernel 级执行时间、调用关系与热点；
+\item 在需要强制同步定位错误时，显式打开 \texttt{CUDA\_LAUNCH\_BLOCKING=1}；
+\item 在 profiler 输出上配合 flame graph / trace viewer 去看调用栈，而不是只看一串平铺的时间表。
+\end{itemize}
+
+这条工具链之所以值得写进教材，是因为它把“benchmarking 回答有多快，profiling 回答为什么快或慢”这句话真正落到了操作层。对系统研究者而言，这一步非常重要：\textbf{没有工具链，方法论就很容易退化成口号。}
 
 \section{Arithmetic Intensity：把所有优化语言统一起来}
 \subsection{为什么课程要把“算术强度”放在整讲中央}
@@ -193,12 +209,35 @@ store(y_ptr + offsets, y, mask=mask)
 
 这段伪代码的教学作用很明确。它把课程里反复强调的 kernel 实现骨架浓缩成四步：先用 \texttt{program\_id} 或 thread/block 索引确定谁负责哪段数据，再按 mask 处理边界，再在寄存器或更近的层级完成局部计算，最后统一写回输出。也正因为这个骨架很清楚，课程后面才会继续讨论 fusion、tiling 和 Triton 编译器到底替我们省掉了哪些机械活。
 
+\subsection{PTX、\texttt{load\_inline} 与 thread coarsening：为什么这讲会一路下钻到汇编痕迹}
+官方 script 在后半段补了一个很好的教学层次：不仅展示 CUDA / Triton kernel，还进一步让学生去看 PTX 级别的痕迹。这里最重要的不是记忆所有 PTX 指令，而是理解三类信息：
+\begin{itemize}
+\item 像 \texttt{ld.global}、\texttt{st.global} 这样的指令直接暴露了 global memory 读写；
+\item 像 \texttt{\%ctaid.x}、\texttt{\%tid.x} 这样的寄存器，直接告诉你 grid/block/thread 索引是如何落到实际执行单元上的；
+\item 通过 \texttt{load\_inline}、编译后 PTX 输出和 Triton tutorial，可以把“高级 kernel 写法”与“底层访存行为”串起来看。
+\end{itemize}
+
+slides 还强调了 \textbf{thread coarsening} 这件事：有时让一个线程处理不止一个元素，会降低 occupancy，但能换来更高的数据复用或更少的控制开销。这个例子非常适合教材，因为它提醒读者：\textbf{高 occupancy 不是唯一目标，真正目标是总吞吐。}
+
+\subsection{五路实现对比：manual / PyTorch / compiled / CUDA / Triton}
+官方脚本里还有一条很值得保留的结构线：用同一个操作，依次比较手写 Python 版本、PyTorch eager 版本、compiled 版本、自定义 CUDA 版本和 Triton 版本。这样做的教学价值极高，因为它让学生看到“优化”不是一个二元开关，而是一条逐层下钻的抽象梯度。
+
+这条五路 taxonomy 也解释了为什么 2026 最新 offering 会把第 6 讲标题升级成 \textit{Kernels, Triton, XLA}。这里的 XLA 不一定意味着整讲都会细讲 JAX 编译器，而是说明课程已经更明确地把“图编译 / kernel lowering / 更低层 IR”纳入同一条性能工程谱系：从 eager 程序，到 compiled graph，到 custom kernel，到 PTX 痕迹，都是同一个问题的不同抽象面。
+
 \subsection{Triton 的真正价值：把大量底层机械活自动化，但不抹掉硬件思维}
 课程对 Triton 的定位非常准确。它不是让你“忘掉硬件”，而是让你以更高层的方式表达 kernel，同时把 memory coalescing、shared memory 管理、部分调度细节交给编译器。也就是说，\textbf{Triton 降低了进入 kernel 世界的门槛，但并没有取消对 hardware-aware 思维的要求。}
 
 \begin{knowledgebox}{为什么 Triton 特别适合 CS336}
 这门课想让学生真正理解 kernel，但又不想让所有人都先被 CUDA 语法细节淹没。Triton 恰好处在一个好位置：你仍然在思考 block、tile、访存与布局，但可以用更高层的写法落地。
 \end{knowledgebox}
+
+\subsection{从 \texttt{load\_inline} 到五种写法}
+课程把 GeLU 放在同一条比较链上，是为了让你看到“从最手工到最自动”的连续谱。\texttt{load\_inline} 的作用，是把一段 CUDA/C++ 代码直接编译并绑定成可调用的 Python 模块，这样你就能很快把手写 kernel 接进实验流程里。它的意义不是让你永远手写扩展，而是让你看清楚 CUDA 层到底暴露了哪些控制权，以及这些控制权会怎样影响性能。
+
+在这个例子里，课程把五种写法并排比较：manual、PyTorch、compiled、CUDA、Triton。最直接的教学结论是，manual 只是基线；PyTorch 的 builtin 版本和 `torch.compile` 的版本都能显著快于 manual；CUDA 版本通常比 manual 好很多，但不一定追得上库内 fused kernel；Triton 和 `torch.compile` 则把“写高层程序”与“得到高性能 kernel”之间的距离拉得更近。这里的重点不是死记一个固定排序，而是理解这些实现对应的是不同层级的抽象和 lowering 路径。
+
+\subsection{XLA 作为更上层的编译参照}
+最新 offering 的标题已经把 XLA 并列进来，这不是要把这一讲改成 JAX 课，而是在提醒你：这一层的思想并不只属于 Triton。课程末尾提到 `torch.compile`，也顺带提到 JAX 的 XLA compiler；它们都在做同一件事，就是把高层张量程序 lower 成更少 kernel launch、更少读写、更符合硬件偏好的执行形态。换句话说，XLA 只是更大编译栈里的一个自然参照点，而不是对前面 GPU 直觉的替代。
 
 \subsection{本章小结}
 第 6 讲最后从 benchmarking/profiling 一路走到 CUDA 和 Triton，其实是在完成一个非常完整的闭环：先测哪里慢，再理解慢的根源，最后把这种理解变成更好的 kernel 设计。

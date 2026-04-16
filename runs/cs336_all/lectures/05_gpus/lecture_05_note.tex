@@ -196,6 +196,68 @@ GPU 的 global memory 读取常常是 burst mode。如果同一 warp 的线程�
 \subsection{FlashAttention 的意义：让 attention 更像硬件愿意接受的矩阵程序}
 虽然这讲只是预告性质地“unpack FlashAttention”，但它真正想传递的是：FlashAttention 的伟大之处，不只在于减少了某个 big-O，而是它把注意力计算重新组织成了更符合 GPU memory hierarchy 的形状。换句话说，它是一种典型的“respect the hardware”式算法设计。
 
+\subsection{把 attention 拆成三次矩阵乘法，再问 softmax 怎么办}
+Spring 2025 的官方 slides 在这部分讲得其实比现有讲义更具体。它先把标准 attention 重新写回最朴素的线性代数分解：
+\[
+S = QK^\top,\qquad P = \operatorname{softmax}(S),\qquad O = PV.
+\]
+其中：
+\begin{itemize}
+\item $Q,K,V$ 分别是 query、key、value；
+\item $S$ 是未归一化的相似度矩阵；
+\item $P$ 是 softmax 后的注意力权重；
+\item $O$ 是最终输出。
+\end{itemize}
+
+slides 之所以特意写成这三步，是为了说明 FlashAttention 不是“突然发明了一种全新 attention”，而是先承认 attention 仍然是三次大矩阵运算与一个 softmax 之间的组合，然后再追问：\textbf{既然 $QK^\top$ 和 $PV$ 都能做 tile-wise matmul，softmax 能不能也被改写成 tile-by-tile 的前向过程？}
+
+\subsection{Online Softmax：为什么需要递推 max 和 telescoping sum}
+难点恰恰在 softmax。若直接把整行 logits 都算出来，再统一做
+\[
+\operatorname{softmax}(s_i)=\frac{e^{s_i}}{\sum_j e^{s_j}},
+\]
+就意味着你通常得先把整块分数矩阵留在较远存储里，再回来读一遍，这会严重拖累 memory traffic。FlashAttention 的关键一招，就是把 softmax 重写成在线递推（online softmax）的形式。
+
+对某一行分块处理时，可以递推维护当前见过的最大值 $m^{(t)}$、归一化因子 $\ell^{(t)}$，以及对应的输出累计向量 $o^{(t)}$：
+\[
+m^{(t)}=\max\!\bigl(m^{(t-1)},\max s^{(t)}\bigr),
+\]
+\[
+\ell^{(t)}=e^{m^{(t-1)}-m^{(t)}}\ell^{(t-1)}+\sum_j e^{s_j^{(t)}-m^{(t)}}.
+\]
+\[
+o^{(t)}=e^{m^{(t-1)}-m^{(t)}}o^{(t-1)}+\sum_j e^{s_j^{(t)}-m^{(t)}}v_j.
+\]
+其中：
+\begin{itemize}
+\item $t$ 表示当前处理到第几个 tile；
+\item $s^{(t)}$ 是当前 tile 中的 logits；
+\item $m^{(t)}$ 是截至当前 tile 的全局行最大值；
+\item $\ell^{(t)}$ 是按新最大值重标定后的分母累积量；
+\item $o^{(t)}$ 是把当前 tile 的 value 加权结果一并累积起来的输出状态。
+\end{itemize}
+
+官方 slides 明确强调，这个递推的妙处在于它构造了一个 telescoping sum 风格的更新，从而让 softmax 不必等“整行都落盘以后”再统一做，而可以随着 tile 推进逐步累计。最后输出只需要做一次
+\[
+\operatorname{out}_i = o_i^{(T)} / \ell_i^{(T)},
+\]
+就能得到和标准 softmax 一致的结果。这正是 FlashAttention 能把 softmax 也纳入块内流水线的关键。
+
+\subsection{Forward Pass：为什么说 FlashAttention 不是一个点子，而是一条 tile-wise 流水线}
+把三次矩阵乘法和 online softmax 合起来之后，FlashAttention 的 forward pass 就变成了统一的 blockwise 流程：先按 tile 载入 $Q,K,V$ 的局部块；在片上计算局部 inner products；把指数运算和分母更新融合进当前 tile；再把加权后的 $V$ 累计到输出块。也就是说，它真正做到的是：
+\begin{itemize}
+\item tile-wise 计算内积；
+\item 在 tile 内融合指数与归一化；
+\item 用 online softmax 递推分母；
+\item 再 tile-wise 地累计输出。
+\end{itemize}
+
+这和前面讲矩阵乘法 tiling 的直觉完全同源。不同之处只是：普通 matmul 的累加对象是乘加结果，而 FlashAttention 还要额外维护一个数值稳定的 softmax 状态。官方 slides 在这里也专门说清楚了边界：\textbf{这讲只展开 forward pass，不展开 backward pass；反向里通常还会用到 tile-by-tile recomputation。}
+
+\begin{warningbox}{关于 FlashAttention 最容易说浅的地方}
+如果只把 FlashAttention 说成“更省显存的 attention”或“更快的 attention”，那还不够教材级。真正该讲清楚的是：\textbf{它通过 online softmax 把原本难以 tile 化的归一化步骤，重新纳入了 GPU 喜欢的块状流水线。}
+\end{warningbox}
+
 \subsection{把 tiling 直觉写成伪代码}
 如果把这讲最后关于矩阵乘法与 FlashAttention 的硬件直觉压缩成一段伪代码，核心其实就是：\textbf{不要一次把整块大矩阵从远端内存反复搬进来，而要分 tile 载入、在近端缓存里反复复用、累加后再写回。} 下面这段伪代码不是课程逐行展示的源码，而是对课程里 tiled matmul / blockwise attention 计算路径的结构化重述：
 

@@ -63,8 +63,90 @@
 \tableofcontents
 \newpage
 
+\section{基于 2026 最新官方 slides 的补充：为什么 Attention Alternatives 会和 MoE 放在同一讲}
+这份讲义的主视频和主字幕来自 Spring 2025 的第 4 讲，因此原始内容几乎完全聚焦 Mixture of Experts（MoE）。但课程最新的 Spring 2026 版本，已经把这一讲的标题扩展成 \textit{Attention alternatives and mixture of experts}。这不是简单改个名字，而是在课程结构上公开了一种新的组织方式：\textbf{在进入稀疏专家之前，先讨论“如果标准 attention 成本越来越高，我们还能怎样改写序列建模主干”。}
+
+这段补充因此不把 2026 slides 当成“新的一讲”，而是把它作为对第 4 讲前半部分的官方增补。它的作用有两个。第一，说明 MoE 并不是唯一的“突破 dense Transformer 伸缩性限制”的路线；第二，说明现代大模型设计正在同时探索两类正交方向：一类改写 attention 的时间与缓存行为，另一类改写 FFN 的参数激活方式。
+
+\begin{importantbox}{为什么要把这段补在 MoE 之前}
+如果只看 2025 视频，第 4 讲很容易被理解成“这就是一堂纯 MoE 课”。但 2026 最新 slides 给出的课程组织更准确：\textbf{这是一堂关于替代性架构路线的课，MoE 只是其中最主流、最工业化的一支。}
+\end{importantbox}
+
+\subsection{Linear Attention：先从最激进的复杂度重写开始}
+2026 slides 先讨论的是 linear attention。它从标准 attention 的最核心表达式出发：
+\[
+\mathrm{Attn}(Q,K,V)=\rho(QK^\top)V.
+\]
+其中：
+\begin{itemize}
+\item $Q \in \mathbb{R}^{n\times d_k}$ 是 query 矩阵；
+\item $K \in \mathbb{R}^{n\times d_k}$ 是 key 矩阵；
+\item $V \in \mathbb{R}^{n\times d_v}$ 是 value 矩阵；
+\item $n$ 是序列长度；
+\item $d_k,d_v$ 分别是 key/value 的通道维度；
+\item $\rho(\cdot)$ 表示 attention 里对相似度矩阵施加的正规化或核映射。
+\end{itemize}
+
+slides 刻意先讨论一个“非常傻但很重要”的变形：如果暂时不管 softmax 等复杂正规化，而把 $\rho$ 看成恒等映射，那么
+\[
+QK^\top V = Q(K^\top V).
+\]
+这一步的意义，不在于它立刻就是一个可直接替换 softmax attention 的好算法，而在于它暴露了一个结构性事实：\textbf{原本看起来必须先构造 $n\times n$ 相似度矩阵的计算，有时可以被重排成更接近线性时间的形式。} 也正是这个重排，让后面一整支“线性 attention / state-space / fast-weight”谱系显得合理。
+
+\subsection{Recurrent form：为什么这类方法会和 RNN、state-space 再次连起来}
+2026 slides 进一步强调，线性 attention 的另一个吸引力，是它天然可以写成 recurrent 形式：
+\[
+S_t = S_{t-1} + k_t v_t^\top,\qquad y_t = q_t^\top S_t.
+\]
+其中：
+\begin{itemize}
+\item $t$ 是当前时间步；
+\item $k_t,v_t,q_t$ 分别是当前位置的 key、value、query；
+\item $S_t$ 是累积到第 $t$ 步的状态矩阵；
+\item $y_t$ 是当前位置的输出。
+\end{itemize}
+
+这条公式传递的核心信息是：\textbf{某些 attention-like 机制并不一定要以“显式地回看所有历史 token”的方式实现；它们也可以把历史压缩进一个递推状态里。} 这就解释了为什么这条路线会和 RetNet、Mamba-2、Gated Delta Net、以及更广义的 fast-weight / test-time training 直觉重新连起来。
+
+\subsection{从 Mamba-2 到 Gated Delta Net：不是放弃 attention，而是在重写状态更新规则}
+2026 slides 给出的过渡方式非常清晰：先从线性 attention 的状态更新式出发，再逐步引入更灵活的门控。以 Mamba-2 风格的写法为例，状态更新可以被改写成
+\[
+S_t=\gamma_t S_{t-1}+k_t v_t^\top,\qquad y_t=q_t^\top S_t + v_t^\top D,
+\]
+其中：
+\begin{itemize}
+\item $\gamma_t$ 是由当前位置输入 $x_t$ 决定的门控因子；
+\item $D$ 是额外的直接项或跳连参数；
+\item $\gamma_t$ 的存在意味着模型不再被迫“无条件保留全部历史”。
+\end{itemize}
+
+而 Gated Delta Net 则进一步把“写入”和“遗忘”都做成显式门控，slides 用到的高层写法是
+\[
+S_t=\gamma_t (I-\beta_t k_tk_t^\top)S_{t-1}+\beta_t k_t v_t^\top,\qquad y_t=q_t^\top S_t.
+\]
+其中：
+\begin{itemize}
+\item $I$ 是单位矩阵；
+\item $\beta_t$ 控制当前 token 的写入强度；
+\item $(I-\beta_t k_tk_t^\top)$ 可以被理解成一种“沿当前 key 方向擦除旧状态”的机制。
+\end{itemize}
+
+这类模型的重要性不在于你要立刻把每条公式背下来，而在于它们说明：\textbf{现代序列建模已经不再只有“标准 softmax attention”和“老式 RNN”这两个极端。} 中间地带正在快速扩张，而且很多方法都把“线性时间推理”“可并行训练”和“更好的长上下文行为”当成主要卖点。
+
+\subsection{Hybrid Attention 与 DSA：工业系统并不总是二选一}
+2026 slides 还特别强调了 hybrid 路线，而不是把 attention alternatives 讲成“谁会彻底替代 Transformer attention”。例如，Minimax、Qwen 3.5 / Qwen Next 这类系统，都在探索“若干层用线性 / GDN / 状态空间式机制，少数层保留全 attention”的混合主干；DeepSeek Sparse Attention（DSA）则代表另一类思路：不改写 attention 的数学定义，而是通过更轻量的索引或稀疏选择，减少真正参与注意力计算的 token 对。
+
+这件事非常重要，因为它给出一个更贴近工业现实的结论：\textbf{大多数前沿系统不会因为某个新机制出现，就把原有 attention 全部推翻；更常见的做法是局部混合、分层替换、或在推理路径上做稀疏适配。}
+
+\begin{knowledgebox}{为什么这段补充对理解 MoE 反而有帮助}
+一旦把线性 attention、hybrid attention、DSA 和 MoE 放在同一页上，你就会发现它们都在回答同一个问题：\textbf{当序列长度、参数量和推理缓存一起爆炸时，哪里该被稀疏化，哪里该被重参数化，哪里该被改写成递推状态？}
+\end{knowledgebox}
+
+\subsection{本章小结}
+2026 最新 slides 对第 4 讲最大的升级，不是重新定义 MoE，而是先用一整段 attention alternatives 把问题空间打开：可以稀疏化 FFN，可以改写 attention，可以做 hybrid，也可以在索引与缓存层动手。补上这段之后，后面的 MoE 才不会被误读成“唯一值得讨论的替代架构”。
+
 \section{为什么 MoE 会在大模型时代重新变得重要}
-第 4 讲讨论的是 Mixture of Experts。它之所以重要，不是因为这是某种“新奇变体”，而是因为它抓住了大模型时代一个极其现实的问题：\textbf{如果我们继续想提高参数容量和模型能力，但又不想让每个 token 的计算成本同步爆炸，应该怎么办？}
+在最新官方 2026 材料里，这一讲的后半段才回到 Mixture of Experts。它之所以重要，不是因为这是某种“新奇变体”，而是因为它抓住了大模型时代一个极其现实的问题：\textbf{如果我们继续想提高参数容量和模型能力，但又不想让每个 token 的计算成本同步爆炸，应该怎么办？}
 
 在 dense Transformer 里，每个 token 都会经过同一套完整 FFN 层。参数越大，理论上每个 token 都要为这些参数买单。MoE 的直觉则是：既然不同 token 未必需要同样的专家能力，为什么不把一个大 FFN 替换成很多个大 FFN，再让一个 selector layer 只挑其中少数几个真正参与计算？
 

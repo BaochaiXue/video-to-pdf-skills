@@ -166,6 +166,15 @@
 \caption{课程把“dropping bias terms” 单独拿出来讲，说明现代架构优化常常就是这种累计起来很重要的小决策。}
 \end{figure}
 
+\subsection{补充：double norm / non-residual postnorm}
+最新官方 Spring 2026 材料在这一节又往前推了一步，明确把一些新模型里的 \emph{double norm} 或 \emph{non-residual postnorm} 单独点了出来。这里的直觉不是“把 pre-norm 又退回 post-norm”，而是更像在残差流之外再放一个规范化环节，让主残差通道尽量保持稳定，同时又照顾到非残差分支上的数值行为。
+
+课程给出的最新例子包括 Grok、Gemma 2，以及只做 non-residual post norm 的 OLMo 2。这个补充很重要，因为它说明现代规范化设计并不是单纯二选一的 pre-norm / post-norm 对立，而是在更细的残差流布局里继续做工程折中。
+
+\begin{importantbox}{double norm 的阅读方式}
+把它看成“在 residual stream 之外再加一道 norm 保护层”会更准确。它不是否定 pre-norm 的稳定性结论，而是在继承该结论的同时，再对非残差部分做更细的控制。
+\end{importantbox}
+
 \subsection{本章小结}
 norm 与残差流这部分基本奠定了现代 LM 的底色：pre-norm 几乎成了事实标准；RMSNorm 是现代默认妥协；去 bias 化则是顺着同样的 runtime / memory 逻辑继续向前走的一步。
 
@@ -233,6 +242,11 @@ FFN 与激活函数这一节的结论可以压缩成一句话：普通前馈层�
 
 这些技巧的共同特点是：它们不是架构主干的一部分，却经常在超大规模训练里决定“曲线看起来是蓝色崩掉还是稳定下去”。这也是第 3 讲后半段最重要的隐含信息之一：\textbf{现代架构设计和稳定训练技巧之间已经很难完全分家。}
 
+\subsection{基于 2026 最新 slides 的补充：attention variants 已经进入架构总览}
+Spring 2026 的 lecture 3 在这一段还多做了一步：它不再把 attention variants 仅仅当作后续某一讲才会碰到的专题，而是明确把它们放回“现代语言模型架构总览”的地图里。对读者来说，这个变化很重要，因为它意味着：\textbf{今天讨论架构，不只是在 norm、激活、位置编码和超参数之间做选择，attention 本身也已经成为持续被重写的对象。}
+
+课程在这里点到的不是完整推导，而是一种边界感。比如 sparse attention、sliding-window attention，以及更 exotic 的 SSM / state-space 路线，都不再只是少数论文里的偏门技巧，而是你在理解长上下文与推理成本时迟早要面对的设计分支。也正因如此，这一讲的结尾要把视线自然地引向下一讲：\textbf{一旦 attention 的复杂度、缓存和长上下文问题开始主导成本，architecture discussion 就会从“选哪种 norm”升级成“是不是要改写整个序列建模主干”。}
+
 \subsection{GQA / MQA：为什么这讲最后会碰到 attention head 成本}
 课程在结尾还专门把 GQA / MQA 拿出来讲，原因不是它们只是“注意力的小变体”，而是因为它们直接连到推理成本。训练阶段看起来 attention 还比较容易并行，但到了增量生成阶段，KV cache 让 head 数量和 key/value 维度变得极其重要。于是，减少 key/value head 数量就会显著影响 inference memory cost。
 
@@ -244,6 +258,11 @@ FFN 与激活函数这一节的结论可以压缩成一句话：普通前馈层�
 \footnotetext{视频画面时间区间：01:15:47--01:16:10。该图来自课程视频中的屏幕画面。}
 
 这也正是 CS336 的典型风格：讲架构，从来不是只讲表达能力，而是同时讲训练、推理与系统代价。
+
+\subsection{前瞻：attention variants 与下一讲}
+最新官方 2026 材料在这讲结尾明确补了一句：后面还会讲不同的 attention variants，甚至直接把 sparse attention patterns 点了出来。这个桥接很关键，因为它把第 3 讲的主题从“现代 Transformer 默认长什么样”往前推进到“如果上下文变长、成本变高，还能怎么改 attention 本身”。
+
+从这个角度看，GQA / MQA 只是第一步。下一步的思路就不再只是“减少某些 head 的成本”，而是进一步允许 attention 结构变得稀疏、局部或分段。课程在这里还顺手预告了更 exotic 的 SSM 相关内容，这就自然接到了下一讲会看到的 attention alternatives。
 
 \subsection{本章小结}
 位置编码、超参数、regularization 与 GQA/MQA 这些看似分散的话题，实际上都指向同一个问题：哪些设计是已经足够稳定、值得默认采用的；哪些设计虽然可能有效，但仍需要你在具体资源与任务条件下重新判断。

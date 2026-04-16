@@ -257,6 +257,15 @@ FP8 的出现，是本讲在数据类型层面最前沿的一部分。课程指�
 很多人看到高层 PyTorch API，会误以为“张量形状变了 = 开销很大”。课程专门提醒：只要底层 storage 没变、只是解释方式变了，view 往往几乎免费；真正昂贵的是复制和不必要的非连续重排。
 \end{warningbox}
 
+\subsection{einops：把维度语义写出来，而不是藏在索引里}
+Spring 2026 的最新官方材料把 \texttt{einops} 抬到了更显眼的位置，这不是语法糖层面的偏好，而是 tensor bookkeeping 的方法论。核心直觉很简单：当你给维度命名时，代码就不再只是在“移动数字”，而是在显式表达 \texttt{batch}、\texttt{seq}、\texttt{hidden}、\texttt{heads} 这些语义。
+
+\texttt{rearrange} 适合做 reshape、transpose 和合并/拆分维度；\texttt{reduce} 适合做沿命名维度的求和或求均值；\texttt{einsum} 则把 generalized matrix multiplication 写成带名字的代数式。它们共同解决的不是“能不能少打几个字”，而是“能不能少出维度错误”。
+
+\begin{importantbox}{为什么 named-dimension bookkeeping 很重要}
+在大模型训练里，很多 bug 并不是算错了公式，而是把 \texttt{seq}、\texttt{heads}、\texttt{hidden} 之类的轴弄混了。einops 的价值就在于把这些语义写回代码里，让张量变换更接近人类对计算图的理解。
+\end{importantbox}
+
 \subsection{Elementwise 与 MatMul：为什么矩阵乘法统治深度学习成本}
 在讲完 storage 之后，课程迅速把重心转到计算强度更高的操作上。它先承认 elementwise 运算当然很多，但随后明确指出：对于足够大的模型与张量，\textbf{几乎没有什么操作比大矩阵乘法更贵。} 这就是为什么后面的 FLOPs 估算，最终大多都会落回 matmul。
 
@@ -299,8 +308,23 @@ FP8 的出现，是本讲在数据类型层面最前沿的一部分。课程指�
 
 课程还特别提醒，MFU 不是为了炫耀数字，而是为了判断瓶颈到底在哪里。如果峰值很高、实际很低，问题可能在 kernel、data loader、访存、调度，或者低效的小矩阵上，而不在模型“理论上算得不够多”。
 
+\subsection{Arithmetic intensity 与 roofline：为什么同样的 FLOPs 可能快慢差很多}
+Spring 2026 的最新材料把 arithmetic intensity 讲得更完整了：\textbf{arithmetic intensity} 是“每搬运 1 字节数据能做多少 FLOPs”，而 \textbf{accelerator intensity} 则是硬件峰值 FLOP/s 除以峰值内存带宽，表示硬件希望你至少达到的计算密度。二者一比较，就能判断一个算子是 memory-bound 还是 compute-bound。
+
+\[
+\text{MFU} = \min\!\left(1,\ \frac{\text{arithmetic intensity}}{\text{accelerator intensity}}\right)
+\]
+
+这里的含义非常直接：
+\begin{itemize}
+\item 如果 arithmetic intensity 低于 accelerator intensity，算子就受内存带宽限制，属于 memory-bound。
+\item 如果 arithmetic intensity 高于 accelerator intensity，算子才有机会把硬件算力真正吃满，属于 compute-bound。
+\end{itemize}
+
+这也是为什么 ReLU、GeLU、dot product、matrix-vector product、matmul 会呈现完全不同的速度特征。前几个算子每搬运一个字节得到的有效计算太少，往往受内存限制；大矩阵乘法则因为重复利用输入块，能把 arithmetic intensity 抬高到 compute-bound 区间。roofline 图的“拐点”本质上就是这个门槛。
+
 \subsection{本章小结}
-Compute accounting 这一节把第 2 讲从“内存会计”推进到“性能会计”。storage layout、view、stride、matmul、FLOPs 和 MFU 被串成了一条链：你先知道数据怎么摆，再知道主要计算发生在哪里，最后才知道硬件到底有没有被真正利用起来。
+Compute accounting 这一节把第 2 讲从“内存会计”推进到“性能会计”。storage layout、view、stride、einops、matmul、FLOPs、arithmetic intensity、roofline 和 MFU 被串成了一条链：你先知道数据怎么摆，再知道主要计算发生在哪里，最后才知道硬件到底有没有被真正利用起来。
 
 \section{Backward、模型对象与训练循环：从数学对象到工程系统}
 \subsection{Backward 为什么大致比 forward 更贵}
@@ -342,14 +366,24 @@ for step in range(num_steps):
 课程在后半段把 checkpointing 和 mixed precision 放到一起，不是随意排列。它们都代表一类非常典型的工程思想：\textbf{用额外控制流或额外复杂度，换资源效率。}
 
 \begin{itemize}
-\item checkpointing 的意义是：训练很可能会长时间运行并发生故障，所以必须周期性保存模型和优化器状态。
+\item checkpointing 的意义一方面是训练很可能会长时间运行并发生故障，所以必须周期性保存模型和优化器状态；另一方面，在激活 checkpointing 里，它还表示“少存中间激活、反向时再重算”。
 \item mixed precision 的意义是：不同对象并不需要同样精度，可以通过分层精度设计同时拿到更高吞吐与可接受稳定性。
 \end{itemize}
+
+\subsection{Gradient accumulation：把大 batch 的稳定性和小 batch 的显存约束分开}
+课程对 gradient accumulation 的隐含逻辑是：大 batch 往往更稳定，但一次性把大 batch 全部塞进显存会把 activation memory 推爆。于是更常见的做法是把一个大 batch 切成多个 micro-batch，逐个前向/反向，把梯度累积起来，最后只在累积窗口结束时更新参数。
+
+这样做的关键点不是“多跑几次就行了”这么简单，而是 \textbf{effective batch size} 和 \textbf{micro-batch size} 被解耦了。优化器看到的是大 batch 的梯度统计，显存峰值却更接近 micro-batch 的 activation 需求。因此，gradient accumulation 本质上是在不放大 activation memory 的前提下，模拟更大的 batch。
+
+\subsection{Activation checkpointing：用重算换显存}
+activation checkpointing，也叫 rematerialization，解决的是另一个问题：训练时如果把所有层的中间激活都存下来，深层网络的 activation memory 会按层数线性增长。checkpointing 的做法是前向时只保留少量检查点，反向时从最近的检查点重新跑出缺失的激活，再继续求导。
+
+这意味着 checkpointing 不是“免费省内存”，而是把一部分显存压力转移成额外计算。课程给出的 $O(L)$、$O(1)$、$O(\sqrt{L})$ 这组三种极端/折中方案，正是在强调：checkpoint 频率本身就是一个资源优化问题。
 
 它们都说明了一点：到了真实训练系统里，“模型定义”远远不是全部，鲁棒性和资源效率同样是第一等公民。
 
 \subsection{本章小结}
-这一节把第 2 讲从张量和 FLOPs 推到了训练系统本身。你开始看到：参数、梯度、优化器状态、batch、loader、pinned memory、checkpointing 和 mixed precision 其实共同构成了一个完整训练对象。也正因如此，第 2 讲才会成为后面所有更高级系统章节的基础。
+这一节把第 2 讲从张量和 FLOPs 推到了训练系统本身。你开始看到：参数、梯度、优化器状态、batch、loader、pinned memory、einops、arithmetic intensity、roofline、gradient accumulation、activation checkpointing 和 mixed precision 其实共同构成了一个完整训练对象。也正因如此，第 2 讲才会成为后面所有更高级系统章节的基础。
 
 \section{总结与延伸}
 把第 2 讲压缩成一句话，就是：\textbf{训练语言模型不是先有一个模型、再把它扔给 GPU；而是先要把整个训练过程拆成可核算、可搬运、可存储、可恢复、可优化的资源对象。}

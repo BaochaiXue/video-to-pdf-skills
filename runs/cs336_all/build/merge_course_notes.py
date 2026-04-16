@@ -59,6 +59,12 @@ def main() -> None:
     manifest = json.loads((BUILD_DIR / "course_manifest.json").read_text())
     tex_path = BUILD_DIR / "cs336_complete_notes.tex"
     title = latex_escape(manifest.get("title", "Stanford CS336 全课程讲义"))
+    course_page_url = manifest.get("course_page_url")
+    playlist_url = manifest.get("playlist_origin_url") or manifest.get("playlist_url")
+    playlist_channel = latex_escape(manifest.get("playlist_channel", "unknown"))
+    scheduled_count = manifest.get("scheduled_session_count")
+    public_count = manifest.get("public_playlist_count")
+    missing_public = manifest.get("missing_public_sessions") or []
 
     lines = [
         r"\documentclass[a4paper]{article}",
@@ -77,12 +83,37 @@ def main() -> None:
         r"\section*{课程说明}",
         r"本讲义先逐讲生成，再按播放列表顺序合并。",
         r"\addcontentsline{toc}{section}{课程说明}",
-        r"\section*{课程目录}",
-        r"\addcontentsline{toc}{section}{课程目录}",
-        r"\begin{longtable}{p{0.08\textwidth}p{0.67\textwidth}p{0.18\textwidth}}",
-        r"\textbf{讲次} & \textbf{主题} & \textbf{日期}\\",
-        r"\hline",
+        r"\section*{来源说明}",
+        r"\addcontentsline{toc}{section}{来源说明}",
     ]
+    if course_page_url and playlist_url:
+        lines.append(
+            f"本书基于 Stanford CS336 Spring 2025 课程页（\\href{{{course_page_url}}}{{course page}}）和 Stanford Online 官方公开 playlist（\\href{{{playlist_url}}}{{playlist}}）重建。"
+        )
+    if scheduled_count and public_count:
+        lines.append(
+            f"官方课程表共有 {scheduled_count} 次排课，Stanford Online 公开 playlist 提供其中 {public_count} 个公开视频；频道为 {playlist_channel}。"
+        )
+    if (ROOT / "meta" / "latest_offering_2026.json").exists():
+        lines.append(
+            r"此外，本书第 1-6 讲还显式对照了当前 Spring 2026 官方 course page / slides / scripts，并在不改写 2025 主视频主线的前提下吸收了新增教学内容。"
+        )
+    if missing_public:
+        lines.append(r"\begin{itemize}")
+        for row in missing_public:
+            desc = latex_escape(row.get("description", "missing public session"))
+            date = latex_escape(row.get("date", "unknown date"))
+            lines.append(f"\\item 未公开视频的课程表讲次：{row.get('schedule_index')}（{date}，{desc}）。")
+        lines.append(r"\end{itemize}")
+    lines.extend(
+        [
+            r"\section*{课程目录}",
+            r"\addcontentsline{toc}{section}{课程目录}",
+            r"\begin{longtable}{p{0.08\textwidth}p{0.67\textwidth}p{0.18\textwidth}}",
+            r"\textbf{讲次} & \textbf{主题} & \textbf{日期}\\",
+            r"\hline",
+        ]
+    )
 
     for lecture in manifest["lectures"]:
         lines.append(f"{lecture['lecture_id']} & {latex_escape(clean_title(lecture['title']))} & {lecture['date']}\\\\")
