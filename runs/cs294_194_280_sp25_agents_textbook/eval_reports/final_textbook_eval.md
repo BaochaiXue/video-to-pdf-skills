@@ -41,10 +41,13 @@ Secondary metrics:
 - Final PDF compile: `pass`.
   - `book/textbook.pdf`
   - `258` pages
-  - `34,999,568` bytes
+  - `34,999,561` bytes
 - Deliverable sync:
   - `book/main.tex == deliverable/...complete_notes.tex`
   - `book/textbook.pdf == deliverable/...complete_notes.pdf`
+  - `deliverable/` is confirmed to contain the latest final result for this run
+  - `SHA-256(pdf) = 1fdd4e7f59b3525892670add4aec484c5bc2d3ab04d9571d82adc02052d41f1e`
+  - `SHA-256(tex) = 755686be7993b8e020030b03be073ac455e16ba8f151a74c15e0a47a32717582`
 - Book-level validator:
   - `python3 runs/cs294_194_280_sp25_agents_textbook/build/validate_textbook.py --require-book-pdf`
   - result: `ok textbook`

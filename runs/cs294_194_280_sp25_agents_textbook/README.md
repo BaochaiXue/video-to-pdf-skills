@@ -144,6 +144,24 @@ The final merged `.tex` and `.pdf` are copied to:
 
 See `COURSE_OMISSION_LOG.jsonl` plus each supplement workspace's `COURSE_OMISSION_LOG.jsonl` for the explicit source gaps.
 
+## Final Delivery Verification
+
+As of `2026-04-16`, the user-facing deliverable is confirmed to be the latest merged result for this run.
+
+- textbook validator:
+  - `python3 build/validate_textbook.py --require-book-pdf`
+  - result: `ok textbook`
+- deliverable sync:
+  - `book/main.tex == deliverable/book/cs294_194_280_sp25_agents_textbook_complete_notes.tex`
+  - `book/textbook.pdf == deliverable/book/cs294_194_280_sp25_agents_textbook_complete_notes.pdf`
+- SHA-256:
+  - PDF: `1fdd4e7f59b3525892670add4aec484c5bc2d3ab04d9571d82adc02052d41f1e`
+  - TeX: `755686be7993b8e020030b03be073ac455e16ba8f151a74c15e0a47a32717582`
+- final deliverable PDF stats:
+  - pages: `258`
+  - size: `34,999,561` bytes
+  - creation date: `Thu Apr 16 10:11:21 2026 EDT`
+
 ## Incremental Update Procedure
 
 1. Re-open the official course page and compare against `COURSE_SOURCE_MANIFEST.json`.
