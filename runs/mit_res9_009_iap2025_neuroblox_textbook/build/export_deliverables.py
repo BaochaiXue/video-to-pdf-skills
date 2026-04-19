@@ -12,6 +12,14 @@ BOOK_DIR = RUN_ROOT / "book"
 DELIVERABLE_DIR = RUN_ROOT / "deliverable"
 DELIVERABLE_LECTURES_DIR = DELIVERABLE_DIR / "lectures"
 DELIVERABLE_BOOK_DIR = DELIVERABLE_DIR / "book"
+DELIVERABLE_SCRATCH_SUFFIXES = {
+    ".aux",
+    ".log",
+    ".out",
+    ".toc",
+    ".fls",
+    ".fdb_latexmk",
+}
 
 
 def load_json(path: Path) -> dict | list:
@@ -24,6 +32,16 @@ def copy_if_exists(src: Path, dst: Path) -> bool:
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src, dst)
     return True
+
+
+def clean_deliverable_book_dir() -> None:
+    if not DELIVERABLE_BOOK_DIR.exists():
+        return
+    for path in DELIVERABLE_BOOK_DIR.iterdir():
+        if path.is_dir():
+            continue
+        if path.suffix in DELIVERABLE_SCRATCH_SUFFIXES:
+            path.unlink()
 
 
 def export_lectures() -> list[str]:
@@ -44,6 +62,7 @@ def export_lectures() -> list[str]:
 def export_book() -> list[str]:
     exported: list[str] = []
     DELIVERABLE_BOOK_DIR.mkdir(parents=True, exist_ok=True)
+    clean_deliverable_book_dir()
     manifest_path = BOOK_DIR / "textbook_source_manifest.json"
     merged_tex = BOOK_DIR / "main.tex"
     merged_pdf = BOOK_DIR / "textbook.pdf"
