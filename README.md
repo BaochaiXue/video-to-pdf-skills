@@ -1,13 +1,37 @@
 # video-to-pdf-skills
 
-这个仓库托管两个 Codex skill，用于将视频讲座转换为结构化的中文 LaTeX 讲义和最终 PDF。
+这个仓库托管 Codex skills、共享 harness、课程 run 和最终教材交付物，用于将视频讲座转换为结构化的中文 LaTeX 讲义和最终 PDF。
 
 | Skill | 平台 | 说明 |
 |-------|------|------|
 | `youtube-render-pdf` | YouTube | 原始版本，利用 YouTube CC 字幕和章节结构 |
 | `bilibili-render-pdf` | Bilibili (B站) | 适配 B 站的字幕缺失、登录高清、分P视频等特点 |
+| `subtitle-refine` | 字幕清洗 | 上游新增的字幕清洗 skill，用于检查和整理 SRT |
 
-两个 skill 共享相同的写作规则、配图策略和 LaTeX 模板，但在素材获取阶段有平台特定的差异。
+视频转教材 skill 共享相同的写作规则、配图策略和 LaTeX 模板，但在素材获取阶段有平台特定的差异。
+
+## 当前项目状态
+
+本仓库现在分为四层：
+
+- `skills/`：Codex skill 定义，包括 YouTube、Bilibili 和 subtitle refine。
+- `skills/references/` 与 `scripts/video_note_harness/`：coverage-first 教材生成的共享规则、schema、validator 和 evaluator。
+- `runs/`：每门课程的 source record、lecture workspace、coverage sidecar、评估结果和合并脚本。
+- `deliverable/`：最外层本地交付目录，汇总每个已完工 run 的最终 PDF。
+
+当前最外层 `deliverable/` 已汇总 9 本最终教材 PDF。PDF 文件是本地 handoff copies，其中包含超过 GitHub 单文件限制的大文件，因此默认不纳入 Git 跟踪；索引 README 可跟踪。
+
+| Run | 状态 | 最终 PDF |
+|-----|------|----------|
+| `runs/cme295_fall2025/` | 已生成，已补 `deliverable/` | `cme295_complete_notes.pdf` |
+| `runs/cs224r_spring2025/` | 已生成，已补 `deliverable/` | `cs224r_complete_notes.pdf` |
+| `runs/cs231n_spring2025/` | 已交付 | `cs231n_complete_notes.pdf` |
+| `runs/cs294_194_196_fall2025_agentic_ai/` | 已交付 | `agentic_ai_complete_notes.pdf` |
+| `runs/cs294_194_280_sp25_agents_textbook/` | 已交付 | `cs294_194_280_sp25_agents_textbook_complete_notes.pdf` |
+| `runs/cs336_all/` | 已交付 | `cs336_complete_notes.pdf` |
+| `runs/mit_res9_009_iap2025_neuroblox_textbook/` | 已交付 | `mit_res9_009_iap2025_neuroblox_textbook_complete_notes.pdf` |
+| `runs/s11_751_18_781_fall2023_textbook/` | 已交付 | `speech_recognition_understanding_fall2023_textbook.pdf` |
+| `runs/s294_277_fall2024_robots_that_learn_textbook/` | 已交付 | `s294_277_complete_textbook.pdf` |
 
 ## ASR Backend Policy
 
@@ -41,22 +65,36 @@
 .
 ├── LICENSE
 ├── README.md
+├── deliverable/
+│   ├── README.md
+│   └── *.pdf
 ├── demos/
 │   └── video-render-pdf/
 │       └── *.pdf
-└── skills/
-    ├── youtube-render-pdf/
-    │   ├── SKILL.md
-    │   ├── agents/
-    │   │   └── openai.yaml
-    │   └── assets/
-    │       └── notes-template.tex
-    └── bilibili-render-pdf/
-        ├── SKILL.md
-        ├── agents/
-        │   └── openai.yaml
-        └── assets/
-            └── notes-template.tex
+├── docs/
+│   └── quality/
+├── runs/
+│   └── <course-run>/
+├── scripts/
+│   └── video_note_harness/
+├── skills/
+│   ├── subtitle-refine/
+│   ├── references/
+│   ├── youtube-render-pdf/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   └── openai.yaml
+│   │   └── assets/
+│   │       └── notes-template.tex
+│   └── bilibili-render-pdf/
+│       ├── SKILL.md
+│       ├── agents/
+│       │   └── openai.yaml
+│       └── assets/
+│           └── notes-template.tex
+└── templates/
+    ├── tex/
+    └── writing/
 ```
 
 ## 包含内容
@@ -69,12 +107,22 @@
   共享的默认 LaTeX 模板，包含首页封面位、盒子样式、代码块样式和正文占位结构。
 - `skills/*/agents/openai.yaml`
   给 agent UI 使用的显示名称、简介和默认提示。
+- `skills/subtitle-refine/`
+  上游新增的字幕清洗 skill，包含 SRT 检查脚本。
+- `skills/references/`
+  共享 workflow、coverage schema、figure provenance、evaluator playbook 和 note quality rubric。
+- `scripts/video_note_harness/`
+  跨课程复用的 bootstrap、evaluation、validation 和 note gardening 工具。
+- `docs/quality/`
+  教材质量原则和已知失败模式。
+- `templates/`
+  上游新增的通用 TeX 与 writing 模板。
 - `demos/video-render-pdf/`
   样例 PDF 输出目录，当前沿用历史目录名 `video-render-pdf`。
-- `runs/cme295_fall2025/`
-  当前 YouTube canonical 示例流水线，按单讲 workspace 组织，并包含结构化证据、coverage sidecar 和课程汇总脚本。
-- `runs/cs336_all/`
-  较早期的 legacy/reference 流水线，保留作历史示例，不再作为 YouTube skill 的主承载路径。
+- `runs/`
+  课程级 record system。每个 run 应保留 source manifests、coverage sidecars、lecture notes、evaluator/validator 记录和最终 deliverable。
+- `deliverable/`
+  最外层本地 handoff 目录，汇总所有已完工 run 的最终 PDF。
 
 ## 使用方式
 
