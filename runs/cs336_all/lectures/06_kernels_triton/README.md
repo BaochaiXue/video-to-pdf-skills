@@ -1,10 +1,5 @@
-# Lecture 6: Kernels, Triton
+# Lecture 06: Kernel、Triton 与 XLA
 
-- Video ID: `E8Mju53VB00`
-- Cover: [cover.jpg](cover.jpg)
-- Transcript: [transcript.txt](transcript.txt)
-- Official material: [official.txt](official.txt)
-- Generated notes: [notes.md](notes.md)
-- Official trace: [official_trace.json](official_trace.json)
-
-This folder is the lecture-specific workspace for refining this lecture into its own polished note/PDF.
+- video: https://www.youtube.com/watch?v=xnDHaNUvHBg
+- material: lecture_06.py
+- basis: Spring 2026 public playlist subtitles + official course page/materials.

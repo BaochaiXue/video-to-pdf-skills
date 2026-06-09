@@ -1,8 +1,98 @@
 Lecture 4
-M IXTUR ES OF E XPERTS
+A T T E N T I O N A LT E R N AT I V E S A N D M I X T U R E S O F E X P E R T S
 
-        CS336
-       Tatsu H
+                                   CS336
+                                  Tatsu H
+
+Attention alternatives
+Cost of attention rises with large context sizes… how do we control those costs?
+
+                                          https://www.meibel.ai/post/understanding-the-impact-of-increasing-llm-context-windows
+
+The ‘basic’ toolkit
+
+Combine local + global attention                     Systems engineering
+
+          But what if we want more radical and potentially large gains?
+
+Linear attention
+Consider the usual attention operation.. 𝑄 ∈ 𝑅 𝑛×𝑑𝑘 , 𝐾 ∈ 𝑅 𝑛×𝑑𝑘 , 𝑉 ∈ 𝑅 𝑛×𝑑𝑣
+
+                                      𝐴𝑡𝑡𝑛 𝑄, 𝐾, 𝑉 = 𝜌 𝑄𝐾 ⊤ 𝑉
+
+This is quadratic due to 𝑄𝐾 ⊤ (𝑛 2 𝑑𝑘 ). Can we do better (when 𝜌 is the identity)?
+
+                                            𝑄𝐾 ⊤ 𝑉 = 𝑄(𝐾 ⊤ 𝑉)
+
+This is very silly, but surprisingly important.. We get from 𝑛 2 𝑑𝑘 + 𝑛 2 𝑑𝑣 to 2𝑛𝑑𝑣 𝑑𝑘
+
+                     [Shen et al 2018, Katharopoulos 2020 for kernel version. Also connections to things like fast weight programmers]
+
+Recurrent form of linear attention
+
+Recall that in purely linear attention, we consider the reordering
+
+                                      𝑄𝐾 ⊤ 𝑉 = 𝑄(𝐾 ⊤ 𝑉)
+
+This is linear time (great) but the even nicer thing is that this looks like a RNN.
+
+                             𝑆𝑡 = 𝑆𝑡−1 + 𝑘𝑡 𝑣𝑡⊤ and 𝑦𝑡 = 𝑞𝑡⊤ 𝑆𝑡
+
+This ‘duality’ allows us to train efficiently (using the parallel, quadratic form) and
+    inference efficiently (using the serial, linear form)
+
+                                                               (Note: if one weights 𝑆𝑡−1 by 𝛾, you get a RetNet)
+
+Minimax M1
+
+Minimax M1 (and minimax-text-01) use a 7-to-1 hybrid (7 linear, 1 full) linear attention.
+
+Performance (generally) seems strong, and they show linear scaling in context length
+
+From linear attention to Mamba-2
+Let’s generalize linear attention a little bit and add per-position weights..
+
+                   𝑆𝑡 = 𝑆𝑡−1 + 𝑘𝑡 𝑣𝑡⊤ and 𝑦𝑡 = 𝑞𝑡⊤ 𝑆𝑡 (Linear attention)
+         𝑆𝑡 = 𝛾𝑡 𝑆𝑡−1 + 𝑘𝑡 𝑣𝑡⊤ and 𝑦𝑡 = 𝑞𝑡⊤ 𝑆𝑡 + 𝑣𝑡⊤ 𝐷 with 𝛾𝑡 = 𝑓(𝑥𝑡 )(Mamba-2)
+
+There is a lot more words to justify this (go read the mamba 2 paper) but the mechanics
+   is that we can make linear attention more expressive via gating (gating is good!)
+
+This continues to have duality properties (compute 𝛾 in parallel, apply duality)
+
+Nemotron 3
+
+Mamba attention hybrid (3-1 ish) – comparable (or better) pref to other similar models
+
+Gated delta net (and friends)
+Let’s generalize things further – gate the input and selectively erase the state.
+
+         𝑆𝑡 = 𝛾𝑡 𝑆𝑡−1 + 𝑘𝑡 𝑣𝑡⊤ and 𝑦𝑡 = 𝑞𝑡⊤ 𝑆𝑡 + 𝑣𝑡⊤ 𝐷 with 𝛾𝑡 = 𝑓(𝑥𝑡 )(Mamba-2)
+
+                        𝑆𝑡 = 𝛾𝑡 (𝐼 − 𝛽𝑡 𝑘𝑡 𝑘𝑡⊤ )𝑆𝑡−1 + 𝛽𝑡 𝑘𝑡 𝑣𝑡⊤ and
+                   𝑦𝑡 = 𝑞𝑡⊤ 𝑆𝑡 with 𝛾𝑡 = 𝑓 𝑥𝑡 , 𝛽𝑡 = 𝑓 𝑥𝑡 (Gated Delta Net)
+
+             The gated delta net adds a ‘no input operation’ gate (𝛽 = 0)
+          And erases anything in the direction of the current key (𝐼 − 𝛽𝑡 𝑘𝑡 𝑘𝑡⊤ )
+
+   Close relationships to various fast weight programming / test time training ideas.
+
+Qwen 3.5 / Qwen Next
+
+               The newest qwen are 3-1 GDN / Attention hybrids.
+ Once again, pretty reasonable performance with good inference characteristics
+
+Hybrid performance
+
+Not many controlled ablations, but some evidence of low losses at small hybrid ratios
+
+Alternative to hybrids: sparse adaptation
+Instead of attending to every token, do sparse attention (DSA)
+
+          The indexer can be very lightweight, giving significant gains
+         Can be ‘post hoc’ adapted after dense short context pretraining
+
+DSA – Deepseek Sparse Attention (v3.2, GLM5)
 
 Mixture of experts
 
@@ -77,7 +167,7 @@ Many of the routing algorithms boil down to ‘choose top k’
 Routing type
 Almost all the MoEs do a standard ‘token choice topk’ routing. Some recent ablations
 
-        Common routing variants in detail
+Common routing variants in detail
                                         Used in most MoEs
 
                                         Switch Transformer (k=1)
@@ -89,7 +179,7 @@ Hashing                                 Common baseline
 
                                                                  [Fedus et al 2022]
 
-        Other routing methods
+Other routing methods
 
 RL to learn routes              Used in some of the earliest work
                                 Bengio 2013, not common now
@@ -99,7 +189,7 @@ Solve a matching                Linear assignment for routing
 
                                                       [Fedus et al 2022]
 
-    Top-K routing in detail.
+Top-K routing in detail.
     Most papers do the old and classic top-k routing. How does this work?
 
            Gating
@@ -118,7 +208,7 @@ Recent variations from DeepSeek and other Chinese LMs
 
    Smaller, larger number of experts + a few shared experts that are always on.
 
-                                              (Used in DeepSeek / Qwen, originally from DeepSpeed MoE)
+                                               (Used in DeepSeek / Qwen, originally from DeepSpeed MoE)
 
 Various ablations from the DeepSeek paper
 
@@ -169,7 +259,7 @@ From Shazeer et al 2017 – routing decisions are stochastic with gaussian pertu
 1. This naturally leads to experts that are a bit more robust.
 2. The softmax means that the model learns how to rank K experts
 
-   Stochastic approximations
+Stochastic approximations
 
 Stochastic jitter in Fedus et al 2022. This does a uniform multiplicative perturbation for the
     same goal of getting less brittle experts. This was later removed in Zoph et al 2022
@@ -177,10 +267,9 @@ Stochastic jitter in Fedus et al 2022. This does a uniform multiplicative pertur
 Heuristic balancing losses
 Another key issue – systems efficiency requires that we use experts evenly..
 
-                                                                               From the Switch Transformer [Fedus et al 2022]
-                                                       𝛼𝑁
-               The derivative with respect to 𝑝𝑖 (𝑥) is 2 σ 1𝑎𝑟𝑔𝑚𝑎𝑥 𝑝 𝑥 =𝑖 ,
-                                                       𝑇
+                                                                                 From the Switch Transformer [Fedus et al 2022]
+                                                        𝛼𝑁
+               The derivative with respect to 𝑝𝑖 (𝑥) is 𝑇 2 σ 1𝑎𝑟𝑔𝑚𝑎𝑥 𝑝 𝑥 =𝑖 ,
                       so more frequent use = stronger downweighting
 
 Example from deepseek (v1-2)
@@ -197,25 +286,29 @@ They call this ‘auxiliary loss free balancing’
 
 What happens when removing load balancing losses?
 
-  Training MoEs – the systems side
+Training MoEs – the systems side
 
 MoEs parallelize nicely – Each FFN   Enables additional kinds of parallelism
-         can fit in a device
+          can fit in a device
 
 Training MoEs – the systems side
 MoE routing allows for parallelism, but also some complexities
 
 Modern libraries like MegaBlocks (used in many open MoEs) use smarter sparse MMs
 
+MoE parallelism and architecture modifications
+
+New ideas from Nemotron 3 – down-projecting the activations to reduce communication
+
 Fun side issue – stochasticity of MoE models
-There was speculation that GPT-4’s stochasticity was due to MoE..
+MoEs can have additional stochasticity beyond normal models..
 
 Why would a MoE have additional randomness?
 
      Token dropping from routing happens at a batch level – this means that
                    other people’s queries can drop your token!
 
-  Issues with MoEs - stability
+Issues with MoEs - stability
 
                                                                                    [Zoph 2022]
 
@@ -225,7 +318,7 @@ Z-loss stability for the router
 
 What happens when we remove the z-loss?
 
-     Issues with MoEs – fine-tuning
+Issues with MoEs – fine-tuning
                          Sparse MoEs can overfit on smaller fine-tuning data
 
 Zoph et al solution – finetune non-MoE MLPs             DeepSeek solution – use lots of data 1.4M SFT
@@ -239,7 +332,7 @@ Uses the MiniCPM model (topk=2, 8 experts, ~ 4B active params).
 
 Simple MoE, shows gains from the base model with ~ 520B tokens for training
 
-    Upcycling example – Qwen MoE
+Upcycling example – Qwen MoE
     Qwen MoE – Initialized from the Qwen 1.8B model top-k=4, 60 experts w/ 4 shared.
 
 Similar architecture / setup to DeepSeekMoE, but one of the first (confirmed) upcycling successes

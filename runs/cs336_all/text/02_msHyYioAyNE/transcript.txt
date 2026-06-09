@@ -1,1634 +1,1423 @@
-Okay, so last lecture I gave an overview
-of language models and what it means to
-build them from scratch and why we want
-to do that. Also talked about
-tokenization which is going to be the
-first half of the first assignment. Um
-today's lecture will be going through
-actually building a model. Um we'll
-discuss the primitives in PyTorch that
-are needed. Um, we're going to start
-with tensors, build models, optimizers,
-and training loop. And we're going to
-place close attention to efficiency, in
-particular, how we're using resources,
-both um memory and
-compute. Okay. So, to motivate things a
-bit, here's some here's some
-questions. Okay. Um, these questions are
-going to be answerable by napkin math.
-So, get your napkins out. Um, so how
-long would it take to train a 70 billion
-parameter dense transformer model on 15
-trillion tokens on 1,24
-H100s? Okay, so you know, I'm just going
-to sketch out the sort of the give you a
-flavor of the type of things that we
-want to do. Okay, so here's how you go
-about reasoning it. Um, you count the no
-total number of flops um needed
-to um, you know, train. So that's six
-times the number of parameters times the
-number of tokens. Okay. And where does
-that come from? That will be uh what
-we'll talk about in this lecture. Um you
-can look at the promised number of flops
-per second that H100 gives
-you. Um the MFU, which is something
-we'll see later. Let's just set it to
-0.5. Um and you can look at the number
-of flops uh per day that your hardware
-is going to give you at this particular
-MFU. So 1,024 of them
-um for um you know one day and then you
-just divide the total number of flops
-you need to train the model by the
-number of flops that you're supposed to
-get. Okay. And that gives you about
-144. Okay. So this is very simple uh
-calculations at the end of the day. Um
-we're going to go through a bit more
-where uh these numbers uh come from and
-in particular where the six times number
-of um parameters times number of tokens
-comes from. Um okay so here's a
-question. What is the largest model you
-can train on H eight H100s using atom W
-if you're not being uh too
-clever. Okay so um H100 has 80 gigabytes
-of HBM uh memory. Um the number of bytes
-per parameter that you need for the
-parameters the gradients optimizer state
-is uh 16 and we'll talk more about where
-that comes from. Um and the number of
-parameters uh is basically total amount
-of memory divide by number of bytes you
-need per parameter and that gives you uh
-about 40 uh billion parameters. Okay.
-And this is very rough because it it
-doesn't take you into activations which
-depends on batch size and sequence
-length which I'm not really going to
-talk about but will be important for
-assignment
-one. Okay. So this is a rough back
-envelope calculation. And this is
-something that you're probably not used
-to doing. You just implement a model,
-you train it and what happens happens.
-But remember that efficiency is the name
-of the game. And to be efficient, you
-have to know exactly how many flops
-you're actually expending because when
-these numbers get large, these directly
-translate into dollars and uh you want
-that to be as small as possible. Okay,
-so we'll talk more about the the details
-of how these numbers uh arise.
-Um you know, uh we will not actually go
-over the transformer. So Tatu is going
-to talk at a um over the conceptual
-overview of that next time. Um, and
-there's uh many ways you can learn about
-transformer if you haven't already uh
-looked at it. There's assignment one. If
-you do assignment one, you'll definitely
-know what a transformer is. Um, and the
-handout actually does a pretty good job
-of walking through all the different
-pieces. There's a mathematical
-description. If you like pictures,
-there's pictures. There's a lot of stuff
-you can uh look on online. So, but
-instead I'm going to work with simpler
-models and really talk about the
-primitives and the resource accounting
-piece. Okay. So remember last time I
-said what kinds of knowledge can you
-learn? So mechanics um in this lecture
-it's going to be just pietorch and
-understanding how pietorch works at um a
-fairly primitive uh level. So that's
-will be pretty straightforward. Mindset
-is about resource accounting and it's
-not hard. It's just you just have to do
-it. And intuitions um unfortunately this
-is just going to be broad strokes uh you
-know for now. Actually, there's not
-really much intuition that I'm going to
-talk about in terms of how um anything
-we're doing translates to good models.
-Um this is more about the M mechanics
-and
-mindset. Okay. So, let's start with
-memory accounting. Um and then I'll talk
-about compute accounting. Um and then
-we'll build up bottom up. Okay. So, the
-best place to start is a tensor. So
-tensors are the building block of for
-storing everything in deep learning.
-Parameters, gradients, optimizer, state,
-uh data, activations. There's sort of
-these atoms. Um you can read lots of
-documentation about them. Um you're
-probably very familiar with how to
-create tensors. There's creating tensors
-different ways. Um you can also create a
-tensor and not initialize it and use
-some special uh initialization um for
-the parameters um to um if you want. Um
-okay so those are um you know
-tensors. Um so let's talk about memory
-and how much uh memory tensors take up.
-So every tensor that we'll probably be
-interested in is stored as a
-floatingoint number. And so there's many
-ways to represent floating point. So the
-most default uh way um is float 32. And
-float toy2 has 32 uh bits. They're
-allocated one for sign, eight for
-exponent, and 23 for the you know the
-fraction. So exponent gives you dynamic
-range and fraction gives you you know uh
-different basically specifies different
-values. Um so flow 32 is also known as
-FP32 or single uh you know precision um
-is sort of the gold uh standard um in
-you know computing. Some people also
-refer to flow 3 as full precision.
-That's a little bit confusing because
-full is really depending on who you're
-talking to. Um, if you're talking to a
-scientific computing person, they'll
-kind of laugh at you when you say float
-32 is uh is really full because they'll
-use float 64 or even more. Um, but if
-you're talking to a machine learning
-person, float 32 is the max you'll ever
-probably need to go because deep
-learning is is kind of sloppy like
-that. Okay. So, let's look at the
-memory. So, the memory is it's very
-simple. It's determined by the number of
-values you have in your tensor and the
-data type of each value. Okay, so if you
-create a torch sensor of 4x8 matrix, um
-the default it will give you a type of
-uh flow 32 um the size is 4 by8 and the
-number of elements is 32. Each element
-size is four bytes. Um 32 bits is four
-bytes. Um and the memory usage is simply
-the number of elements times the number
-of um uh size of each element and
-that'll give you 128 bytes. Okay, so
-this is should be pretty um easy and
-just to give some intuition if you get
-the one matrix in the F4 layer of uh
-GPT3 is this number by this number and
-that gives you 2.3 gigabytes. Okay, so
-that's one matrix is you know can these
-matrices can be pretty big.
-Okay, so uh float 32 is the default. Um
-but of course these matrices get big. So
-um naturally you want to make them
-smaller so you use less memory. And also
-it turns out if you make them smaller
-you also uh make it go faster too. Okay.
-Um so another type of uh representation
-is called float 16 and as the name
-suggests it's uh 16 bits um where both
-the exponent and the fraction are um
-shrunk down from um 8 to 5 and 23 to 10.
-Okay, so this is known as half precision
-and it cuts down half the memory. Um,
-and that's all great except for the
-dynamic range uh for these float 16
-isn't great. So, for example, if you try
-to make a number um like uh 10 e 1 e
-minus 8 in flow 16
-um it uh basically rounds down to zero
-and you get underflow. Okay. So uh the
-flow 16 is not great for representing um
-very small numbers or or very big
-numbers as a matter of fact. Um so if
-you use float 16 u for training for
-small models it's probably going to be
-okay but for large models when you're um
-having lots of matrices and you can get
-uh instability or underflow or overflow
-and bad things happen. Um okay so um one
-um thing that has happened which is nice
-is there's been another representation
-of B float 16 which stands for brain
-float um this was developed in 2018 to
-address the issue that for deep learning
-um we actually care about dynamic range
-more than uh we care about this
-fraction. So basically BF16 allocates
-more to the exponent and less to the
-fraction. Okay. So it uses the same
-memory as um floating point 16 but it
-has a dynamic range of float 32. Okay.
-So that sounds really good. Um and it
-actually uh the catch is that this
-resolution which is determined by the
-fraction is worse. Uh but this doesn't
-matter as much uh for deep learning. So
-now if you try to create a a tensor with
-one E minus 8 in BF16 then you get
-something that's not
-zero. Okay. So um you can dive into the
-details. I'm not going to go into this
-but you can stare at the actual full
-specs of all the different floating
-point you know
-operations. Okay. Okay, so BF16 is
-basically what uh you will typically use
-to do computations because um it's it's
-sort of you know good enough um for fear
-computations. It turns out that um for
-storing optimizer states and parameters
-you still need float 32 um for otherwise
-your training will go um haywire.
-Um so if you're bold so now we have um
-something called FP8 or uh 8bit and as
-the name suggests um this was developed
-in 2022 um um by you know Nvidia so now
-they have um essentially if you look at
-FP and BF16 it's like this and FP wow
-you really don't have that many bits to
-store stuff right so it's very crude Um
-there's there's two sort of variants
-depending on if you want to have more
-resolution or more um dynamic range. Um
-and um I'm not going to say too much
-about this but FE8 is you know supported
-by H100. It's not really available on
-previous generation.
-Um but but at a high level, you know,
-training with float 32, which is I
-think, you know, is is what you would do
-if you're not trying to optimize, you
-know, too much and it's it's sort of
-safe. It requires more memory. Um you
-can go down to FP8 or
-BF16. Um and but you can get some
-instability. Um, basically I don't think
-you would probably want to use uh a
-float 16 at this point for for deep
-learning. And um you can become more
-sophisticated by looking at particular
-places in your pipeline either forward
-pass or backward pass or optimizers or
-gradient accumulation and really figure
-out what the minimum precision you need
-at this particular places. And that's
-called gets into kind of mixed precision
-training. So for example, some people
-like to use flow 32 for the you know the
-attention to make sure that doesn't kind
-of uh you know get messed up of what
-four simple F4 passes with Matt Mall's
-BF-16 is is is
-fine. Okay, pause a bit for for
-questions. So we talked about tensors
-and we looked at uh depending on how
-what representation how much storage
-they take.
-Yeah. Can you just clarify about the mix
-position like when you would use 32 in
-the be? Yeah. So the question is when
-would you use um uh flow 32 or BF16?
-Um I don't have time to get into the you
-know the exact uh details and it sort of
-varies depending on the model size and
-everything but um generally for the the
-parameters and optimizer states you use
-float 32. You can think about BF16 as
-something that's more transitory like
-you you basically take your parameters
-you cast it to BF16 and you kind of run
-ahead with that model but then the thing
-that you're going to accumulate over
-time you want to have higher precision.
-Yeah. Okay. So now let's talk about uh
-compute. So that was memory.
-Um so
-uh compute obviously depends on what the
-hardware you know is by default tensors
-are stored in CPU. So for example if you
-just in PyTorch um say X equals torch.0
-is 3232 then it'll put it on your CPU.
-it'll be in um the CPU memory. Um now,
-of course, that's no good because if
-you're not using your GPU, then you're
-going to be orders of magnitude too
-slow. So, you need to explicitly say in
-PyTorch that you need to move it to the
-GPU and this is uh you it's actually
-just to make it very clear in pictures,
-there's a CPU, it has RAM, and that um
-has to be moved over um to the the GPU.
-there's a data transfer um which is is c
-um which takes some work um takes some
-time okay so whenever you have a tensor
-in pietorch you should always keep in
-your mind where is this residing because
-just looking at the variable or just
-looking at the code you can't always
-tell and if you want to be careful about
-computation and data movement you have
-to really know where it is um you can
-probably do things like assert
-um where it is in various places of code
-just to um document or be
-sure. Okay. So
-um so let's look at uh what hardware we
-have. So we have um in this case we have
-one GPU. Um this was run on the H100
-clusters that you guys have access to.
-And um this um GPU is a you know H100 80
-GB of high bandwidth memory
-um and there's a you know it gives you
-the cache size and so on. Okay. So
-um so if you have remember the x is on
-uh CPU um you can move it uh just by
-specifying you know two which is a kind
-of a general pietorch function. Um you
-can also create a tensor directly on a
-GPU so you don't have to move it at all.
-Um and if everything goes well, I'm
-looking at the memory allocated before
-and after. Uh the difference should be
-exactly uh two 30 by 32x 32 um matrices
-of four byte floats. Okay. So um it's
-a192. Okay. Okay, so this is just a
-sanity check that um the code is is uh
-is doing what is
-advertised. Okay, so now you have your
-answers on the GPU. Um what do you uh
-do? So there's many operations um that
-you'll be needing for assignment one and
-in general to do any deep learning
-application. Um and most tensors you
-just create by performing operations on
-other tensors and each operations has
-some memory and compute uh footprint. So
-let's make sure we understand uh that.
-Um so first of all um what is actually a
-tensor in PyTorch right tensors are a
-mathematical object in PyTorch they're
-actually pointers into some allocated
-memory. Okay. So if you have let's say
-um a matrix 4x4 matrix um what it
-actually looks like is a long
-array and what the tensor has is
-metadata that specifies how to get to
-address into that array. And the
-metadata is going to be um you know two
-numbers a stride for each or actually
-number of one number per dimension of
-the of the tensor. in this case because
-there's um you know two dimensions it's
-uh you know stride zero and stride one
-um stride zero uh specifies if you were
-in dimension zero to get to the next row
-to increment that index how many do you
-have to skip and so going down the rows
-you skip four so stride uh zero is four
-and um to go to the next column um you
-skip one. So stride one is one. Okay. So
-with that to find an element let's say
-one two one comma two um it's simply
-just um multiply the indexes by the
-stride and you get to your index which
-is uh six here. So that would be here or
-or here. Okay. So that's basically
-what's going underneath the hood um for
-for for tensors.
-Okay, so this is um relevant because um
-you can have multiple tensors that use
-the same storage and this is useful
-because you don't want to copy the
-tensor all over the all over the place.
-So imagine you have a 2x3 matrix here.
-Um many operations um don't actually
-create a new tensor. They just create a
-different view and doesn't make a copy.
-So you have to keep make sure that um um
-your mutations uh if you start mutating
-one tensor it's going to cause the other
-one to
-mutate. Okay. So um for example if you
-just get um row
-zero okay so remember y is uh this
-tensor and sorry x is 1 2 3 4 5 6 and y
-is x0 which is just the first
-row. Okay. And um you can sort of double
-check. There's this you know function I
-wrote that says if you look at the
-underlying storage whether these two
-tensors have the same storage or not.
-Okay. So this um definitely doesn't copy
-the tensor. It just creates a view. Um
-you can get column one. Um this also
-doesn't uh copy the tensor. Um oops
-don't need to do that. Um you can call a
-view function which can take any tensor
-and uh ch look at it in terms of the
-different dimensions. Um 2x3 uh um
-actually this should be maybe the other
-way around. Uh as a 3x2 tensor
-um so that's also doesn't you know
-change uh do any copying. Um you can
-transpose um that also doesn't copy. Um
-and then you know like I said if you
-start mutating X um then Y actually gets
-mutated as well because X and Y are just
-pointers into the same underlying
-storage. Okay. So things are um one
-thing that you have to be careful of is
-that some views are contiguous which
-means that if you run through the tensor
-it's like just slide going through the
-the uh array in your storage. um but
-some are not. So in particular if you
-transpose it now you're you know what
-does it mean when you're you're
-transposing it you're you're sort of
-going down now so you're kind of if you
-imagine going through the tensor you're
-kind of skipping around and if you have
-a non-ontiguous tensor um then if you
-try to further view it in a different
-way then this is not going to
-work. Okay. So in some cases if you have
-a non-ontiguous tensor you can make it
-contiguous first and then uh you can
-apply whatever oper viewing operation
-you want to it and then in this case x
-and y um do not have the same storage
-because contiguous in this case uh makes
-a
-copy. Okay. So um this is just ways of
-slicing and dicing a tensor. Um uh views
-are free so feel free to use them define
-different variables um to make your it
-sort of easier to read your code um
-because they're not allocating any
-memory. Um but you know remember that
-contiguous or reshape which is basically
-contiguous view um uh can uh create a
-copy and so just be careful what you're
-doing. Okay, questions before moving
-on. All right. So, um hopefully some a
-lot of this will be review for those of
-you have uh kind of done a lot of
-PyTorch before, but it's uh helpful to
-just do it systematically, make sure
-we're on the same page. So, um here are
-some operations that uh do create new
-tensors and in particular elementwise
-operations all create new tensors
-obviously because you need a somewhere
-else to store the new value. Um there's
-a you know triangular U is also element
-operation that uh comes in handy when
-you want to create a causal attention
-mask um which you'll need for your um
-your assignment. Um but nothing is
-interesting that interesting uh here um
-um okay so let's talk about map malls.
-So the bread and butter of deep learning
-is matrix multiplications. And I'm sure
-all of you have done a matrix
-multiplication, but just in case this is
-what it looks like. Um you take a 16x32
-times a 32x2 matrix, you get a 16x2
-matrix.
-Um
-and but in
-general when we do you know our machine
-learning application um all operations
-are you want to do in a batch and in the
-case of language models this usually
-means um for every example in a batch
-and for every sequence in a batch you
-want to do something. Okay, so generally
-what you're going to have in instead of
-just a matrix is you're going to have a
-tensor where the dimensions are
-typically batch sequence and then
-whatever thing you're you're trying to
-do. In this case, it's a matrix for
-every um token in your in your data set.
-And
-so you know PyTorch is nice enough to
-make this uh work well for you. So when
-you take this for
-um the dimension tensor and this matrix
-um what actually ends up happening is
-that for every batch every example in
-every token you're multiplying these two
-um matrices. Okay. And then the result
-is that you get your your resulting
-matrix for each of the first two
-elements. So this is just like a there's
-nothing uh fancy going on but this is
-just a pattern that um I think uh you is
-helpful to you know think
-about okay so I'm going to take a little
-bit of a a digression and talk about um
-inops um and so the motivation
-fors is the following so normally you in
-pietorch you define some um you know
-tensors And then you see stuff like this
-where you take x and multiply by y
-transpose minus2 minus one and you're
-you kind of look at this and you say
-okay what is minus2 um well I think
-that's uh this sequence and then minus1
-is this hidden because you're indexing
-backwards. Um, and it's really easy to
-mess this up because if you look at your
-code and you see minus one, minus two,
-um, you're kind of if you're you're
-good, you write a bunch of comments, but
-then the comments are can get out of
-date with the code and then, um, you you
-have a bad time debugging. So the the
-solution is to use inops here. So this
-is inspired by Einstein's summation not
-notation. Um, and the idea is that we're
-just going to name all the dimensions.
-um instead of you know relying on
-indices essentially. Okay. So there's a
-library called Jack typing which um is
-is is helpful for um as a as a way to
-specify the dimensions in the types. So
-normally in PyTorch you would just
-define write your code and then you
-would comment oh here's what the
-dimensions would be. So if you use jacks
-typing then um you have this notation
-where as a string you just write down
-what the dimensions are. So this is a
-slightly kind of more natural way of
-documenting. Um now notice that there's
-no enforcement here right because
-PyTorch types are sort of a a little bit
-of a lie in in in PyTorch. Uh so it can
-be enforced. You you can use a checker,
-right? Yeah, you can write a check but
-um not by default.
+I hope everyone is staying dry.
+I'm not.
+So as I mentioned last time, the Marin project had a 1e23 FLOPs
+which was running, and it finished.
+And it actually matched the forecast.
+So remember we were running this.
+Each of these curves is essentially
+IsoFLOPs curve, which is a bunch of smaller model runs.
+And you try to find the compute optimal point.
+You fit a scaling law.
+And this was the point where we predicted the loss,
+and we ran the model and it got loss within 0.05.
+So I thought that was pretty cool.
+And if you extrapolate out to GPT-5 level performance,
+this is the loss you get.
+Of course, your mileage might vary depending
+on how these scaling loss are.
+OK, I just wanted to share that news.
+So last lecture I gave an overview of the entire class.
+And we are talking about tokenization,
+which is going to be on the first assignment.
+Today, I want to talk about resource accounting, which
+is going to be more on the systems side of things.
+So to recall, the main thing we're trying to do
+is train the best model we can given a finite set of resources,
+which could be compute, memory, sometimes data.
+But that's not really going to be a limiting factor for us
+in this class.
+And our goal is to simply to maximize
+the computational efficiency of our training.
+So before you can optimize the computational efficiency,
+we need to understand the efficiency of a given
+computation.
+And for that, we need to understand the compute
+and memory characteristics.
+Just to give you a taste of the type of questions
+you will hopefully be able to answer by the end of the class,
+so here's a question.
+How long would it take to train a 70 billion
+parameter model on 15 trillion tokens on 1024--
+actually, this should be H100.
+So how do you answer that?
+Well, there's a formula, which we'll
+talk about how you can get the number of FLOPs
+to be 6 times the number of parameters
+times the number of tokens.
+We can look up the spec sheet to see how fast the H100 is.
+We have this thing which called MFU, which we'll talk about 0.5.
+Then you can estimate the number of FLOPs
+that you need that the hardware gives you per day.
+And then you can compute the number of days.
+So the number of days is 143.
+Here's another question.
+What's the largest model you can train on H100s using AdamW?
+So you can look at, well, H100s have 80 gigabytes of each VM
+memory, the number of bytes per parameter, which is 2 plus 2
+plus 4 plus 4.
+We'll explain where that comes from.
+And then the number of parameters
+is that you can get is going to be about 53 billion.
+So there's some caveats here that we
+don't count the activations which
+depends on batch size and the sequence length.
+So this is all very rough back-of-the-envelope
+calculations.
+But hopefully by the end of this class
+you'll understand where these come from.
+And the point is not to precisely calculate
+every single thing, but just get the rough shape of things.
+OK.
+So last time I talked about knowledge and what you
+can take away from this class--
+mechanics, which are how things work.
+So today, that would be pretty straightforward.
+The mechanics are just how PyTorch work, how tensors work.
+It should be fairly--
+there's no magic here.
+The mindset I want to impart on you
+is that resource accounting is going to be very crucial.
+And I want everyone to get in the habit
+whenever you write this line of code,
+think about the performance characteristics.
+And then finally intuitions.
+Here we're just going to get a sense of the resources, how
+they're spent.
+There's going to be no ML magic today.
+I'll leave that to Tatsu for the next lecture.
+OK.
+So let's get into things.
+So let's start bottom up and start building up.
+So what is at the bottom?
+At the bottom are tensor.
+So tensors are the building block of storing everything.
+If you have parameters gradients, optimizer states,
+data activation, everything essentially is a tensor.
+So for example, you can take a look at the DeepSeek 3.2 model.
+And you see that the model itself is
+a bunch of different tensors.
+Each tensor has some shapes and also
+some precision, which I'll talk about later.
+And so as you know, tensor is subsume vectors,
+matrices, and can generalize to any number of entities.
+OK.
+So let's talk about how much tensors take to store.
+So it depends on the type of tensor.
+So in general, we're going to be dealing with tensors that
+store floating point, but tensors can also
+store integers and other types.
+So for floating point, typically whenever you talk about float,
+I think the standard people refer to as float
+what is called float32.
+So a float32, if you break it down, has 32 bits.
+One of the bits is a sign, 8 bits
+are the exponent, which gives you dynamic range.
+And the rest is the mantissa or the fraction,
+which gives you variation.
+This is also known as fp32 or single precision.
+And the term single precision comes from the fact
+that back in the day when you were doing scientific computing,
+float32 was like a baseline.
+It was just like you would expect if someone gave you
+a float, you would expect it to be at least single precision.
+And if you want more precision, then you
+can get double precision as that's float64.
+But in deep learning, we're going the other way,
+because even 32 is a lot.
+And the types of computations that we want to do
+don't demand the high precision that some kind
+of numeric simulations do.
+OK.
+So before we get to other types, let's just look at float32.
+So let's construct a 4 by 8 matrix.
+By default, the type of tensor you create is float32.
+So if you want something else, you should declare it.
+And the memory usage is just the number of elements times
+the element size here, which is 4 bytes for a 32-bit number.
+And that's going to be 128 bytes.
+So just to give you a kind of perspective,
+so in GPT-3, which is a fairly old model
+one of the matrix in the feedforward layer
+is about 2.3 gigabytes.
+So these tensors can get quite big.
+And this is not even the biggest one that one can imagine.
+OK.
+So since we're interested in efficiency,
+we want to generally reduce the amount of storage.
+And we'll see that as you reduce the precision,
+you actually save memory.
+And you also save time because operating on 16 bits
+is going to be faster, let's say, twice
+as fast, but not always.
+It depends.
+And then memory, by reducing memory,
+we'll see later that actually reducing memory
+can save time as well, which is maybe less obvious.
+But it will hopefully become clear.
+So the obvious thing is you say, OK,
+let's take away half the bits.
+Now you have float16.
+So float16 says you have a sign.
+You have only 5 bits of exponent,
+and then the rest is the mantissa.
+So float16 is good, except for its dynamic range is poor.
+So even if you have, let's say, try to construct 1e minus 8
+tensor, then that is actually just 0.
+So you can't really represent very big numbers,
+and you can't represent very small numbers.
+And the reason is that this exponent
+it's only 5 bits of exponent compared to 8.
+So if you train with fp16, which people did back in the day,
+you will get instability.
+You will get underflow.
+You get overflow.
+You'll get NaNs.
+It's pretty challenging.
+So bfloat16 was invented.
+So this was developed in actually 2018
+to address this issue.
+And the observation was that well, let's not compromise
+on the number of bits.
+The number of bits is going to be the same as fp16.
+But we're going to shift some of the bits from the mantissa
+to the exponent.
+So that means it has more dynamic range than float16.
+And it actually has the same dynamic range as float32.
+But of course, the resolution is worse
+because there's no free lunch here.
+But it turns out that in a lot of deep learning applications,
+this is well worth the trade-off.
+You want the dynamic range to not overflow and underflow.
+And because things are kind of sloppy and stochastic anyway,
+you don't need that much resolution.
+So let me actually skip over this part.
+So OK.
+So to summarize, what are the implications for training?
+So you can absolutely train with float32.
+And if you're training a small model,
+you probably just-- and you don't want to worry about it,
+just float32 is fine.
+But it requires 4 bytes of--
+sorry, 4 bytes of memory per float.
+And that can take up a lot of memory.
+And if you train with float16, then that's
+going to be too risky.
+So bf16 is the sweet spot.
+Even bf16 can be risky as well.
+Maybe [INAUDIBLE] a little bit.
+One thing that people have--
+has become common practice is to use mixed precision training.
+And the actually let me--
+OK, let me compile this again.
+I think these are stale.
+So mixed precision training is where some of the computations
+use some precision, and for other computations
+use other precision.
+So in general, as a general rule,
+bf16 is what you would use for parameters, activations,
+and gradients.
+And for optimizer states, you would use fp32.
+And we'll discuss a little bit more about that later.
+And to do invoke mixed precision training,
+so PyTorch has an AMP library.
+We're not going to talk too much about this,
+but you basically wrap your code,
+and PyTorch has-- the library takes care of it
+automatically for you in the sense
+that it tries to cast things into a bf16 when it's safe.
+So, for example, MatMuls are generally safe.
+But if you try to do exponentiation,
+then it will try to leave things as fp32.
+OK.
+So we could do bf16 I think is probably
+where this class will end.
+But if you're feeling very adventurous, you can go farther.
+So fp8, this was introduced four years ago.
+It actually has been standardized.
+So if you look at fp8, there's actually two versions
+because depending on if you need more dynamic range or more
+resolution.
+And there's two versions of them.
+And so we're not going to talk about that.
+But NVIDIA has some--
+the transformer engine supports fp8.
+And most recently, you can actually go down to fp4.
+So last year, NVIDIA developed nvfp4,
+and there's only 4 bits per value.
+So if you just to-- so we're on the same page.
+4 bits is not a lot.
+I can write all the values down on a single line here
+between minus 6 and 6.
+So that's not very much precision.
+Now there's a little bit of a cheat here.
+Because if you just naively only use these values,
+you're not going to be able to train very well.
+So what actually this means is that every value
+you can have this 4 bits of freedom, but there are blocks.
+And each block can be scaled up and down accordingly.
+So you can actually represent more values
+but you can't represent the full dynamic range
+for every single value.
+And there is a model released actually this year,
+the Nemotron 3 Super, which was trained in fp4,
+which I think is pretty cool.
+OK.
+So some of this it's just good to know.
+And some of this you can't even touch.
+It's not like you create a tensor
+and you call it fp-- you can make it fp4.
+A lot of this is done under the hood by NVIDIA's software stack.
+OK.
+This was a bit of a long digression,
+but it's maybe helpful to appreciate
+that the intricacies of precision here.
+Any questions before I move on?
 Yeah.
-Um okay. So let's look at uh the you
-know Ein sum. So Ein sum is basically
-matrix multiplication on steroids with
-good bookkeeping. Um so here's our
-example here. We have X which is let's
-just think about this as uh you have a
-batch dimension, you have a sequence
-dimension and you have uh four um
-hiddens and Y is the same size. um you
-originally had to do this thing. Um and
-now what you do instead is you basically
-write down the the dimensions uh names
-of the dimensions of the two uh tensors.
-So batch sequence one hidden batch
-sequence two hidden and you just write
-what you dimension should appear in the
-output. Okay. So I write batch here
-because I just want to uh basically uh
-you know carry that over and then I
-write seek one and seek two and notice
-that I don't write hidden and any
-dimension that is not named in output is
-just summed over and any dimension that
-is um named is sort of just iterated
-over. Okay. So
-um once you get used to this, this is
-actually very very uh you know helpful.
-It may maybe looks if you're seeing this
-for the first time it might seem a bit
-you know strange and long but u trust me
-once you get used to it'll be better
-than um doing minus2 minus one. Um if
-you're a little bit uh you know slicker
-you can um use dot dot dot to represent
-broadcasting over any number of
-dimensions. So in this case um uh
-instead of writing batch I can just
-write dot dot dot and this would handle
-the case where instead of maybe batch I
-have batch one batch two or or some
-other uh arbitrary long sequence.
-Yeah question does for compile this like
-is it guaranteed to compile to
-like I guess so the question is is it
-guaranteed to compile to something
-efficient? Um this uh I think the short
-answer is yes. Um I don't know if you
-have any you know nuances. We will
-figure out the best way to reduce the
-best order of uh dimensions to reduce
-and then use that. If you're using it
-within portra compile only do that one
-time and then you know reuse the same
-implementation over and over again
-better than anything designed by hand.
-Yeah. Okay.
-So um so let's look at reduce. So reduce
-operates on one tensor and it basically
-aggregates some dimension or dimensions
-of the tensor. So you have this tensor
-uh before you would write mean to sum
-over the the the final dimension and now
-you basically say um actually okay so
-this replace this with sum. So reduce
-and um again you say hidden and hidden
-is disappear disappeared. So which means
-that you are um aggregating over that
-dimension. Okay. So you can check that
-this indeed kind of works over
-here. Okay. So, so maybe one final
-example of uh this is um sometimes
-um in a you know tensor one dimension
-actually represents multiple dimensions
-and you want to unpack that and operate
-over one of them and pack it back. So um
-in this case uh let's say you have batch
-uh sequence and then this
-eightdimensional vector is actually a
-flattened representation of number of
-heads times some you know hidden
-dimension. Okay so and then you have a
-way a vector that is um needs to operate
-on that hidden dimension. So you can do
-this very elegantly uh using um inops uh
-by um re calling rearrange and this
-basically you can think about it we saw
-view uh before it's kind of like um kind
-of a you know fancier version which
-basically looks at the same data but uh
-um you know differently. Um so here uh
-it basically says this dimension is
-actually heads in hidden one. I'm going
-to explode that into two dimensions. Um,
-and uh, you have to specify the the
-number of heads here because there's
-multiple ways to split a number into,
-you know, two. Um, let's see. This might
-be a little bit long. Um, okay, maybe
-it's not worth looking at right now.
-Um and given that x you can uh
-perform your transformation using line
-sum. So this is something hidden one
-which corresponds to x and then hidden
-one hidden two which corresponds to w
-and that gives you um something hidden
-too.
-Okay. Um and then you can rearrange
-back. So this is the just the inverse of
-breaking up. So you have the your two
-dimensions and you group it into one. So
-that's just a flattening operation
-that's uh um you know with uh everything
-all the other dimensions kind of left
-alone. Okay. So there is a tutorial um
-for for this that I would recommend you
-go through and it gives you a bit more.
-So um on you don't have to use this um
-because you're building it from scratch.
-So you can kind of do anything you want
-but um in assignment one we do give you
-guidance and it's something probably to
-invest
-in.
-Okay.
-Um so now let's talk about
-uh computation uh no cost of t tensor
-operations. So we introduce a bunch of
-operations um and you know how much do
-they cost? So a floatingoint operation
-is uh any operation floating point like
-addition or multiplication. These are
-them and um these are kind of the you
-know main ones that are going to um I
-think matter in terms of flop count. Um,
-one thing that is uh is sort of a pet
-peeve of mine is that when you say
-flops, it's actually unclear what you
-mean. So you could mean flops with a
-lowercase s, which stands for number of
-floating operations. This is measures
-amount of computation that you've done
-or you could mean flops um also written
-with a uppercase s which means floating
-points per second which is used to
-measure the speed of hardware. So um
-we're not going to in this class use
-uppercase s because I find that very
-confusing and just write slash s to
-denote that this is floating point per
-second.
-Okay. Okay. So just to give you uh some
-intuition about flops. Uh GBD3 took
-about uh 323 flops. GPD4 was 2 E25
-flops. um speculation and there was a US
-executive order that any foundation
-model with over 126 flops had to be
-reported to government um which now u
-has been revoked um but the EU has still
-they're going u still has a something
-that's hasn't the EU AI act which is
-1e25 which hasn't been revoked
-um so uh you know some intuitions uh
-A100 has a peak performance of 312
-teraflop per second.
-Um and um H100 has a peak performance of
-um 1979 teraflop per second with uh
-sparsity and approximately 50% without
-um and um if you look at uh you know the
-Nvidia has these specification sheets um
-so you can see that um the the flops
-actually depends on what you're trying
-to do. So if you're using BF or F FP32,
-it's actually really really bad. Like
-the if you run FP32 on H100, you're not
-getting um it's it's orders of magnitude
-worse than if you're doing um FP16 or um
-and if you're willing to go down to FP8,
-then it can be even faster. And you
-know, for the for when I first read it,
-I didn't realize, but there's an
-asterisk here and this means with
-sparsity. So uh usually you're in a lot
-of the m matrices we have in this class
-are dense. So you don't actually get
-this. You get something like uh you know
-it's exactly half that number. Exactly
-half.
-Okay. Okay.
-So now you can do a bucket of envelope
-of calculations. eight H100s for two
-weeks is um just you know eight times
-the number of flops per second times the
-number of seconds in a in a in a week.
-Um actually this is this might be one
-week. Okay, so that's one week and
-that's uh 4.7 * e to the 21
-um which is you know some number and you
-can kind of contextualize the the flop
-counts with other um model counts.
-Yeah. Sparity mean? So that means if so
-what does sparsity mean? That means if
-your matrices are uh sparse it's a
-specific like structured sparity. It's
-like two out of four elements in each
-like group of four elements is zero.
-That's the only case if you get that
-that speed. No one uses it.
-Yeah, it's a marketing department uses
-it.
-Okay. So, um let's go through a simple
-example. So, remember we're not going to
-touch the transformer, but I think even
-a linear model gives us a lot of the
-building blocks and intuitions. So
-suppose we have end points each point is
-d-dimensional and the linear model is
-just going to match map each dimensional
-vector to a k dimensional uh vector.
-Okay. So let's set some number of points
-um is B, dimension is D, K is the number
-of outputs. Um and let's create our data
-matrix X um our weight matrix uh uh W
-and the linear model is just some map.
-So nothing you know too too interesting
-going on. And
-um you know the question is how many
-flops was that?
-And uh the way you would you look at
-this is you say well um when you do the
-matrix multiplication you have basically
-for every j k triple I have to multiply
-two numbers
-together and I also have to add that
-number to the the the total. Okay. So
-the answer is 2 times
-um the basically the product of all the
-dimensions involved. So the the left
-dimension, the middle dimension and the
-right
-dimension. Okay, so this is something
-that you should just kind of remember if
-you're doing a matrix multiplication.
-The number of flops is two times um the
-product of the three dimensions.
-Okay, so the flops of other operations
-are usually kind of linear in the size
-of um the the matrix or tensor. Um and
-in general, no other operation you
-encounter in deep learning is expensive
-as matrix multiplication for large
-enough uh matrices. So this is why I
-think a lot of the napkin math is very
-simple because we're only looking at the
-matrix multiplications that are going
-are performed by the model. Um now of
-course there are regimes where if your
-matrices are um small enough then the
-cost of other things starts to dominate
-but generally that's not a good regime
-you want to be in because the hardware
-is designed for big much multiplication.
-So um sort of by it's a little bit
-circular but by kind of we end up in
-this regime where we only consider uh
-models where the mammals are the
-dominant um uh you know
-cost. Okay any questions about this this
-number two times the product of the
-three dimensions. This is just a useful
-thing. Would the algorithm of matrix
-motivation always be the same? because
-the chip might have optimized
-that they always the same.
-Yeah. So the question is like uh is the
-does this essentially does this depend
-on the the matrix multiplication you
-know algorithm. Um in general I guess
-we'll look at this the next week when we
-or the week after when we look at
-kernels. I mean actually there's a lot
-of optimization that goes underneath
-under the hood when it comes to matrix
-uh multiplications. Um and there's a lot
-of specialization depending on the
-shape. Um so this is I would say this is
-just a kind of a crude you know estimate
-um that is ba basically like the right
-order of
-magnitude. Okay. So um yeah uh additions
-and multiplications are considered
-equivalent. Yeah, additions and
-multiplications are considered are
-equivalent.
-So um one way I find helpful to
-interpret this so at the end of the day
-this is just a matrix multiplication but
-I'm going to try to give a little bit of
-meaning um to this um which is why I've
-set up this as kind of a little toy
-machine learning problem. So B is really
-stands for the number of data points and
-DK is the number of parameters. So for
-this particular model the number of
-flops that's required for forward pass
-is two times the number of tokens or
-number of data points times the number
-of
-parameters. Okay. So this turns out to
-actually generalize to transformers.
-There's an asterisk there because uh
-um there there's you know the sequence
-length and other stuff but this is
-roughly right for uh if your sequent
-length isn't isn't too
-large.
-Um
-so okay so
-now this is just a number of
-floatingoint operations right um so how
-does this actually translate to a walk
-like time which is presumably the thing
-you actually care about how long do you
-have to wait for your run um so let's
-time this so I have this function that
-is just going to
-um
-um do it five times and I'm going to
-perform the matrix multiply operation.
-Um we'll talk a little bit later about
-this um um two weeks from now why the
-other code is here. Um but um for now we
-get an actual time. So that matrix uh
-took you know 0.16 seconds
-um and the actual flops per second which
-is how many flops did it do per second
-is uh 5.4
-E13. Okay. So now you can compare this
-with you know the marketing materials
-and um for the A100 and H100
-um and you know as we look at the spec
-sheet the the flops depends on the data
-type and we see that the the promise
-flops per second which um you know for
-H100 for I guess this is for float 32 is
-you know 67 you know teraflops as we
-looked
-and so that is the number of promise
-flops per second we we had um and now if
-you look at the uh there's a helpful
-notion called model flops utilization or
-MFU which is the actual number of flops
-divided by the promise flops okay so you
-take the actual number of flops remember
-which
-what you actually uh you know witnessed
-the number of floatingoint operations
-that that are useful for your model um
-uh divided by the actual time it took
-divided by this promise flops per second
-which is you know from the glossy
-brochure um you can get a MFU of uh 0.8
-eight.
-Okay. So, usually you see people talking
-about their MFUs and um something
-greater than 0.5 is you usually
-considered to be good and if you're like
-you know 5% MFU that's uh considered to
-be really bad. usually can't get, you
-know, close to that close to, you know,
-uh, you know, 90 or 100 um because this
-is sort of ignoring all sort of
-communication and overhead. It's just
-like the literal uh computation of the
-flops. Okay. And usually MFU is much
-higher if the magic matrix
-multiplications dominate. Um Um, okay.
-So that's MFU. Any any questions about
-uh this? Yeah. Uh you're using the
-promise flop per sec uh not considering
-the sparse.
-So this promised flop per sec is uh not
-considering this as much. Yeah.
-Um one a note is like uh this is
-actually a you know there's also
-something called hardware you know flops
-uization and the the inov the motivation
-here is that we are all we're trying to
-look at
-the it's it's called model because we're
-looking at the number of effective
-useful operations that the model is you
-know performing okay And uh so it's a
-way of kind of standardizing. It's not
-the actual number of flops that are are
-done because you could have optimization
-in your code that cache a few things or
-redo um you know um recomputation of
-some things and in some sense you're
-still computing the same model. So what
-matters is that you're this is sort of
-trying to look at the model complexity
-and you shouldn't be penalized just
-because you were clever in your MFU if
-you were clever and you didn't actually
-do the flops um but you you said you
-did. Okay. So you can also do the same
-with
-BF16.
-Um Oops.
-And here we see that for uh BF the um
-the time is actually much uh better
-right so 03 um instead
-of.16 so the actual flops per second is
-higher um the even accounting for
-sparsity the the promise flops is uh
-still quite high so the MFU actually um
-lower for BF uh
-16. Um this is you know maybe
-surprisingly low but
-um but sometimes the promise flops is a
-bit of a you know
-optimistic. So always benchmark your
-code uh and don't just uh kind of assume
-that you're going to get certain um
-levels of
-performance. Okay. So uh just to
-summarize um matrix multiplications u
-dominate the the compute and the general
-rule of the thumb is that it's two times
-the product of the dimensions
-flops. Um
-the flops per second floating points per
-second depends on you know the hardware
-and also the data type. So the fancier
-the hardware you have, the higher it is,
-the the smaller the data type, the
-usually the faster it is. Um and uh MFU
-is a useful notion to look at how well
-you've you're essentially squeezing you
-know your your hardware.
-Yeah, I I've heard that often uh in
-order to get like the maximum
-utilization, you want to use these like
-tensor cores on the machine. And so like
-does PyTorch by default use these tensor
-cores and like are these uh accounting
-for that? Yeah. So the question is uh
-what about those tensor cores? So if you
-go to this um spec sheet um you'll see
-that
-um you know these are all on the tensor
-core. So the tensor core is basically
-you know you know specialized hardware
-to do um map models. Um so if you are
-um you know if you're so by default it
-should use it and if you especially if
-you're using PyTorch you know compile it
-will generate the the code that will um
-use the the hardware
-properly. Okay. So um let's talk a
-little about you know gradients. So, and
-the the reason is that we've only looked
-at matrix multiplication or in other
-words basically feed forward um forward
-passes and the number of flops. Um but
-there's also a computation that comes
-from computing gradients and we want to
-track down how much uh that is. Um
-okay so just to consider a simple
-example simple linear model um where you
-take the uh the prediction of a linear
-model and you um you look at the MSE
-with respect to five. though not a very
-interesting loss but I think it'll it's
-illustrative for uh looking at the the
-gradients. Okay. So remember in the
-forward pass you have your x you have
-your your w which um you want to compute
-the gradient with respect to you make a
-prediction um by taking a linear product
-and then you you have your loss. Okay.
-And in the backward pass uh you just
-call loss backwards. And um in this case
-the the gradient which is this variable
-attached to the tensor is um turns out
-to be what you what you
-want. Okay. So everyone has done uh you
-know gradients in PyTorch before.
-Um so let's look at how many flops uh
-are required for computing gradients.
-Um, okay.
-So, let's uh look at a slightly more
-complicated model. So, now it's uh a
-two-layer linear model where you have X
-which is B by D times um W1 which is D
-by D. So that's the first layer and then
-you take the your hidden activations um
-H1 and you pass it through another
-linear layer W2 and to get a K
-dimensional vector and you do some
-compute some
-loss. Okay, so this is a two-layer
-linear network. And just as a kind of
-review, if you look at the number of
-forward flops, um what you had to do was
-um you have to multiply look at W1. You
-have to multiply X by W1
-um and add it to your
-H1 and you have to take H1 and W2 and
-you have to add it to your your H2.
-Okay, so the no total number of flops
-again is 2 * the the product of all the
-dimensions in your map mall plus two
-times the product dimensions your m all
-for the second matrix. Okay, in other
-words, two times the total number of
-parameters in this
-case. Okay, so so what about the
-backward pass? So this part will be um a
-little bit more
-involved. Um so we can recall the model
-uh x to h1 to h2 and the loss. So in the
-backward path you have to compute a
-bunch of gradients and the gradients
-that are relevant is you have to compute
-uh the gradient with respect to um h1
-um you know h2 w1 and
-w2 of of the loss. So D loss D each of
-these variables. Okay. So how long does
-it take to compute that? Let's just look
-at W2 for now. Okay. So the things that
-touch W2 um you can compute by looking
-at the the chain rule. Um so
-W2 grad. So the gradient with of d loss
-dw2 is um you you sum um h1 times uh the
-gradient of the loss with respect to h2.
-Okay. So that's just a chain rule for um
-for w2. And this is um so all the
-gradients are the you know the same size
-as the underlying you know of vectors.
-Um
-so this turns out to be um essentially
-looks like a matrix uh you know
-multiplication and so the same you know
-calculus holds which is that it's 2
-times the number of uh the product of
-all the dimensions B * D *
-K okay but this is only the gradient
-with respect to uh
-W2 We also need to compute the gradient
-with respect to h1 because we have to
-keep on back propagating um to w1 and
-and so on. Okay. So that is uh going to
-be um you know the product of w2
-um you know times uh you know
-h2 sorry I think this should be that
-grad of h2 h2.grad red.
-Um so that turns out to also be
-essentially you know um looks like the
-matrix multiplication and it's the same
-number of flops for for computing the
-gradient of uh each
-one. Okay. So when you add the two uh so
-that's just for w2. Um you do the same
-thing for W1 and that's uh which has D *
-D parameters and when you add it all uh
-up it's uh so for this um for W2 the
-amount of computation was 4 * B * D * K
-and for W1 it's also 4 * B * D * uh D
-because W1 is D by
-Okay. So, um I know there's a lot of
-symbols here. I'm going to try also to
-uh give you a visual account for this.
-So, this is from a a blog post that I
-think um may work uh better. We'll see.
-Um okay, I have to wait for the
-animation to loop back. So, so basically
-this is uh one layer of the neuron now.
-It has um you know the hiddens and then
-the weights to the next layer. And so I
-have to Okay, the problem with this
-animation is I have to
-wait. Okay, ready set. Okay, so first I
-have to multiply W and A and I have to
-add it to this. That's a forward pass.
-And now I'm going to multiply this these
-two and then add it to to that. And I'm
-going to multiply and then add it to
-that. Okay.
-Any
-questions? Which a way to slow this
-down? Um, but you know, the details
-maybe I'll I'll let you kind of ruminate
-on, but um the the high level is that
-there's two times the number of
-parameters for the forward pass and four
-times the number of parameters for the
-backward pass. And um we can just kind
-of work it out uh via the chain row
-here. Yeah. For the homeworks, are we
-also using the you said some PyTorch
-implementation is allowed, some isn't.
-Are we allowed to use docu or we are
-doing the like entirely by hand doing
-the gradient? Uh so the question is in
-the homework are you going to compute
-gradients by hand? And the answer is no.
-Uh you're going to just use pietorch
-gradient. This is uh just to break it
-down so we can do the the um counting
-flops. Okay. Any any questions about
-this before I move on.
-Okay, just to summarize the forward pass
-is for this particular model is 2 times
-the number of data points times the
-number of parameters and backward is
-four times the number of data points
-times the number of parameters which
-means that total it's six times number
-of data points times parameters okay and
-that's explains why uh there was that
-six in the beginning when I asked the
-motivating uh
-question So now this is for a simple you
-know linear model. Um it turns out that
-mo many models this is uh basically the
-bulk of a computation.
-um when essentially every computation
-you do has uh you know touches
-essentially a new parameters roughly
-right and you know obviously this
-doesn't hold you can find models where
-this doesn't hold because you can have
-like one parameter through parameter
-sharing um and have you know a billion
-flops but that's generally what not what
-models look like.
-Okay, so let me um move
-on. Um so far I've I've basically
-finished talking about the the resource
-accounting. So we looked at tensors. We
-looked at some computation on tensors.
-We looked at how uh much tensors take to
-store and also how many flops takes
-tensors uh take when you do various
-operations on them. Um now let's start
-building up uh different you know
-models. Um I think this part isn't
-necessarily going to be um you know that
-uh you know conceptually you know
-interesting or challenging but it's more
-for maybe just you know
-completeness. Okay. So
-um so parameters in PyTorch are stored
-as these nn parameter
-um objects. Um let's talk a little bit
-about parameter initialization.
-Um so if you have let's say a
-uh um you know parameter that has uh
-okay so you you generate um a okay do
-your sorry your w parameter is an input
-dimension by hidden dimension matrix um
-you're still in the linear model case so
-let's just generate an input and let's
-feed it through the output okay so rand
-and unit no gausian
-is uh you know seems innocuous. Um what
-happens when you do this is that if you
-look at the output um you get some
-pretty large numbers right and this is
-because when you you know have the the
-number uh grows as essentially the
-square root of the the hidden dimension.
-Um and so when you have large models, uh
-this is going to you know blow up and um
-and training can be very unstable.
-Um so so typically what you want to do
-is initialize in a way that's um you
-know invariant to hidden or at least you
-know when you you're guaranteed that
-it's not going to you know blow up. And
-one simple way to do this is just
-rescale by the one over square root of
-number of you know of inputs. Um so
-basically let's redo this w equals you
-know parameter where I simply divide by
-the square root of the input dimension.
-Um and then now when you uh feed it
-through the output now you get things
-that are stable around you know this
-will actually concentrate to um you know
-something like normal 01.
-Okay, so this is basically you know this
-has been explored pretty extensively in
-deep learning literature is known uh up
-to a constant as Xavier initialization
-and typically I guess it's uh fairly
-common if you want to be extra safe uh
-you don't trust the normal because it
-doesn't have it has unbounded tails and
-you just say I'm going to truncate to
-minus 33 so I don't get any large values
-and I don't want any to to mess with
-that.
-Okay.
-Um Okay. So
-um so let's build a you know just a
-simple model.
-Um it's going to have um dimensions and
-two layers. There's this you know I just
-made up this name cruncher. It's a
-custom model which is a deep linear
-network which has um num layers layers
-and each layer is a a linear um model
-which has essentially just a matrix
-multiplication. Okay.
-Um so um this parameters of these this
-model is looks like um I have um
-um layers for the the first layer um
-which is a D byD matrix uh the second
-layer which is also a D byD matrix and
-then I have a um a head um or a final
-layer. Okay. So if I get the number of
-of parameters of this model, then it's
-going to be um d^2 + d ^2 + d. Okay, so
-nothing too surprising there. Um and I'm
-going to move it to the GPU because I
-run want this to run one fast. And um
-I'm going to generate some random data
-and feed it through the data. And the
-forward pass is just going through um
-the layers um and then finally applying
-the
-head. Um okay. So with that model I
-let's try to I'm going to use this model
-and do some you know stuff with it. Um
-but just one kind of general digression.
-Um, randomness is something that uh is
-is sort of can be annoying in some cases
-if you're trying to reproduce a bug for
-example. It shows up in many places
-initialization dropout data ordering.
-Um, and just a best practice is I we
-recommend you always pass a fix a random
-seed. Um, so you can reproduce your your
-model or at least as well as you can.
-Um and in particular having a difference
-random seat for every source of
-randomness is is you know nice because
-then you can for example fix
-initialization or fix the data ordering
-but vary other other things. Um
-determinism is your your friend when
-you're debugging. Um and you know in
-code unfortunately there's you know many
-places where you can use randomness and
-just be uh cognizant of you know which
-one you're using and just if you want to
-be safe just uh set the C2 for all of
-them. Um data loading um I guess I'll go
-through this quickly. It's it's not um
-it'll be useful for your your
-assignment. Um so in language modeling
-data is typically just a sequence of
-integers because this is remember output
-by the tokenizer. Um and you serialize
-them into um you can serialize them into
-numpire arrays. Um and one I guess thing
-that's maybe useful is that uh you don't
-want to load all your data into memory
-at at once because for example the llama
-data is the 2.8 8 terabytes. Um, but you
-can sort of pretend to load it by using
-this uh handy function called memap. So,
-which gives you essentially a variable
-that is mapped to a file. So when you
-try to access um the data it actually on
-the on demand loads the file and then
-using that you can uh create a data
-loader that um you know is a you know
-samples data from your um batch. So I'm
-going to skip over that just in interest
-of time. Um let's talk a little bit
-about you know optimizer. So we've
-defined our
-model.
-Um so there's many optimizers. Um just
-kind of maybe going through the
-intuitions behind some of them. So of
-course there's stocastic gradient
-descent. You compute the gradient of
-your batch. You take a step in that
-direction. No questions asked. Um
-there's a idea called momentum which
-dates back to classic optimization nest.
-um where you uh have a running average
-of your um gradients and you update
-against the you know the running average
-instead of your instantaneous you know
-gradient. Um and then you have um adrad
-which um you you know you scale the
-gradients by uh your
-um your the average over the the norms
-of your or I guess not the norms the the
-square of the gradients. You also have
-RMS prop which uh is a improved version
-of adigra which uses a exponential
-averaging rather than just like a flat
-average. And then finally atom which
-appeared in 2014 which is essentially
-combining RMS prop and momentum. So
-that's why you're maintaining both uh
-your running average of your gradients
-but also running average of your
-gradient squared. Okay. So since you're
-going to implement uh Adam um in
-homework one I'm not going to do that
-instead I'm going to implement um you
-know adrad so so the way you implement
-an
-optimizer in in you know pietorch is
-that you override the the optimizer
-class and you have to um uh let's see
-maybe
-I'll and I'll get to the implementation
-once we step through it Um so let's
-define some data. Um compute the forward
-pass on the loss and then you compute
-the gradients and then you when you call
-optimizer.step
-um this is where the optimizer uh
-actually is active. So what this looks
-like is um your parameters are grouped u
-by for example you have one for the
-layer zero layer one and then the final
-you know weights um and you can access a
-state which is a a dictionary from
-parameters to um you know whatever you
-want to store as optimizer state. um the
-gradient of that parameter you assume is
-already uh calculated um by the the
-backward pass. Um and now you can do
-things like um you know
-in in adrad you're storing the sum of
-the gradient uh squares. So you can get
-that G2 variable um and you can update
-that based on the square of the
-gradient. So this is element wise
-squaring of the um the gradient and you
-put it back into the
-state. Okay. So then your obviously your
-optimizer is responsible for updating
-the parameters and this is just the you
-know you update the learning rate times
-the gradient divided by this uh scaling.
-So now this state is kept over across
-multiple uh invocations of um you know
-the
-optimizer. Okay. So um and then at the
-you know end of your optimizer step you
-can you know free up the memory uh just
-to um which is I think going to actually
-be more important when you look when we
-talk about model parallelism.
-Okay, so let's talk about the memory
-requirements of uh the optimizer states
-and actually basically at this point
-everything. So um you need to uh the
-number of parameters in this model is d²
-times the number of layers plus d for
-the final uh head. Okay.
-Um the number of
-activations. So this is something we
-didn't do before but now for this simple
-model it's fairly easy to do. It's just
-um B times you know D times the the
-number of of layers you have for every
-layer for every data point for every
-dimension you have to hold the
-activations.
-Um for the gradients um this is the same
-as the number of parameters and the
-number of optimizer states in for
-adigrad it's uh you remember we had to
-store
-um the the gradient squared. So that's
-another copy of the parameters. So
-putting all
-together we have um the total memory is
-assuming you know FP32 which means four
-bytes times the number of parameters,
-number of activations, number of
-gradients and number of optimizer
-states. Okay. And that gives us uh you
-know some number which
-um is 496
-here. Okay. So this is um a fairly
-simple calculation in the assignment
-one. Um you're going to do this for the
-transformer which is a little bit more
-involved because you have to there's not
-just matrix multiplications but there's
-um many matrices there's attention and
-there's all these other things but the
-general form of the calculation is the
-same. You have parameters activations
-gradients and optimizer states.
-Okay. And
-the so and the flops required again for
-this model is six times uh the number of
-tokens or number of data points times
-the number of parameters and um you know
-that's basically concludes the resource
-uh accounting for this particular model.
-Um and uh if for reference if you're
-curious about working this out for for
-transformers you can um consult um some
-of these
-articles. Okay. So in the remaining time
-I think um maybe I'll pause for
-questions. Um and we talked about
-building up the tensors and then we
-built a kind of a very small model and
-you know we talked about optimization
-and how many how much memory and how
-much uh compute was required.
+Sorry.
+It was a question like, when you have a block,
+you're scaling all those same things in tensor by that block.
+So then the ratios of all that will still be in fp4.
 Yeah.
-So the question is why do you need to
-store the activations? So naively you
-need to store the activations because
-when you're uh when you're doing the
-peer pass the gradients um of let's say
-the first layer depend on the
-activation. So the gradients of the I
-layer depends on the activation there.
-Um now if you're smarter you don't have
-to store the activations or you don't
-have to store all of them. You can
-recomputee them and that's something a
-technique will uh called activation
-checkpointing which we're going to talk
-about later.
-Okay, so let's just do this quick uh you
-know actually there's not much to say
-here but you know here's your typical
-you know training loop um where you
-define the model define the optimizer
-and you get the data um feed forward
-backward and take a step in a parameter
-space
-um And
-um I
-guess it'll be more interesting I I
-guess next time I should show like
-actual one plug which I isn't available
-on this uh on this version but
-um
-so one note about checkpointing
-um so training language models takes a
-long time and you certainly will crash
-at some point so you don't want to lose
-all your progress.
-Um so you want to periodically save your
-model to disk and just to be very clear
-the thing you want to save is both the
-model and uh the
-optimizer and probably you know which
-iteration you're on. Um I should add
-that and then you can just load it up.
-Um one maybe final note and I'll uh end
-is um I alluded to kind of mix precision
-your training. Um you know choice of the
-data type has the different trade-offs.
-If you have higher precision it's uh
-more accurate and stable um but it's
-more expensive and lower precision vice
-versa. Um and as we mentioned before by
-default the recommendation is use float
-32 um but try to use VF uh 16 or even
-FP8 whenever possible. So you can use um
-lower precision for the FE forward pass
-um but flow 32 for the rest. Um and this
-is an idea that goes back to the you
-know 2017 there's exploring mixed
-precision training. Um, PyTorch has um
-some tools that automatically allow you
-to do, you know, mixed precision
-training. Um, because it can be sort of
-annoying to have to specify which parts
-of your model it needs to be, you know,
-what precision. Um, generally you define
-your model as, you know, sort of this
-clean modular thing and and the
-specifying the precision is sort of like
-a, you know, something that needs to cut
-across that.
-Um and one I guess maybe one kind of
-general comment is that people are
-pushing the envelope on what precision
-is needed. there's some you know papers
-that show you can actually use um FP8
-you know all the way you know through um
-there's um I guess one of the challenges
-is of course when you have lower
-precision it gets very numerically un
-unstable but then you can do various
-tricks to you know control the uh the
-numeric of your model during training so
-that you don't get into these you know
-bad regimes so this is where I think um
-the systems and the model architecture
-design kind of are synergistic because
-you want to design models now that we
-have a lot of model design is just
-governed by hardware. So even the
-transformer as we mentioned last time is
-governed by the having GPUs and now if
-we notice that you know Nvidia chips
-have the property that if um lower
-precision even like int four for example
-is one thing. Now if you can make your
-model training actually work on in four
-which is I think you know quite quite
-hard then you can get massive you know
-speed ups and your model will be more
-you know efficient. Um
-now there's another uh thing which we'll
-talk about later which is you know often
-you'll train your model using more sane
-you know floating point but when it
-comes to inference you can go crazy and
-you take your preach model and then you
-can quantize it and get a lot of the
-gains from very very uh aggressive
-quantization. So somehow training is a
-lot um more difficult to do with low
-precision but once you have a trained
-model it's much easier to um make it low
-precision. Okay. So um I will wrap up
-there just to conclude um we have talked
-about the different primitives to use to
-train a model building up from tensors
-all the way to the training loop. We
-talked about u memory accounting and
-flops accounting. um for these simple
-models. Um hopefully once you go through
-assignment one, all these concepts will
-be really solid because you'll be um uh
-applying these ideas for the actual
-transformer. Okay, see you next time.
+So the question is to just--
+[INAUDIBLE] maximum value is to have more specificity.
+Yeah, so the question is, OK, just
+to explain the block a bit more.
+So you have, let's say a block.
+Within that block, you can vary up within the 4 bits.
+And in addition, all those values
+can be scaled up and down according
+to how many bits you're scaling factor is.
+So if you look at an individual value,
+you actually get more than 4 bits of dynamic range.
+But it's just like you can't have
+this value be way over here and the neighboring value way
+down here.
+One question about, what about 1 bits [INAUDIBLE] affect 1 bit
+[INAUDIBLE]?
+Yeah, so there's a lot of training obviously.
+So maybe this is a good point.
+So the question is about 1 bit because you can't really
+go lower than that.
+So there's a difference between training and inference.
+So a lot of the low bit stuff, if we talk about--
+I think we'll talk about quantization later,
+is that you train a model on and maybe even bf16.
+And then you quantize into, let's say, 1 or 2 bits.
+And that is much easier than training a 1-bit language model,
+which I don't think anyone has done.
+Maybe it's possible, but I don't think
+anyone has trained anything credible there.
+OK.
+Let us go on then.
+So we talked about tensors.
+And the memory calculus is pretty simple,
+just the number of elements times however
+much memory each element takes up.
+So by default, the tensors you create in PyTorch
+are going to be on CPU.
+And of course, you have to-- if you want things to go fast,
+you want to move them to GPU.
+And actually, so there's a bit of a--
+I have a slight issue with the slides
+that they were executed on my laptop, which
+means that I don't have GPU.
+So some of the code I'll just show but not execute.
+OK.
+Let's see.
+This is maybe not that interesting,
+but I think everyone knows how to move tensors to GPU.
+But just remember to do that.
+Otherwise you won't get your speed-ups.
+OK, so we talked about memory of tensors,
+which is very straightforward.
+Now let's talk about computing with tensors.
+So before talking about FLOPs accounting
+for the tensor operations, let's take
+a little bit of a digression to talk about einops.
+So how many of you are familiar used einops before?
+OK.
+So maybe 2/3.
+OK.
+Good.
+So the motivation behind einops, for those of you
+who might not be indoctrinated is, it's very easy to mess up.
+Or I find it very confusing to look at code such as this.
+And you have x and y.
+And then you have transpose minus 2 and minus 1.
+And you're trying to figure out what minus 2 and minus 1 is.
+And so this is maybe the motivation
+for using variable and names rather than indices.
+So einops is a library for manipulating tensors
+where the dimensions are named.
+And this is inspired by Einstein summation notation.
+There's a nice tutorial which you can go through.
+I'm just going to cover some of the basics.
+So basically, the way to think about einsum
+is a generalized matrix multiplication
+with good bookkeeping.
+So here's an example.
+So I have a matrix 3 by 4.
+I have a 4 by 3 matrix.
+And if I do the MatMul, this is actually pretty nice.
+It's pretty easy to understand.
+In einops, basically you say x has two dimensions, the row
+and the column, which I'm going to name seq1 and hidden.
+I'm going to have y.
+That's a matrix which has also rows and columns, which I'm
+going to name hidden and seq2.
+And I'm going to produce tensor or here
+a matrix, where the dimensions are indexed by seq1 and seq2.
+And anything that is not mentioned here,
+the hidden gets summed out.
+So the way this works is I'm going to sum over--
+enumerate over all possible values of all the variables
+that occur here, which are seq1's hidden and seq2.
+And I'm going to basically index into x, index into y,
+multiply them and dump them, accumulate them
+into the result z sub seq1 and seq2.
+All right.
+So you say this is--
+come on.
+This is much easier than this, Right
+OK, let's try a more complicated example.
+So here's the example I showed before.
+Now we have a tensor.
+It's 2 by 3 by 4, another tensor 2 by 3 by 4.
+And if I were doing things the old way, basically what
+I'm doing is transposing these last two.
+And then because at implicitly batches
+the dimensions that are not the MatMul dimensions, then
+you get the answer.
+So you have to reason about this a bit.
+Einops makes this very clear.
+It says there's a batch dimension.
+There's seq1 hidden, seq2 hidden.
+And I'm just going to produce batch seq1 and seq2.
+And notice that there's no transpose because I just--
+in some sense I've done the transpose by the naming.
+If I had hidden and seq2, then it would be no transpose.
+I always get confused by transposes.
+And the fact I don't have to think about transposing it
+makes me happy.
+OK.
+So if you want to get fancy, you can say, well, batch--
+I'm just going to replace with dot, dot, dot.
+And this means that if I had, let's say, rank
+10 tensor with eight different batching dimensions,
+I can just write dot dot, dot without enumerating all of them.
+And this comes up in language modeling
+because you might have a batch dimension.
+You might have a sequence dimension.
+You might have a head dimension.
+And you're trying to do this matrix operation
+for all of them.
+And you might not want to have to just worry about this.
+And the nice thing is that you can write modular code where
+you can write this dot, dot, dot without worrying
+about even the shape of the tensor that comes in.
+All right.
+So that's eisum which is in the einops library.
+There's a reduce.
+So this is a generalization of sum, mean, max, and min.
+So for example, if you have, let's say, this tensor
+and you want to sum according to dimension of dim minus 1,
+which means sum along the last dimension here.
+So again, I don't like this notation.
+But what you can do is call reduce.
+And basically what you say is that there's
+some batching dimensions.
+In this case, it would be these first two.
+And then there's some hidden dimension
+which doesn't appear on the right side, which
+means that it gets summed.
+And here, I put sum, which means that the aggregation reduction
+operation is sum.
+But you can replace it with mean or max or min.
+Yeah.
+Is there some speed-up to this?
+This basically reduces to the same type
+of primitive operations.
+You can think about it as just sugar.
+So it should be the same.
+OK.
+So the final thing I'll talk about is rearrange.
+So this is, I think, a pretty powerful tool.
+I think it will come up in an assignment once.
+So sometimes you have a dimension
+that actually represents two dimensions,
+and you want to operate on one of them.
+And the reason this happens is that sometimes you have a matrix
+and you flatten it.
+And then you want to maybe unflatten and flatten.
+So this is the way that it works here.
+So imagine I have a matrix 3 by 8
+but where this dimension, 8 actually represents a 2
+by 4 matrix.
+So I want to multiply that 2 by 4 matrix by this 4 by 4 matrix.
+So what I'm going to do, actually, is to call rearrange.
+And what I am doing here is saying, look,
+this is some number of batch dimensions,
+which here just corresponds to the first element here.
+And then here, I use parentheses to say that this h actually
+represents the product of heads and hidden1,
+where I have to-- obviously there's multiple ways
+to decompose this.
+It could be 2 by 4, 4 by 2.
+So I said the number of heads is 2,
+which means that hidden1 is 4.
+And then I can break that up into two dimensions, heads
+and hidden.
+OK.
+So this creates this.
+So before x looked like this, and now x looks like this.
+So I guess this might be a little bit hard to see.
+So then you can perform your operation transformation on w.
+And this is what we've seen before where
+you have just a standard MatMul where
+there's some number of batching dimensions for x here.
+And this is hidden times hidden by hidden2.
+And then once you've done that transformation,
+you can rearrange it back.
+And this is straightforward.
+You basically look at two dimensions,
+and then you can group them into one dimension.
+Yeah.
+Could you take a two-dimensional thing
+and shape it into one dimension, aren't there two ways?
+Like, you can do it row major or column major?
+Yeah, so the question is if you have a one-dimensional thing
+and you shift it into-- sorry, you have a two-dimensional thing
+and you shift it into one-dimensional thing,
+which way do you do it?
+Well, the order you do it is specified in the order here.
+OK.
+Yeah.
+So sometimes I find it takes a bit of time to get it used to,
+but it's well worth it because once you have an einsum,
+you just think in a different way.
+And all the transposes and reductions, all that, it's just
+it becomes more fluid.
+You have to think through these more bespoke primitives.
+All right.
+So OK.
+We're going to use einops.
+We'll see a little bit later.
+So now let's go return back to the resource accounting
+question.
+So I have tensors.
+We've talked about how they take memory.
+So how much compute do they take?
+So the thing we're going to use to measure computation cost
+is the number of FLOPs.
+A FLOP is a floating-point operation.
+And we're going to assume it's a basic operation like addition
+or multiplication.
+So now there's other things that GPUs can do.
+But for the most part, we're just
+going to ignore them because these are the bread and butter,
+and are going to eat up most of your time.
+So one thing that is a pet peeve is that if I say the word FLOPs,
+it's actually ambiguous what I mean.
+So there's FLOPs, which is saying
+the number of floating-point operations,
+usually written FLOPs with a lowercase s.
+This is a measured amount of computation done.
+And then there's FLOP/s, which is floating-point operations
+per second.
+Sometimes it's also very confusing and written as FLOPS
+with uppercase S, which-- but I'm going to always write /s
+to make it clear that this is measuring the speed of hardware.
+So if you go and see that H100s have 800, 989 teraflops,
+it's the second.
+And when I say that GPT-3 took 325 or whatever it is FLOPs,
+that's the former.
+So just to get that out of the way.
+So just to give you an order of magnitude.
+So the number of FLOPs when I talk about 1e22 or 23 or 25,
+these are referring implicitly to the amount of compute
+or the scale of some of these models.
+And so if you look at H100s--
+if you look at this glossy spec sheet--
+actually it's not on this page.
+OK.
+Forget it.
+There is a spec sheet and I'll tell you
+that for bf16, the number of FLOP/s is 1979.
+And then you go and you benchmark it,
+and it's like wait a minute, that's not actually
+what I'm getting.
+And then you go read the fine print.
+And there's a footnote that says this is with sparsity.
+So sparse matrix and for dense over 2.
+So you always have to take these numbers divide by 2.
+So that's why you see these divide by 2.
+OK.
+So this allows us to--
+just for intuition, so if you have 8 H100s
+so there's one node for two weeks.
+That's 8 times the number of seconds per in two weeks.
+Actually, this looks like it's one week.
+OK fine.
+It's one week times the number of FLOPs you get per second.
+So that's about 5e 21.
+OK.
+So this is just of building intuition
+for the number of FLOPs that certain types of hardware have
+and how many FLOPs certain types of models require.
+It's nothing fancy.
+It's just math and napkin math.
+OK.
+So now let's do something more mechanical.
+So suppose you have a linear model.
+It turns out that a lot of this calculus of counting FLOPs
+is actually going to be at the core it's like linear MatMuls.
+So this is actually not without too much loss of generality.
+So you have n points.
+Each point is d-dimensional.
+And we're going to map each of these d-dimensional vectors
+to a k-dimensional output.
+So B is going to be the number of points.
+D is the number of dimension, input dimensions,
+and K is the number of output dimensions.
+OK.
+So let's construct some x, which is the data matrix
+B by D. The weight matrix is D by K.
+And when you do the MatMul, the question is how many
+FLOPs that is.
+And it turns out that this is going
+to be 2 times basically the product of all the three
+dimensions.
+And the way to see that is that we
+have one multiplication for each triple and then also one
+addition.
+So there's a minus 1, because if you
+don't have to actually add like in this case D minus 1 times.
+But let's ignore that.
+OK.
+I'll come back to this.
+If this was a bit fast, I think there's
+another way to derive this.
+So what about the FLOPs of other operations?
+So elementwise operations are just the size of a matrix.
+I think that's fairly clear.
+So addition also requires m n FLOPs.
+So in general, no other operation
+you'll encounter as expensive as matrix multiplication
+for large enough matrices.
+So in general, we're just going to focus
+on what MatMuls are doing, with important caveat of when
+we talk about memory.
+Yeah.
+Just from interest, there are some other algorithms
+for doing matrix multiplication.
+Is this only for just doing it normally?
+So the question is that there are other algorithms
+of doing matrix multiplication.
+You mean like sub cubic algorithms?
+Yes.
+So in general, that's--
+the optimization, the algorithms that people
+are going to explore for multiple matrix multiplications
+are going to be much more about how you co-design
+with the systems, rather than these more
+asymptotic algorithms.
+Yeah.
+We're considering additional multiplication
+in the same way is not possible to do division more efficiently
+than multiplication.
+Yeah, so I think the way the hardware is built,
+the two are basically the same.
+But yeah, intuitively it seems like I can do addition faster
+than I do multiplication.
+But the way the hardware is kind of the same.
+OK.
+So you can think about this MatMul
+as B is the number of data points.
+And D K is the number of parameters.
+So remember x is B by D and w is D by K.
+So another way to think about this formula
+is that the number of FLOPs in order to do
+a forward pass of this linear matrix
+is actually 2 times the number of tokens or data points
+times the number of parameters.
+So it turns out that this actually
+generalizes to transformers, which
+if you remember the 6 times n times d formula,
+we can see the shape of that forming.
+OK.
+So unfortunately these calculations
+are not going to be very meaningful
+because I'm doing this on CPU.
+But I'll just walk through the code here.
+So what we've so far done is measured FLOPs.
+So this is independent of hardware.
+It's just like the number of calculations
+you need to do for your model.
+So now the question is, how long does it actually
+take on hardware?
+So one way to find out is you just time it.
+So in this class, I think in the few lectures,
+we're going to talk more about benchmarking.
+But here's a little preview.
+So in general, when you time especially on GPU,
+you have to call cuda synchronize
+to make sure that-- because the GPU is running asynchronously,
+you want to make sure that you have this synchronization point.
+And then you perform the operation.
+And after operation, then you also
+have to have the synchronization barrier.
+If you omit this, you're going to find that wow,
+your timings are really fast.
+And that's because this is a non-blocking call.
+It just returns.
+And often it's general good practice
+to try this multiple times and take the average.
+So the actual FLOPs per second is basically the number of FLOPs
+you did times the time that you recorded on your hardware.
+And so remember, there's also another number, which
+is the GPU has a spec sheet.
+Let's see if I can pull it up on this link.
+I feel like maybe I have the wrong link.
+I'll have to fix that after class.
+--that it gives you some number of FLOPs,
+which was 989 teraflops.
+And so in general, the number of actual FLOPs per second
+is going to be different from the promised FLOPs per second.
+OK.
+Oops, sorry.
+And the way to directly think about the discrepancy
+is something called Model FLOPs Utilization, or MFU.
+And the definition of MFU is the actual FLOPs
+per second divided by the promise of FLOPs per second.
+And here this is ignoring the communication
+and other overhead.
+So you basically take the actual and divide by the promise.
+So in general, it's rare that you get more than was--
+I mean, it's-- yeah, you just never get anything more than
+what you were promised.
+Often you get less.
+And in general, if you get about MFU of 0.5 for modern models,
+you should be pretty happy with yourself.
+If you have just like a straight up MatMul,
+you can get maybe potentially like 80.8 even,
+but you usually can't get that high.
+And sometimes if you have really-- something's
+really wrong, you'll get something
+like 0.1, which means that you should do something.
+OK.
+So whenever you write your model, you can calculate.
+You now know how to calculate the MFU through a combination
+of counting the number of logical FLOPs
+that your model needs to do, and then looking at the wall clock
+time and essentially dividing.
+Yeah.
+Was there a question over there?
+Oh.
+[INAUDIBLE]
+Yeah.
+So is the promise-- what is the promise FLOPs number?
+That is in the spec sheet, it is already
+divided by 2 of the 989 number.
+And then on top of that, you only get 0.5 of that in general
+depending on your computation.
+[INAUDIBLE] you're getting 50% MFU?
+Yeah, so why are you getting only 50% MFU?
+Actually, that's a good question.
+I'll come back to that when we talk about memory bottlenecks.
+OK.
+So to summarize here, matrix multiplications
+dominate generally the computations.
+And that's by design.
+And the number of FLOPs per second depends on the hardware.
+So better hardware leads to more FLOPs
+and also it depends on the data type.
+Which means that if you look at the spec sheet,
+different data types will have different FLOPs.
+If you try to do float32 nowadays,
+it's going to be really, really slow because they're not really
+optimizing for that workload.
+Whereas now bf16 or fp8 are going to be much faster.
+And MFU-- now you know what MFU is.
+It's the actual FLOPs divided by promised FLOPs.
+All right.
+So to go back to the question of why is MFU 0.5.
+And to understand that, I'm going
+to have to introduce this idea of arithmetic intensity.
+And the reason is that, well, it's not just
+doing a bunch of MatMuls and then you're
+done and looking at how long the MatMuls take.
+This is my very cartoon version of what hardware looks like.
+You have high bandwidth memory.
+And then you have where the compute cores are,
+the accelerators chips are.
+And then how do you compute?
+Well, you have to send your inputs, your matrices--
+the tensors are sitting down here--
+from the memory to the accelerator.
+You do the computation, and then you send it back.
+So if you want to measure how long this takes,
+this depends on two things.
+One is the accelerator speed, which
+is what we've talked about just now.
+But the other thing that matters is the memory bandwidth
+of your hardware, which we haven't talked about.
+And if you look at the spec sheet,
+we talked about how the FLOPs per second was 1979e12 divided
+by 2.
+And the bytes per second, which is the memory bandwidth,
+this is 3.3 terabytes per second.
+And remember why we were looking at memory,
+how much things took to store.
+It's most obviously that, well, if you
+have a model that's too big it doesn't
+fit in your memory, that's not going to be fun.
+But also it turns out that memory--
+you need to move this memory, which takes time.
+So actually the size of how large things
+actually influences speed as well.
+OK.
+So I'm going to talk through some operations,
+and I'm going to basically compute
+how long things are going to take and introduce
+this idea of arithmetic intensity.
+OK, so suppose I have a million dimensional vector of bf16.
+And I'm going to just compute a ReLU on this.
+So remember ReLU is just max of x
+and 0 done elementwise on the entire vector here.
+So I count two things, one is the number
+of bytes that were moved.
+So I have to read x in--
+copy it into the accelerators.
+And each of this is going to be 2
+because bf16 is 2 bytes per float times n floats.
+So that's 2n.
+And then I'm going to write y back.
+So that's another 2n.
+OK.
+So that's the number of bytes that have to be moved.
+And then how many FLOPs were done?
+Well, each of these elements, I'm just comparing it with zero,
+and that's it.
+So that's n comparisons.
+So now I look at the communication time,
+which is the number of bytes that I needed to move divided
+by the speed of that movement.
+And that gives me the time, which is 1e minus 6 seconds.
+And what about the computation time?
+That's the FLOPs divided by FLOPs per second.
+So that's 1 minus 9.
+OK.
+So there's also going to be another important assumption
+which generally, we try to hold is that we overlap communication
+and computation.
+We're going to talk more about that when
+we talk more deeply about GPUs.
+But the idea is that in this case
+as we don't sit here waiting for the things to move.
+As soon as they're there, we start computing them,
+and then we move them back.
+So this movement and also the compute
+is happening at the same time.
+So mathematically, we're just going
+to assume that the total time is the max of the two,
+because we're going to assume that we can perfectly
+overlap them.
+In practice, it's not going to be perfectly overlapped.
+There's going to be some overhead.
+But this is good enough for now.
+OK.
+So the total time, as we see here, is 1e minus 6.
+OK.
+So if you ask what is the bottleneck here?
+So when the communication time is greater than the computation
+time, then we call it the algorithm memory bound,
+because you're spending most of your time just waiting
+for bits to show up.
+And when the computation time is greater
+and the communication time, that's
+compute bound, because then you're
+actually-- your bottleneck is actually doing the compute.
+And so in this case, what is ReLU?
+Rectified Linear Unit.
+Oh, sorry.
+Is it memory bound or compute bound?
+Memory bound.
+Yeah.
+And it's clear, because the compute is way less
+than the communication.
+So here's another way to see it.
+And this is where I'm going to define the intensity.
+So what is the intensity of an accelerator is essentially
+how much work can the accelerator do per byte
+transferred.
+And for any given accelerator based on the spec sheet,
+you basically have the FLOPs per second divided
+by the bytes per second.
+So how much useful work can you do per byte
+that's moved for each 100?
+That's 295.
+So that means for every byte of--
+you can do 295 floating point operations.
+So that's an intuitive number to have in your head, about 300.
+OK.
+So now the arithmetic intensity of algorithm
+is how much actual work was done per byte for this workload.
+And if you look at it for the ReLU computation,
+it's FLOPs over bytes and it's actually-- so this is actually
+a quarter, I guess, not half.
+So the point is that it's very small, 0.25.
+OK.
+So now we can talk about bottlenecks
+through the language of intensity.
+So something is memory bound if the arithmetic intensity is
+smaller than the accelerator intensity
+and compute bound if it's greater
+than accelerator intensity.
+So these are equivalent.
+And if you look at the algebra, it's
+basically you have two fractions.
+And then you just multiply and divide to-- you
+basically switch the terms around.
+OK.
+So in this case, we're memory bound.
+So in general, we're going to find ourselves in a situation
+where we're memory bound because data movement is expensive.
+And so if you can get higher arithmetic intensity,
+that's good.
+So 0.25, if you see that number, if someone tells you
+arithmetic density is 0.25, you should say, oh,
+this is really bad.
+Yeah.
+What's some typical arithmetic intensity for some transformer
+[INAUDIBLE]?
+Yeah, so we'll get to that.
+OK.
+All right.
+So OK.
+So one way to think about increasing arithmetic intensity
+is that let's just try to do more stuff per unit
+of byte moved.
+So the GELU is another activation.
+It looks like this, some formula that is more--
+doesn't have zeros.
+And if you do this calculation, the number of bytes are moved
+back and forth is still 2n plus 2n.
+And the FLOPs here it's about 20 FLOPs per elementwise scalar
+operation, so it's 20n.
+So the arithmetic intensity is, let's say, 5.
+This is a crude estimate.
+And in this case, are we memory bound or compute bound?
+Memory bound.
+Memory bound, because 5 is still smaller than 295, way smaller.
+So even though GELU does a lot of work, more work than ReLU,
+in the way that things are structured,
+it's still memory bound.
+Which means that if you were just computing ReLU and GELU,
+you think that, well, GELU is so complicated,
+it must be really expensive.
+But actually it's exactly the same,
+because that's not where the bottleneck is.
+OK, so now let's look at some linear operations,
+so dot product.
+So dot product, you have a vector x.
+You have a vector w, size n, and you take the dot product.
+So how many bytes are moved?
+So you read x, which is 2n; read w, which is 2n;
+and then you write y, which is a scalar, which is 2.
+And the number of FLOPs is you do the n multiplications
+and n minus 1 additions.
+So that's 2n minus 1.
+OK.
+So what's the arithmetic intensity?
+Oh, for this one, it's about half, which is also pretty bad.
+Which means that-- hopefully you get
+the idea-- it's memory bound.
+So what about a matrix vector product?
+So I have this x is a vector. w is an n by n matrix.
+And you form this product.
+How many of you think this will be compute bound?
+How many of you think memory bound?
+OK.
+So let's see.
+So I'm going to read x read, which is 2n; read w,
+which is 2n squared; and write y, which is 2n.
+And there's the number of FLOPs is basically
+you're doing n dot products.
+So that's n times the cost of doing a dot product.
+And the arithmetic intensity is barely, barely higher.
+So this is also memory bound.
+OK.
+So now let's talk about matrix multiplication.
+So this is where things get interesting.
+So I have an n by m matrix, another m by n matrix.
+And I multiply them.
+And the number of bytes that were moved was 2n squared plus
+2n squared.
+And then I have to write 2n squared bytes back to y.
+And the number of FLOPs here is n squared dot products.
+And then what's arithmetic intensity?
+It's 300.
+Whew.
+OK, so 340.
+And in general, it's roughly n over 3.
+And intuitively this makes sense because you're
+sending n squared things, but you're computing n cubed things.
+So the number of things you're computing over
+a number of things you're sending is order n.
+And this gets better the larger you make the matrices.
+So in general, this is why when you hear people talk about, oh,
+we need to make large batch sizes or have large matrices,
+it's exactly this.
+If you're under the accelerator intensity, making things smaller
+doesn't actually speed things up.
+It's all the same.
+Whereas if you get to a point where you're over this,
+then you're actually saturating your GPUs.
+OK.
+So finally, this is compute bound.
+OK.
+So as long as we have large matrices,
+we're actually pretty good.
+We're in a compute bound saturating the accelerator.
+And the question earlier about what about transformers?
+Well, it turns out we'll see in both your assignment,
+but also in the next lecture that transformers
+are essentially big matrix multiplications with some things
+sprinkled in between.
+So that's good news from arithmetic intensity.
+And this is, by design, transformer
+is designed in a certain way to have high arithmetic intensity.
+And one comment here, just to foreshadow
+the inference lecture, is that matrix vector products
+is essentially what goes on when you're
+doing transformer inference.
+Because inference, you're generating one token at a time.
+And so you only get to-- it's like a vector
+that you're trying to dot product with a matrix.
+And that's as we saw with memory bound.
+Whereas at training time, you get this whole sequence
+and you're processing all at once.
+OK.
+So note also that the intensity depends on the precision.
+So by default everything we're doing here is fp16.
+OK.
+So also to tie it to the other question about MFU,
+and the reason you might be getting low MFU is
+that while you might be doing--
+so MFU is a promise FLOPs--
+sorry, actual over promise.
+So if you have really large memory bottlenecks,
+then you're not actually going to get very good throughput,
+even though you--
+the promise is if you didn't have memory bottlenecks,
+you were just like going through and doing all the computations
+of your model.
+OK.
+Final thing on arithmetic intensity roofline plots.
+So there's a nice way to-- yeah.
+[INAUDIBLE] generally speaking, these models
+tend to be memory bound, as they say for most of the computation.
+But yet the accelerators are 50% is not as good.
+And maybe you get 70, maybe you get 80 that's really good,
+meaning that the accelerator is outsized
+compared to memory bandwidth.
+Why is it like that?
+Why do these accelerators--
+are just big while they're just idling or waiting for memory?
+So the question is, could you design maybe accelerators that
+had better characteristics?
+Yeah.
+Maybe when we talk about GPUs and understand
+a bit more how they work, we can talk about why this is.
+But if you have an answer, you should tell Jensen.
+And maybe you can design a better hardware.
+OK, so let's visualize the relationship between arithmetic
+intensity and performance.
+So this plot basically plots the arithmetic intensity
+on the x-axis.
+So every slice here corresponds to a particular, let's say,
+algorithm.
+And then we have these lines here.
+And each of these lines corresponds to, let's say,
+a particular accelerator.
+Maybe H100 or B200 or so.
+And so what this shows is-- and then on the y-axis
+is the FLOPs per second that are realized.
+So if your algorithm has low arithmetic intensity, like, ReLU
+or dot products, you're going to be
+over here, which means that the FLOPs per second realize
+is going to be not as high as your peak accelerator.
+And as you increase the memory arithmetic intensity,
+that's going to--
+things are going to be better.
+You're going to be able to saturate your hardware up
+until a certain point.
+And after a certain point your compute bound.
+And obviously you can't exceed the peak FLOPs.
+All right.
+So let's go on here.
+OK.
+So now I'm going to go back and talk about memory
+and compute for the operations that we need in training.
+So far we've done tensor operations, basically MatMuls.
+And we saw basically how much memory it took
+and how much compute it took and the interaction between them.
+So now let's actually think about what it takes to train.
+So here is our running example here.
+Actually it's not a linear network, just a deep network.
+So I'm going to consider a case where I have an input, which
+is a B by D input, and a number of layers
+where each layer is a D by D MatMul.
+And then that produces some set of preactivations
+and then element wise ReLU that produces some activations
+of the first layer.
+And then this is repeated again and again.
+And the output is just going to be the same size.
+So the deep network, I mean, just
+to see what it looks like in PyTorch,
+just so it's basically a set of blocks.
+Each block has a weight vector--
+sorry, a weight matrix associated with it.
+And so when you the number of parameters
+here is D squared times the number of layers L.
+And when you run the model on the batch of data, what we're
+doing is we're going through the layers, and each layer
+we basically apply the linear transformation and then
+a pointwise ReLU activation.
+And then we do that for all the layers.
+So this is hopefully straightforward
+very simple model.
+OK.
+So now let's talk about gradients.
+So let's use actually even simpler example.
+So this is just a simple linear model regression.
+So we have a vector 1, 2, 3, a weight vector 1, 1, 1.
+And we take the dot product, and we form this MSE loss.
+OK.
+And what happens when we take the-- do the backward pass is
+that each of the variables involved in this computation
+graph has a gradient that is either set or not set.
+So the w.grad gets set to 1, 2, 3.
+So this is just basic mechanics of PyTorch.
+I think it should be familiar to all of you.
+So now the question is, how much compute does gradients take?
+OK.
+So let's count FLOPs for computing gradients.
+So let's take a simplified model where
+you have an x, which is BID and times w1 matrix.
+We're going to ignore this ReLU for now
+just for simplicity times w2, which is the same D by D--
+same shape D by D matrix.
+OK.
+I'm going to use einsum here for reasons that will become clear.
+So the first thing you do in this linear network
+is you take x and you take w1. x is batch by input dimension.
+w1 is as in buy out, and you get a batch buy out.
+And h2 takes h1 and w2, and it's the same story.
+These are just MatMuls.
+And then you form a loss.
+I'm just sending it to some arbitrary just
+to get a number out.
+OK.
+So what happens in the backward pass,
+I'm going to call these retain gradients
+for debugging purposes, which you'll see later.
+You take the backward pass on the loss.
+And the question is, how much work
+did that-- how many floating point operations was that?
+So let's zoom in on one layer.
+Let's focus on the second layer here, so this layer.
+And so the second layer takes h1 and just multiplies it
+by a matrix w2 to get h2.
+And that's it.
+So if you look at the FLOPs in the forward pass,
+this is just a MatMul.
+And we just take the three dimensions,
+and we multiply them together and bf16.
+That's 2 bytes.
+Sorry, that's irrelevant.
+This is just 2 because it's an addition and a multiplication.
+So in the backward pass, what does this look like?
+So in the backward pass, if you remember your chain
+rule and your backprop algorithm,
+you have to compute two things.
+You have to compute the backward message,
+the gradient of the loss with respect to your input.
+And you also have to compute the gradient with respect
+to your parameters.
+And what do those gradients look like?
+This is just by the definition of these--
+I guess this is just the chain rule here written
+in einsum notation.
+You take the d loss d h2, which is h2 grad.
+That's a batch by Alt matrix, and you multiply it
+by w2, which is in by out.
+And then that gives you h1 grad, which is d loss d h1 and which
+is batch n.
+So I always get this confused whenever if you see--
+learn calculus, there's like, one of them has a transpose,
+and I forget which order to put them in.
+And einsum I think makes it very clear,
+because you can remember even just looking at the scalar case
+that it has to look like h1 grad is h2 grad times w2.
+And the only question is, how do you index things?
+And you index things by basically
+looking at the shape of these--
+and the named dimensions.
+And in this case, it's just a matrix multiplication
+where you are summing over the output dimension.
+And when you do that, we can check that.
+So h1.grad was the thing that was computed by loss.backward.
+And this is actually indeed the same thing
+that I wrote out here just as a sanity check.
+So the other thing you have to compute
+is w, the gradient with respect to the parameters.
+And that's d loss d h2 times h1.
+So it's the same kind of backward message that's
+coming back but multiplying with the other thing
+that you're not taking the gradient with respect to.
+And you just write out the dimensions.
+And in this case, you're summing over the batch dimension.
+But the nice thing is that if you just look at this,
+we know how expensive this is.
+The number of FLOPs is essentially the product
+of all the dimensions.
+It doesn't matter which ones you're batching or not.
+It's basically you enumerate over the i, j, k, and you
+aggregate.
+The way that you aggregate is different,
+but the FLOPs is the same.
+OK.
+So notice that the backward pass is exactly twice as
+expensive as the forward pass.
+And this is because you have to take--
+compute two gradients, one with respect
+to the parameters for each parameter,
+and then one with respect to the input,
+the other thing that's not the parameter.
+Maybe I'll pause.
+Any questions about that.
+OK.
+So now that was just for w2.
+And you just need to apply this to all the parameters
+in the network.
+And you put it all together, you will see that for this network,
+the forward pass is 2 times the number
+of data points, which is b times the number of parameters FLOPs.
+And the backward pass is twice of that,
+which is 4 times the number of data points times the number
+of parameters FLOPs.
+And so the grand total is 2 plus 4 is 6 and 6 times the number
+of data points and parameters.
+So this is where the 6 nd comes from that you might
+have seen in various places.
+It's just by counting forward and backward.
+So we did this for just these deep networks.
+But it turns out that this is actually
+a good approximation for transformers
+as well-- as long as the context length isn't too large.
+If the context length is too large,
+then you get the context length squared,
+and that's more FLOPs that isn't in this kind of accounting.
+OK.
+So let's talk a bit about-- so now we have gradients.
+Now we have to-- the other piece when
+you do training is we have to do optimization.
+So here's our deep network.
+Just so that I'm not just giving you what's in assignment 1,
+I'm going to use the AdaGrad optimizer, which
+this from-- this is from 2011.
+This is predates Adam.
+It's where you can think about it as somewhere
+in between SGD and Adam.
+And basically it's SGD where you look at the second moments
+of the gradient.
+Momentum is what you look at the first moment gradients.
+And Adam is where combine the two of them.
+I'm not going to have time to go into the optimizer details here,
+since we're focusing mostly on the usage.
+So we can define an optimizer.
+And when you compute the gradients
+and you compute the gradients and then
+when you take an optimizer step, if you're
+defining a new optimizer, so in the assignment 1,
+you're going to implement Adam.
+For each of the parameter groups which are,
+in this case w1 or w2, we look at--
+there's something called optimizer state, which
+is of storage that you can-- the optimizer
+uses while it's running.
+And what we're computing in AdaGrad
+is something-- is the squared gradients, the sum
+of the squared gradients.
+So here we're getting it from the optimizer state.
+We're updating it with the current gradient,
+and we're storing it back.
+And then after you update the g2,
+then you update the parameters.
+So in AdaGrad, it's you basically
+divide by the square root of the average gradient squared or sum
+of gradient squared, rather.
+OK.
+So let's see.
+So I'm actually going to maybe skip the training loop.
+Actually, wait.
+Hold on.
+I think I actually skipped something I didn't mean to.
+OK.
+So that was the optimizer state, and now let's look
+at how much memory the optimizer is using.
+Or in general what is the memory usage?
+So for parameters in this network,
+there's D squared parameters per each of the L layers.
+And each parameter takes 2 bytes if we're storing it in fp16.
+So that's the number of parameters.
+Activations-- this is 2 times--
+which is for bf16 batch times D times the number of layers.
+For every layer you have activation.
+You have gradients which is basically
+a copy of all the parameters.
+And this is also bf16.
+And the optimizer state is for every--
+actually this should be the--
+I think this should be-- sorry, I'll fix this.
+This is a typo.
+This should be the number of parameters, not parameter
+memory.
+And this should be number of parameters,
+so number of parameters times 2, and then this
+is 4 times the number of parameters.
+And the reason for this is that it's
+customary to use fp32 for the optimizer states for stability
+reasons.
+Obviously people have tried using bf16.
+And what ends up happening is that you're taking squares,
+and you're averaging multiple steps, and it doesn't--
+it's not very stable.
+And for AdaGrad, it's here-- we have 4 bytes per parameter
+for storing the optimizer state.
+Adam-- you store the first order bit and the second order
+moments, so that's 8 bytes.
+So if you think about the optimizer
+states is actually a lot of the memory used.
+One note is that remember memory serves two purposes.
+One is how much-- you have to store this thing in your HBM.
+But the other thing is that it has
+to be shipped to the accelerators.
+And in general, the optimizer state
+is not really the bottleneck for compute.
+So the amount of memory here is not really
+so important for performance in terms of speed,
+but it means that you can't fit large models in your memory.
+OK.
+So to put it together, as we mentioned,
+the number of parameters here is D times D times L,
+and the number of FLOPs is D times number of tokens
+or number of data points times number of parameters.
+So for transformers, this is going
+to be a bit more complicated.
+But you're going to do that in assignment 1.
+And you do it more carefully.
+OK.
+I'm going to skip the training loop.
+This is just a general review.
+Two things I want to quickly touch on before we conclude.
+One is that as we see, memory does have an important effect
+both on the ability to store large models,
+but also sometimes on your speed.
+And so in general, you want to reduce your memory usage.
+So there's two things that people typically do.
+One is gradient accumulation.
+So in general, you want to use batch sizes that
+are large enough to improve stability
+up to a critical batch size, which
+Tatsu will talk about later.
+And as we saw that activation memory scales with batch size.
+So you might want to run out of memory at some point
+if you have two large batch sizes.
+So gradient accumulation says, well, you compute.
+You have these micro batches, and you compute the gradient
+on the micro batches.
+And then you just accumulate the gradients.
+You don't zero out the gradients.
+And every batch size over microbatch size
+steps, you update the parameters and zero out the gradients.
+OK, so this is actually a very simple code change which
+allows you to save on compute.
+So the other thing I'll quickly mention
+is activation checkpointing.
+So in training, we need to store in general the activations
+of all the layers.
+This is done by default. Actually, interestingly,
+for inference we don't need to compute the gradient,
+so we only need to store the current layer's activations.
+But for training, the memory usage is B times D times 2 times
+L.
+And the question is, can you reduce this?
+So activation checkpointing, also known
+as gradient checkpointing or rematerialization-- the key idea
+here is that in the forward pass,
+you just keep activations for only a subset of the layers.
+And in the backward pass, you recompute the missing
+activations from the last checkpoint.
+That's why it's called checkpointing.
+And this is a general trick that you see in systems
+which is trading off.
+If you want to reduce memory, you can just recompute things.
+So here we're going to define this to operationalize this.
+This is actually fairly easy.
+Actually, I didn't--
+OK, maybe I didn't see the--
+OK, so basically what you do here
+is you have the same model, except for you just add Torch
+utils at checkpoint on a layer.
+So that means do this computation,
+but don't store any of the intermediate activations.
+Only store what is needed.
+So this means that if you store all the activations, remember
+in your deep network, you have the thing that's
+pre the ReLU and the thing that's after the ReLU right.
+So that's a lot of storage.
+And instead if you do activation checkpointing on those blocks
+where each block has a linear and ReLU,
+you don't store the pre ReLU, and you save basically half.
+You can get away with half the memory.
+And then when you're doing the backward pass, you need g3,
+but you can compute g3 easily from h2.
+OK.
+You can go further than this.
+You can say, well, I can store all the layers,
+but in the extreme case, I can just store no layers.
+And so that will be maximally memory efficient.
+The only thing is that the compute
+is going to be L squared.
+Because for every one of these layers,
+you have to start from the beginning.
+And maybe a sweet spot is if you store the checkpoints
+at square root L layers, that means your activation memory is
+square root of L, and your recomputation overhead
+is also square root of L. So that's balanced.
+OK.
+So to summarize this lecture, everything
+is operating on tensors-- parameters, gradients,
+activations, optimization states, data.
+We introduced this einops, which hopefully you guys
+can embrace as a way to think about tensor operations.
+6 times number of data points times number of parameters
+is a formula which now we have demystified
+as the number of FLOPs per--
+for training step.
+And actually if this is training step, this should be batch size.
+And then we talked about arithmetic intensity
+and roofline analysis, which allows
+us to diagnose whether a computation is
+memory bound or compute bound.
+Matrix multiplications are compute bound.
+Basically everything else is memory bound.
+And then finally, gradient accumulation, activation,
+checkpointing are ways to reduce the memory.
+And by reducing the memory, that allows
+you to use bigger batch sizes.
+OK.
+So that's it for today's lecture.
+So next week, Tatsu will talk about architectures.

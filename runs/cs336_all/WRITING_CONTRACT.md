@@ -1,54 +1,22 @@
-# CS336 Writing Contract
+# CS336 Spring 2026 Writing Contract
 
-All lecture-note workers must follow this contract.
+## Required Evidence
 
-## Output ownership
+- Each lecture must include `meta.json`, `source_manifest.json`, `transcript.jsonl`, `slides.jsonl`, `segments.jsonl`, `coverage_units.jsonl`, `omission_log.jsonl`, `figure_plan.json`, `figure_manifest.json`, `lecture_plan.json`, and a passing `eval_reports/pass_##.json`.
+- Each `lecture_plan.json` must set `textbook_mode: true`.
+- The latest eval report must include a `textbook_chapter_style` score.
+- Final delivery must copy `cs336_complete_notes.tex` and `cs336_complete_notes.pdf` into `deliverable/`.
+- Missing public videos or official materials must be logged in `omission_log.jsonl` and surfaced in the final appendix.
 
-- Each worker owns only its assigned lecture directories under `lectures/`.
-- Do not edit lecture directories owned by other workers.
-- Do not revert or overwrite files created by other workers.
+## Writing Rules
 
-## Required outputs per owned lecture
+- Main prose is Chinese.
+- Important terms keep English and use bilingual first mentions.
+- Formulas, algorithm names, model names, benchmark names, and paper names keep standard English notation.
+- Core sections must be written according to the corresponding video, PPT/PDF, Python lecture script, and official course materials. Each core section must include `本节来源依据` mapping prose back to video windows and official source groups.
+- Source-rich textbook-mode chapters must include at least two non-cover instructional figures. Prefer official PPT/PDF pages; use generated source-grounded figures only when official image assets are unavailable.
+- Textbook explanations not directly present in source materials must be labeled `延伸解释`.
 
-For each owned lecture directory, produce or preserve:
+## Delivery Gate
 
-- `transcript.jsonl`
-- `slides.jsonl`
-- `segments.jsonl`
-- `lecture_plan.json`
-- `contracts/segment_##_contract.md`
-- `figure_plan.json`
-- `eval_reports/pass_##.json`
-- `repair_log.jsonl`
-- `lecture_XX_note.tex`
-- `lecture_XX_note.pdf`
-- `source_manifest.json`
-- `coverage_units.jsonl`
-- `omission_log.jsonl`
-- `figure_manifest.json`
-
-## Source usage
-
-- Treat `transcript.jsonl`, `slides.jsonl`, and `segments.jsonl` as the primary structured evidence layer.
-- Treat subtitles, official lecture traces, official script extracts, slide-like markdown, and yt-dlp metadata as co-equal sources.
-- Preserve substantive technical content from both spoken explanation and official materials.
-- If a source gap remains, log it in `omission_log.jsonl` instead of silently dropping it.
-
-## Writing policy
-
-- Write in Chinese.
-- Preserve textbook-grade pedagogical depth rather than shortening into a summary.
-- End every major section with `\subsection{本章小结}`.
-- End the lecture with `\section{总结与延伸}`.
-
-## Validation
-
-- The latest evaluator report under `eval_reports/` must be `pass` before the lecture is considered deliverable.
-- Record repairs in `repair_log.jsonl`.
-- Run `build/validate_youtube_note.py` before accepting a lecture as complete.
-- Compile with `xelatex -interaction=nonstopmode -halt-on-error`.
-
-## Final deliverable
-
-- If the merged textbook is successfully generated, place the final exported `.tex` and `.pdf` in the run-local `deliverable/` folder.
-
+No lecture enters the merged textbook unless its latest evaluator report passes and the shared validator accepts the lecture workspace with `python3 build/validate_youtube_note.py --compile`.

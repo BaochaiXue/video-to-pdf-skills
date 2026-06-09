@@ -1,12 +1,18 @@
-# CS336 Deliverable
+# CS336 Spring 2026 Deliverable
 
-This folder contains the final handoff assets for the merged CS336 Spring 2025 textbook.
+Final textbook artifacts:
 
-- `cs336_complete_notes.tex`
 - `cs336_complete_notes.pdf`
-- official course page: `https://cs336.stanford.edu/spring2025/`
-- official public playlist: `https://www.youtube.com/playlist?list=PLoROMvodv4rOY23Y0BoGoBGgQ1zmU_MT_`
-- public-source gap: the official schedule has guest lectures `18` and `19`, but Stanford Online only publicly posted lectures `1-17`
-- latest-offering supplement: lectures `1-6` were additionally checked against the current `https://cs336.stanford.edu/` Spring 2026 materials and updated where the newer official slides/scripts added real teaching content
+- `cs336_complete_notes.tex`
 
-These files are copied from `build/` only after the merged textbook is generated successfully.
+Revision: `slp3-style-textbook-v5-polished-prose`.
+
+This version is a full Chinese textbook-style rewrite. It follows the chapter architecture extracted from the SLP3 draft and the user-provided pasted chapter: motivating case, terminology, mechanisms, formulas, pseudocode, worked examples, caveats, course-material review paths, summary, and exercises.
+
+Sources:
+
+- official course page: <https://cs336.stanford.edu/>
+- public playlist: <https://www.youtube.com/playlist?list=PLoROMvodv4rMqXOcazWaTUHhq-yembLCV>
+- SLP3 style reference: <https://web.stanford.edu/~jurafsky/slp3/ed3book_jan26.pdf>
+
+Known source gaps are recorded in `../omission_log.jsonl` and the final appendix.

@@ -1,288 +1,378 @@
 \documentclass[a4paper]{article}
-
 \usepackage[fontset=fandol]{ctex}
-\usepackage{amsmath, amssymb}
+\usepackage[margin=1.65cm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage[margin=2.4cm]{geometry}
-\usepackage[most]{tcolorbox}
-\usepackage{etoolbox}
 \usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{subcaption}
-\usepackage{float}
-
-\newtcolorbox{knowledgebox}[1]{
-    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
-    boxrule=1pt, sharp corners
-}
-
-\newtcolorbox{importantbox}[1]{
-    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
-    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newtcolorbox{warningbox}[1]{
-    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newcommand{\notetitle}{CS336 第 3 讲：现代 Transformer 架构与超参数共识}
-\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 3 讲视频、字幕与官方课程材料重写}
-\newcommand{\notedate}{2026-04-07}
-\newcommand{\videochannel}{Stanford Online}
-\newcommand{\videopublishdate}{2025年04月16日}
-\newcommand{\videoduration}{1:27:03}
-\newcommand{\videourl}{https://www.youtube.com/watch?v=ptFiH_bHnJw}
-\newcommand{\videocoverpath}{cover.jpg}
-
+\usepackage{longtable,booktabs}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,keepspaces=true}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{2em}
+\sloppy
+\title{第 03 讲：现代 Transformer architecture 与 hyperparameters}
+\author{CS336 Spring 2026 public videos and official course materials}
+\date{}
 \begin{document}
-
-\begin{titlepage}
-\centering
-{\Large 课程笔记\par}
-\vspace{1.2cm}
-{\huge\bfseries \notetitle\par}
-\vspace{0.8cm}
-{\large \noteauthors\par}
-\vspace{0.3cm}
-{\large \notedate\par}
-\vspace{1.2cm}
-
-\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
-
-\vfill
-\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
-\textbf{视频作者/频道}：\videochannel\par
-\textbf{发布日期}：\videopublishdate\par
-\textbf{视频时长}：\videoduration\par
-\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
-\end{tcolorbox}
-\end{titlepage}
-
+\maketitle
 \tableofcontents
 \newpage
-
-\section{这讲到底在回答什么问题}
-第 2 讲把语言模型训练压缩成了一套资源会计语言：参数、梯度、优化器状态、显存、FLOPs、MFU。第 3 讲则向前一步，开始回答“既然我们已经知道训练很贵，那么模型骨架应该长什么样？” 这讲并不打算重新推导原始 Transformer，而是聚焦于一个更贴近真实工业系统的问题：\textbf{2024--2025 年主流大语言模型，在架构与训练超参数上究竟形成了哪些相对稳定的共识？}
-
-课程一开始就把主题说得非常直白：今天最好的学习方式仍然是 hands-on experience，第二好的方式则是“尽量从别人已经付过的试错成本里学习”。这句话实际上给整讲定下了方法论基调。它不是要求你盲从某个单一配方，而是要求你去总结各家公开模型在长期试验后形成的收敛趋势。
-
-\begin{figure}[H]
+\section{本章导读}
+本章讨论 \textbf{现代 Transformer architecture 与 hyperparameters}。CS336 的第一层目标不是把现成大模型当作黑箱使用，而是把 language model 从输入文本、训练目标、模型结构、数据、系统和评估这些部件重新拆开。只有拆开之后，读者才能判断一个设计选择究竟改变了什么。
+设想你要从论文表格里选择一个 decoder-only Transformer recipe。所有候选模型都叫 Transformer，但 pre-norm、RMSNorm、RoPE、SwiGLU、QK norm、head layout 和 learning rate schedule 不同；本章训练你判断哪些是核心机制，哪些是经验性工程选择。
+本章对应 CS336 Spring 2026 第 03 个公开视频，并结合课程页提供的可解析资料。视频和课程页给出事实边界；正文把这些材料改写为可自学的教材章节。
+阅读本章时，先理解问题为什么存在，再看定义、公式和实现形态，随后通过例题和练习检查自己是否能独立复现这条 reasoning chain。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.88\textwidth]{frames/modern_variant_provenance.png}
-\caption{课程先把“你在作业里实现的简单现代变体”摆在台面上，再问：这些选择为什么是现代共识？\protect\footnotemark}
+\includegraphics[width=0.58\linewidth]{source_anchor.jpg}
+\caption{第 03 讲的课程图像锚点。}
 \end{figure}
-\footnotetext{视频画面时间区间：00:03:00--00:03:20。该图来自课程视频中的屏幕画面。}
-
-这也是第 3 讲特别重要的原因：如果说第 2 讲帮你学会了资源账本，那么第 3 讲就是在教你读架构账本。换句话说，它在训练你区分“哪些改动是审美偏好，哪些改动是经验收敛，哪些改动背后其实有很现实的系统与优化动机”。
-
-\subsection{这讲为什么不追求“完美理论解释”}
-课程对现代架构的态度非常务实。它承认很多设计并不是从一套统一理论里自然推导出来的，而是大量模型发布、训练经验与 paper ablation 共同塑造出来的。这意味着读者需要接受一个现实：\textbf{现代大模型架构不是一套封闭、完美、不可更改的真理体系，而是一个高度经验驱动、但又逐渐收敛出稳定模式的工程空间。}
-
-\begin{importantbox}{第 3 讲的核心任务}
-不是重新发明 Transformer，而是学会识别“哪些架构和超参数选择在真实大模型里反复出现，因此值得当成默认起点”。
-\end{importantbox}
-
-\subsection{本章小结}
-第 3 讲的入口非常清晰：在理解资源约束之后，我们终于开始问“该造什么模型”。它要教的不是某个孤立 trick，而是如何从众多公开模型中提炼架构与超参数的共识部分。
-
-\section{现代 Transformer 的共同骨架：LLaMA-like 不是口号，而是收敛方向}
-\subsection{从原始 Transformer 到“简单现代变体”}
-课程先快速回顾了原始 Transformer 的几个关键选择：位置编码用正弦余弦，FFN 用 ReLU，norm 是 post-norm 的 LayerNorm。随后马上给出“what you implemented -- simple, modern variant”这张对照页，把当前更常见的选择并排摆出来：
+\subsection{本章知识路线}
 \begin{itemize}
-\item LayerNorm 挪到 block 前面，即 pre-norm。
-\item 位置编码换成 RoPE。
-\item FF 层改用 SwiGLU 而非 ReLU。
-\item 线性层和 norm 层里的 bias 往往被拿掉。
+\item 本章首先说明 现代 Transformer architecture 与 hyperparameters 为什么是 language modeling pipeline 中不可跳过的一环。
+\item 其次定义本章反复使用的术语，并说明这些术语对应的计算对象或系统对象。
+\item 随后用公式和伪代码表达主要机制，让概念能够落到可计算的变量上。
+\item 最后给出例题、风险讨论和练习，便于读者检查自己是否真正掌握了机制。
 \end{itemize}
-
-这张对照页很有价值，因为它把“现代模型和教科书 Transformer 的差别”压缩到了几个最实用的维度。课程真正关心的不是这些改动是否华丽，而是：\textbf{为什么多数现代模型会朝这个方向聚拢？}
-
-\subsection{为什么课程说当代模型整体在向 LLaMA-like 收敛}
-第 3 讲最重要的整体判断之一，是“架构共识并不算高，但存在明显向 LLaMA-like 靠拢的趋势”。这句话的意思不是说所有模型都一模一样，而是说：在 norm 位置、激活函数、位置编码和 bias 等局部设计上，越来越多模型选择了相似方案。
-
-\begin{knowledgebox}{如何理解“LLaMA-like”}
-它不意味着所有模型都抄 LLaMA，而是意味着在高参数量、长训练周期和工业系统约束下，一些看似小的架构细节已经逐渐表现出更好的综合性价比，因此开始形成默认配置。
-\end{knowledgebox}
-
-这种收敛本身就很值得重视。因为在大量模型并行试错之后还能幸存下来的设计，通常都不只是“论文里看起来不错”，而是在训练稳定性、实现复杂度、性能与系统效率之间达成了比较稳的折中。
-
-\subsection{本章小结}
-现代 Transformer 并没有完全统一标准答案，但已经出现了明显的工程共识区。pre-norm、RoPE、SwiGLU、RMSNorm 和去 bias 化，正是这条收敛路线里最核心的标志。
-
-\section{Norm 与残差流：为什么几乎所有现代 LM 都偏向 pre-norm}
-\subsection{pre-norm vs post-norm：这可能是当代最强共识之一}
-课程在 norm 这一块的态度非常鲜明：\textbf{“one thing everyone agrees on” 基本就是 pre-norm。} 这几乎是现代架构里最稳定的共识之一。原始 Transformer 使用的是 post-norm，也就是每个子层加回残差后再做 LayerNorm；而现代做法更倾向在进入子层前先做 norm，让主残差流尽量保持直通特性。
-
-\begin{figure}[H]
+\subsection{结构图}
+下面的图用于帮助读者定位本章的核心结构。先看概念之间的依赖，再回到正文中的公式、伪代码和例题。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.86\textwidth]{frames/pre_post_norm_provenance.png}
-\caption{课程用 pre-norm / post-norm 并列图说明：关键不是“norm 在哪”，而是 residual signal path 是否被过度扰动。\protect\footnotemark}
+\includegraphics[width=0.72\linewidth]{pdf_pages/page-02.jpg}
+\caption{官方材料图页：现代 Transformer architecture 与 hyperparameters 的课程页/PDF/script 图像锚点。}
 \end{figure}
-\footnotetext{视频画面时间区间：00:06:09--00:07:45。该图来自课程视频中的屏幕画面。}
-
-这背后的核心直觉是：残差连接之所以宝贵，是因为它提供了一条相对稳定的信息与梯度通道。如果每次回到主干都立刻做强归一化，残差的“直通性”就会被削弱。pre-norm 的好处，是把归一化放到分支里，尽量不干扰主残差流。
-
-\subsection{为什么 pre-norm 会表现得更稳}
-课程回顾的解释主要有两类。第一类是梯度衰减与传播问题：post-norm 更容易让深层网络里的梯度行为变差；第二类是训练中的梯度 spike 与大学习率不稳定。它给出的总结非常符合工程经验：\textbf{pre-norm 往往带来更稳定的优化、更好的梯度传播，也更容易支撑较大的学习率和更深的网络。}
-
-\begin{figure}[H]
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.86\textwidth]{pdf_pages/page12-12.png}
-\caption{讲义里用两个实证图解释 pre-norm 相对 post-norm 的稳定性优势：左边是梯度衰减，右边是梯度 spike。}
+\includegraphics[width=0.72\linewidth]{pdf_pages/page-01.jpg}
+\caption{官方材料图页：现代 Transformer architecture 与 hyperparameters 的课程页/PDF/script 图像锚点。}
 \end{figure}
-
-课程还指出，早期很多论文喜欢把 pre-norm 的优势表述成“去掉 warmup”，但放到今天更大的网络背景下，重点已经转移到一个更本质的问题：\textbf{训练稳定性与大规模学习率可用性。}
-
-\subsection{LayerNorm vs RMSNorm：现代模型为什么偏向后者}
-在 norm 类型上，第 3 讲同样给出了一条非常清晰的现实趋势：虽然原始 Transformer 使用 LayerNorm，但很多现代模型已经更偏向 RMSNorm。原因并不神秘。RMSNorm 不做去均值，也没有额外 bias 项，因此操作更简单、参数更少、数据搬运更轻；而在实践里，它常常又能达到与 LayerNorm 很接近的效果。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.78\textwidth]{frames/rmsnorm_provenance.png}
-\caption{课程把 LayerNorm 与 RMSNorm 放在同一页，强调现代模型更在意“够用且更省搬运”的 norm，而不是更复杂的规范化形式。\protect\footnotemark}
-\end{figure}
-\footnotetext{视频画面时间区间：00:05:35--00:05:55。该图来自课程视频中的屏幕画面。}
-
-这一点和第 2 讲的资源会计语言正好接上：别只看 FLOPs，要看 runtime；别只看数学形式，要看 memory movement。RMSNorm 在这里就是一个非常典型的例子。
-
-如果把课程页里的高层写法补成一条更标准的公式，RMSNorm 可以写成
-\[
-\mathrm{RMSNorm}(x)=\gamma \odot \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^{d} x_i^2+\varepsilon}}.
-\]
-其中，$x \in \mathbb{R}^{d}$ 是当前 token 在残差流中的激活向量，$d$ 是隐藏维度，$x_i$ 是第 $i$ 个通道的值，$\varepsilon$ 是防止分母为零的数值稳定常数，$\gamma$ 是可学习的逐通道缩放参数，$\odot$ 表示逐元素乘法。课程强调的重点恰恰体现在这条公式里：它只根据均方根做缩放，不显式减去均值，也不再额外引入 bias，因此读写的参数更少、数据搬运更轻。
-
-\begin{warningbox}{norm 选择最容易被误解的地方}
-课程没有说 RMSNorm 在所有场景都理论上更优，而是强调它在现代大模型里通常“够好而且更省”。这类判断的关键词是工程折中，而不是绝对优越。
-\end{warningbox}
-
-\subsection{更进一步：为什么现代模型还喜欢顺手去掉 bias}
-课程在 norm 讨论后顺手扩展到一个更普遍的趋势：线性层和 norm 层里的 bias 经常也被拿掉。原因与 RMSNorm 很像，并不是什么高深理论，而是因为这些项带来的参数和搬运开销，往往没有与之对等的明显收益。对大模型来说，这种“每层都省一点”的决策，累积起来会变得相当可观。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.72\textwidth]{pdf_pages/page18-18.png}
-\caption{课程把“dropping bias terms” 单独拿出来讲，说明现代架构优化常常就是这种累计起来很重要的小决策。}
-\end{figure}
-
-\subsection{补充：double norm / non-residual postnorm}
-最新官方 Spring 2026 材料在这一节又往前推了一步，明确把一些新模型里的 \emph{double norm} 或 \emph{non-residual postnorm} 单独点了出来。这里的直觉不是“把 pre-norm 又退回 post-norm”，而是更像在残差流之外再放一个规范化环节，让主残差通道尽量保持稳定，同时又照顾到非残差分支上的数值行为。
-
-课程给出的最新例子包括 Grok、Gemma 2，以及只做 non-residual post norm 的 OLMo 2。这个补充很重要，因为它说明现代规范化设计并不是单纯二选一的 pre-norm / post-norm 对立，而是在更细的残差流布局里继续做工程折中。
-
-\begin{importantbox}{double norm 的阅读方式}
-把它看成“在 residual stream 之外再加一道 norm 保护层”会更准确。它不是否定 pre-norm 的稳定性结论，而是在继承该结论的同时，再对非残差部分做更细的控制。
-\end{importantbox}
-
-\subsection{本章小结}
-norm 与残差流这部分基本奠定了现代 LM 的底色：pre-norm 几乎成了事实标准；RMSNorm 是现代默认妥协；去 bias 化则是顺着同样的 runtime / memory 逻辑继续向前走的一步。
-
-\section{FFN 与激活函数：为什么现代模型偏爱 *GLU}
-\subsection{ReLU、GeLU、SwiGLU 不是同一层面的选择}
-第 3 讲专门梳理了一大串激活函数与 FFN 变体：ReLU、GeLU、Swish、各种 *GLU。课程真正想表达的不是“看，有很多名字”，而是：\textbf{FFN 不只是线性层后面随便接个非线性，它是决定模型表达能力与计算配置的重要模块。}
-
-原始 Transformer 时代，ReLU 非常自然；GPT 系列广泛使用 GeLU；而较新的模型又大量转向 SwiGLU / GeGLU。这个趋势说明，FFN 设计并不是边缘话题，它一直在被持续微调。
-
-\subsection{Gated linear units 为什么会被认为“通常更好”}
-课程解释 *GLU 家族的核心思想时非常直接：在 FFN 里增加一个逐元素门控通道，让激活不再只是“线性映射后过一个点函数”，而是“主激活 × 门控激活”的组合。这样做虽然会引入额外参数，但经验上往往会换来更好的性能。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.78\textwidth]{frames/gated_activations_provenance.png}
-\caption{课程直接展示 *GLU 系列相对普通 FFN 的效果表，结论很朴素：SwiGLU / GeGLU 通常值得认真考虑。\protect\footnotemark}
-\end{figure}
-\footnotetext{视频画面时间区间：00:21:06--00:21:20。该图来自课程视频中的屏幕画面。}
-
-课程给出的态度同样很成熟：*GLU 不是使用大模型的必要条件，GPT-3 这种系统不靠它也能很好；但如果你问“最近几年更常见、更被认可的默认选择是什么”，那答案大概率会指向 SwiGLU / GeGLU。
-
-\subsection{为什么 gated FFN 的维度比例会变}
-课程还提醒一个容易遗漏的工程细节：一旦 FFN 变成 gated 形式，很多模型会把传统的 $4 \times d_{model}$ 规则缩到大约 $\frac{8}{3} \times d_{model}$ 附近。这不是随意魔改，而是因为 gated 结构本身已经增加了额外通道，不需要再照搬原始 ReLU FFN 的宽度比例。
-
-\begin{knowledgebox}{关于激活函数选择的一个实用结论}
-如果你只是要选一个现代默认配置，SwiGLU 往往比 ReLU 更像“今天的大模型会怎么做”；但如果你要解释“为什么一定非它不可”，课程给出的答案是更谦虚的：大量经验表明它通常有效，而不是它在理论上被完全证明为唯一正确。
-\end{knowledgebox}
-
-\subsection{本章小结}
-FFN 与激活函数这一节的结论可以压缩成一句话：普通前馈层仍然可用，但 gated 变体尤其是 SwiGLU / GeGLU 已经在现代模型里形成了明显优势，因此成为更常见的默认路线。
-
-\section{Position Embeddings、超参数与稳定性：哪些是共识，哪些只是经验盆地}
-\subsection{位置编码为什么最终大多又收敛到 RoPE}
-课程在位置编码部分给出了一条很典型的“架构收敛史”：早期大家做过绝对位置编码、相对位置编码、ALiBi 等不同路线，但到了近几年，越来越多模型重新向 RoPE 收敛。原因在于 RoPE 提供了更自然的相对位置信号表达，同时能较好地嵌入 attention 计算过程里。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.84\textwidth]{pdf_pages/page08-08.png}
-\caption{课程用一页综述图把几类位置编码并列起来，最后把重点导向 RoPE。}
-\end{figure}
-
-课程对 RoPE 的解释也很有代表性：我们希望注意力机制尽量依赖相对位置信息，而旋转结构刚好能把这种相对关系嵌进内积几何里。这种解释比单纯背公式更有价值，因为它告诉你“RoPE 为什么看起来像今天的默认答案”。
-
-\subsection{Feedforward ratio、head dim、aspect ratio：为什么很多超参数 surprisingly boring}
-第 3 讲后半段的一个重要主题，是很多超参数其实比学生想象中更保守。比如：
+\section{本章主线}
+本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+\subsection{本章要解决的核心问题}
+本讲从现代 decoder-only Transformer 的共同骨架出发，比较 LLaMA-like 架构里的 pre-norm、RMSNorm、RoPE、SwiGLU、bias removal、QK norm 等设计。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，现代 Transformer architecture 与 hyperparameters 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从机制到资源账本}
+架构选择不能脱离 scale。小模型 ablation 中看似微弱的差异，在大模型训练中可能表现为稳定性、吞吐、长上下文或超参数敏感性的差异。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，现代 Transformer architecture 与 hyperparameters 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从课堂讲解到可复现实验}
+hyperparameter 的有效读法是把每个选择对应到 failure mode：学习率过大导致发散，batch 太小导致噪声过大，context 太长带来 attention 和 KV cache 成本，width/depth 比例影响计算形状。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，现代 Transformer architecture 与 hyperparameters 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\section{术语、符号与问题边界}
+本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
+\begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
+\toprule
+\textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
+\midrule
+1 & Transformer architecture（Transformer 架构） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+2 & pre-norm（前归一化） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+3 & RMSNorm & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+4 & RoPE（rotary positional embedding） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+5 & SwiGLU & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+6 & hyperparameter（超参数） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+\bottomrule
+\end{longtable}
+这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
+\subsection{关键词}
+下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
 \begin{itemize}
-\item FFN 宽度相对 model dim 的比例，普通 FFN 常接近 4 倍，GLU 常接近 $\frac{8}{3}$ 倍。
-\item $num\_heads \times head\_dim \approx d_{model}$ 虽然不是数学定律，但在很多模型里近似成立。
-\item 模型是更深还是更宽，也有相对稳定的经验范围，而不是完全随意。
+\item attention, gemma, most, embeddings, position, many, notable, transformer, palm, rmsnorm, norm, layernorm, rope, qwen
 \end{itemize}
-
-课程特别提到 T5 这类“大胆例外”，例如极高的 FFN 扩张倍率。这一类例外非常有用，因为它提醒我们：共识不等于定律；它只是说明在大多数训练环境里，一些范围已经被经验验证为“很难出大问题”的默认盆地。
-
-\begin{importantbox}{关于超参数最值得记住的结论}
-现代大模型的大部分超参数并不花哨。真正稀缺的不是“想出一个奇怪设定”，而是知道什么时候该沿用保守共识，什么时候才值得偏离默认值。
-\end{importantbox}
-
-\subsection{regularization 与 weight decay：大模型真的还需要正则吗}
-课程在 regularization 部分刻意提出一个很有代表性的问题：既然预训练数据巨大、参数很多、往往只扫一遍数据，那还需要 regularization 吗？ 它给出的现实答案是：需要，但其作用更多体现在优化动态，而不只是传统意义上的防过拟合。
-
-这也是为什么 dropout 在一些较新的模型里变少了，而 weight decay 仍然很常见。课程的处理方式非常工程化：\textbf{不要把正则化简单理解成“防过拟合开关”，而要把它看作训练动态调节器的一部分。}
-
-\subsection{稳定性技巧：z-loss、QK norm 与 soft-capping}
-到了 stability tricks 这部分，课程提醒读者一个常被低估的风险点：softmax 很容易在数值上变得难缠。于是近几年不少系统开始引入额外稳定性技巧，例如 output softmax 上的 z-loss、attention softmax 前的 QK norm，以及对 logits 做 soft-capping。
-
-这些技巧的共同特点是：它们不是架构主干的一部分，却经常在超大规模训练里决定“曲线看起来是蓝色崩掉还是稳定下去”。这也是第 3 讲后半段最重要的隐含信息之一：\textbf{现代架构设计和稳定训练技巧之间已经很难完全分家。}
-
-\subsection{基于 2026 最新 slides 的补充：attention variants 已经进入架构总览}
-Spring 2026 的 lecture 3 在这一段还多做了一步：它不再把 attention variants 仅仅当作后续某一讲才会碰到的专题，而是明确把它们放回“现代语言模型架构总览”的地图里。对读者来说，这个变化很重要，因为它意味着：\textbf{今天讨论架构，不只是在 norm、激活、位置编码和超参数之间做选择，attention 本身也已经成为持续被重写的对象。}
-
-课程在这里点到的不是完整推导，而是一种边界感。比如 sparse attention、sliding-window attention，以及更 exotic 的 SSM / state-space 路线，都不再只是少数论文里的偏门技巧，而是你在理解长上下文与推理成本时迟早要面对的设计分支。也正因如此，这一讲的结尾要把视线自然地引向下一讲：\textbf{一旦 attention 的复杂度、缓存和长上下文问题开始主导成本，architecture discussion 就会从“选哪种 norm”升级成“是不是要改写整个序列建模主干”。}
-
-\subsection{GQA / MQA：为什么这讲最后会碰到 attention head 成本}
-课程在结尾还专门把 GQA / MQA 拿出来讲，原因不是它们只是“注意力的小变体”，而是因为它们直接连到推理成本。训练阶段看起来 attention 还比较容易并行，但到了增量生成阶段，KV cache 让 head 数量和 key/value 维度变得极其重要。于是，减少 key/value head 数量就会显著影响 inference memory cost。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.76\textwidth]{frames/gqa_mqa_provenance.png}
-\caption{第 3 讲把 GQA / MQA 放到结尾，是为了提前把“架构选择会改写推理成本”这个思想种下去。\protect\footnotemark}
-\end{figure}
-\footnotetext{视频画面时间区间：01:15:47--01:16:10。该图来自课程视频中的屏幕画面。}
-
-这也正是 CS336 的典型风格：讲架构，从来不是只讲表达能力，而是同时讲训练、推理与系统代价。
-
-\subsection{前瞻：attention variants 与下一讲}
-最新官方 2026 材料在这讲结尾明确补了一句：后面还会讲不同的 attention variants，甚至直接把 sparse attention patterns 点了出来。这个桥接很关键，因为它把第 3 讲的主题从“现代 Transformer 默认长什么样”往前推进到“如果上下文变长、成本变高，还能怎么改 attention 本身”。
-
-从这个角度看，GQA / MQA 只是第一步。下一步的思路就不再只是“减少某些 head 的成本”，而是进一步允许 attention 结构变得稀疏、局部或分段。课程在这里还顺手预告了更 exotic 的 SSM 相关内容，这就自然接到了下一讲会看到的 attention alternatives。
-
-\subsection{本章小结}
-位置编码、超参数、regularization 与 GQA/MQA 这些看似分散的话题，实际上都指向同一个问题：哪些设计是已经足够稳定、值得默认采用的；哪些设计虽然可能有效，但仍需要你在具体资源与任务条件下重新判断。
-
+\section{Decoder-only Transformer 的骨架}
+现在进入 Decoder-only Transformer 的骨架。本节关心的不是名称本身，而是它把 现代 Transformer architecture 与 hyperparameters 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Decoder-only Transformer 的骨架}
+视频把 architecture 讲成现代论文中大量细节的集合，而不是单一的 Transformer block 图。
+decoder-only LM 的主干通常是 token embedding、若干层 causal self-attention 和 MLP、norm、residual connection、LM head。
+课程材料强调许多看似小的选择会影响 scale：normalization placement、activation、position encoding、head layout、optimizer schedule。
+推理阶段的关键区别在于请求是在线到达的，输出又是逐 token 生成的。训练时可以用大 batch 摊薄成本；服务时还要同时考虑首 token 延迟、吞吐、显存占用和长尾请求。
+\subsection{Decoder-only Transformer 的骨架 的机制}
+视频把 architecture 讲成现代论文中大量细节的集合，而不是单一的 Transformer block 图。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+decoder-only LM 的主干通常是 token embedding、若干层 causal self-attention 和 MLP、norm、residual connection、LM head。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+课程材料强调许多看似小的选择会影响 scale：normalization placement、activation、position encoding、head layout、optimizer schedule。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Decoder-only Transformer 的骨架 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Decoder-only Transformer 的骨架 的形式化表示}
+\[\operatorname{Attn}(Q,K,V)=\operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}+M\right)V\]
+符号说明：\(Q,K,V\) 是 query/key/value；\(d_k\) 是 head dimension；\(M\) 是 causal mask，用于禁止看见未来 token。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 Decoder-only Transformer 的骨架 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+x = token_embedding(tokens)
+for block in transformer_blocks:
+    x = x + causal_attention(norm(x))
+    x = x + mlp(norm(x))
+logits = lm_head(norm(x))
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 公开 slides 总结的是主流设计，不代表所有 frontier models 的真实 recipe。
+\item architecture comparison 必须控制参数量、训练 tokens、数据和 optimizer，否则容易把 scaling 效应误判为结构效应。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Decoder-only Transformer 的骨架 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+\subsection{怎样检验 Decoder-only Transformer 的骨架}
+检验 Decoder-only Transformer 的骨架 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 architecture、Transformer、attention、MLP、residual 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Decoder-only Transformer 的骨架，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(Q,K,V\textbackslash{}) 是 query/key/value；\textbackslash{}(d\_k\textbackslash{}) 是 head dimension；\textbackslash{}(M\textbackslash{}) 是 causal mask，用于禁止看见未来 token。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：公开 slides 总结的是主流设计，不代表所有 frontier models 的真实 recipe；architecture comparison 必须控制参数量、训练 tokens、数据和 optimizer，否则容易把 scaling 效应误判为结构效应。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 现代 Transformer architecture 与 hyperparameters 的整体结构中。Decoder-only Transformer 的骨架 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Decoder-only Transformer 的骨架}
+architecture 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Decoder-only Transformer 的骨架”中改变了哪个变量或约束。
+Transformer 是现代 LM 的基本计算骨架。在“Decoder-only Transformer 的骨架”中，这个概念用于解释 现代 Transformer architecture 与 hyperparameters 的一个具体机制。
+attention（注意力）提供 token 间交互，但长上下文下成本很高。在“Decoder-only Transformer 的骨架”中，这个概念用于解释 现代 Transformer architecture 与 hyperparameters 的一个具体机制。
+MLP 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Decoder-only Transformer 的骨架”中改变了哪个变量或约束。
+residual 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Decoder-only Transformer 的骨架”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Decoder-only Transformer 的骨架 的小结}
+\begin{itemize}
+\item Decoder-only Transformer 的骨架 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{Normalization、activation 与 position encoding}
+现在进入 Normalization、activation 与 position encoding。本节关心的不是名称本身，而是它把 现代 Transformer architecture 与 hyperparameters 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Normalization、activation 与 position encoding}
+现代 LLM 常用 RMSNorm 或类似变体以降低开销并改善稳定性。
+RoPE 把位置信息编码进 query/key 的旋转关系，支持相对位置信息并常见于长上下文模型。
+SwiGLU/GeGLU 等 gated MLP 变体体现了课程第一讲的 caveat：有些设计先来自实验，再由经验固化。
+Normalization、activation 与 position encoding 的作用是把 现代 Transformer architecture 与 hyperparameters 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{Normalization、activation 与 position encoding 的机制}
+现代 LLM 常用 RMSNorm 或类似变体以降低开销并改善稳定性。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+RoPE 把位置信息编码进 query/key 的旋转关系，支持相对位置信息并常见于长上下文模型。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+SwiGLU/GeGLU 等 gated MLP 变体体现了课程第一讲的 caveat：有些设计先来自实验，再由经验固化。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Normalization、activation 与 position encoding 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Normalization、activation 与 position encoding 的数学表达}
+\[\operatorname{RMSNorm}(x)=g\odot \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^{d}x_i^2+\epsilon}}\]
+符号说明：\(x\) 是 hidden vector，\(g\) 是可学习缩放，\(d\) 是 hidden dimension，\(\epsilon\) 防止除零。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 Normalization、activation 与 position encoding 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+def rms_norm(x, weight, eps=1e-6):
+    scale = rsqrt(mean(x * x, dim=-1, keepdim=True) + eps)
+    return weight * x * scale
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 归一化改善优化，但也可能改变表示尺度和 residual stream 的解释方式。
+\item 长上下文 extrapolation 不能只靠位置编码，还受训练数据、attention implementation 和评估分布影响。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Normalization、activation 与 position encoding 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+\subsection{怎样检验 Normalization、activation 与 position encoding}
+检验 Normalization、activation 与 position encoding 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 RMSNorm、RoPE、SwiGLU、pre-norm、position 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Normalization、activation 与 position encoding，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(x\textbackslash{}) 是 hidden vector，\textbackslash{}(g\textbackslash{}) 是可学习缩放，\textbackslash{}(d\textbackslash{}) 是 hidden dimension，\textbackslash{}(\textbackslash{}epsilon\textbackslash{}) 防止除零。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：归一化改善优化，但也可能改变表示尺度和 residual stream 的解释方式；长上下文 extrapolation 不能只靠位置编码，还受训练数据、attention implementation 和评估分布影响。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 现代 Transformer architecture 与 hyperparameters 的整体结构中。Normalization、activation 与 position encoding 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Normalization、activation 与 position encoding}
+normalization（归一化）影响优化稳定性和 residual path。在“Normalization、activation 与 position encoding”中，这个概念用于解释 现代 Transformer architecture 与 hyperparameters 的一个具体机制。
+RoPE（rotary positional embedding）把位置信息编码进 query/key 的旋转关系。在“Normalization、activation 与 position encoding”中，这个概念用于解释 现代 Transformer architecture 与 hyperparameters 的一个具体机制。
+SwiGLU 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Normalization、activation 与 position encoding”中改变了哪个变量或约束。
+normalization（归一化）影响优化稳定性和 residual path。在“Normalization、activation 与 position encoding”中，这个概念用于解释 现代 Transformer architecture 与 hyperparameters 的一个具体机制。
+position 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Normalization、activation 与 position encoding”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Normalization、activation 与 position encoding 的小结}
+\begin{itemize}
+\item Normalization、activation 与 position encoding 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{Hyperparameter 的规模化视角}
+现在进入 Hyperparameter 的规模化视角。本节关心的不是名称本身，而是它把 现代 Transformer architecture 与 hyperparameters 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Hyperparameter 的规模化视角}
+lecture 3 的核心态度是：不要把 hyperparameters 当成小模型实验后的装饰参数，它们决定大规模训练的稳定性和资源效率。
+batch size、learning rate、warmup、decay、weight decay、dropout、context length 和 width/depth ratio 都进入 compute-budget 约束。
+本书需要把每个超参数和其 failure mode 绑定：divergence、undertraining、overfitting、memory blow-up、communication bottleneck。
+Hyperparameter 的规模化视角 的作用是把 现代 Transformer architecture 与 hyperparameters 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{Hyperparameter 的规模化视角 的机制}
+lecture 3 的核心态度是：不要把 hyperparameters 当成小模型实验后的装饰参数，它们决定大规模训练的稳定性和资源效率。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+batch size、learning rate、warmup、decay、weight decay、dropout、context length 和 width/depth ratio 都进入 compute-budget 约束。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+本书需要把每个超参数和其 failure mode 绑定：divergence、undertraining、overfitting、memory blow-up、communication bottleneck。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Hyperparameter 的规模化视角 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Hyperparameter 的规模化视角 的数学表达}
+\[\theta_{t+1}=\theta_t-\eta_t\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon}-\eta_t\lambda\theta_t\]
+符号说明：这是 AdamW 风格更新；\(\eta_t\) 是学习率，\(\hat m_t,\hat v_t\) 是矩估计，\(\lambda\) 是 decoupled weight decay。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 Hyperparameter 的规模化视角 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+for run in sweep:
+    train_small_proxy(run)
+    reject_if_unstable_or_inefficient(run)
+    scale_only_after_resource_accounting(run)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 小规模最优超参数不一定可直接外推。
+\item hyperparameter search 的成本本身也是 scaling plan 的一部分。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Hyperparameter 的规模化视角 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+\subsection{怎样检验 Hyperparameter 的规模化视角}
+检验 Hyperparameter 的规模化视角 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 hyperparameter、learning rate、AdamW、warmup、scale 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Hyperparameter 的规模化视角，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：这是 AdamW 风格更新；\textbackslash{}(\textbackslash{}eta\_t\textbackslash{}) 是学习率，\textbackslash{}(\textbackslash{}hat m\_t,\textbackslash{}hat v\_t\textbackslash{}) 是矩估计，\textbackslash{}(\textbackslash{}lambda\textbackslash{}) 是 decoupled weight decay。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：小规模最优超参数不一定可直接外推；hyperparameter search 的成本本身也是 scaling plan 的一部分。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 现代 Transformer architecture 与 hyperparameters 的整体结构中。Hyperparameter 的规模化视角 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Hyperparameter 的规模化视角}
+hyperparameter 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Hyperparameter 的规模化视角”中改变了哪个变量或约束。
+learning rate 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Hyperparameter 的规模化视角”中改变了哪个变量或约束。
+AdamW 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Hyperparameter 的规模化视角”中改变了哪个变量或约束。
+warmup 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Hyperparameter 的规模化视角”中改变了哪个变量或约束。
+scale 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Hyperparameter 的规模化视角”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Hyperparameter 的规模化视角 的小结}
+\begin{itemize}
+\item Hyperparameter 的规模化视角 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{综合讨论：从局部机制到完整系统}
+本章的主题是 现代 Transformer architecture 与 hyperparameters，但它不应被读成几个相邻知识点的拼接。Decoder-only Transformer 的骨架、Normalization、activation 与 position encoding、Hyperparameter 的规模化视角 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
+这些对象包括 Transformer architecture（Transformer 架构）、pre-norm（前归一化）、RMSNorm、RoPE（rotary positional embedding）、SwiGLU、hyperparameter（超参数）。读者可以把它们看成一组接口：有的接口连接文本和 token，有的连接模型结构和张量计算，有的连接数据样本和训练目标，有的连接离线评估和在线服务。接口一旦改变，后面的成本、错误类型和优化空间也会随之改变。
+\subsection{Decoder-only Transformer 的骨架 在系统中的位置}
+Decoder-only Transformer 的骨架 首先提供一个局部解释：视频把 architecture 讲成现代论文中大量细节的集合，而不是单一的 Transformer block 图。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Decoder-only Transformer 的骨架 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Decoder-only Transformer 的骨架 不能脱离边界条件理解。一个关键 caveat 是：公开 slides 总结的是主流设计，不代表所有 frontier models 的真实 recipe。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{Normalization、activation 与 position encoding 在系统中的位置}
+Normalization、activation 与 position encoding 首先提供一个局部解释：现代 LLM 常用 RMSNorm 或类似变体以降低开销并改善稳定性。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Normalization、activation 与 position encoding 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Normalization、activation 与 position encoding 不能脱离边界条件理解。一个关键 caveat 是：归一化改善优化，但也可能改变表示尺度和 residual stream 的解释方式。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{Hyperparameter 的规模化视角 在系统中的位置}
+Hyperparameter 的规模化视角 首先提供一个局部解释：lecture 3 的核心态度是：不要把 hyperparameters 当成小模型实验后的装饰参数，它们决定大规模训练的稳定性和资源效率。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Hyperparameter 的规模化视角 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Hyperparameter 的规模化视角 不能脱离边界条件理解。一个关键 caveat 是：小规模最优超参数不一定可直接外推。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{把本章知识用于读论文和复现实验}
+读相关论文时，可以把本章变成一个检查表。第一，论文是否清楚定义了输入规模、模型规模、数据来源和评估协议；第二，论文声称的改进落在哪个变量上；第三，作者是否报告了会让结论失效的设置；第四，实验是否能分离模型结构、数据质量、优化设置和系统实现的影响。
+复现实验时，也应避免直接追求大规模。先用最小程序复现一个公式、一个伪代码分支或一个 profile 现象，再扩大输入规模。这样做的原因很简单：如果小规模程序无法解释中间量，大规模训练只会把错误隐藏在日志和随机波动里。
+把这些检查合在一起，本章给出的不是一个固定答案，而是一种阅读 CS336 的方法：每个模型机制都要落到变量，每个变量都要落到测量，每个测量都要说明协议，每个协议都要承认边界。
+因此，本章中的任何一句结论都可以被改写成一个可引用的完整句式：在给定数据、模型、硬件和评估协议下，某个机制改变了某个变量，并通过某个观测指标表现出来。这样的句子比单独背诵术语更长，但它包含了自学、复现和引用时真正需要的信息。
+把本章用于自学时，可以按三遍阅读。第一遍只追踪对象和定义，确认每个术语到底指向文本、token、张量、样本、请求还是评估记录。第二遍追踪公式和伪代码，确认每一步改变了哪些状态。第三遍追踪实验和 caveat，确认哪些结论只在特定规模、数据或硬件条件下成立。
+把本章用于复习时，则应反过来操作：先从一个失败案例或异常指标出发，再回到相应机制。loss 曲线异常可能指向数据、优化或模型容量；吞吐异常可能指向 kernel、通信或调度；benchmark 异常可能指向 contamination、prompt protocol 或采样设置。能够从异常反推机制，是掌握本章的实用标准。
+\section{例题：把概念变成可计算检查}
+\subsection{Pre-norm block 的信息路径}
+比较 post-norm 和 pre-norm residual block：二者都有 attention/MLP，但 normalization 放置不同。
+\begin{itemize}
+\item pre-norm 写作 `x <- x + f(norm(x))`，主 residual path 不直接穿过 normalization。
+\item post-norm 写作 `x <- norm(x + f(x))`，每层都会重标定 residual stream。
+\item 大模型训练中，pre-norm 常被偏好，因为梯度和 residual 信息路径更稳定。
+\end{itemize}
+\textbf{结论。} 架构细节要从优化稳定性、表示尺度和实现成本一起解释，不能只画 block 图。
+这个例题的目的不是替代完整工程实现，而是给出一种最小推理形式：把问题转成变量，写出近似公式或伪代码，再说明近似何时失效。
+\section{实验设计：从小例子到可复现结论}
+学习 现代 Transformer architecture 与 hyperparameters 不能停在概念层。一个教材化结论至少需要四件事：可构造的输入、可观测的中间量、可比较的指标，以及清楚的失败条件。下面的实验设计不是要求训练大模型，而是要求读者用小规模程序复现本章机制。
+\subsection{最小输入}
+先构造只触发本章核心机制的小输入。例如 tokenizer 章节可以用几个包含 rare words 和 Unicode 字符的字符串；GPU 章节可以用一个 elementwise kernel 和一个 GEMM；data 章节可以用十几篇近重复文档。小输入的价值在于它让错误可见。
+\subsection{资源账本}
+对同一输入写下 FLOPs、bytes moved、显存峰值、通信量或样本数量的估算。估算不需要一开始就精确，但必须说明单位和近似假设。随后用 profiler、benchmark、validation loss 或人工检查去验证估算是否同量级。
+\subsection{单变量消融}
+一次只改变一个因素，例如 vocabulary size、head 数、batch size、filter threshold、reward scale、decoding temperature 或 GPU 数量。若多个变量同时变化，实验只能说明系统变了，不能说明机制是什么。
+\subsection{失败条件}
+最后要刻意触发失败：极端 context length、错误 dtype、过小 batch、污染 benchmark、低质量数据或不可靠 verifier。失败条件常常比成功曲线更能说明一个方法的边界。
+\subsection{记录与报告}
+实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
+常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\section{课程资料与回看路径}
+教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
+\subsection{视频回看路径}
+\begin{longtable}{p{0.20\linewidth}p{0.46\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{时间} & \textbf{关键词} & \textbf{复习任务}\\
+\midrule
+00:00:05-00:07:01 & going, we're, different, there's, then, that's, architecture & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:21:58-00:29:40 & think, very, relu, going, architecture, then, output & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:43:57-00:51:44 & very, your, think, well, ratio, head, heads & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:59:12-01:06:34 & decay, think, very, weight, language, maybe, your & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+01:21:33-01:29:08 & attention, think, very, your, performance, full, it's & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+\bottomrule
+\end{longtable}
+这些时间段用于定位视频中的讲解顺序。严肃引用时，应回到视频片段确认讲者表述、板书或幻灯片内容。
+回看视频时，不必逐字抄录字幕。更有效的方法是把每个时间段判定为定义、例子、推导、代码解释或 caveat，再把它放回本章对应小节。
+\subsection{课程资料阅读路径}
+\begin{longtable}{p{0.14\linewidth}p{0.48\linewidth}p{0.30\linewidth}}
+\toprule
+\textbf{资料组} & \textbf{标题/页块} & \textbf{关键词}\\
+\midrule
+official\_01 & Lecture 3 E V ER Y TH IN G YO U D ID N ’ T WA NT TO KN OW A B O UT L M A R C H I T E ... & architecture, many, common, learn, layernorm, architectures, modern\\
+official\_02 & Pre-vs-post-norm, the data Salazar and Ngyuen 2019 Figure from Xiong 2020 & rmsnorm, notable, norm, bias, most, gated, original\\
+official\_03 & Do gated linear units work? Yes, fairly consistently so. Shazeer 2020 & embeddings, position, rope, attention, embedding, relative, layers\\
+official\_05 & Evidence on aspect ratio scaling [Kaplan et al 2020] [Tay et al 2021] & attention, head, dropout, weight, decay, softmax, total\\
+official\_06 & Sparse / sliding window attention Attending to the entire context can be expensive ... & attention, gemma, sparse, full, info, rope, olmo\\
+\bottomrule
+\end{longtable}
+课程资料通常给出更稳定的标题、公式、图或代码结构；视频则补充动机和口头解释。两者合起来构成本章的事实边界。
+阅读资料时，可以把每个资料组拆成三个对象：一个定义，一个公式或伪代码动作，一个边界条件。这样比逐字翻译页面或脚本更容易形成可用知识。
+\section{实践说明、历史位置与风险}
+现代 Transformer architecture 与 hyperparameters 在 CS336 的课程结构中连接基础机制和规模化问题。基础机制解释方法为什么成立；规模化问题检验它在更大模型、更长上下文、更复杂数据或真实 serving workload 下是否仍成立。
+历史位置不等于模型年表。更重要的是识别问题如何迁移：早期方法解决小规模建模问题，现代方法常常解决同一问题在大规模数据、GPU 集群、长上下文或人类偏好约束下的新形态。
+\begin{itemize}
+\item 资料版本限制（version risk）：课程页、公开视频和配套资料可能在学期中更新；引用时应注明访问日期或资料版本。
+\item 测量口径限制（measurement risk）：FLOPs、tokens/s、benchmark score、reward 等数字只有在协议完整时可比较。
+\item 规模外推限制（scaling risk）：小模型或小 batch 的机制不必然外推到 frontier-scale。
+\item 数据分布限制（data risk）：数据来源、过滤和去重策略会改变模型行为，也会改变 evaluation contamination 风险。
+\end{itemize}
+\section{复习要点}
+下面的问题把本章内容压缩为可反复检查的条目。每个条目都应能回到前文的解释、公式、伪代码或例题。
+\begin{longtable}{p{0.16\linewidth}p{0.38\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{条目} & \textbf{对象} & \textbf{检查动作}\\
+\midrule
+条目 1 & Transformer architecture（Transformer 架构） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 2 & pre-norm（前归一化） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 3 & RMSNorm & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 4 & RoPE（rotary positional embedding） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 5 & SwiGLU & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 6 & hyperparameter（超参数） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+\bottomrule
+\end{longtable}
+\subsection{综合自测}
+\begin{itemize}
+\item 我能否不用课程原句，独立解释本章中心问题？
+\item 我能否把本章至少一个公式改写成可运行的估算函数？
+\item 我能否指出一个看似改进但实际转移成本的方法？
+\item 我能否回到视频和课程资料，找到支持本章关键论断的位置？
+\item 我能否设计一个最小 ablation，验证本章一个 caveat？
+\end{itemize}
 \section{总结与延伸}
-第 3 讲最重要的贡献，是把“现代大模型架构经验”从零散的模型传闻，整理成一套较为稳定的工程共识。
-
-如果只抓住五个结论，我会这样概括：
-\begin{enumerate}
-\item 现代 Transformer 整体上越来越向 LLaMA-like 方向收敛。
-\item pre-norm 基本已经成为事实标准，RMSNorm 也已非常常见。
-\item SwiGLU / GeGLU 代表了 FFN 的现代默认升级路径。
-\item RoPE 已经在位置编码里形成了强收敛趋势。
-\item 大多数超参数其实比你想象得保守，真正困难的是知道何时偏离默认共识。
-\end{enumerate}
-
-\begin{importantbox}{我对第 3 讲的压缩结论}
-现代大模型架构并不是一团随机试错后的混沌集合。它已经形成了一片相对稳定的经验盆地，而第 3 讲的任务，就是教你识别这片盆地的边界与内部共识。
-\end{importantbox}
-
-对后续章节来说，这一讲有两个直接延伸方向。第一，架构共识会决定后面 kernel、parallelism 和 inference 的成本结构。第二，看似“只是训练小技巧”的稳定性方法，实际上会在大规模训练里变得和主架构一样重要。也就是说，从这一讲开始，架构设计就不再只是模型层问题，而是完整系统设计的一部分。
-
+\subsection{本章小结}
+\begin{itemize}
+\item 现代 Transformer architecture 与 hyperparameters 的核心不是记忆术语，而是理解对象、变量和机制之间的关系。
+\item 视频给出讲解顺序，课程资料提供可核对的公式、图、代码或页面结构。
+\item 复习时应把每个术语连接到至少一个变量、一个实现动作和一个失败模式。
+\end{itemize}
+\subsection{延伸解释}
+本章中的延伸解释用于连接课程材料中的概念，例如说明公式里的 proxy、解释系统 tradeoff，或把多个材料片段串成一个完整推理链。若需要严肃引用，应回到课程视频和配套资料核对原始表述。
+\subsection{练习}
+\begin{itemize}
+\item 定义题：用中英双语解释本章任意五个重要术语，并说明它们属于 compute、memory、data、optimization、evaluation 还是 deployment 账本。
+\item 推导题：选择本章一个公式，逐个解释符号、单位和近似假设，并说明哪个变量最难在真实系统中测量。
+\item 实现题：把本章伪代码改写成一个最小 Python sanity check，不要求训练大模型，但要输出可检查的中间量。
+\item 资料题：从“课程资料与回看路径”中选择一个视频时间段，回到原始视频核对讲者例子，并记录是否存在字幕误差。
+\item 评估题：为本章方法设计一个 ablation 或 benchmark，说明控制变量、数据版本、指标和 failure criteria。
+\item 边界题：说明本章一个结论在更长 context、更大 batch、更多 GPU 或更复杂数据分布下可能如何失效。
+\item 综合题：把本章内容和前一章或后一章连接起来，写出一个端到端训练/推理 pipeline 中的依赖关系。
+\item 批判题：指出一个容易被营销材料夸大的说法，并用本章的资源账本或评估协议反驳它。
+\end{itemize}
 \end{document}

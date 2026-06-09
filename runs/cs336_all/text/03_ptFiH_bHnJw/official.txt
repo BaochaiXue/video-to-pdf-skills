@@ -1,19 +1,13 @@
 Lecture 3
-E V E R Y T H I N G YO U D I D N ’ T WA N T TO K N OW A B O UT
-            L M A RC H I T E C T UR E A N D T RA IN I N G
+E V ER Y TH IN G YO U D ID N ’ T WA NT TO KN OW A B O UT
+    L M A R C H I T E C T U R E A N D H Y P E R PA R A M E T E R S
 
-                           CS336
-                          Tatsu H
-
-Logistics
-
-                           ❖ Join the slack!
-
-  ❖ Check to make sure you have the latest version of the assignment!
+                             CS336
+                            Tatsu H
 
 Outline and goals
 
-  ❖ Quick recap of the ‘standard’ transformer (what you implement)
+    ❖ Quick recap of a modern transformer (what you implement)
 
           ❖ What do most of the large LMs have in common?
 
@@ -33,7 +27,7 @@ Starting point: the ‘original’ transformer
 
 What you implemented – simple, modern variant
                             Differences:
-                            •    LayerNorm is in front of the block
+                            •   LayerNorm is in front of the block
 
                             •   Rotary position embeddings (RoPE)
 
@@ -44,10 +38,13 @@ What you implemented – simple, modern variant
                                      Why did we pick these?
                                      What should you pick?
 
-    How should we think about architectures?
-    Lots of architecture. Just in the last year since last 336..
+How should we think about architectures?
+    Lots of architecture. Just in 2024-2025..
 
 Over 19 new dense model releases, many of them with minor architecture tweaks..
+
+How should we think about architectures?
+There can’t be that many LLMs released this year right?
 
 Let’s look at the data (on dense architectures)
 Learn from the many other models (and papers) out there
@@ -76,11 +73,12 @@ Let’s think about the core architecture piece
 
                                                 High level view:
 
-                                                • Low consensus
-                                                   (except pre-norm)
-
-                                                • Trends toward ‘LLaMA-
+                                                • Dominance of ‘LLaMA-
                                                   like’ architectures
+
+                                                • Trends over the years
+                                                  (QK-norm, Hybrid
+                                                  attention)
 
 Pre-vs-post norm
 The one thing everyone agrees on (in 2024)
@@ -103,7 +101,7 @@ Pre-vs-post norm, explanations?
          Original stated advantage– removing warmup.
          Today – stability and larger LRs for large networks
 
-New things – ‘double’ norm.
+New things – ‘double’ norm or non-residual postnorm
 If putting LayerNorms in residual streams is bad.. Why not post-norm outside the stream?
 
   Recent models: Grok, Gemma 2. Olmo 2 only does non-residual post norm
@@ -162,10 +160,10 @@ Most implementations (if they’re not gated):
 
 LayerNorm: recap
 
-•   Basically everyone does pre-norm.
+•   Basically everyone does non-residual norm (often prenorm)
     • Intuition – keep the good parts of residual connections
     • Observations – nicer gradient propagation, fewer spike
-    • Some people add a second norm outside the residual stream (NOT post-norm)
+    • Some people add a second norm outside the residual stream
 
 •   Most people do RMSnorm
     • In practice, works as well as LayerNorm
@@ -201,7 +199,7 @@ SwiGLU / GeGLU (next slide..)
 Gated activations (*GLU)
 GLUs modify the ‘first part’ of a FF layer
 
-                          𝐹𝐹 𝑥 = max 0, 𝑥𝑊1 𝑊2
+                         𝐹𝐹 𝑥 = max 0, 𝑥𝑊1 𝑊2
 
 Instead of a linear + ReLU, augment the above with an (entrywise) linear term
 
@@ -216,7 +214,7 @@ Gated variants of standard FF layers
 GeGLU                                                             Notable models:
 
                                                                   T5 v1.1, mT5, LaMDA, Phi3,
-                                                                  Gemma 2, Gemma 3
+                                                                  Gemma 2, Gemma 3, Gemma 4
 
                                                                   Notable models:
 SwiGLU (swish is 𝑥 ∗ sigmoid(𝑥))
@@ -239,11 +237,11 @@ Gating, activations
 
 •   Many variations (ReLU, GeLU, *GLU) across models.
 
-•   *GLU isn’t necessary for a good model (see GPT3), but it’s probably helpful
-     Otuer, recent outlier models..
-          Nemotron 340B (Squared ReLU), Falcon 2 11b (ReLU)
+•   *GLU isn’t necessary for a working model (see GPT3), but it’s rare to see others..
+     Some outlier models..
+          Nemotron 340B (Squared ReLU)
 
-•   But evidence points towards somewhat consistent gains from Swi/GeGLU
+•   Evidence points towards somewhat consistent gains from Swi/GeGLU
 
 Serial vs Parallel layers
 Normal transformer blocks are serial – they compute attention, then the MLP
@@ -259,7 +257,7 @@ Recent Models: Cohere Command A, Falcon 2 11B, Command R+
 
 Summary: architectures
 Pre-vs-post norm:
-• Everyone does pre-norm (except
+• Everyone does non-residual norm (except
    OPT350M), likely with good reason.
 
 Layer vs RMSnorm:
@@ -267,16 +265,15 @@ Layer vs RMSnorm:
   sometimes even performance
 
 Gating:
-• GLUs seem generally better, though
-  differences are small
+• GLUs are consensus now
 
 Serial vs parallel layers:
-• No extremely serious ablations, but has a
-   compute win.
+• Most models now use serial layers
 
 Many variations in position embeddings
 Sine embeddings: add sines and cosines that enable localization   Notable models:
-                       𝐸𝑚𝑏𝑒𝑑 𝑥, 𝑖 = 𝑣𝑥 + 𝑃𝐸𝑝𝑜𝑠                    Original transformer
+
+                        𝐸𝑚𝑏𝑒𝑑 𝑥, 𝑖 = 𝑣𝑥 + 𝑃𝐸𝑝𝑜𝑠                   Original transformer
 
 Absolute embeddings: add a position vector to the embedding       Notable models:
 
@@ -304,7 +301,7 @@ That is, the attention function only gets to depend on the relative position (i-
 
 •   Relative embeddings:                                           is not an inner product
 
- RoPE: rotary position embeddings
+RoPE: rotary position embeddings
   How can we solve this problem?
   •  We want our embeddings to be invariant to absolute position
   •  We know that inner products are invariant to arbitrary rotation.
@@ -323,16 +320,17 @@ Position independent
 RoPE: rotary position embeddings
 There are many rotations, which one do you pick?
 
-                                                                                             [Su et al 2021]
+                                                                                                 Gemma 4 alternative: just first 2
 
-          Just pair up the coordinates and rotate them in 2d (motivation: complex numbers)
+                                                                               [Su et al 2021]
+ Just pair up the coordinates and rotate them in 2d (motivation: complex numbers)
 
 The actual RoPE math
 Multiply with sines and cosines
 
 Difference with sine embeddings – not additive, no cross terms
 
-      Implementation and code for RoPE
+Implementation and code for RoPE
 
 Usual
 attention stuff
@@ -368,12 +366,11 @@ There are two dimensions that are relevant – the feedforward dim (𝑑𝑓𝑓
 
 This is almost always true. There’s just a few exceptions.
 
-   Exception #1 – GLU variants
+Exception #1 – GLU variants
    Remember that GLU variants scale down by 2/3 rd. This means most GLU variants have
            8
       𝑑𝑓𝑓 = 𝑑𝑚𝑜𝑑𝑒𝑙 . This is mostly what happens. Some notable such examples.
               3
-
                   Model                             𝒅𝒇𝒇 /𝒅𝒎𝒐𝒅𝒆𝒍
                   PaLM                       4
                   Mistral 7B                 3.5
@@ -397,14 +394,14 @@ In particular, for the 11B model, they set
 
 For an astounding 64-times multiplier.
 
-Other, recent exceptions – Gemma 2 (8x), SmolLM/Gemma 3 (4x, GLU)
+Other, recent exceptions – Gemma 2 (8x), SmolLM/Gemma 3/Gemma 4 (4x, GLU)
 
 Why this range of multipliers?
 Empirically, there’s a basin between 1-10 where this hyperparameter is near-optimal
 
                                                                                [Kaplan+ 2020]
 
-       What can we learn from the model-dim hyperparam?
+What can we learn from the model-dim hyperparam?
 
 •   The ‘default’ choices of 𝑑𝑓𝑓 = 4𝑑𝑚𝑜𝑑𝑒𝑙 and 𝑑𝑓𝑓 = 2.66𝑑𝑚𝑜𝑑𝑒𝑙 have worked well for nearly
     all modern LLMs.
@@ -425,36 +422,31 @@ This doesn’t have to be true: we can have head-dimensions > model-dim / num-he
 How many heads, whats the model dim?
 Some examples of this hyperparameter
 
-                      Num heads      Head dim       Model dim      Ratio
-        GPT3          96             128            12288          1
-        T5            128            128            1024           16
-        T5 v1.1       64             64             4096           1
-        LaMDA         128            128            8192           2
-        PaLM          48             258            18432          1.48
-        LLaMA2        64             128            8192           1
+                  Num heads       Head dim      Model dim       Ratio
+GPT3              96              128           12288           1
+T5                128             128           1024            16
+T5 v1.1           64              64            4096            1
+LaMDA             128             128           8192            2
+PaLM              48              258           18432           1.48
+LLaMA2            64              128           8192            1
+Qwen 3.5 (27B)    24              256           5120            1.2
 
 Most models have ratios around 1 – notable exceptions by some google models.
 
-Evidence for 1-1 ratio?
-There have been papers written against the 1-1 ratio [Bhojanapalli et al 2020]
-
-But we don’t seem to be seeing significant ‘low rank bottlenecks’ in practice..
-
-      Aspect ratios
+Aspect ratios
       Should my model be deep or wide? How deep and how wide?
 
       Most models are surprisingly consistent on this one too!
-
                Model                            𝒅𝒎𝒐𝒅𝒆𝒍 /𝒏𝒍𝒂𝒚𝒆𝒓
                BLOOM                      205
                T5 v1.1                    171
                PaLM (540B)                156
                GPT3/OPT/Mistral/Qwen      128
-Sweet spot?
-               LLaMA / LLaMA2 /           102
-               Chinchila
-               T5 (11B)                   43
-               GPT2                       33
+Sweet spot?    /OLMo 3
+               LLaMA / LLaMA2             102
+               Gemma 3                    87
+               Gemma 4                    61
+               T5 (11B)                   33
 
 Considerations about aspect ratio
 Extremely deep models are harder to parallelize and have higher latency
@@ -476,7 +468,7 @@ transformer
 GPT              40257
                                                  GPT4            100276
 GPT2/3           50257
-                                                 Command A       255000
+                                                 Gemma 4         262144
 T5/T5v1.1        32128
                                                  DeepSeek        100000
 LLaMA            32000
@@ -554,16 +546,16 @@ Recall the softmax calculation
 
                                                                     [From Devlin 2014]
 
-This is useful for stability! PaLM pioneered this ‘z loss’ trick.
+This is useful for stability! PaLM used this ‘z loss’ trick.
 
-Other examples: Baichuan 2 (2023), DCLM (2024), OLMo 2 (2025)
+Other examples: Baichuan 2 (2023), DCLM (2024), OLMo 2 (2025), OLMo 3 (2025)
 
 Attention softmax stability – the ‘QK norm’
 
                                 Norms
 The query and keys are Layer (RMS) normed before going into the softmax operation.
 
-Other examples: DCLM, OLMo2, Gemma 2
+Other examples: DCLM, OLMo2, Gemma 2, Qwen3, OLMo 3, Gemma 4
 Originally from vision and multimodal models [Dehgani 2023, Idefcs, Chameleon]
 
 Logit soft-capping.
@@ -579,38 +571,44 @@ GQA / MQA : Saving inference costs by reducing the number of heads
 Sparse or sliding window attention (GPT4/Mistral): restricting the attention pattern
    to reduce compute cost
 
-Exotic SSM stuff (Jamba, Falcon 3, etc): not covered (sorry!)
+Exotic SSM stuff (Jamba, Falcon 3, Qwen 3.5, etc): next lecture!
 
 GQA/MQA – Reducing attention head cost
 Let’s think about the compute involved for attention
 
-                                                                X    softmax projection
-Total arithmetric operations (𝑏𝑛𝑑 2 ), total memory accesses (𝑏𝑛𝑑 + 𝑏ℎ𝑛 2 + 𝑑 2 )
+                                                                                                d = hidden dim
+                                                                                                b = batch
+                                                                                                n = length (<d)
+                                                                                                h = heads
+                                                                                                k = head dim (d/h)
 
-                                 1    1 −1
-Arithmetic intensity is high 𝑂     +         - we can keep our GPUs running
-                                 𝑘   𝑏𝑛
+                                                                     X   softmax   projection
+Total arithmetric operations (𝑏𝑛𝑑 ), total memory accesses (𝑏𝑛𝑑 + 𝑏ℎ𝑛 + 𝑑 2 )
+                                  2                                            2
+
+                                                  1       1    −1
+Arithmetic intensity (compute/memory) is high 𝑂       +             - we can keep our GPUs running
+                                                  𝑘       𝑏𝑛
 
 GQA/MQA – Reducing attention head cost
 What about the incremental case when we generate text?
 
    Key difference: can’t parallelize the generation process – needs to be step by step
 
-In this case – we need to incrementaly re-compute/update attention via the ‘KV cache’
+In this case – we need to incrementally re-compute/update attention via the ‘KV cache’
 
-                                     [Animation from https://medium.com/@joaolages/kv-caching-explained-276520203249]
+                                      [Animation from https://medium.com/@joaolages/kv-caching-explained-276520203249]
 
-    GQA/MQA – Reducing attention head cost
+GQA/MQA – Reducing attention head cost
 What’s the incremental arithmetic intensity?
 
-                                                                           X       projection
+                                                                          K, V   projection
     Total arithmetric operations (𝑏𝑛𝑑 ), total memory accesses (𝑏𝑛 𝑑 + 𝑛𝑑 2 )
-                                          2                                    2
+                                          2                                  2
 
                                           𝑛       1 −1
     Arithmetic intensity is not good 𝑂        +          - need large batches + short seq length
                                           𝑑       𝑏
-
         (n) or big model dimensions (d)
 
 Is there some way around this? The n/d term is difficult to reduce.
@@ -626,10 +624,12 @@ Total memory access (𝑏𝑛𝑑 + 𝑏𝑛 𝑘 + 𝑛𝑑 ), Arithmetic inten
                                                                                           𝑑       𝑑ℎ       𝑏
                                  [figure from https://blog.fireworks.ai/multi-query-attention-is-all-you-need-db072e758055]
 
-Recent extension – GQA
+Additional extensions – GQA
 Don’t go all the way to one dimension of KV – have fewer dims
 
 Simple knob to control expressiveness (key-query ratio) and inference efficiency
+
+More recently – MLA (multihead latent attention) from deepseek v2
 
 Does MQA hurt? Sometimes..
   Small PPL hit w/ MQA [Shazeer 2019]   Low/no hit w/ GQA [Ainslie 2023]
@@ -637,23 +637,25 @@ Does MQA hurt? Sometimes..
 Sparse / sliding window attention
 Attending to the entire context can be expensive (quadratic).
 
-Build sparse / structured attention that trades off expressiveness vs runtime (GPT3)
+Build sparse / structured attention that trades off expressiveness vs runtime (GPT3, GPT -
+    OSS, Gemma4)
 
                                                                                  [Child et al 2019]
 
-Sliding window attention
-Another variation on this idea – sliding window attention
-
-Just use the main part of the strided pattern – let depth extend effective context (Mistral)
-
 Current standard trick – interleave ‘full’ and ‘LR’ attention
-From Cohere Command A – Every 4th layer is a full attention
+From Cohere Command A – Every 4 th layer is a full attention
 
 Long-range info via NoPE, short-range info via RoPE + SWA.
 
-Other models – LLaMA 4, Gemma does SWA+Full RoPE.
+Other models – LLaMA 4, Gemma 3, Gemma 4, OLMo 3 does SWA+Full RoPE.
+
+Other recent examples of interleaved attention
+
+    Gemma 4             Olmo 3                         Qwen 3.5 / Qwen 3 Next
+
+                                 https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-gemma-4
 
 Recap, conclusion, etc.
 Many aspects (arch, hparams) of transformers are in common across the big LMs
 
-             Major differences? Position embeddings, activations, tokenization
+            Major differences? Position embeddings, activations, tokenization

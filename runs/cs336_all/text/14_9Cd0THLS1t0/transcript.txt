@@ -1,1701 +1,1447 @@
-So this is the second lecture on data.
-In the last lecture we talked about
-different data sets that were used to
-train various language models. We sort
-of did a historical overview from the
-data sets that were used to train bird
-all the way up to homo and everything in
-between. And one of the things I wanted
-to emphasize is that data doesn't just
-fall from the sky. It exists often in
-live services. They have to be
-explicitly crawled or dumped and then
-there's a bunch of processing that has
-to happen and the processing involves
-converting the raw HTML to text doing
-all sorts of quality and language and
-toxicity filtering, dduplication and so
-on so forth. So in this lecture I would
-like to take a deep dive into some of
-the mechanics on how quality filtering
-and dduplication work in particular. So
-first we're going to look at different
-algorithms for filtering which uh mostly
-are model based. So you train a
-classifier or train some sort of model
-to filter. Then we're going to show that
-this primitive can be used for all sorts
-of different types of filtering. And
-then finally we're going to look at some
-algorithms for uh dduplication. Um so
-this lecture will be a little bit
-different in that it's going to focus a
-lot on sort of classical big data
-processing algorithms and there'll be
-some fun math uh in there for some of
-you.
-Okay. So let's get started with
-filtering algorithms. So the basic high
-level picture here is that you're given
-some target data
-and which you don't have very much of
-it. Suppose it's data that's high
-quality and you have a lot of raw data.
-So imagine this is common crawl and your
-goal is you want to find a subset of
-that raw data. It's called it t prime
-which is similar to t. Okay. So this is
-a pattern that you should kind of
-recognize in basically any sort of
-filtering uh pipeline.
-Um and what do you want for this
-filtering algorithm? You want it
-obviously to generalize from t, right?
-You don't want you already have t so
-there's no point in getting exactly the
-same data t. So there's has to be some
-generalization
-and also has to be extremely fast. So
-you have to run it on all of the web for
-example. So if this is running a huge
-model that's going to be um might be as
-expensive as training. So you don't
-definitely don't want that otherwise you
-might as well train.
-So we're going to look at three
-different ways that you can um implement
-this highle abstract primitive.
-Um so we'll start with training an
-engram model. So this is something that
-uh came up in the last lecture. So you
-can train an engram model with canern
-smoothing. Um you can use other forms of
-smoothing but caner has sort of been
-inherited from the you know you know
-engram kind of modeling. um um
-statistical language processing era um
-and there's a particular implementation
-that people tend to use in this uh space
-called CANLM which is open source
-originally developed for machine
-translation um which implements can
-conernnite smoothing. So you can go and
-read about um it's it's it's pretty
-interesting but um we're not going to
-talk too much about the details here. Um
-so this happens to be very popular in
-data filtering. Uh there's no particular
-reason has to be this one, but this is
-just what people use. Um and the nice
-thing about engram modeling is it's very
-simple.
-When I say fitting a model, you you
-should think of this as just counting
-the number of engrams and then
-normalizing.
-Okay, so just to go into a little bit of
-depth here. So it's your starting point
-is maximum likelihood estimation of
-language models. So you have a corpus of
-text and you want to estimate
-conditional probabilities like p of in
-given the last n minus one words the cat
-and what you do is you count the number
-of n grams
-um and then divide it by the number of
-you know the um n minus one grams of the
-conditioning context. Okay so this is
-you know very very easy um in principle.
-Now implementing this efficiently is uh
-takes a bit of work. Um but the main
-problem is that there's sparse counts.
-So many of the engrams are exactly show
-up zero times even though they're very
-reasonable especially when n grows. Um
-and this was the whole point why engram
-models couldn't really be scaled
-appropriately because you hit the curse
-of dimensionality.
-So to mitigate this um you know some
-people devised uh you know cannon
-smoothing to handle unseen grams and
-there's more details on this but roughly
-this says well maybe if I don't have
-enough data to support this count I can
-sort of use a lower order engram. So you
-know remove one word from the context
-and count the number of times in uh
-appears given cat um and then try to
-either interpolate or back off um to
-that. Um
-okay so that's all I'll say about how
-engram you know modeling works. Um I
-think even in this era of neural
-language model you know it's good to
-know that how engram models work. So um
-let's download
-um the engram. So this is a a model
-that's been trained on Wikipedia. I'm
-just going to download it. Um and then
-let's uh punch some sentences through.
-So this sentence is Sanford University
-was found in 1885.
-Um this is actually a excerpt taken from
-Wikipedia. So it should be you know
-reasonable. Um and if you compute um the
-the probability so you first compute the
-log prop and then you compute the
-perplexity by this uh normalization
-um then you get you know 87 okay so you
-know it's it's some number um and then
-here's another example um you know this
-is taken from the CS336 you know website
-um so let's see how well it does So this
-is a higher perplexity means that it's
-less likely. Okay, kind of makes sense
-because this stuff doesn't really
-probably show up in Wikipedia. It's not
-in, you know, it's not abnormally high
-because it's still fairly good
-well-formed English and many engrams
-there, um, I think show up in Wikipedia
-as well. Um, what about ESDF? This is
-just gibberish. This gets assigned
-higher perplexity.
-Um and then there's the the the so this
-should get assigned pretty high
-perplexity but um for some reason this
-particular engram assigns a a pretty low
-perplexity. So you know it's an engram
-model so it's not particularly clever or
-good. Um but you know you don't need to
-be the best model. You're just doing
-data filtering to create a model. So
-this can be very crude and and fast. So,
-CCNET, which is um a paper out of um you
-know, I guess it was Facebook back then.
-Um uh they which we talked about last
-time. Um
-they um basically did uh this and
-actually
-okay that's fine. Um so they basically
-looked at uh paragraphs of of text um uh
-and those were the items they sorted the
-paragraphs by increasing perplexity and
-just kept the top 1/3 um and this is
-what they used to create the first llama
-um data set. Okay so this is you know
-horistic but you know kind of you know
-if you had to write down something
-really quickly and this kind of makes
-sense. Okay. So, NASA language modeling
-is fast uh but um it's crude.
-All right. Um
-I feel like there was some
-content that was I meant to go through
-that's missing. Oh well, maybe it got
-deleted. Um all right. So that's you can
-fit an engram model um to your target
-data and then you can use that to score
-the raw data and choose the top uh
-scoring documents. Another thing you can
-do is fastex and this is in some ways
-more uh you know popular um this is also
-from you know uh Facebook they released
-a lot of open source uh you know tools
-um although klm I think was um yeah
-created before before that um so here
-they develop it for text classification
-um and they this paper I mean this is
-2016 so a lot of people were developing
-all sorts of fancy neural models and
-they said show that well this actually
-almost linear classifier worked as well
-and was much faster. Um so that's why
-the software package actually became
-very uh popular. So um the motivation
-here um was that if you're doing let's
-say bag of words classification. So you
-have a a sentence of length L your vocab
-size is V and you want to classify into
-64 classes. Then immediately you have to
-define this um V by K matrix um which if
-V and K are both large then this gets uh
-pretty big and you get into sparsity
-issues um and the way it would work is
-that you take your um your documents and
-then you just do linear classification.
-So that's that's fairly you know
-straightforward. So the problem is that
-the number of parameters is huge. So
-fastex says, well, let me just do a a
-linear um basically basically
-dimensionality reduction. So instead,
-I'm going to map my vocab space into a
-hidden dimension which is smaller than k
-um possibly smaller than k 16. And then
-I'm going to classify from h. So notice
-that there's when when you look at the
-prediction the forward pass there's no
-nonlinearity it's just a linear
-classifier you can also think about as a
-matrix factorization um if you want and
-the number of parameters is greatly you
-know reduced um so the implication I
-think is uh you know reasonably um you
-know optimized it's parallelized and
-they use asynchronous SGD
-um and um so here's um okay so The the
-question is this is bag of words. Um and
-you know we want to not just look at
-words but we want to look at engrams. So
-this uh paper also you know extends to
-engrams in a fairly simple way. So you
-take a sentence and you get some chop it
-up into new engrams. Um and here the
-problem is that the number of biograms
-can get um you know quite large and
-actually can be un unbounded. Right? So
-remember when we talked about tokenizers
-if you just chop up into words you're
-going to get you know you don't know how
-many words there are. So the simple
-thing is that you just do hashing. So
-you define some number of bins maybe 10
-million but in this example eight and
-then you just um you just hash every
-biogram um into that. So you these the
-cat maps to two and and cat in maps to
-one and so on. Okay. So of course there
-might be some
-um collisions but you know you just live
-with that.
-Um I mean in some sense the the opt when
-you minimize the loss collisions are
-sort of accounted for. If there's like
-two um words that have nothing to do
-with each other then the weight is going
-to somehow represent the maybe the
-average of the two. And also note that
-often we use fast
-fast text classification with k equals2
-classes. Is this document good or is it
-bad? And in that case uh this is just
-normal ba basically um binary
-classification linear classification.
-Okay. So of course it doesn't take too
-much imagination to imagine well if you
-can do linear classification you can use
-fancier models such as bird or even
-llama. The only thing is that it's going
-to be slower and therefore you run into
-this trade-off where if you use a giant
-model to do classification, maybe you
-should use those flops to actually just
-train the model. So that's the only uh
-concern because you know the web is very
-large and remember you were filtering
-the web down quite a bit. So you're
-going to spend a lot of um compute on
-let's say you're filtering like down to
-1% of the web, right? So that means um
-you know you have your classifier that
-amount of compute you spend has to be a
-hundth of you know taking a forward pass
-through the data set.
-Okay. So the final method I'm going to
-talk about is this thing called data
-selection for um language models using
-importance resampling.
-Um and here are the basic ideas that you
-have your R it's a raw data set you have
-your uh you know uh target data and then
-I'm going to build an importance weight
-estimator um which is um the analog of
-um the language engram model or the fast
-text classifier and then I'm going to
-use that to um get a bunch of um
-documents. Okay. So first just a kind of
-a quick refresher of importance um
-resampling I guess um so you have um
-this shows up in many contexts like you
-know particle filtering um um and you
-know Monte Carlo methods um so you have
-a target distribution so it's a
-distribution not a data set where you
-want to ideally draw samples from this
-but you only have a proposal
-distribution Q where you can draw
-samples so for example if you have a
-vocab of 0 1 2 3 2 3 um let's say this
-is your target distribution and your
-proposal distribution is uh is this.
-Now what you do is uh you sample from Q
-because that's the only thing you can
-sample from. So let's say you get a
-bunch of samples.
-Okay. Um so notice that um Q has a lot
-of more mass on zero. So you get a lot
-of more zeros. Um and then what you're
-going to do is you compute weights over
-your samples by looking at this
-importance um you know ratio P over Q.
-So you're trying to make up for the fact
-I sample from Q so I want to divide that
-out or I really want P and um you
-normalize
-and get you you get a distribution
-um over your your samples. And now you
-resample
-um and you uh that sort of balances out
-the distribution. So now you see that
-there's more threes because P had more
-probability distribution on mass on
-three.
-Okay. So this is a fairly elementary um
-but uh it's a building block. Now then
-now we go to um how we do data
-selection. So we have a target data set
-not a distribution. And we have a data
-set which is small and we also have this
-um raw data set which we're going to
-call the proposal data set dq which is
-large. So
-um you could let's just fit a
-distribution p to dp fit a distribution
-q to dq and door do the importance
-resampling um that I we talked about
-just uh you know two minutes ago.
-Now the main problem is that um DP is
-really small. Remember target
-distributions is high quality data. You
-don't have that much of it which is the
-whole point. You're trying to get more
-of it. So you don't have that much of it
-and it's too small to estimate a good
-model. So again this the the idea is you
-just use hash engram. So this is
-something that we already saw with fast
-text as well. you uh you know take
-whatever text you have and then you
-essentially okay so you basically hash
-all the um we're doing unograms for now
-so you hash each unogram so and you um
-um you basically count the number
-estimate the probability of every um
-hashed engram okay so in this case um
-this the cat and the hat hashes to this.
-Notice that there's some hash collisions
-the and the hat hatch into the same
-value but you know whatever this is all
-crude um and then you just estimate the
-probability of each of these um the
-probabilities.
-Okay. So then to evaluate the
-probability of a new text um you
-um you hash
-um the new text and you multiply the
-probabilities together. Okay, so I got a
-little bit unlucky and the probability
-is gets zeroed out. You can do some
-smoothing if you want. So it turns out
-in Python hash is non deterministic. So
-every time I run this I'm going to get
-something something else.
-Um and the paper shows that this indeed
-uh helps a bit. The gains are not you
-know super massive but you know compared
-to doing fast text which is the heristic
-classification um the gains on the glue
-benchmark using bird style models um
-there is some um lift and the the
-comparison with fastex. So the main idea
-here is that modeling a whole
-distribution is in some sense a more
-principled approach right because you
-want to sample data from um your
-distribution and you have a different
-distribution Q and now you're trying to
-essentially compensate um and so this
-could be better for you know diversity
-because you're trying to match the
-distribution whereas fast text you're
-essentially trying to classify whether
-something is is in the distribution or
-not and it doesn't have any guarantees
-about matching the distribution. Um
-okay but it's it's also fast like fast
-text and um both can be improved by
-having better um models. So instead of
-using linear models based on engrams you
-can increase n you can um use uh neural
-approaches as well.
-Okay, so just to wrap up this uh part um
-so we look at engram models, linear
-classifiers and importance resampling.
-Um but the general framework I think is
-uh is something that maybe worth taking
-away which is that the setup given a
-target data set and a raw data set find
-a subset that's similar to the target
-and all these methods have the basic
-recipe which is estimate some sort of
-model based on the raw data and the
-target data set which gives you a
-scoring function and then keep examples
-in the raw data set based on that
-scoring function. usually high scores
-are kept. So just to walk through this
-in the KLM case um you know the score is
-simply the probability
-um of or I guess you know maybe the
-perplexity um if you want normalized by
-the number of tokens under the target.
-Okay so R is not used here and then you
-keep examples with score greater than
-threshold.
-Um and you can you can um you know
-randomize a little bit around the
-threshold if you if you want. So you can
-also use a discriminative classifier
-where the score is what's the
-probability that this example came from
-the target as opposed to the raw data
-set and then you keep examples where the
-score is of greater than some threshold.
-And then importance resampling says the
-score is the ratio of you know two
-generative models which could be engram
-models in this in this case. Um p of uh
-you know the target distribution over
-the raw distribution and to use a score
-um this is really the importance weights
-you resample with probability
-proportional to that.
-Okay, so at a high level all of them are
-doing essentially the same thing. You
-have you fit some sort of distribution
-that tells you what looks like target as
-opposed to raw and then you apply that
-to the raw data set.
-Okay. Uh maybe I'll pause here in case
-there's any questions.
-Yeah. So um on sort of like a high level
-philosophical
-thing we have an idea of what good data
-is but we've kind of not talked about
-what that's actually like
-what what like a good document looks
-like. So what this is doing is like
-making sure that the words fit next to
-each other when you have like another
-like that you know one comes after the
-other but it doesn't ensure that they it
-makes any sense on like a larger level
-or if you want that you just increase
-the N and the engram. Yeah. Yeah. So the
-question seems I think is that if you're
-using an engram model, it's only looking
-at local contexts and maybe that's not
-great for assessing quality because if
-you shuffle everything around, it still
-looks good to the engram model. So
-there's definitely um that danger that
-it's very easy to adversarily game,
-right? If you can construct you can
-definitely construct um examples that
-the engram model thinks is high. I mean
-I showed you one the the happens to be
-you know pretty high. Um but somehow on
-average um you know you're doing okay
-and in some sense maybe if a document
-looks like grammatical English and it
-looks like news or you know some
-scientific paper um all you want to make
-sure is that that model assigns high
-probability to that. If you get some,
-you know, bad examples, it's not the the
-end of the the world. Yeah. So, we
-should think about these as just like
-filtering out like true nonsense web
-pages that you show. Yeah, I would say
-this is uh filtering out true nonsense
-is I think a good way to to look at it.
-As I go through some examples, I think
-maybe it'll become a bit clearer that um
-this is these classifiers are not just
-used for quality and for some of the
-other use cases. I think it's much more
-maybe compelling why it should work.
-Okay. So, um
-so the same data filtering machinery can
-be used on different tasks. So, I'm
-going to talk about language
-identification, quality filtering, and
-toxicity filtering. So, language
-identification. Um, the idea is that you
-want to find text of a specific
-language. Maybe it's English, maybe it's
-Japanese. Um, and you could ask, well,
-you know, um, you could just train on
-all the languages. Why don't you do
-that? Um, the problem is that it's, um,
-can often be difficult to, um, you know,
-do the curation and processing of high
-quality data in a given language. And
-and there's also, you know, the the
-problem that if you train, let's say you
-only care about, you know, one language.
-Now, if you have data from all the other
-languages, you're going to be spending
-less compute and tokens on any given
-languages on the given language. Um, so
-this was a and that could hurt your
-performance in that language. For
-example, you know, Bloom, which was
-trained in about 20 uh 22, I believe, um
-was only trained on 30% English. Um and
-as a result, the English performance
-maybe was not as good as it could have
-been. It was strong on other languages.
-So there in a compute limited, you know,
-regime, you're definitely at risk of um
-compromising the quality of the of of
-the language you care about. Now that
-said, if you have enough capacity and
-you're training huge models, then you
-can definitely train multilingual models
-and there's could be even positive
-transfer between languages. So all the
-kind of frontier models are are trained
-on um uh heavily multilingual sometimes
-even hundreds of lang like 100 plus
-languages.
-Um so
-you know one simple way to do this is
-fast text is um a toolkit for training
-simple classifiers. It also comes with
-some off-the-shelf um models and one of
-the ones that typically gets used is
-they have a language identification
-um um model and this is just
-off-the-shelf classifier. It supports a
-lot of different languages and and it
-was trained on um basically multilingual
-sites including Wikipedia which has a
-lot of different languages as
-translation sites um and you know for
-some reason Southeast European news. Um
-so DOMA uses this um they basically run
-the fast text classifier and keep pages
-with English uh probability greater than
-0.5.
-you know. Um so let's try it out. So
-there's this model um language ID that
-you can just and download. Um and then
-let's see how well it does. Um so the
-quick fox jumps over the uh lazy dog.
-Let's see where are the predictions. Um
-okay. I don't know why. Okay, there we
-go. So um
-okay so this says English this is the
-label English and the probability of
-English is 71. Okay so I mean you would
-have guessed it would be higher. It
-looks pretty English to me. Um if you
-duplicate the the sentence the
-probability isn't you know changing
-which is good. Um it you know saying the
-same thing doesn't make it more English.
-Um um there's some informal English. Um
-which this is kind of weird. This is I
-guess more English than the quick round
-fox. Um German um actually gets
-classified fairly uh oh sorry this is uh
-German now. The label is German. Okay.
-That is German. Um math gets classified
-pretty weakly as as English. Um code um
-does is um highest is like Russian. Um,
-this is hello is apparently, you know,
-Italian. This is French. Bonjour. Um,
-that's that's good. Um, and this is, I
-guess, a tricky one where I put in some
-Spanish and also some English. And I
-guess I favor the the Spanish in this
-case. Okay. So, this gives you a sense.
-I mean, it's always good to play with
-these classifiers, right? Because just
-because it's a classifier you can
-download and everyone uses doesn't mean
-it like works all the time. Um, so I
-think obviously for short sentences, um,
-it's less reliable because there's just
-less information about what's happening.
-Low resource languages is tough. Um,
-there's a worry that for things that
-don't really or dialects of English, um,
-this could, um, be viewed as not
-English. Um, I think if you want to
-distinguish between similar languages,
-that's also can be easily confused. and
-code switching. I don't even know what
-ground truth is, but it'll do hopefully
-one of the uh languages.
-Um so just talk through one case study
-open web math was this uh this paper um
-from two years ago. Um and the goal here
-is to curate a large corpus of
-mathematical text where here I'm saying
-that you know let's assume that math is
-a as a language. Um so first they use
-some rules to filter then they train
-canlam on this uh large data set of
-proofs called proof pile and kept it if
-the perplexity was below some threshold
-and they they trained this fastest
-classifier which we talked about to
-predict mathematical writing. Um this is
-a kind of hacky but um the they set the
-threshold of a classifier if it's um
-identified as math based on rules to be
-relatively low and if it's not
-identified as math according to rules
-it's um it's uh needs to be higher. Um
-and as a result they produced 15 billion
-tokens and they trained some models that
-do better that models that were trained
-on 20 times more data that weren't
-really specialized. So this is kind of
-one of um nice examples of the the
-utility of data filtering, right? You
-could train on all this data, but if you
-care about let's say a particular domain
-like math, you can just go out and get
-more of it and target that data set. And
-if you train on that, you can be much
-more data efficient.
-Okay, so let's talk about quality
-filtering. So quality filtering
-obviously is something that is um
-doesn't really I mean it's a catch-all
-for um a bunch of things and what is
-quality um so remember that some papers
-uh explicitly don't use modelbased
-quality filtering um but more recent
-papers have just kind of given in and
-say well um I mean it just works a lot
-better um um so GBD3 um we talked a
-little bit about this last time trained
-a quality classifier by taking positive
-samples from the highquality sources
-that they had or rather the non-common
-crawl sources they had and negatives are
-just common crawl. They train a linear
-classifier
-um and keep documents stochcastically
-based on this this score which is
-something that just turns numbers um
-basically sort of sharpens the you know
-the the threshold um and uh the llama
-first llama paper um they use pages
-referenced by Wikipedia so not Wikipedia
-as positives negatives are just sampled
-from common crawl and then they keep
-documents that are classified positive.
-I don't think there was actually
-sampling in that which is interesting.
-Um 51 was another paper that um their
-philosophy was kind of you know
-interesting. Um they really wanted high
-quality data that looked like textbooks
-and they wanted to train a very small
-model. Um so they trained on synthetic
-data but also filter data. So for the
-filter data what they did is they took
-the Python subset of the stack. Remember
-the stack is this pre-processed data set
-coming from GitHub of code and then they
-defined a prompt which effectively asked
-um GP4 to determine the educational
-value for a student whose goal is to
-learn basic coding concepts and then
-they prompted GP4 and classified 100k
-um documents from this Python subset and
-that became the positive examples. They
-train a random forest classifier on
-these examples where the embeddings fed
-into a random classifier were from some
-pre-trained cogen model and then they
-selected data from R that is classified
-by the um you know classifier. So they
-run the classifier then over all of our
-and then get um that data. So this is
-kind of interesting because there is a
-random force classifier and in this case
-where does t come from? Well t doesn't
-exist ap t comes from prompting gpd4
-with some prompt. Okay, so this is
-something that you'll see more
-increasingly as the models get better is
-that instead of you know looking at
-sources like well maybe books one is
-great or maybe web Wikipedia is great.
-Um now if you have a good model you can
-just ask the model to um for the type of
-data you want. maybe I want more
-chemistry data or I want more
-mathematical data that you know does a
-lot of proofs or elementary math or
-something and you just let the language
-model um uh a fairly sophisticated
-language model give you t and now once
-you have t you turn the recipe that
-we've been talking about so far
-so the f1 results um again looks uh good
-so they had a baseline where they just
-took the python subset of a stack which
-was this R and the performance on human
-eval which is a coding data set was only
-12% after 96k steps of training and then
-they trained the exact same model
-architecture on this new fancy data set
-and it was already at 17 after 36 um so
-they declared success.
-Okay, so these are some examples of of
-uh quality filtering. Um any questions
-about quality filtering?
+OK, let's get started.
+So today is the second day on data.
+Last time we talked about how data doesn't really
+just fall from the sky.
+You actually have to think about where it comes from.
+So in general, the internet consists of live services.
+That data on those services have to be either dumped or crawled.
+And then there's an additional step where
+you have to process the data.
+And we also talked about various societal considerations,
+terms of service, copyright.
+You have to either get a license or appeal to fair use.
+So there's a lot of complexity that goes into data.
+So today we're going to look more at the data pipeline
+from transforming the data, filtering the data,
+deduplication, and mixing.
+And then we're going to top it off
+by talking a bit about post-training data,
+in particular, how folks are using synthetic data these days.
+So the first part is going to be mostly about pre-training.
+That's what you should have in mind.
+So we talked a little bit about data transformation already,
+but just as a reminder.
+So raw data doesn't come as text, even as
+if you've scraped something.
+If you ever look inside Common Crawl, it's not text.
+It's either HTML.
+Sometimes it could be PDFs or directories
+in the case of GitHub.
+So most of the attention on transforming data
+is dealing with HTML because most of the web is in HTML.
+And for this processing, a lot of this is fairly heuristic.
+There's removing of boilerplate, like navigation and ads,
+and extracting content, which is the main part of the page.
+And there's some subtleties around what constitutes content.
+Usually, you get rid of the footers and headers, and maybe
+menus, and those things, and you try to extract the content.
+But you could imagine in cases where
+some of the navigation elements might
+be helpful to learn what web pages look like.
+So what is content and what is not content is not always clear.
+And then what do you do about images and tables that
+are in web pages?
+So inherently, this is a lossy process
+because you need to linearize HTML, which at least is
+either hierarchical or visual, if you
+think about the rendered output, and to a sequence of tokens.
+And particular tables are a bit tricky to deal with.
+Simple tables, you can render using markdown.
+But if you have nested tables, then that
+becomes quite challenging.
+You have to give up at some point
+or approximate at some point.
+So, typically, HTML to text processing is rule-based.
+And the reason for this is that rule-based processors
+are very fast.
+And also, you're not trying to do too much here.
+You don't need too much intelligence.
+So rule-based generally works.
+Now, I think there could be a case
+for model-based interventions at this point.
+They have to be very fast, and they
+have to do something more intelligent.
+But if you ever look at data, you'll
+notice there are imperfections in the data
+just because any rule-based processing have some failure
+rate.
+As we showed last time, the accuracy
+does matter, depending on which tool you choose.
+If you use Resiliparse or Trafilatura, then--
+I guess Resiliparse on these extended dclm evals
+works better than the others.
+I'll talk also briefly about PDFs.
+So there's Hugging Face work, which released
+a data set called FinePDFs.
+So PDF files, if you ever opened them up, not in a PDF reader,
+looks like this, and this needs to get rendered.
+So PDFs can be found on just web pages on the internet.
+And Common Crawl does have some PDFs.
+Generally, Common Crawl focuses on text,
+but sometimes, if you're just given a URL,
+you might not even know before you fetch it whether it's a PDF
+or not, if it doesn't have the extension.
+If you read this blog post, there's
+a lot of details, which I'll spare you of.
+For example, one thing is that many of the PDFs
+that are in Common Crawl are truncated because PDFs are big,
+so then that demands that recrawling is necessary.
+And then there's a question-- once you have the PDF file,
+how do you actually convert it to text?
+And, some PDFs might be just scans as well.
+So they're essentially images.
+So there's a bunch of tools that this paper tried out,
+but mostly this involves running OCR using a VLM.
+And this obviously can be much more expensive than what
+we were doing before with text.
+Fortunately or unfortunately, the PDFs
+are a very small fraction of the whole internet.
+But they are very valuable because generally,
+if you bother to make a PDF, that means you probably
+have something interesting to say as opposed to a web page.
+So the quality of an average PDF is generally higher
+than for HTML file.
+There's a lot of cleanup and filtering.
+And PDFs, more so even than web pages,
+a lot of layout information is missing,
+because in HTML you have various tags like h1 and p
+that gives you some semantic information.
+PDFs are, by design, all about layout.
+So you don't necessarily preserve the semantic structure.
+So there's a bunch of transformation that happens.
+At this point, you have text, but you're not done.
+You're far from done.
+So the next step is filtering.
+So I'm going to talk somewhat abstractly about what filtering
+is.
+Here's the building block.
+So suppose you have some target data that you want to get.
+This is usually a small amount of high-quality data and lots
+of raw data.
+This is the fresh shipment of the tokens
+that you transformed from the previous step.
+And the goal is to find a subset of this raw data that
+is similar to target.
+So this is the general skeleton for filtering,
+and almost all kinds of filtering
+falls into this schema.
+So filtering, there's many reasons
+you might want to filter.
+If you're training an English language
+model or a German language model,
+you might want to identify the language and filter things that
+don't match that language.
+The main reason for filtering is quality filtering.
+You want to find things that are high quality as opposed
+to low quality.
+You don't want just spam.
+You want encyclopedic information.
+And then another application is toxicity filtering.
+Of course, the internet has plenty of nasty content,
+and maybe you don't want to train your language
+model on that.
+So, for a filtering algorithm, you want some generalization
+from the target data, because you already
+have the target data.
+You don't want to only get the target data,
+but you also want it to be extremely fast
+because you have to run it on the whole internet.
+So this could be 100 trillion tokens worth of data.
+So generally, filtering is you end up
+with a very small fraction, a single-digit fraction
+of your entire data.
+OK.
+So remember the general framework
+given the target, and raw, you're trying to find a subset.
+So the general scheme is that you estimate some model based
+on R and T and derive a scoring function,
+and then you keep the examples in R based on their score.
+So typically, there are two types of classifiers.
+One are generative models.
+So this is basically you have your target data.
+You can just estimate a model of that data.
+And remember, this has to be cheap,
+so probably you're not training a big language model.
+Generally, KenLM basically says I'm going to train a 5-gram
+model.
+A more common thing, which I think
+we're mostly seeing these days, is just training a classifier.
+And the classifier says, I'm going
+to predict a positive label, for example,
+that are in T, my target, and negative labels
+for things that are in raw but not in T.
+So basically, it looks like T are your positive examples,
+some random subset of R are your negative examples.
+Maybe you balance it, and then you train a classifier.
+And the tool that people generally use
+is fastText because it's fast.
+And generally, it's just a linear classifier--
+a bag of words.
+And then once you have this model now
+for every new document, you can score it,
+and you set some appropriate threshold,
+depending on your quality bar, and you keep the examples.
+Sometimes stochastically, sometimes not.
+So this is very much a model-based filtering approach.
+Remember from the last lecture, there
+are many data sets from generally a few years ago
+that did not use model-based filtering because they wanted
+to not bias things too much.
+These days, I think basically everyone
+does some amount of model-based filtering
+because unless you are compute-plentiful, in which case
+you probably don't need to do as much filtering-- you can just
+train on everything.
+Most people are compute-poor.
+You have to be very smart about how you're filtering;
+otherwise, you're just wasting flops on low-quality content.
+OK, so let me talk through some instantiations of filtering.
+So remember, I mentioned language identification.
+So the goal is just to find-- given a piece of text,
+detect whether it's of a particular language.
+So Meta has trained this set of fastText language identification
+models, which often you can just use off the shelf.
+So it supports 176 different languages.
+It's been trained on a bunch of multilingual sites.
+So Wikipedia, remember, has a lot of languages.
+There's also translation sites and sites
+for different languages.
+So a language ID is generally a fairly easy problem
+compared to many other tasks that we're dealing
+with-- so a simple classifier.
+If you look at a few words, you can tell
+that it's Spanish or Japanese.
+Now, there are subtleties because of code-switching
+and text, and there's some dialects.
+So I wouldn't say it absolutely solved problem,
+but this is not really the bottleneck
+for training a good language model.
+And then you can just-- so once you have your classifier,
+you just choose some threshold.
+This is generally fairly heuristic.
+So another thing you can do with filtering is that,
+suppose you're looking for data of a certain type.
+So let's say you want to get really good at math,
+so you want to go and find a bunch of math data.
+So OpenMathText is this paper from 2023,
+where the goal is to create a large corpus of math text.
+This pipeline consists of a few steps.
+So it's not training a single classifier.
+So first, you use some rules to filter.
+Does it contain latex commands?
+They also use KenLM.
+So this is a generative approach.
+And trained it on the ProofPile, which
+is a known data set of math, and keep it
+if the perplexity is below some threshold.
+And then you also train a fastText classifier
+to predict whether it's mathematical writing or not.
+And there's two different thresholds
+if it has latex in it, then it's a higher bar--
+sorry-- it's a lower bar, but if it doesn't have latex in it,
+it's a higher bar.
+And then, as a result, they got 15 billion tokens,
+which they use to train models.
+And there's a paper that showed that this more targeted, curated
+data collection results in models
+that are better at math than models that were trained
+on 20 times as much data, which were not filtered in this way.
+So the quality filtering again, think about it as a tool.
+You can define quality however you want.
+There's no universal notion of quality.
+If you want to define quality to be math,
+then you can go and get math, and you get better at it.
+So GPT-3, I think I mentioned this last time,
+but just to put it in this framework.
+So positive examples are Wikipedia, WebText.
+So these are pages that link out from high-star Reddit posts,
+and some books.
+And negatives are generally sampled from the web.
+They train a linear classifier and keep documents
+if the linear classifier is scored highly enough.
+There's the first LLaMA paper.
+The positives were pages referenced by Wikipedia, not
+Wikipedia articles themselves.
+And it's this same idea.
+So phi-1 from Microsoft is interestingly also
+falls into this framework.
+So they started with-- the raw data is not already
+a Python subset of the stack.
+Remember this is all code.
+And they define a prompt, which determines educational value.
+And then they use GPT-4 to classify a subset of R,
+100k subset of R with this prompt,
+and the ones that are positive are kept and called the target.
+So the target here is actually the output
+of an expensive classifier.
+And then you train a cheaper classifier,
+in their case, a Random Forest, but you could have probably
+used fastText as well.
+And then you select data that is classified positive
+by this classifier.
+And they also showed that using this data set,
+you do much better than if you're just using the raw data.
+So this performance goes up in fewer steps to a higher value.
+So toxicity works the same way.
+There's this Dataset--
+Jigsaw Toxic Comments, where it came from this project
+where the goal is to help people have better discussions online.
+So here the data is the Wikipedia talk pages, which can,
+I guess, for controversial sites get quite heated.
+And this has been annotated with whether there are
+any toxic comments on there.
+And you can similarly define positive and negative examples,
+and you can train a classifier on that.
+So now I think you have the tools, or some examples
+and inspiration.
+You can identify a particular type of data that you want.
+You build a classifier for it, and then you
+can go filter Common Crawl for that.
+I want to talk about one subtlety here,
+which is that-- no, the notion of what you want for data
+actually depends on what model you want to train.
+So in particular, it depends on the number
+of tokens you're training on.
+And so there's no optimal threshold.
+So before, when I looked at the classifier,
+it gives you a score.
+You can't say 0.9 and say that's the best because it
+depends on what you want to do.
+Intuitively, if you are going to train
+for a longer period of time, then you
+can tolerate lower quality data.
+If you're training for shorter, then you
+want higher quality data, in general.
+And of course, if you could wave a magic wand,
+if you're training for longer, you want more high-quality data,
+but that's not an option that you're given.
+The data pool is what it is.
+So here's a preliminary experiment
+that Michael Ryan did.
+So basically, this plot shows for a 157-million parameter
+model.
+We're taking a very small pool.
+So 100 works, which is a tiny fraction of Common Crawl.
+And we're training and training for more over time.
+So let's take a look at the blue curve.
+So the blue curve is dclm.
+And so the loss starts here.
+And then it comes down.
+And each of these lines is when you epoch over the data.
+So this is one epoch, and then the next blue
+is the second epoch, and so on and so forth.
+So there's not that much data.
+So eventually, you have to repeat your data.
+And the loss continues going down
+because the second time you look at the data,
+you're still learning things.
+And at some point, you start to overfit.
+Whereas if you look at Resiliparse,
+this is basically no filtering.
+So here, it's much worse in the beginning.
+But as you continue and continue, at some point,
+you also epoch.
+It starts to go down slower.
+So you see this trend where high-quality data
+is better in this regime, where you're not epoching.
+But once you get to lots and lots of tokens,
+high-quality data is no longer that great.
+And of course, with high-quality data,
+you wouldn't want to go into this regime
+because you're overfitting-- you probably stop here.
+But even at this point, this is worse
+than if you had trained for longer using low-quality data.
 Yeah.
-LM and not using like
-Yeah. So the the the point is that you
-can why can you get away with um using
-GP4 here because you're using it only on
-um to create a thousand 100k
-examples
-um and to create and then using that to
-distill a classifier which is much
-faster and the 100k is much less than
-the size of R which is you know hundreds
-of tens or hundreds of millions Don't
-worry.
-Okay. So, let's talk a bit about
-toxicity filtering. Um,
-so I'm going to talk about how the DOMA
-paper um does toxicity filtering. So,
-there's this data set called Jigsaw
-toxic comments. Um and this came out of
-a project where they were trying to help
-people have better discussions online.
-So they buil wanted to build a
-classifier that could um identify when
-there was problematic content. So they
-took the data uh comments on the
-Wikipedia talk pages and had annotators
-annotate them with you know toxic severe
-toxic obscene threat insult ID hate. Um
-and so the Dolma folks trained two
-fastex classifiers. one um which is
-basically um uh you know correspond to
-hate and the other one is correspond to
-NSFW
-um and so here's some examples of the
-you know of the you know data set um so
-let's download the model um and try it
-out. So the first example
-um you know are you threatening me for
-dispute neutrality? This gets classified
-as um safe for work um because I mean it
-seems fine. Um and the second one is
-flagged as NSFW
-um
-you know and these sentences are both uh
-fine. Okay. So, just give you a a sense,
-you know, I don't want to show too many
-of these examples, but um you get the
-idea. You can play it on with your own
-time.
-Um okay, so that's all I'll say about uh
-filtering.
-So, now let's talk about dduplication.
-So, there's two types of duplicates.
-Exact uh duplicates. And the thing to
-realize is that the web actually just
-inherently has a lot of exact duplicates
-based on u mirroring. So if you just
-look at project Gutenberg um
-you know you'll see that you know the
-same exact site gets mirrored on a bunch
-of different URLs. So if you're just
-crawling as common crawl does um it has
-no way knowing that these are mirrors.
-It just get you the exact same content.
-Um and then there's neoduplicates which
-is basically the same text that differ
-by a few tokens. And we're going to show
-you algorithms that deal with um you
-know both. So neoduplicates
-um when does this happen? Well, you have
-terms of service and licenses like the
-MIT license. This thing shows up I don't
-know how many times on the web. It's
-just copy and pasted everywhere. Uh
-maybe there's even I don't know maybe
-people take it and actually change some
-things or they mess up copy and pasting
-and um remove a comma or something. Um
-that's all possible. Um and then there's
-uh cases if you look at these these data
-sets um you know near duplicates are it
-just gives you an idea of what new
-duplicates might look like. Um,
-sometimes you have this article where
-like someone's just seemed to have
-paraphrased best actor in a negative
-role for most impactful character, but
-everything else seems the same. Um, this
-is just like missing a a comma here. Not
-really sure how where that comma went
-off to, but um, you know, there could be
-like just annotator or processing
-errors. Um, and then this one's kind of
-interesting. I mean there's clearly this
-very uh kind of ad um like a text which
-um they just replace Canada with USA um
-and some other flight. So this probably
-is generated from some sort of template
-system where they slotted in entities.
-Um so you know these narrow duplicates
-are obviously different but obviously if
-you train on tons of um you know this
-once you have this document this one
-doesn't give you that much value. Let's
-just put it that way. Um so in extreme
-case so if you look at C4 uh remember C4
-was filtered based on the set of rules
-that looked for sentences that looked
-like English. um you'll see this um
-sentence which is indeed English that
-shows up an astonishing 61,000 times and
-for whatever reason if you actually
-trace down where this comes from um not
-the MIT license oh I have to what okay
-do I should I accept these cookies okay
-fine um there's this like random product
-from Amazon that has graffiti mass
-drawings And um you know there's this
-text and apparently this is for whatever
-reason I you know I don't even know how
-there's 61,000 copies of this but that's
-that's what it is. And and so the idea
-is that this text isn't necessarily bad
-right? It's perfectly good English but
-you don't want to like take 61,000
-epochs over this. I mean it's just you
-know kind of pointless. So dduplication
-is sort of complementaryary to quality
-filtering. Quality filtering says this
-piece of data I don't want to ever train
-on it. Dduplication says well this is
-might be fine but I only want a small
-number of these rather than 61,000 uh
-copies.
-So there's been work uh showing that
-dduplication makes language models
-better. Um the first most obvious thing
-is that you can train more efficiently,
-right? Right? Duplication reduces the
-number of tokens and if you haven't
-thrown away information then you um can
-save a lot of uh effort and then the
-second is that um you can also avoid
-memorization. So we haven't really
-talked about this but language models
-trained on data can memorize that data
-which is bad for um you know copyright
-or privacy reasons because it can
-regurgitate the training set and
-dduplication is one tool. It's not
-definitely not perfect, but it can help
-mitigate uh some of these um risks.
-Um okay, so here's how to think about
-dduplication in terms of design space.
-So first you have to think about what is
-the unit that you're dduplicating? What
-is an item? Is it a sentence? Is it a
-paragraph? Is it a document? The second
-question is how do you match? Do you
-what is considered a duplicate? Is it
-exact match? Is it a fraction of common
-sub items? Um and then the final thing
-is what action uh do you take? Do you
-remove all the instances or do you
-remove all but one?
-Okay. So, so the key challenge and this
-is a um algorithmic challenge is that
-fundamentally dduplication is about
-comparing items to other items. Right?
-Quality classification. You can take an
-item, you can classify it as high
-quality or not. Dduplication is
-fundamentally a parise thing. And
-remember, these data sets are large. So
-you can't if you're trying to do
-something quadratic, that's kind of a
-no-go. So you need some sort of linear
-time algorithm to scale um but still do
-something that's pair-wise.
-Um so the building block of all this is
-hash functions. So hash functions just
-as a review is a function that maps an
-item which could be a sentence could be
-a document to a hash value which is an
-integer or string and the value is much
-smaller than item and the thing that's
-relevant about hash functions is that
-you could potentially get hash
-collisions. So which means that you have
-two distinct items that map to the same
-hash value. So in general if you've I'm
-sure you've all I guess all of you have
-used dictionaries or hashts hash
-collisions are generally bad but later
-we'll see that they're actually can be
-good in some limited doses.
-U there's many types of hash functions
-um which tradeoff between efficiency and
-collision resistance which means uh
-don't collide. There's cryptographic
-hash functions which are used for
-security sensitive applications like in
-in Bitcoin. You really don't want
-collisions because otherwise that means
-someone might steal your um your money
-or it could compromise um things. And
-then there's things where um but these
-are slow um but then there's hash
-functions which are generally used for
-hash tables that are not collision
-resistant but you know fast. And so
-we're generally going to go with the
-latter category um because we want
-things to be fast and um this the we're
-not doing cryptography here.
-Okay. So we're going to use this thing
-called murmur hash which takes strings
-and returns you know values but you can
-use a bunch of other hashes as well. Um
-okay so let's start with exact
-dduplication. So here's a simple
-example. the item is just a string and I
-want exact match and I want to remove
-all but one. So here's a bunch of items.
-Um and what I'm going to first do is uh
-compute um a mapping from hash value to
-the list of items with that hash. Um so
-and then once I have that I keep one
-item from each uh group. So each group
-correspond to a hash value. Um and in
-the case of exact dup um exact match um
-assuming there's no hash collisions then
-um you basically do a exact ddup. So
-hello shows up twice here and then now
-it shows up once and of course hello
-uppercase exclamation point is just a
-completely distinct item because we're
-doing exact.
-So this the nice thing is that this is
-very you know simple. It's clear what
-you're doing. It's high precision, so
-you're never gonna throw away anything
-that you didn't um uh that you didn't
-need or you needed. Um but the con is
-that you it doesn't work for near
-duplicates.
-Um and the other thing is that's nice is
-that you know this is very simple to
-implement. We kind of wrote this in a
-map reduce way and you can scale it and
-paralyze it fairly easily.
-And this is something that uh C4 uses
-actually to prepare their data set. So
-their unit is of dduplication is three
-sentence spans. They use exact match and
-they remove all all but one. Um so one
-thing that is always kind of bothered me
-but I know no one else seems to care is
-uh that um when you you're looking at
-three sentence spans, right? So you have
-this document and then you have this
-three sentence span um and if it's
-marked as a duplicate you're just going
-to you know you know do surgery and take
-that those sentences out and so the
-resulting document might not even be
-coherent but then people say you know
-who cares and move on.
-Um okay so there's another um way to do
-uh dduplication that is less map
-reduceuced but more kind of like hasht I
-think the you know bloom filters are you
-know some of you might have seen but
-just uh just to go through it because I
-think it's kind of a cool method um so
-this is you know efficient and um it's
-approximate so you get it's more
-efficient but it's um you know obviously
-It's not always doing the exact thing
-but you know we're we're very have not
-we we are not you know being too picky
-here. Okay. So it's uh the nice thing is
-a very memory efficient. Um you can
-update it but you can't delete. Um and
-it's it's basically a representation of
-set where if you ask for set membership
-and it returns no then it's definitely a
-no. But if it's returns yes then you
-know most likely if you set your
-hyperparameters right it's yes but you
-know there's a small probability that
-you have
-of of no like you have a false positive
-um and then you can you know set your uh
-your parameters to drive down the false
-positive rate if you like. Okay so just
-to uh walk through what this looks like.
-So suppose you have five items, the cat
-and the hat. And um later we'll test out
-with is some items that don't show up in
-the the set. Um the first thing is
-you're going to define a hash function
-that maps to m bins. m is going to be
-eight here. Um so to build the bloom
-filter um we're going to do you know
-something fairly simple. you just um
-you make uh you know a bit array um with
-a number of bins and then go through
-every item hash it the hashes to two so
-I update the second item um cat hashes
-to seven update the seventh item in the
-hat okay so I just um you know populate
-this bit array and the bit array I don't
-keep track of the item so I have no idea
-if I have a false positive or not um
-Okay, so let's just sanity check that um
-every item that I put in is actually in
-the item. So to query it, you just uh
-compute whether that item um hashed is
-in the table. Um and indeed everything
-should pass. Um and now
-um let's look at the nonite items and
-see um how they fare. And you'll see
-that you know some of the non items you
-get a zero which is what you want. Um
-but some of the non items the bloom
-feather says oh actually it's in the in
-the set. So the number of mistakes here
-is is four. And if you compute the false
-positive rate which is the number of
-mistakes over the total number of times
-um the procedure produced um you know a
-a positive then the false positive rate
-is in this case you know 444 which is
-pretty bad. Um now of course this is a
-bin 8 and if the bin were to grow then
-this would get better. In fact it grows
-the error probability is one over the
-number of bins. Okay. So, but you look
-at this and say, well, that's not really
-good because if I want the error
-probability to be, you know, um 10 to
-the minus 10, then I need a lot of bins
-and that's not going to hurt on memory.
-So, there's a more clever solution here,
-which is to use more hash functions.
-Okay, so let's say I use two hash
-functions and I'm going to essentially I
-still have the same, you know, bit
-array, but for every item now I'm going
-to
-use hash it twice. So the under seed
-zero gets hashed to two. I'm going to
-pop it in. And then um the with seed one
-is going to hash to five. So I'm going
-to pop it in there. So every item gets
-hashed into K not necessarily distinct
-but hey K slots. So then I go through
-the cat and then I fill up this um you
-know table.
-Okay. So now I um when I do the querying
-I take an element and I going to return
-one if the table set was set to one for
-all K hash functions.
-Okay. because if I put it in, I have to
-set K bits. And so if I'm testing, I
-need to check the K locations and um
-check that they were all set.
-Um
-so indeed all of those pass. And now
-let's look at the
-um
-so the number of um you know mistakes
-now is three um and the false positive
-rate um decreased. So, you know, that's
-great. So, of course, this is a toy
-example, but you know, you can really
-drive down the false positive rate with
-um modest memory um you know, uh spend.
-Okay, maybe I'll uh pause there before I
-go to um analyzing this a bit more, you
-know, formally.
-Okay, so let's let's think about what
-happens more generally. Um,
-so let's say we have a thousand bins.
-Um, we have 10 cache functions and we're
-going to hash um 100 items. The question
-is, you know, what is the false positive
-rate? And the way to think about this is
-that I'm going to consider a test input
-that's not in the set um that would is
-going to hash into a particular location
-like I. Okay. And then I'm going to so
-um I'm going to now consider putting
-items the n items into the boom filter
-and see what is the probability that it
-hits I. If anything hits I then that um
-is is a is a bad sign. Okay. So let's
-warm up here. So let's say I'm just n is
-one. I'm just inserting one element and
-k is also one. So I'm only using one
-hash function. So now the question is
-what is a chance that there's a hash
-collision um between i and whatever
-element I'm putting in. And the answer
-to that is just one over the number of
-bins. Right? Assuming everything's kind
-of independent. um
-um that's uh going to be you know 0.001.
-Okay. So now um I'm still n is still one
-um but I'm get to use k hash functions.
-So then I essentially
-if um I'm going to
-uh then the the criteria is I have to
-miss not just one time you know but you
-know k times.
-Okay. So this is a probability I miss
-once. So one minus that is the
-probability I I hit and um and then that
-raised to k times is the probability I I
-um have hit you know um on k and then y
-minus that is the probability I um you
-know uh have to miss k times.
-So now the probability here uh goes down
-you know uh a little bit.
-Um okay so now um if I'm inserting n
-items
-so I'm asking the probability that the
-test bin
-um is is one after n. So now instead of
-missing k times I have to miss k times n
-times. So then basically it's this
-expression but just k * n. Um and
-finally
-um because the test item is something
-that um I am
-you know also hashing. So I get sort of
-k chances you know to miss. So the false
-positive rate actually this is what kind
-of helps the K really helps is that I
-can um you know drive down the false
-positive rate with with with K. So that
-becomes um you know f goes from 63 to
-01.
-Um the you can actually look at the
-expression f here and compute the
-optimal value of k um given a fixed you
-know ratio um as this is a sort of
-asmtoic calculation and then you find
-that um this results in k is scaling as
-order m over n. So the number of hash
-functions you should use is on order of
-number of bins over um the number of
-items you're hashing. And if you do that
-then f uh um turns out to be um you know
-0.5 and the false positive rate is 0.5
-to the to the k. So you see that in this
-particular case I wasn't optimal um
-because the optimal value is actually k=
-6 and the false positive rate is 0.08
-as opposed to um 0.0
-sorry 0.008 rather than 0.01.
-Okay. So you can read more about this.
-There's some lecture notes that allow
-you to trade off the compute um the
-memory and the false positive rate.
-Okay, so the bloom filter has some
-hyperparameters that allow you to
-control um whether the um you know what
-your desired false positive rate is, how
-much memory you have, how much compute
-you're willing to put in and so on.
+Just a question about computing the metrics.
+This is actually not totally about the graph.
+Each of those dots corresponds with one training run, right?
+Yes.
+Do you ever need to do the confidence interval when you're
+doing these retraining experiments,
+or is it enough just to do it one time?
+So the question is, each of these points
+is a single training run, should you do it multiple times
+and get confidence intervals?
+Ideally, that would be a good practice.
+Often, you'll see in these papers
+that these are scarce because each training
+run is fairly expensive.
+But in reality, when we have done these experiments,
+it's generally tends to be stable,
+I would say, at least for pre-training.
 Yeah.
-went down.
-So you're saying that the optimal K, you
-know, went down. Um,
-and so why does the F go down?
-Um, so the,
-um,
-let's see. So if a K goes down, um I
-think it's not monotonic,
-right? So if you use a very um I think
-if you use a very large value of K,
-that's actually pretty bad because then
-you just fill up the you know the bloom
-filter. Um and if you use too small,
-that's also not very good either. So I
-think there's a sort of optimum and
-whether it goes down or up depends on
-which side you're on.
-Okay, so in DOMA um they set the false
-positive rate to um 10 um to the minus5
-and they use a bloom filter to do their
-exact uh dduplication
-um
-and they did it at the paragraph uh
-level.
-Okay, so that was exact dduplication
-and the problem with exact dduplication
-is that it doesn't capture some of these
-near misses where morally it's a
-duplicate but um we are not able to
-detect it. So now how do you do
-approximate set membership? Um and to
-talk about approximate set membership
-you need a notion of a similarity
-measure. So one common one that's used
-is jakard similarity. So the jakard of
-two sets A and B is the ratio of their
-intersection over the union. So as an
-example if I have 1 2 3 4 and 1 2 3 5.
-Um if you compute the jakard um the the
-intersection has size three the union
-has size five and therefore the jakard
-is 6.
-Okay. So we're going to say that two
-documents are near duplicates if their
-jakard similarity exceeds some some
-threshold. And generally the threshold
-will be you know fairly high like n9 um
-if you want to only you know match if
-you're like missing a comma or
-something. Now notice that there's
-nothing semantic about this. you could
-be um you know missing a word like not
-and of course that changes the meaning
-completely or some content word but um
-this is just trying to get documents
-that look fairly superficially um
-similar.
-Now the the algorithmic challenge is how
-do you find near duplicates in linear
-time. Okay. So to work up to that we're
-going to try to rewrite the jakard
-similarity which again is a pair-wise.
-You can't compute jakard of one element.
-You can only compute it if you have two
-elements. And I'm going to try to write
-it in terms of a hash function which you
-can compute in terms of one element.
-Okay. Okay, so there there's a cache
-function called minash
-um which has the nice property that the
-probability of a hash collision is
-exactly jakard ab right so normally
-remember you think of hash collisions as
-you know to be avoided at all you know
-costs you you really don't like them but
-here um it's not that you want more hash
-collisions it's just that hash
-collisions are something that you want
-to control for you want just the right
-level of hash collisions
-governed by the similarity. So the prob
-again to just state it probability the
-similarity is equal to the probability
-of um collision. So the more similar two
-things are the more they should collide.
-So that's the the intuition.
-Um okay so so minash is defined as
-follows. You take a set and you hash um
-all these elements. Remember these
-return numbers and you just take the
-minimum element.
-So you know it might at first glance if
-you haven't seen this it's like kind of
-not obvious why uh just taking the min
-actually gives you this property of
-expectation equal to the chard. Um but
-the argument is actually fairly you know
-simple. So the way to think about it is
-that you have your five items and you
-have two sets and I'm going to look at
-um this sort of carous matrix
-representation. Um so A has 1 2 3 4 B
-has 1 2 3 5
-um and now the random hash function
-um induces a permutation over the items.
-So permutation might be three, two, one,
-four, five for example. This hash
-function right there. And now let's look
-at which item is first in A.
-Um and which item is first in B.
-Okay. Um so that corresponds to the you
-know the item corresponding to the
-minimum hash and the item
-each item has the same probability as um
-you know being first because it's the
-hash function you're assuming has you
-know it's it's random.
-So if one, two or three are first then
-the the minash is actually going to be
-the same right because the minimum um if
-these are you know first um the minimum
-here is um equal to the minimum you know
-here right but if the minimum if the
-first uh the minimum hash is four or
-five then the first in a will not be the
-first in um B and the min hash will be
-different. Okay. And then now you can
-say see that the probability of the min
-hash being equal is exactly 1 2 or three
-which is identically exactly the
-intersection.
-Okay. So if you're in the intersection
-and that item is first then you're going
-to get a collision. And if you're not in
-the intersection,
-then that one being first, you'll not
-get a collision because you're going to
-get the min for one of them and you're
-going to get some other value for the
-other one.
-Okay.
-All right. So, um you can check this
-empirically if you don't believe me. Um
-so, generate a thousand. Um I guess
-we're running this on A and B. Um and
-checking what's the probability that the
-you get a collision and it turns out the
-estimated jakard is 6. It's not exactly
-6. I think there's some rounding but you
-know it's it's pretty close.
-Okay. So now we've taken this chicard
-similarity which is paraphase function
-and reduced it to some probabistic
-um you know uh unary function um just on
-on item. Um, but this is actually, you
-know, we're far from done because now we
-can hash our items, but a collision
-doesn't tell us that these two are
-similar,
-right? Just like more likely that more
-similar things will be hashed together,
-but we want something a bit stronger
-here.
-So, this is where locality sensitive
-hashing comes. Um and so right now so
-far we just have a hash function that um
-takes two um you know hashes sets and
-the sets will collide if with
-probability jakard.
-Um but we really want A and B to collide
-if and only if ideally if uh the jakard
-of A and B is exceeding some threshold.
-So somehow you have to sharpen the
-probabilities, right? You want to say
-that if the jakard is over the
-threshold, then with almost like
-probability one, they're going to be
-hashed together. And if it's below this
-threshold, then with basically
-probability zero or very small. Um so
-you know, how do we do this? Um it's
-sort of taking kind of the same trick,
-which is use more hash functions. Um,
-and here the construction is you're
-going to break up your N hash functions
-into B bands of R hash functions. So,
-for example, if you have 12 hash
-functions, um, and three bands and each
-band would have four hash functions. So,
-you have H1 through H4, H5 through H8,
-H9 through H12.
-Okay? And then we're just going to
-declare that A and B are going to
-collide if for some band all of hash
-functions returning the same value.
-Okay, so if I have A and B, I'm going to
-hash uh using all 12 hash functions for
-both A and B using the minash. And now
-I'm going to say if this band, for
-example, if the hash values for H1, H2,
-H3, H4 all agree, then they're going to
-collide. or this band or this band.
-Okay, so there's a sort of or and or
-structure which is the key to you know
-making sharpening the probabilities
-around the threshold.
-Okay, so um now we just have to you know
-do some analysis to calculate what is
-the probability that a and b uh collide.
-Okay, so similar I'm going to use sim to
-refer to the jakard.
-similarity.
-Um so
-um okay so I'm going to say let's say I
-have jakard similarity of uh 0.8 eight.
-In that case, I'm going to have five
-bands. Each band has um 10 hash
-functions. So, a total of 50 hash
-functions. Um so, what is the
-probability of a fixed band you know
+So you mentioned training for longer and high-quality data,
+is that not a combination that we're considering?
+But if we are training longer on this high-quality data,
+would it have diminishing returns
+compared to training for longer with the high-quality data?
+Yeah.
+So the question is, if you were able to get higher quality data
+and you trained for longer, would it
+still have diminishing returns?
+Every data set is going to have diminishing returns eventually.
+That's finite.
+But it would probably be here.
+It would just be down here and just keep on going down.
+OK.
+Great.
+Let's move on.
+So summary, filtering is pretty critical for building
+a good model, especially when you're compute-constrained
+like most of us.
+Technically, if you have infinite compute,
+you don't need to filter.
+And you can train on everything, and it'll be a giant model.
+But realistically, everyone has to filter.
+So the recipe here is figure out what good data looks like.
+And then you can train a classifier,
+and that will extrapolate to the rest of your model.
+And what good data looks like?
+You can either find it by saying,
+aha, there's this data set out there that I really like
+and I just want more of it.
+Or you can craft a prompt to a language
+model and then use that to construct,
+to do a preliminary filter of a large pool,
+and then use that good quality data to train a smaller
+classifier and extrapolate to everyone else.
+OK.
+Next, I'm going to talk about deduplication.
+So at this point, we have filtered our data set.
+So we only have what we deem to be high-quality data.
+But often, data still has duplicates in it.
+And there's two types of duplicates.
+There's exact duplicates.
+So this happens when, for example,
+if you look at these mirror sites,
+the whole point of a mirror is that it's a duplicate.
+And sometimes the web crawler isn't smart enough
+to know that this mirror is exactly this mirror,
+so it just crawls many sites, and you'll
+get this exact same content.
+Also, when you fork a repo, that is also a duplicate,
+even if you make changes.
+Probably you're making changes to a few files,
+so 99% of that repo might be the same.
+So duplicate is abundant.
+And yeah, sometimes there's actually
+near duplicates which are not mirrors or derivative,
+but they just happen to be the same text differing
+by a few tokens.
+Usually, probably this came from--
+it could be copying or came from a different common source.
+So here are some examples of near duplicates.
+So terms of service and licenses.
+So I guess the MIT license probably
+shows up on a lot of places.
+And so in many cases, it is a exact copy,
+but only of that license, unless someone made a typo
+when they copied it.
+But the rest of the page that the license might be part of
+might be different.
+And we talked about how a lot of websites
+have the same headers and footers.
+Those are also duplicates.
+There's also cases where, for whatever reason,
+this is from LM1B, so the 1 billion per benchmark.
+There's these articles where you just
+have typographic differences.
+There's one version with a comma and one version without a comma.
+I don't really know why, but that happens.
+And sometimes you see these templates
+where this is some probably low-quality content, where
+it essentially looks like an ad or some sort,
+and someone just templatized and replaced Canada with USA.
+So if you train on this data, but you are just
+training on different variations of this with different entities,
+this is going to be wasting your GPUs.
+There's a more extreme cases.
+So this is why it's good to look at your data.
+So this audit of the C4 data set found this product description
+61,000 times in the data set.
+And if you trace back-- this is really bizarre.
+I don't know why.
+This is some description of this gas mask.
+And this just showed up in this data set in Common Crawl 61,000
+times.
+So yeah, the web is weird.
+So why deduplicate?
+So the first idea is clear because you
+want to train more efficiently.
+Deduplication reduces your data set size
+without really losing information because you're just
+removing duplicates.
+And it also has this benefit of avoiding memorization,
+which this paper talks about.
+For example, if you have some copyrighted content that's
+duplicated a lot, then if you train on it,
+then you'll memorize it, and also privacy concerns.
+But mostly, I think, it's just to make sure
+that you're not wasting flops.
+Related to deduplication is also decontamination,
+which is arguably even more important, too.
+And it's the same deal, is that you
+want to make sure that your test set is not in your training set.
+So how do we dedupe?
+So here's the design space to think about.
+So first of all, what are the items that you're deduping?
+Do you do at the sentence level, the paragraph level,
+or the document level?
+How do you determine a match?
+Is it an exact match?
+Is it existence of a common subitem?
+Is it the fraction of common subitems for near deduplication?
+And then once you find a duplicate between two pages,
+what do you do?
+Do you remove all the instances, or do you remove all but one?
+And the key algorithmic challenge
+is that deduplication is fundamentally
+about comparing items to other items.
+And normally, if you're doing filtering,
+this is about an individual item.
+Is this item good or not?
+And this can be parallelized.
+It's linear time, which is good.
+And even in linear time, we're trying
+to make it fast by having rule-based or very small models.
+But your duplication, clearly, you
+can't do the n-squared thing where you compare everything
+to everything.
+You need linear-time algorithms to scale, especially
+at this web scale.
+So typically, the deduplication literature
+uses hash functions to get around this.
+So we'll develop some of these ideas.
+These are quite nice ideas from--
+thanks to the algorithms community.
+So I think everyone knows what a hash function is.
+It takes some value like a string,
+and maps it into something like a string or an integer.
+And the hash value is much smaller than item.
+Hash collisions are when two distinct items
+map to the same age.
+So when you look at hash functions,
+there are really fancy hash functions which
+are cryptographic in nature.
+These are collision-resistant using cryptography and Bitcoin
+and things like that.
+And then there's these faster ones,
+which are used for hash tables, where hash collisions aren't
+the end of the world.
+And so we'll be using these.
+So take a string and map it to some values.
+That's what hash functions do.
+OK.
+So exact duplication is conceptually very simple.
+You take a string, you see if there's an exact match,
+and you remove all but one.
+So here you have a bunch of elements, and you hash them,
+and you dedupe.
+And exact duplication is very nice.
+It's very clear what's happening.
+But this isn't really good enough for the messy web data
+because often you have these near duplicates.
+And one note is that there's many ways to have written this.
+This is written in a bit of a MapReduce style
+way, which makes it more easily parallelizable and scale.
+So, C4, this paper from the T5 paper, which processed Common
+Crawl, did exact deduplication.
+The items they operate on were three-sentence spans,
+and you do an exact match, and they remove all but one.
+So if you're paying attention, you
+realize that there's something a bit
+strange about this because you're looking
+at three-sentence spans.
+And if you find two documents with three-sentence spans
+and you remove all but one, that means
+you're just going to rip out three sentences
+from that documents, which is a little bit strange,
+because it breaks the coherence.
+But this is what they did.
+So that's exact deduplication.
+So how do we do near deduplication?
+So first of all, we have to define what
+approximate match means here.
+So to do that, we're going to define this called Jaccard
+similarity, which is a fairly standard notion.
+And Jaccard of two sets is basically
+the size of the intersection over the size of the union.
+So given these two sets--
+1, 2, 3, 4, and 1, 2, 3, 5, when you compute Jaccard,
+you take the intersection.
+That's 1, 2, 3.
+You take the union, that's 1, 2, 3, 4, 5,
+and you divide, and Jaccard is 0.6.
+So Jaccard is a number between 0 and 1.
+0 means that they're disjoint, 1 means that they're identical.
+So a fairly natural notion.
+And we're going to say that two documents are
+near duplicates if their Jaccard similarity is
+above some threshold, let's say 0.99.
+So now the question is, how do you find near duplicates
+in linear time?
+So fortunately, this is a solved algorithms question.
+And the answer is to use MinHash.
+Well, OK.
+So the first step is to use MinHash.
+That's not the final answer.
+So MinHash is a random hash function,
+so that the probability of a hash collision
+is exactly the Jaccard of A and B.
+So this is a very nice property because hashing
+is good for making things linear time.
+Jaccard is the metric that we want,
+and we're connecting these two right now in expectation.
+So what's interesting is normally,
+you want hash functions to define hash functions
+so that everything is hashing--
+distinct elements are hashing to different things.
+You don't want collisions.
+But here you actually want collisions--
+not arbitrary collisions, but you
+want to control the collisions in a certain way
+to align with the similarity.
+So similar things you want to collide
+more than disparate things.
+So the MinHash is essentially, actually, let's see.
+Maybe I will-- so here's the MinHash.
+It's fairly simple.
+You take a set, and you hash every element in that set,
+and you take the minimum element.
+So if you're seeing this for the first time,
+it may seem a little bit strange.
+Why are you taking the min?
+You can take the max, too.
+It doesn't really matter.
+It's just a way to break ties.
+So here's the picture that you should have in your mind.
+So if you have A, remember A contains 1, 2, 3,
+4, and B contains 1, 2, 3, 5.
+So this is a characteristic matrix representation
+of these two sets.
+And so what the random hash function is doing
+is that it induces a permutation over the items.
+So it might be 4, 3, 1, 5, 2, or something else.
+And then you look at which item is first,
+according to this permutation in A, and which item is first in B.
+So each item has the same probability of being first.
+So if the random hash function puts 1 first, then first in A
+will be equal to first in B. And if it's 2 first,
+then it's the same.
+If it's 3 first, it's also the same.
+But if the random permutation puts 4 first,
+then the first element in A is going
+to be different from the first element in B, and same with 5.
+So look at this representation.
+Basically, the random hash function
+says elect one of these rows to be first.
+And then when the min is just telling me--
+the min equal of A equal to min of B
+is basically telling me whether that row is the same.
+OK.
+So that is, I guess, the proof of why this property holds,
+which is that you have a hash function in expectation
+over your random choice of hash functions,
+that the probability of collision
+is the similarity metric you want.
+OK.
+So let's just check this in code.
+So I'm going to generate 100 different hash functions.
+Each hash function is given by a seed.
+And I just check whether the MinHash
+is equal to MinHash, and the estimated Jaccard.
+So I'm going to just look at the number of the fraction
+of matches, and you get 0.6.
+And the key thing with the MinHash
+is that I don't have to do the n-squared thing.
+I can compute the MinHash of A and the MinHash of B and MinHash
+of a different set, and I just look for collisions.
+Any questions so far about MinHash?
+So now we can hash our items, but we're not
+done yet because a collision doesn't tell us
+the Jaccard is above some threshold, which
+is what we want.
+We want to find A and B such that Jaccard
+is greater than 0.99.
+All we've done is said, OK, well,
+if we've got a collision, the probability of that collision
+of two things colliding is the Jaccard.
+But that's not really that useful by itself.
+It's stochastic, and I can't really
+get anything reliable here.
+So the next idea is this thing called
+locality-sensitive hashing, which essentially
+solves this problem.
+So this is a very classic idea in theoretical computer science,
+and it's quite nice.
+The idea here is that we have A and B colliding with probability
+equal to the Jaccard.
+So it is true that more similar items will collide more often,
+but it's very stochastic.
+The variance is quite large here.
+So our goal is to have A and B collide
+if the Jaccard is greater than some threshold.
+So we, in some sense, have to sharpen these probabilities
+somehow.
+The probability can't just be literally equal to the Jaccard.
+So the solution is to use more hash functions.
+And these hash functions are going to be independent.
+So this part gets a bit technical,
+but we'll walk through it.
+So you break the n hash functions
+into b bands of r hash functions.
+So if you have 12 hash functions, you have three bands,
+each band has 4 hash functions.
+So there's a band here, h1 through h4.
+Here's a second band, h5 through h8.
+Third band, h9 through h12.
+And then so what we're going to try to do--
+so each hash function gives us either a collision
+or not collision.
+And so every hash function, a probability of colliding.
+So the key here is that we want to say, compute the probability
+that A and B collide.
+We say that A and B collide if for some band
+all of its hash functions return the same value.
+So if h5 and h6 and h7 and h8 all return the same value--
+sorry-- if h5 of A equals h5 of B and h6 of A equals h6 of B
+and so on, that means this band is triggered,
+and then I would say they're colliding.
+Or if this band, if all of these agree,
+then I say it's collision, or these two.
+But you don't have to have all the hash functions return
+the same value.
+So there's this and-or structure here
+that is doing the lifting here.
+And we'll see why this works.
+So now let's say you have a particular Jaccard of A and B,
+what is the probability that A and B collide
+according to this definition?
+So we can calculate this.
+So let's say that this Jaccard similarity is 0.8.
+And we have five bands, and each band has 10 hash functions.
+So then we can say, what is the probability of a fixed band
 matching?
-So, probability of fixed band matching
-is simply you know 0.8 to the R,
-right? Um because the probability of
-hash a single hash function is just a
-jacard which is 0.8.
-And now what is the probability of that
-sum band matches? Well, it's a
-probability that um you know the that
-one fixed this is the probability that a
-fixed band um doesn't match and this is
-the probability that you know all of
-them don't match and then so this is the
-probability that at least one matches.
-Okay. So now you see the probability of
-collision is you know 04 um you know
-three.
-Okay. So it's kind of reshaping this
-probab umility. Before if you have one
-hash function if B and R is one then um
-the probability would be of collision
-would be 08 and now it's uh you know.3.
-Okay. So you know that's but let's um I
-guess here's a picture you should have
-in your head. So on the x-axis is
-similarity and what we want is the
-mapping from similarity to probability
-of collision to look something like
-that. If the threshold is the desired
-threshold is you know 0.5 then I want
-everything down here to be you know near
-zero and everything up here to be near
-one. So let's see uh what this looks
-like. I'm going to set um
-um
-for various similarity values. I'm going
-to set B equals 10, R equals 10. And
-notice that what this happens is that it
-squashes down some of these low
-probabilities and then it sharpens some
-of these high probabilities.
-Okay. Um but you know, maybe I want to
-make this a little bit sharper. Um, so
-what I'm going to do is to increase R
-from 10 to 20. And what that does is
-that moves the curve to the right um to
-make it harder to match and also
-sharpens the threshold. So if I do that
-then you'll see that now these
-probabilities go up and now um these
-probabilities are much smaller. Right?
-So in before um even a 7 probability uh
-some 7 similarity had um you know a
-probability of 0.24 which is you know
-kind of high. I really don't want this.
-So I want to squash this. So in
-squashing that I can now get it down to
-you know 07 which is you know pretty
-good I guess. Um, but now I've also
-squashed uh some of these probabilities
-and I the goal isn't to shift everything
-to the right otherwise I might as well
-do exact do duplication.
-So now there's another trick. If I
-increase B which is the number of
-buckets or bins
-um then I can
-um essentially get these probabilities
-like 0.9 to be in the 90s uh now and
-these probabilities are still fairly
-low. Okay. So this picture shows that as
-you increase B I get to shift this curve
-to the left. So increasing R will
-sharpen the curve and move things to the
-right and then increasing B will um
-shift the curve to the left so that you
-can with appropriate setting of B and R
-you can get your like really sharp
-sigmoid.
-Okay. So just an example of what this
-looks like in practice. So there's this
-um paper that we saw last time that uh
-uses a near duplicate uh near
-dduplication
-um using minash LSH um and uh their
-values um b= 20 and r equals uh 450. So
-so this r is large which means that they
-want a really um sharp threshold. So um
-there's a formula which you can um
-compute which um says the threshold is
-um.99.
-Okay. So that means um for every 100
-words you can only allow basically one
-word to be you know different. So this
-is fairly you know strict dduplication
-and uh the probability that a
-um you know fixed band matches is um you
-know this to the r which is point um 05
-and then the probability of collision is
-um 0.64.
-So one thing that's kind of interesting
-is that um I'm computing the probability
-of collision at the threshold. So in
-some sense you know that should be
-somewhere in between 0 and one. And it
-turns out that it converges to 1 - 1
-over e which is you know around you know
-6ish.
-Okay. So around the threshold, you know,
-you could go either way, but as soon as
-you go above the threshold, you have
-very high probability of being in a
-collision and below the threshold, you
-have very low probability of being uh in
-a collision.
-Okay. So um so with that, I'm going to
-you know summarize. Um
-actually maybe I'll ask uh if there's
-any questions about dduplication.
-Um so dduplication makes you run faster,
-avoids memorization. You can do exact
-dduplication
-um with bloom filters or you can use
-minash LSH to do approximate
-dduplication.
-Yeah. Um so I have a question like are
-most of the duplicates functions are
-like based on exactly like duplicate but
-if I like rewrote the text like other
-since like synthetic data is like
-authorized I was wondering how do we
-dduplicate for that use case? Yeah. So
-given that synthetic data is on the
-rise, how did you duplicate using um
-something that's like uh you know
-paraphrase um sensitive? So there are
-some papers uh for example 70 duplicate
-didn't mention that look at essentially
-embedding. So um that uh can allow you
-to get a more semantic notion of um
-similarity or did you um and and this
-all fits into the same you know
-framework because you know in some sense
-LH LSH was devised to find approximate
-nearest neighbors and so all you have to
-do is have a embedding and that can you
-embed all the documents and you can find
-nearest neighbors in that space. Um
-obviously there's a higher cost if
-you're going to run an embedding to um
-to embed your documents and also
-you know we are sort of working in a
-regime where documents are you know the
-the near duplicates are like really near
-duplicates. Um I think you have to be
-very careful if you're doing some sort
-of more fuzzy duplication. you can throw
-out a lot of your data um if you are too
-permissive.
-Uh another question. So we know that all
-the better. I wonder if there's any
-situation where you actually have to
-duplicate data since it's like so high
-quality or you want to be repeated.
-Yeah. So the question is uh well if the
-data is high quality maybe you do want
-duplicates and that's actually right. Um
-so in a lot of language modeling papers
-there's sort of the mid-training regime
-where you have a bunch of high quality
-sources. You actually want to take
-multiple epochs over high quality data.
-Um so the dduplication is more I would
-say for kind of the pre-training where
-you have all this stuff and you have
-60,000 copies of some random thing you
-just want to like clean that up. But um
-I think the optimal thing to do is well
-clearly not I don't know what the
-optimal thing to do is but um it's
-probably if you have documents that
-occur a lot of times you could also
-signal that there's more importance to
-it and maybe the right thing to do is
-like taking the number of the count and
-I don't know taking the square root or
-log or something so that it shows up um
-doesn't proportionally show up in your
-training data. But it's you acknowledge
-that it's um important enough to go take
-more epochs over it.
-Okay. So let's summarize. Um so this
-lecture was mostly about giving you
-algorithmic tools. So we look at engram
-models uh linear classifiers and
-importance resampling as ways to do
-filtering. And with filtering um you can
-do language identification, quality
-filtering, toxicity filtering, anything
-I guess where you have a targets
-data set and you want to get more of
-that data set, then you can apply these
-tools. Or if you don't have a target
-data set and you have a strong language
-models, you can prompt that language
-model to synthesize a or synthesize or
-um filter down a you know a lower
-quality data set to get to t and then
-you get a fast classifier that uh you're
-and you're off to the races. And the
-second we looked at dduplication
-which um is important um
-for reducing the amount of compute you
-you're spending on you know kind of
-you're wasting essentially um and the
-algorithmic tool here is is hashing u
-because hashing is what allows you to
-take these kind of pair-wise notions of
-similarity and collision and turn them
-into unary functions which allows you to
-have this linear time, you know,
-property. And, you know, we saw some
-sort of clever methods where, um,
-basically using multiple hash functions
-um, and using these kind of andor
-constructions allows you to kind of
-shape your your criteria in in ways like
-the LSH example. So now you have all the
-tools um, you know, now in some sense if
-you ask how how you teach data, this is
-kind of only the beginning. um the you
-really have to spend time with the data
-looking at it, filtering and training
-models and that's how you build um your
-intuitions over what works and what
-doesn't. So hopefully you'll be able to
-do that uh a bit in assignment uh 4.
-Okay, that's all for the data lecture
-and next week uh we're going to start
-doing um reinforcement learning and you
-know alignment which is will be our last
-unit.
+So that's 0.8 to the r.
+Because each band has r hash functions,
+so the probability that they all have to match is 0.8 to the r.
+So the probability of a fixed band matching
+is generally quite low.
+It's exponential in r.
+And then now the probability of collision
+is the probability that some band matches.
+And that's going to be the probability of 1
+minus the probability of--
+so this is the probability of a band not matching.
+And if you raise it to the b-- there's
+b bands-- there's a probability that all of them don't match.
+And then 1 minus, that is the probability that some match.
+So the probability of collision is 0.4.
+And you're expected to be higher because you're
+given B tries to get a match.
+So if you plot this, this is what it looks like.
+So you have on the x-axis the similarity here.
+And we were looking at 0.8.
+And you look at the probability of a collision here.
+So we would expect that if the similarity is 0, then
+it should be 0.
+If it's 1, it's 1.
+But notice that this is an interesting S-shaped, which
+is nice because this is what we wanted to sharpen.
+We wanted to basically say, if the similarity is
+below some threshold, then we want the probability to match
+to be as low as possible.
+And if the similarity is above some threshold,
+we want it to be as high as possible.
+So we're trying to get this to be like a phase transition.
+And if you plot this function as a function of similarity,
+that's what you get.
+OK.
+So let's just look at some examples.
+So concretely, we have similarly 0.7 to 0.98.
+And we're going to look at how b equals 10, r equals 10.
+So we look at the collision probability,
+according to our definition.
+And we see that this gives us a range of 0.25 to 1.
+So if you were to set a threshold, this is not so bad.
+We can set it here.
+And these with some probability will--
+they're still false positives because, even if these
+are below a threshold, let's say 0.9, they might still collide.
+But we can filter them out if we want.
+But the ones above are mostly kept.
+So what happens when you move--
+so increasing r.
+So remember, r is the number of hash functions within a bucket.
+So when you increase r, the threshold
+sharpens and moves the curve to the right.
+Everything becomes harder to match
+because you have more hash functions inside a bucket that
+sharpens that exponent.
+So the probability you see are sharper here,
+and now everything moves to the right.
+And now it's fairly unlikely that if something
+has a low Jaccard, you're going to match it.
+So before it was 0.25, and now it's 0.008.
+So we're sharpening the probabilities.
+And then increasing b has the effect
+of moving the curve to the left.
+It makes it easier to match. b is the number of bands.
+And some band has to match.
+If you have more bands, then there's
+more chances of matching.
+So if you look at this, then before and after.
+So now we're making-- before this, 0.9 was only 0.72,
+and now it's 0.92.
+And of course, this also increases, but not by that much.
+And you can drive these phase transitions
+to be as sharp as you want by increasing b and r.
+But of course, if you can increase b and r too much,
+then it can be more expensive.
+So let's look at a more real-world setting.
+So in this paper on deduplication,
+they had b, 20 bands, and r is 450.
+So it give you an idea of the magnitude of these numbers.
+And in general, the phase transition happens
+at a threshold, which is 1/b b raised to the power of 1/r.
+So if you want to filter based on Jaccard greater than 0.9,
+then you basically have to set b and r such that this is 0.9.
+And then by changing b and r, you
+can make that phase transition sharper.
+So remember the probability of the fixed band matches is 1/b.
+If you are at this threshold, then the probability
+that A and B collide is approximately--
+it's a constant.
+So the probability of collision is 0.64.
+And this makes sense.
+So basically, if you have a phase transition,
+the center of that phase transition is 0.64.
+And everything below it should go to 0, as b and r increases,
+and everything above, it should go to 1 as b and r increases.
+Any questions about LSH?
+So this method is called MinHash LSH because LSH really
+works for any hash functions.
+For deduplication language model processing,
+we're using the MinHash, which approximates Jaccard.
+And so that basically is the one you should use here.
+Questions about dedupe?
+So one note about dedupe is that there's often, as we'll see,
+data sets that are coming in.
+And sometimes the deduplication will happen within a data set.
+But you actually have to do deduplication
+across your entire data set because often data sets can
+be redundant.
+So sometimes that's not done, but it should be.
+Let's go on to the next topic, which is data mixing.
+So far, we've transformed our data from really raw HTML
+or PDFs into text.
+We filtered for high-quality.
+We deduped, so we have a smaller set of high-quality documents.
+And this generally happens for a given data source.
+But language models are trained on multiple data sources.
+So in Marin, currently, this website
+tracks the different data sources
+that the next model will be trained on.
+And you can see that there's a bunch of things.
+There's Nemotron, there's FinePDFs, which we talked about.
+There's some institutional books, and some code,
+and all these things.
+So you have all these different sources.
+And the question is, how do you combine these?
+So if you look at an older paper, The Pile,
+this is the set of sources that they had at that time.
+And they essentially assign a particular weight
+to each component.
+So basically, you have a distribution over sources.
+So where does that weight come from?
+So just cut and dry.
+Let's say you have three sources.
+You want to find a data mixture, and a data mixture
+is just a distribution over your sources
+So if you're just thinking about this problem
+from first principles--
+well, not from first principles, but just from what you might do.
+Vibes, which is, I guess, the opposite of first principle,
+is you just manually set it based
+on some intuition, which is more often than you might think,
+what people do.
+So I think this is definitely fairly vibes-based.
+And even more recent papers, you just look at--
+maybe you use some method and then you just tweak things.
+You can also do uniform sampling, which
+is you just put a uniform distribution over your sources,
+and you sample every chunk.
+You just sample a source.
+You can also do proportional mixing,
+which is that you sample proportional
+to the number of tokens in a source.
+So if you have a data set with more tokens,
+then you put a higher weight.
+So this is also generally a rational thing to do.
+But you might worry that if you have a huge, low-quality data
+set, that's going to eat up a lot of your token.
+So it doesn't seem quite optimal either.
+So intuitively, you should upweight your higher quality
+sources.
+But there's two things that are important to keep in mind.
+One is that you do want to ensure some diversity.
+So often, sources are incomparable for literature,
+code, and papers.
+You can't really say that this paper
+is higher quality than this code because they're just
+incomparable objects, maybe.
+And if you want your language model to do well,
+you don't want to just put all your mass on papers.
+The second thing, which I will talk a bit more about,
+is each source is actually finite.
+So if you put too much weight on a small source,
+then you essentially run out of that source,
+and you need to just epoch over it,
+meaning that you keep on training literally
+the same tokens.
+And this is going to be bad for reasons we'll see.
+OK.
+So let's try to unpack this a little bit more concretely,
+this last point.
+So imagine you just have two sources--
+a low-quality source, you have 10 trillion tokens,
+and you have a high-quality source
+that has 10 billion tokens.
+Generally, high-quality sources are smaller.
+So if you just do a naive data mixture.
+Let's just do uniform.
+So half on high, half on low.
+And I'm going to train for 1 trillion tokens.
+So when I say train for 1 trillion,
+that doesn't mean unique tokens.
+It just means train for that many steps divided
+by batch size, essentially, or times batch size.
+So then let's look at this, which
+is the number of times a particular element
+in the low-quality data set was trained on.
+So that's the number of epochs a particular data
+point was trained on.
+So a p low times the trained tokens
+is the number of times I want to request tokens
+from this low-quality source, and divided by the total number
+of low-quality sources.
+So this is less than 1.
+So basically, that means 5% of the tokens
+in this low-quality data set, I'm
+going to touch and train on once.
+And then if you look at high quality,
+you'll see that the number of epochs
+is 50, because I only have 10 billion tokens here.
+And if I'm half-half, that means 500 billion tokens--
+I need to train up 500 billion tokens of high-quality data.
+But I don't have 500 billion tokens of data,
+so I have to repeat each data point 50 times.
+So this is actually really important.
+And some big model runs have messed this up.
+You can't just naively look at the data sets
+and define a distribution and then
+you sample, because if you just look at the quality,
+if you look at the data, you're missing
+how many data points are there.
+Does this make sense?
+Maybe pause for questions.
+This is an important point.
+Yeah.
+I guess, for the high-quality data, [INAUDIBLE]
+as [INAUDIBLE] low quality.
+Why do you need 50 epochs in the first place?
+Doesn't it achieve comparable performance
+a level that is way fewer?
+Yeah.
+So the question is, why do you need 50 epochs?
+And I guess the point is that you don't need 50 epochs.
+Worst case, it's wasting compute.
+Sorry, best case is wasting compute, and worst case,
+you're overfitting.
+The reason it's 50 is that if you just go in
+and you define this data mixture,
+then you're going to end up doing
+50 epochs without realizing it, unless you're
+paying close attention.
+So this is basically--
+the lesson is look at how many epochs you're actually
+doing on your data.
+Yeah.
+How do the mixtures get expressed during training?
+When you switch every step, you train steps of 10, saying,
+oh, I want to do 10, Python code, 10 essays,
+because I feel like-- is there also any intuition between what
+decisions are made there?
+Yeah.
+Good question.
+So the question is, when you train,
+how do the mixtures get realized?
+And so, in general, you just sample.
+So you want to fill a batch.
+So you can sample essentially for each element which mixture
+component it comes from.
+And you fill up a batch with sequences
+from that mixture component.
+Usually, every sequence comes from one mixture component.
+You're not sampling per token.
+So each batch should be mixed.
+So I guess the mixture assumptions
+are at the batch level, and then you train for that.
+It's not like, oh, it's one step is-- the code in one step is--
+Yeah.
+In general, you want to reduce variance.
+You want to train for multiple--
+batch should have some mixture.
+OK.
+So this problem has been noticed quite a long time ago.
+And so in this paper, they introduced the UniMax.
+And in that case, they were training in multilingual models.
+And it was very clear that some languages
+were very low-resource, so you had to do something about this.
+So, in this paper, they noticed that before some works
+would essentially take the proportional mixing
+and raise it to some power to flatten it out the distribution.
+But the idea in this paper is that let's be
+a bit more explicit about that.
+Let's sample the sources uniformly,
+but with a hard cap on the number of epochs.
+So this is the key idea.
+Here, you say I'm only going to take 20 epochs
+over a particular data source.
+So if you've done that, then too bad.
+You don't get any more tokens.
+You move on to the next thing.
+So this is like a safety net in some sense.
+So in particular, if you look at the number, the probability
+assigned to a source times the number of training tokens,
+that should be less than or equal to the cap.
+And there's a simple procedure for actually determining
+the mixture subject to this constraint.
+So let's switch gears a little bit and talk
+about how we define the mixture in the first place,
+because if you have 50 sources, there's
+50 numbers you have to fill.
+And we notice that proportional mixing isn't really enough.
+Maybe you can try to estimate some quality metric,
+and then you can sample proportional to that,
+but that is also heuristic.
+So the most principled methods and most
+easiest to understand what's happening
+is these regression-based mixing methods, or RegMix, Olmix,
+and other papers like this.
+And the idea here is relatively simple.
+So first, let's say you're trying
+to train a large-scale model.
+So you go to a small scale, let's say
+300 million parameters, and you try different data mixtures.
+So let's say you have three components.
+You try different mixtures.
+And then you train these small models.
+You train a swarm of small models.
+Each model gives you a loss on some target metric.
+It could be some downstream values.
+It could be perplexity, whatever you want.
+So then you use these data points to basically fit
+a regression where the regression model maps
+these inputs, which is the data mixture weights, to the loss.
+So now you have basically a very cheap model that tells you,
+if I were to train on this mixture, what loss do I get?
+Then you can essentially optimize that data mixture--
+sorry-- optimize that function for the optimal data mixture.
+And then that is the data mixture
+you use to train the large-scale model.
+So that's the simple procedure.
+And you notice some similarities with scaling laws,
+where you're trying to do some cheap computations to figure out
+some answers, and then scale up.
+OK.
+So there's a few design decisions here.
+One is, what are the mixtures that you're trying out here?
+You need a distribution over distributions here.
+So often, people use some Dirichlet distribution.
+You also have to define the regression method.
+People have tried linear models or boosted decision trees.
+You have to figure out the target here.
+Often this is based on downstream evals.
+But you have to be very careful not to overfit because we're
+doing pre-training.
+Supposedly, pre-training is supposed
+to be training this general-purpose model,
+and we're not trying to fit some downstream evals.
+And if you're not careful, for example,
+if you have a bunch of code evals, then, well, guess what?
+You're going to upweight all the code data.
+That's not rocket science.
+And if you then go and you say, I want to generate some poetry,
+you might realize that you've overfit.
+So you have to be very careful about that.
+So proportional mixing and uniform mixing
+don't have this problem because you're not looking.
+There's no downstream evals.
+And the final thing is, how much of a difference
+between small and large scale is there?
+And this is a cost and accuracy trade-off.
+Of course, if you train really, really small models,
+this might not be representative.
+But if you train large models to do this,
+well, there's no point in doing any of this.
+You just train.
+You're basically doing hyperparameter tuning
+at the largest scale, which is too expensive.
+So this Olmix paper actually has this nice table,
+which shows you for a number of different methods
+that all fall into this framework.
+The size of the proxy models.
+They're generally fairly tens of millions of parameters.
+How many mixtures do you sample?
+m here being the number of parameters in your mixture--
+sorry-- the number of domains rather.
+And you can use Dirichlet.
+You can use exponential.
+And then the regression model, you
+can fit a log-linear model, which tends to work pretty well.
+And then you can use different ways
+to solve this optimization problem.
+So there's two leaps of faith here
+that you just have to be very careful of is
+that the regression model was trained
+on a bunch of these small proxy runs,
+and you're optimizing this.
+So the hope is that the minimizer, your optimal data
+mixture, that regression model is still accurate.
+And this is a little bit of-- you
+have to be very careful because if you, let's say,
+sample a random mixture, you'll probably be fine because
+of classic generalization.
+You sample a mixture, and you fit a function,
+it should be able to predict in distribution.
+But when you're optimizing, you're
+essentially trying to go to potentially the extremes
+where you might not have as much coverage.
+So that's one thing to be careful of.
+And the other thing is that optimal data mixtures,
+you just hope that they transfer from small scale to large scale.
+And this, in general, it seems like at least at the scales
+that open community works with, it
+tends to be true or not plainly false.
+But clearly, there are scale-dependent effects.
+If you just think about the previous slide
+when we were talking about filtering,
+if you're training for many more tokens,
+then probably low-quality data is OK.
+So clearly, the optimum is not the same,
+but you just hope for the best here.
+OK.
+So hold on.
+There's one scale-dependent effect
+that we already talked about that we
+need to address here, which is that, imagine,
+so we have a lot of low-quality data, 10 trillion tokens,
+10 billion tokens of high-quality data.
+And if we train a small model on low token counts,
+do you remember?
+What happens is that you might-- this is a made-up example,
+but you might put a lot of mass on your high-quality data,
+because low token counts, you're not epoching.
+So it's like, oh, wow, Wikipedia is so great.
+Let's just train on Wikipedia.
+But if you then go and train this large model
+on this mixture, then you're going
+to end up epoching a lot on this high-quality data,
+and you'll overfit.
+And that's definitely bad.
+So one way to fix this, which is done in this Olmix paper
+is you can just cap the number of epochs.
+So that is one solution.
+There's another solution here, which goes
+by probably multiple names.
+But one name for it is simulated epoching.
+And the principle here is that make your small scale
+look like your large scale.
+This is a general theme for the course.
+We saw it when we talked about muP.
+You parameterize your model so that your hyperparameters
+transfer.
+And so the same principle applies here.
+And the problem with doing this naive scaling
+is that you can't be not epoching out small scale then
+epoching at large scales, because then those
+are qualitatively different operations on your data set.
+So the way you would handle this is you downstream your sources
+proportionally.
+So if you have your small runs, over 10 billion tokens,
+and your big run with one trillion tokens,
+then you have a 1 in 100 downsampling.
+And then you basically use the downsample mixture.
+And so the idea is that if you have the downsampled data, then
+this solution is not going to look good because you're not
+training on all--
+you don't get to just train on Wikipedia.
+You're going to train on some minuscule fraction of Wikipedia,
+and you'll realize, oh, actually,
+I'm going to be epoching a lot.
+And that's going to have a really bad loss, which
+means that in the optimization, you're
+going to look for more balanced approaches.
+So you're simulating the data scarcity
+that you would get in your high regime at low scale.
+So to summarize this section, the problem
+is how do you weight different sources?
+Wikipedia, you have your Common Crawl.
+You have your code.
+You have some math data that you scraped from somewhere.
+How do you balance them?
+Regression-based mixing is a nice framework,
+I think, to think about things.
+You estimate your function form that maps your mixture weights
+to a loss at small scale, optimize,
+and then you generalize to large scale.
+And you just have to be very careful with this
+because of epoching and overfitting issues.
+And you have to either use cap epoching or simulate epoching.
+So one lesson here is that if you're
+trying to optimize anything, you have
+to be very careful because you are in danger
+of optimizing the wrong thing.
+Any questions about data mixing before we move on?
+When you're done sampling, is there
+something too small that you can't really generalize as well?
+So the question is, if you're downsampling, is there a risk?
+Maybe you get too small of a data set.
+Yeah, absolutely.
+So I think you might get into a case
+where you just have so few tokens.
+I think then what will happen is that your optimum will just
+put a very small mass on that.
+And when you scale up, maybe you get the right set of tokens.
+So in principle, it should work out.
+But there might be rounding errors where you end up,
+instead of training once on this data set,
+you train like zero times by accident.
+But you can work around these by just--
+then you always train once on this data.
+OK.
+Yeah.
+In data mixing, I guess these sources just happen
+to align with different topics.
+But do you ever take a diverse data set
+and try to do data mixing within that?
+Yeah.
+So the question is, what do you apply data mixing to?
+Different domains or even within a data set?
+Actually, I forgot to mention that,
+so I'm glad you brought it up.
+So in Nemotron paper, they actually
+install the [INAUDIBLE] stuff as well.
+You basically think about-- let's say
+I give you just Common Crawl.
+You can actually break this up, so you can group by domain.
+So the IT folks have this web organizer,
+so you can group into topics.
+But you can also quality filter.
+So then you have this two-dimensional grid
+where you have domains, and you have quality.
+And each of these cells is something
+that you would data mix.
+So that's one automatic way to determine the domains.
+And then on top of that, you add extra sources
+that people hand you.
+So I'm going to quickly go through post-training data here.
+So up until now, this is basically pre-training or maybe
+mid-training data.
+It's generally fairly task agnostic,
+except for the RegMix stuff where you're
+trying to minimize the loss.
+But the data itself is still relatively task agnostic,
+and you're trying to develop basic skills.
+So when you look at post-training, a lot of the data
+becomes very task-dependent.
+And I'm not going to do a comprehensive review.
+I just want to point out some interesting post-training data
+sets that have been recently released,
+in particular, for coding, since that's of great interest
+these days.
+So the general recipe is you define a set of environments.
+In this case, think about code, which might be GitHub repos.
+You define a set of tasks or prompts,
+and then you collect responses from a strong model or teacher.
+So implicitly, at least in the open community,
+almost all the post-training data, most of it,
+is synthetically generated.
+You can also replace a strong model with a human,
+but that is slow and costs a lot of money.
+But, if you're at the frontier--
+a few years ago, you had to go and pay a lot of people a lot
+of money to give you responses.
+And nowadays, even at the frontier,
+you can do hybrid human-AI things.
+But anyway, the point is that there's some teacher out there
+that's giving you responses.
+OK.
+So I'm just going to talk to a few works here.
+So one is this works called OpenThoughts.
+And this idea here is--
+this came around.
+It was motivated by when o1 came out,
+and there was a lot of intention on reasoning, mostly
+for math and science.
+How do we get really good post-training data
+sets for this?
+And they eventually came out with 1.2 million examples
+using this teacher model.
+So the steps are, first of all, there are a bunch of--
+so what are the environments and the tasks and questions?
+There are a lot of different sources that they drew from.
+There are human sources like Stack Exchange, or NuminaMath,
+and then there's some synthetic sources as well.
+These are just a subset of the coding ones,
+but there's also more for math and chemistry.
+This is a big project that involved
+a lot of different contributions from many people.
+So you can see that some of these are coding exercises.
+Some of these are more realistic things that show up on--
+I guess, CodeGolf is not realistic,
+but there are some more realistic examples here.
+So code review, this is probably more realistic.
+And they did a fairly comprehensive analysis of,
+given this data set, how do you generate responses?
+They show that having a few sources
+was actually good than trying to do all sources.
+Sampling multiple generations is helpful, like 16.
+One thing that was interesting is that having better models
+aren't necessarily better teachers.
+So for example, QwQ-32B, which is now a very old and small
+model, was a better teacher than DeepSeek-R1,
+which was at the time probably one
+of the strongest open models.
+They also found that basic answer filtering wasn't helpful.
+And so the entire pipeline looks something
+like this, where you have a bunch of these sources going in,
+and then you duplicate.
+You randomly sample.
+I guess this downsample the questions,
+and you generate multiple answers,
+and that gets into the final data set.
+So the 1.2 million is examples, but divided by 16
+gives you the number of actual questions.
+So that was for math and science and some code.
+I think more recently there's been
+a lot of interest in developing, in particular, agentic coding
+model-- so not just a model that can just
+generate some code, but actually a model that
+can do software development.
+So this SWE-smith paper had the idea of-- you're
+given a repository, you're using a language model
+to automatically generate tasks.
+So they have an agent that takes a repository
+and actually makes it usable for installing dependencies
+and so on.
+And then you generate tasks which are generally--
+you modify the code in some way and maybe introduce some bugs.
+And those get verified, and you get task instances.
+So these are synthetic tasks, but you get 50k of them,
+which is actually at the time, which was last year,
+quite large.
+So since then, there's been a bunch of other work, which
+I'll mention.
+So there's this SWE-Zero paper from NVIDIA, which had this--
+actually, OK, I'll also talk about that.
+So this is an interesting idea where the observation
+was that, unlike math, SWE tasks have
+a lot of heavy dependencies.
+Most GitHub repos like don't even run.
+And you have to install all these dependencies.
+They're out of date, especially if you roll back
+to when a PR was just a mess.
+And this is just a nightmare.
+And so they were thinking about, how can
+we actually get a data set on all the repos?
+And rather than having a repo-specific Docker image,
+they noticed that the models are actually good enough
+that they can solve a lot of these tasks
+without execution feedback.
+So if you look at some of these models,
+if you were allowing execution, you get 80.
+If you don't allow execution, you get almost 70,
+which is not bad for not being able to execute code.
+So somehow these models have some internal semantics of code.
+So they were able to generate 300,000 agent trajectories.
+All of these are real GitHub PRs,
+so they're realistic on the SWE-smith examples.
+They use the OpenHands scaffold.
+There's a lot of details how to prevent agent hacking.
+So normally, you hand an agent this instruction.
+You explore, you test, you implement.
+And SWE-Zero version was basically saying you cannot run
+Python code.
+You can only do set, grep, and all these basic operations.
+OK.
+So then they distilled from big Qwen model
+and filtered because sometimes the Qwen model
+will ignore these instructions and still try to execute anyway.
+And then they show that with this--
+oh, they also had a 13k agent trajectories that do require
+execution feedback.
+So they train models where they first
+fine-tune on these SWE-Zero examples,
+and then fine-tune again on these SWE-Zero examples.
+And they were able to--
+I guess the frontier is still pretty high up,
+but they were able to make some progress here.
+I'll quickly go through SWE-rebench,
+which is essentially another attempt
+to grab tons and tons of PRs.
+And all of these look, get a bunch of GitHub repos,
+try to install the repo.
+Most of them probably failed and try harder.
+And then you use a language model to give you the responses.
+And these actually just came out today.
+So you can take this SWE-Zero idea,
+and you can now scale up to 12 million agent trajectories.
+The nice benefit of SWE-Zero is that it's very lightweight.
+Here, they use the SWE-rebench tasks.
+So in this one, remember, they were trying
+to get things to execute.
+They only got 32,000 of them to execute,
+and 120 of them didn't execute.
+But SWE-Zero doesn't care.
+You can use all of them.
+This is a very small model because-- now this data set
+is quite large.
+And so I think, as you can see, the data sets
+are getting more and more sophisticated.
+You go from environment-free things like math to now coding.
+And now the coding data sets are growing quite a bit.
+But the general idea is that you have these prompts, which
+there's trade-offs.
+You can have fully synthetic.
+You can have semi-synthetic, where
+you have real environment and synthetic tasks,
+or you can have real.
+And the responses generally are coming from just capable models,
+but they also need to be good teachers.
+Code environments are a pain.
+And there's a lot of filtering and other details which
+we don't have time for.
+OK.
+To summarize this lecture, we talked about filtering.
+So define what good looks like, and then train
+a lightweight classifier.
+Go over your web crawl, and you can
+get a small subset that matches what you're looking for.
+Deduplication is important to avoid overfitting and saving
+flops.
+Mixing.
+Try a mixture at small scales, extrapolate to large scale.
+And then we looked at some post-training data.
+I will say, though, that a lot of the data work
+can be very grungy.
+It's very domain-specific and requires
+looking at concrete examples to make these high-quality data
+sets.
+So this lecture is not really representative of what
+data work is like, but hopefully giving you
+an idea of the data landscape out there.
+OK.
+So that will be it for today.
+[APPLAUSE]

@@ -1,12 +1,12 @@
 Lecture 9
-S C A L I N G L AW S - B A S I C S
+S C A LIN G LAW S - B A SIC S
 
-             CS336
+           CS336
 
 Taking scaling seriously
 Imagine the following scenario..
 
-              Your friend has given you ten thousand H100s for a month,
+              Your friend has given you ten thousand B200s for a month,
                       and asked you to build a good open source LM.
 
 What do you do?
@@ -38,6 +38,7 @@ Theorists have thought about ‘scaling’ for a long time..
                                               (learning in a finite set of k hypotheses)
 
                                               (generative modeling for smooth densities)
+
 But these are upper bounds, not actual, realized loss values.
                                                       https://www.cs.cmu.edu/~epxing/Class/10701/slides/lecture16-VC.pdf
                                                       Hall, 1989
@@ -80,12 +81,12 @@ Part 2. Neural (LLM) scaling behaviors
            “How should we set hyperparameters on the big model??”
 
 Scaling laws – power law relationships for many factors
-These scaling laws hold on many different kind of phenomena!
+ These scaling laws hold on many different kind of phenomena!
 
-        They even hold in non-standard
-           settings (when train ≠ test)
+They even hold in non-
+   standard settings
 
-                                                               [Kaplan+ 2020]
+                                                                [Kaplan+ 2020]
 
 Data vs performance
 What’s a data scaling law?
@@ -103,7 +104,8 @@ First, an empirical observation
 
            Loss and dataset size is linear on a log-log plot
 
-                  Test Loss                          “Scale-free” or
+                 Test Loss
+                                                     “Scale-free” or
                                                       “Power law”
 
                (For language modeling, from Kaplan+ 2020)
@@ -124,9 +126,9 @@ Example: If our task is to estimate the mean of a dataset, what’s the scaling 
 Toy example: mean estimation
 
                         Input: 𝑥1 … 𝑥𝑛 ∼ 𝑁(𝜇, 𝜎 2 )
-                                                       σ𝑖 𝑥𝑖
+                                                       σ𝑖 𝑥 𝑖
                   Task: estimate the average as 𝜇ො =
-                                                        𝑛
+                                                         𝑛
 
                What’s the error? By standard arguments..
                                               𝜎2
@@ -194,19 +196,26 @@ Related question: how does dataset composition affect performance
 
                     A: Data composition affects the offset, not the slope.
 
-                                                                [Kaplan+ 2021]
+       These ‘distribution shift’ scaling laws can tell us about the importance of collecting diverse data!
 
-   These ‘distribution shift’ scaling laws can tell us about the importance of collecting diverse data!
+                                                                                        [Hashimoto 2021]
 
-                                                                                           [Hashimoto 2021]
+In practice: data mixture selection via scaling is hard
+
+Natural idea – build data scaling laws   Empirical eval – just take the best small dataset
 
 Scaling laws under data repetition
 In practice, we have finite data – how does repeating examples affect scaling?
 
-                                                                             D’ = Effective data
-                                                                             Ud = Unique tokens
-                                                                             Rd* = Constant
-                                                                             Rd = Repetition
+                                                                                 D’ = Effective data
+                                                                                 Ud = Unique tokens
+                                                                                 Rd* = Constant
+                                                                                 Rd = Repetition
+
+Scaling laws in compute unbounded settings
+Important notes:
+1. Scaling laws can ‘break’ if you blindly apply it
+2. Scaling laws are lower bounds so you can always potentially do better
 
 Data selection scaling and accounting for finiteness
 Given that repeated data is less valuable..
@@ -258,7 +267,7 @@ Scaling law way:
 
 1. Many architectures
 
-Cross-architecture scaling in Tay et al.
+Cross-architecture scaling in Tay et al 2022.
 
 2. Optimizer choice
 What about ADAM vs SGD?
@@ -273,6 +282,10 @@ Does depth or width make a huge difference?
  • 1 vs 2 layers makes a huge difference.
  • More layers have diminishing returns below 107 params
 
+3. Depth/Width: and other Transformer hypers
+
+Do hyperparameters like the aspect ratio depend on scale?
+
 3. Depth/Width: But not all parameters are made equal
 
 We’ve been thinking about ‘parameters’ but not all parameters are equal
@@ -281,27 +294,31 @@ Embedding layer parameters don’t behave the same!
 
 Related: recent papers on scaling laws for mixtures of experts.
 
-3. Depth/Width: and other Transformer hypers
-
-Do hyperparameters like the aspect ratio depend on scale?
+Side note – ‘Value of parameters’
+With MoEs, we expect parameter scaling to change
 
 4. Batch size: Critical batch size
 
 Batch size – known to have strong diminishing returns past a certain point.
 
-Critical batch = min number of examples for target loss / min number of steps for target loss
+Critical batch = min number of examples before diminishing returns (what does that mean?)
+
+4. Critical batch size definitions..
+What is critical batch size, more precisely?
+• Pick a target loss and train 1). Steps needed (S), 2). Examples needed.
+• Sweep over batches
+The curve should follow roughly..
+
+Fit for 𝑆𝑚𝑖𝑛 , 𝐸𝑚𝑖𝑛 on this curve and pick
+
+This balances both sides of the equation, giving roughly 2x the steps / passes optimal
+
+          (this is claimed to be close to the ratio of the trace of the gradient covariance and squared norm of the gradient)
 
 4. Batch size: critical batch size
 
 The smaller the loss target,
    The bigger the batch
-
-4. Batch size: selecting the optimal batch
-Q: as we increase both compute and model size, how should we scale training?
-• Huge batches, same number of steps
-• Fixed batches, more steps
-
-                    Good news for data parallel processing (?)
 
 5. Learning rates: muP and scale-aware LR choices
 
@@ -336,10 +353,10 @@ Clearly, lots of data is wasted on small models
 Joint data-model scaling laws describe how the two relate
 
 From Rosenfeld+ 2020,
-                                   𝐸𝑟𝑟𝑜𝑟 = 𝑛 −𝛼 + 𝑚 −𝛽 + 𝐶
+                                   𝐸𝑟𝑟𝑜𝑟 = 𝑛−𝛼 + 𝑚−𝛽 + 𝐶
 
 From Kaplan+ 2020
-                                    𝐸𝑟𝑟𝑜𝑟 = 𝑚 −𝛼 + 𝑛 −1 𝛽
+                                    𝐸𝑟𝑟𝑜𝑟 = 𝑚−𝛼 + 𝑛−1 𝛽
 
 Provides surprisingly good fits to model-data joint error.
 
@@ -348,24 +365,13 @@ From Rosenfeld – fit scaling exponents on small data, small models. Predict re
 
 Trading off data size and model size: optimize 𝑛 −𝛼 +𝑚 −𝛽 + 𝐶 with your costs.
 
-Compute tradeoffs.
-Q: what about other resources? Compute vs performance?
+‘Optimal’ compute and data tradeoffs as a case study.
+ Rosenfeld, Kaplan both predict relationship of data, model and perf.
+Kaplan claims: 𝑁𝑜𝑝𝑡 = 𝐶 0.73 , 𝐷𝑜𝑝𝑡 = 𝐶 0.27 (tokens per param decreases w/ C)
 
-For a fixed compute budget…
-            Big model that’s undertrained vs small model that’s well trained?
+             Chinchilla [Hoffman et al] argue these fits are quite off.
 
-                                    [Kaplan+ 2021]                              [Brown+ 2020]
-
-                          Scaling laws let us navigate this tradeoff
-
-Caution – ‘Optimal’ scaling laws are hard to get
-Rosenfeld, Kaplan both predict relationship of data, model and perf.
-
-            Chinchilla [Hoffman et al] argue these fits are quite off.
-
-                                                                         Hoffman+ 2022
-
-Main difference – accounting for LR schedules
+                                                                          Hoffman+ 2022
 
 Chinchilla in depth – 3 methods
 
@@ -383,6 +389,21 @@ Pick a range of FLOP budgets, vary the total parameter count, take the min over 
 Method 3 – Joint fits
 Run a bunch of models on the size-data grid. Use least squares to fit a joint scaling law
 
+Why do we have this big difference?
+Kaplan claims: 𝑁𝑜𝑝𝑡 = 𝐶 0.73 , 𝐷𝑜𝑝𝑡 = 𝐶 0.27 (tokens per param decreases w/ C)
+
+              Why such a big difference (when both fit joint scaling laws?)
+
+Explanation 1
+
+•   Kaplan removed last layer param from the count
+•   Warmup at very small compute budgets was too high
+•   (Decay itself is maybe not critical if batch / LR is properly tuned)
+
+Explanation 2
+
+     Non-embedding vs total param choice + small nonlinearities
+
 Fun addendum – errors in chinchilla method 3
 Note that this method three was likely flawed in the original paper. Some authors did
    data forensics, recovered the raw data, and re-did the fit and got results more
@@ -390,24 +411,26 @@ Note that this method three was likely flawed in the original paper. Some author
 
                                                                  [Besiroglu et al 2024]
 
-Important note – train-optimal may not be what you want
-Chinchilla aims to tell you what gives the best model for fixed training compute..
-   But most of the compute in a real deployment is inference.. So we should ‘over’ train
+Important note – train-optimal is likely not what you want
+ Chinchilla aims to tell you what gives the best model for fixed training compute..
+    But most of the compute in a real deployment is inference.. So we should ‘over’ train
 
-•   GPT3 – 2 tokens / param
-•   Chinchilla – 20 tokens / param
-•   LLaMA65B – 22 tokens / param
-•   Llama 2 70B – 29 tokens / param
-•   Mistral 7B – 110 tokens / param
-•   Llama 3 70B – 215 tokens / param
+ • GPT3 – 2 tokens / param
+ • Chinchilla – 20 tokens / param
+ • LLaMA65B – 22 tokens / param
+ • Llama 2 70B – 29 tokens / param
+ • Mistral 7B – 110 tokens / param
+ • Llama 3 70B – 215 tokens / param
+ … etc etc
 
-The more usage we expect, the more it becomes worth it to pay the upfront cost
+ The more usage we expect, the more it becomes worth it to pay the upfront cost
 
-Recent example for different (diffusion) models
+Isoflops everywhere
+Methods like IsoFLOPS are pretty easy to execute and usually pretty clean
 
-Methods like IsoFLOPS are pretty easy to execute, and our group has replicated these results
+                                                                      Diffusion - Gulrajani+ 2023.
 
-Gulrajani+ 2023.
+                                                                            MoEs – Abnar+ 2025.
 
 Scaling laws for models and compute
 

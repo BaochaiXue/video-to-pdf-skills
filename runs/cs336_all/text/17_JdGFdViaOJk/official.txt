@@ -1,118 +1,373 @@
-Last lecture: overview of RL from verifiable rewards (policy gradient)
-This lecture: deep dive into the mechanics of policy gradient (e.g., GRPO)
-**State** s: prompt + generated response so far
-**Action** a: generate next token
-**Rewards** R: how good the response is; we'll focus on:
-- Outcome rewards, which depend on the entire response
-- Verifiable rewards, whose computation is deterministic
-- Notions of discounting and bootstrapping are less applicable
-Example: "... Therefore, the answer is 3 miles."
-**Transition probabilities** T(s' | s, a): deterministic s' = s + a
-- Can do planning / test-time compute (unlike in robotics)
-- States are really made up (different from robotics), so a lot of flexibility
-**Policy** π(a | s): just a language model (fine-tuned)
-**Rollout/episode/trajectory**: s → a → ... → a → a → R
-**Objective**: maximize expected reward E[R]
-(where the expectation is taken over prompts s and response tokens a)
-For notational simplicity, let *a* denote the entire response.
-We want to maximize expected reward with respect to the policy π:
-E[R] = ∫ p(s) π(a | s) R(s, a)
-Obvious thing to do is to take the gradient:
-∇ E[R] = ∫ p(s) ∇ π(a | s) R(s, a)
-∇ E[R] = ∫ p(s) π(a | s) ∇ log π(a | s) R(s, a)
-∇ E[R] = E[∇ log π(a | s) R(s, a)]
-Naive policy gradient:
-- Sample prompt s, sample response a ~ π(a | s)
-- Update parameters based on ∇ log π(a | s) R(s, a) (same as SFT, but weighted by R(s, a))
-Setting: R(s, a) ∈ {0, 1} = whether response is correct or not
-- Naive policy gradient only updates on correct responses
-- Like SFT, but dataset changing over time as policy changes
-Challenge: high noise/variance
-In this setting, sparse rewards (few responses get reward 1, most get 0)
-In contrast: in RLHF, reward models (learned from pairwise preferences) are more continuous
-### Baselines
-Recall ∇ E[R] = E[∇ log π(a | s) R(s, a)]
-∇ log π(a | s) R(s, a) is an unbiased estimate of ∇ E[R], but maybe there are others with lower variance...
-Example: two states
-- s1: a1 → reward 11, a2 → reward 9
-- s2: a1 → reward 0, a2 → reward 2
-Don't want s1 → a2 (reward 9) because a1 is better, want s2 → a2 (reward 2), but 9 > 2
-Idea: maximize the baselined reward: E[R - b(s)]
-This is just E[R] shifted by a constant E[b(s)] that doesn't depend on the policy π
-We update based on ∇ log π(a | s) (R(s, a) - b(s))
-What b(s) should we use?
-Example: two states
-Assuming uniform distribution over (s, a) and |∇ π(a | s)| = 1
-Define baseline b(s1) = 10, b(s2) = 1
-Optimal b*(s) = E[(∇ π(a | s))^2 R | s] / E[(∇ π(a | s))^2 | s] (for one-parameter models)
-This is difficult to compute...
-...so heuristic is to use the mean reward:
-b(s) = E[R | s]
-This is still hard to compute and must be estimated.
-### Advantage functions
-This choice of b(s) has connections to advantage functions.
-- V(s) = E[R | s] = expected reward from state s
-- Q(s, a) = E[R | s, a] = expected reward from state s taking action a
-(Note: Q and R are the same here, because we're assuming *a* has all actions and we have outcome rewards.)
-Definition (advantage): A(s, a) = Q(s, a) - V(s)
-Intuition: how much better is action a than expected from state s
-If b(s) = E[R | s], then the baselined reward is identical to the advantage!
-E[R - b(s)] = A(s, a)
-In general:
-- Ideal: E[∇ log π(a | s) R(s, a)]
-- Estimate: ∇ log π(a | s) δ
-There are multiple choices of δ, as we'll see later.
-Group Relative Policy Optimization (GRPO)
-- Simplification to PPO that removes the critic (value function)
-- Leverages the group structure in the LM setting (multiple responses per prompt), which provides a natural baseline b(s).
-Task: sorting n numbers
-Prompt: n numbers
-Response: n numbers
-Reward should capture how close to sorted the response is.
-Define a reward that returns the number of positions where the response matches the ground truth.
-Define an alternative reward that gives more partial credit.
-Note that the second reward function provides more credit to the 3rd response than the first reward function.
-Define a simple model that maps prompts to responses
-- Assume fixed prompt and response length
-- Captures positional information with separate per-position parameters
-- Decode each position in the response independently (not autoregressive)
-Start with a prompt s
-Generate responses a
-Compute rewards R of these responses:
-Compute deltas δ given the rewards R (for performing the updates)
-Compute log probabilities of these responses:
-Compute loss so that we can use to update the model parameters
-Motivation: in GRPO you'll see ratios: p(a | s) / p_old(a | s)
-When you're optimizing, it is important to freeze and not differentiate through p_old
-Do it properly:
-Sometimes, we can use an explicit KL penalty to regularize the model.
-This can be useful if you want RL a new capability into a model, but you don't want it to forget its original capabilities.
-KL(p || q) = E_{x ~ p}[log(p(x)/q(x))]
-KL(p || q) = E_{x ~ p}[-log(q(x)/p(x))]
-KL(p || q) = E_{x ~ p}[q(x)/p(x) - log(q(x)/p(x)) - 1] because E_{x ~ p}[q(x)/p(x)] = 1
+## Lecture 17: multimodal models
+
+So far: language models
+
+> text ⇒ text
+
+The world is multimodal:
+
+Ultimate goal: **omni model**
+
+- Input any combination of modalities (understanding)
+
+- Output any combination of modalities (generation)
+
+Where we are today:
+
+- Transformers work really well. So we gotta use them.
+
+- Transformers speak tokens (discrete or continuous), where a token represents some ~semantic unit of information.
+
+- Therefore, we must convert everything into tokens.
+
+- Note: we had to do this with text (recall the tokenization lecture).
+
+- For non-text modalities, this is more challenging...
+
+Questions:
+
+1. How do we input non-text data (e.g., understand images)?
+
+2. How do we output non-text data (e.g., generate audio)?
+
 Summary:
-- Generate responses
-- Compute rewards R and δ (rewards, centered rewards, normalized rewards, max rewards)
-- Compute log probs of responses
-- Compute loss from log probs and δ (naive, unclipped, clipped)
-Let's now define the GRPO algorithm.
-Let's actually train some models.
-Let's start with updating based on raw rewards.
-Looking through the output, you'll see that by the end, we haven't really learned sorting very well (and this is still the training set).
-Let's try using centered rewards.
-This seems to help, as:
-- Suboptimal rewards get a negative gradient update, and
-- If all the responses for a given prompt have the same reward, then we don't update.
-Overall, this is better, but we're still getting stuck in local optima.
-Finally, let's try normalizing by the standard deviation.
-There is not much difference here, and indeed, variants like Dr. GRPO do not perform this normalization to avoid length bias (not an issue here since all responses have the same length.
-Overall, as you can see, reinforcement learning is not trivial, and you can easily get stuck in suboptimal states.
-The hyperparameters could probably be tuned better...
-Summary
-- Reinforcement learning is the key to surpassing human abilities
-- **If** you can measure it, you can optimize it
-- Policy gradient framework is conceptually clear, just need baselines to reduce variance
-- RL systems is much more complex than pretraining (inference workloads, manage multiple models)
-Final two lectures:
-- Junyang Lin (Qwen)
-- Mike Lewis (Llama)
+
+- Frontier models are expected to be multimodal (natively multimodal, omni)
+
+- Fundamental challenge: how to encode non-text modalities?
+
+- Comprehension and generation might demand different things (semantics versus finer-grained details)
+
+- Balance images + video (lower information density) and text for training stability
+
+- Continuous encoders + Transformer + diffusion models for generation
+
+Context:
+
+- Computer vision models were trained on annotated images.
+
+- Question: is it possible to leverage the much larger amount of (image, caption) pairs?
+
+Method:
+
+- Get a batch of (image, text) examples (e.g., 32768)
+
+- Encode each image and each text
+
+- For each image, prefer its aligned text over other texts
+
+- For each text, prefer its aligned image over other images
+
+Data:
+
+- Searched for 500K queries, get ~20K (image, text) pairs per query
+
+- Trained on 400M image-text pairs
+
+- Didn't release the dataset
+
+- Images come in all resolutions (arbitrary W x H)
+
+- Resize using bicubic interpolation so shorter side is 336 pixels
+
+- Center crop (cuts off borders to get 336 x 336)
+
+Vision encoder:
+
+- Attention pooling: do QKV with query = global average of activations
+
+- Best model: ViT-L/14@336px (L = large, 14x14 patches, 3 channels, trained on 336x336 resolution images)
+
+Text encoder:
+
+- GPT-2 Transformer (63M parameters, 12 layers)
+
+- Encode [BOS] ... [EOS], return [EOS] activation at highest layer
+
+Headline result:
+
+- On ImageNet, zero-shot CLIP outperformed ResNet-50 trained on 1.2M ImageNet images
+
+Ablation:
+
+- Alternative: predict text from images directly
+
+- Much less compute efficient compared to CLIP-style ranking
+
+Summary:
+
+- Encoding of images captures semantics given by (noisy) text
+
+- Design decisions chosen based on image classification (not very fine-grained)
+
+- Technical: requires large batch sizes, softmax operation over full batch
+
+Objective:
+
+- CLIP: multiclass classification for (text, image) versus (text, image') for all image'
+
+- SigLIP: binary classification for (text, image) - aligned or not?
+
+Data:
+
+- Scraped from the Internet
+
+- Used automatic OCR to extract text from images
+
+- Keep 10% highest quality
+
+- Supports 100 languages
+
+Efficiency:
+
+- CLIP: 10 days on 256 TPUv3
+
+- SigLIP: 5 days on 32 TPUv4 (lower FLOP/s than TPUv3) - much faster!
+
+Batch size:
+
+- Decouple batch size from loss
+
+- Better than CLIP for <16K batch sizes
+
+- Go up to 1M batch size, but 32K is enough
+
+Vision encoder: CLIP
+
+Data:
+
+- MS COCO has images annotated with bounding boxes and Mechanical Turk captions
+
+- Prompt GPT-4 with captions or detected objects and generate questions or conversations
+
+- Pair generations with original images
+
+- 158K examples
+
+Model:
+
+- Encode images with CLIP (ViT-L/14)
+
+- Linear projection (W) into embedding space (Flamingo and Q-former are more complex)
+
+Training:
+
+- Stage 1 (alignment): freeze vision encoder and language model, only train W
+
+- Stage 2 (fine-tuning): freeze vision encoder and train W and language model
+
+- Latest version in the LLaVA series (after LLaVA 1.5, LLaVA-Next)
+
+- Handle multiple images, video
+
+- Vision encoder: SigLIP (use grid features before and after last Transformer layer)
+
+- Text decoder: Qwen-2 72B
+
+- Projector: 2-layer MLP
+
+Data processing:
+
+- Preserving high resolution is important (e.g., for OCR)
+
+- CLIP resizes and crops to 336x336, which loses information
+
+- Break up image into a x b pieces (matching resolution of vision encoder), encode, concatenate
+
+- If too many tokens (original image is too high resolution), then use bilinear interpolation
+
+Handle 3 types of input (single image, multiple images, video):
+
+- Goal: make all of the modalities produce roughly the same length
+
+- Single image: use higher resolution
+
+- Multiple images: use base resolution for each image
+
+- Video: use lower resolution for each frame
+
+Data:
+
+- Philosophy: quality over quantity
+
+Training:
+
+- Philosophy: easier to harder
+
+Transfer between modalities:
+
+- Single image data for diagrams and charts, but generalize to multi-image
+
+- OCR on single image data, relational reasoning from multi-image data, generalize to GUI-based agents
+
+- Visual prompting (circle) in single images, generalize to videos
+
+Summary:
+
+- Standard VLM template: vision encoder + projector + LM
+
+- Most work goes into data curation (heavy on synthesized, task-specific data)
+
+- Open-source (released model weights and data)
+
+Architecture:
+
+- Adaptor: one layer cross-attention, incorporate 2D positional encodings, maps to fixed length of 256
+
+- Special tokens: , ,
+
+Training:
+
+- Stage 1: large-scale low quality data; freeze LM, train vision encoder + adaptor
+
+- Stage 2: higher quality task-specific data, increase resolution; train all parameters
+
+- Stage 3: instruction tuning data; freeze visual encoder, train adaptor + LM
+
+Visual encoder: larger ViT (675M)
+
+- Key: dynamic resolution to handle varying resolutions
+
+- Each 224 x 224 patch encoded with ViT/14, compress every 2x2 => 66 tokens
+
+- Video: sample 2 frames/sec, max 16384 tokens
+
+Multimodal Rotary Position Embedding (MRoPE):
+
+Training (similar to Qwen-VL):
+
+- Stage 1: train only visual encoder
+
+- Stage 2: train all parameters
+
+- Stage 3: train language model on instruction following datasets
+
+Many capabilities:
+
+Language model:
+
+- Qwen-3 models (dense and MoE models up to 235B-A22B)
+
+- Long context understanding (256K)
+
+Vision encoder:
+
+- Interleaved MRoPE: distribute all axes (temporal, width, height) to low- and high-frequency bands
+
+... [t w h t w h t w h t w h] rather than [t t t t w w w w h h h h]
+
+- Add explicit video timestamps (as separate tokens rather in positional embeddings)
+
+- Square-root-normalized per-token loss: balance text and multimodal data (video examples are long, don't want to dominate)
+
+Adapter:
+
+Training:
+
+- Pre-training has 4 stages (train adapter, train all parameters on 8K, 32K, 256K lengths)
+
+- Post-training: SFT on long CoT data, knowledge distillation, RL
+
+Summary:
+
+- SOTA performance
+
+- Lots of data work, but not many details
+
+- Minor but potentially important architectural improvements
+
+- Scale up
+
+So far: VLMs encode images (via CLIP or SigLIP), inject into LM
+
+Disadvantage: can't generate images (need diffusion)
+
+Chameleon: map everything into discrete tokens
+
+Advantage: can analyze and generate images in a uniform way
+
+- Key difference: encoder needs to map to discrete tokens (so we can generate them)
+
+- Idea: map image to a discrete codebook, decode back to image and minimize reconstruction loss
+
+- Encodes 512 x 512 image into 1024 tokens (codebook of size 8192)
+
+- Train a new BPE tokenizer
+
+Training:
+
+- Stage 1 (80%): large-scale, unsupervised (2.9T text tokens, 1.5T text/image tokens, 400B text/image interleaved tokens)
+
+- Stage 2 (20%): 50% of stage 1 data, 50% of high quality data
+
+Training stability
+
+- Text tokens have low entropy, image tokens have high entropy, leads to norm growth, logit drift problem
+
+- Fixes: QK norm, z-loss regularization
+
+Summary:
+
+- Elegant (just autoregressive modeling of discrete tokens)
+
+- Not as performant (discretization loses information - think OCR)
+
+- Training with multiple modalities is tricky
+
+CLIP (Contrastive Language-Image Pretraining)
+
+- Reproduced in OpenCLIP (using LAION-5B dataset, which used CLIP for filtering)
+
+Data processing
+
+- Experimented with ResNet-50 and Vision Transformers
+
+SigLIP (Sigmoid Loss for Language Image Pre-Training)
+
+- WebLI dataset: O(billion) (image, text) pairs
+
+LLaVA (Large Language and Vision Assistant)
+
+Text decoder: Vicuna (LLaMA fine-tuned on ShareGPT conversations)
+
+LLaVA OneVision
+
+- Solution: AnyRes, introduced in LLaVA 1.5
+
+Qwen-VL
+
+- Vision encoder: OpenCLIP's ViT-bigC (14x14 patches)
+
+Qwen2-VL
+
+Initialize LM with Qwen2 and vision encoder from DFN
+
+Qwen3-VL
+
+- SigLIP-2 (same architecture as SigLIP)
+
+- DeepStack: cross-layer fusion to inject visual information into multiple layers
+
+Chameleon
+
+Vision encoder
+
+- VQ-VAE (Vector Quantized Variational Autoencoder)
+
+Function: main
+
+Function: clip
+
+Function: siglip
+
+Function: llava
+
+Function: llava_onevision
+
+Function: qwen_vl
+
+Function: qwen2_vl
+
+Function: qwen3_vl
+
+Function: chameleon

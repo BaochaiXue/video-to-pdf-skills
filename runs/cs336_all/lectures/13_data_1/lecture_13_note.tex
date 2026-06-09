@@ -1,279 +1,378 @@
 \documentclass[a4paper]{article}
-
-% Basic packages
 \usepackage[fontset=fandol]{ctex}
-\usepackage{amsmath, amssymb}
+\usepackage[margin=1.65cm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage[margin=2.5cm]{geometry}
-\usepackage[most]{tcolorbox}
-\usepackage{etoolbox}
-\usepackage{listings}
 \usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{subcaption}
-\usepackage{float}
-\usepackage{tikz}
-\IfFileExists{pgfplots.sty}{
-    \usepackage{pgfplots}
-    \pgfplotsset{compat=1.18}
-}{}
-
-% Highlight boxes
-\newtcolorbox{knowledgebox}[1]{
-    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
-    boxrule=1pt, sharp corners
-}
-
-\newtcolorbox{importantbox}[1]{
-    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
-    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newtcolorbox{warningbox}[1]{
-    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-% Listings
-\lstset{
-    language=Python,
-    basicstyle=\ttfamily\small,
-    keywordstyle=\color{blue},
-    stringstyle=\color{red!60!black},
-    commentstyle=\color{green!60!black},
-    breaklines=true,
-    frame=single,
-    numbers=left,
-    numberstyle=\tiny\color{gray},
-    captionpos=b,
-    extendedchars=false
-}
-
-% Front-page metadata
-\newcommand{\notetitle}{CS336 第 13 讲：数据工程 I}
-\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 13 讲视频、字幕与课程材料整理}
-\newcommand{\notedate}{\today}
-\newcommand{\videochannel}{Stanford Online}
-\newcommand{\videopublishdate}{2025年06月10日}
-\newcommand{\videoduration}{1:19:06}
-\newcommand{\videourl}{https://www.youtube.com/watch?v=WePxmeXU1xg}
-\newcommand{\videocoverpath}{cover.jpg}
-
+\usepackage{longtable,booktabs}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,keepspaces=true}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{2em}
+\sloppy
+\title{第 13 讲：预训练数据：来源与数据集}
+\author{CS336 Spring 2026 public videos and official course materials}
+\date{}
 \begin{document}
-
-\begin{titlepage}
-\centering
-{\Large 课程笔记\par}
-\vspace{1.2cm}
-{\huge\bfseries \notetitle\par}
-\vspace{0.8cm}
-{\large \noteauthors\par}
-\vspace{0.3cm}
-{\large \notedate\par}
-\vspace{1.2cm}
-
-\ifdefempty{\videocoverpath}{
-{\small 请在生成笔记时填入视频封面图的本地路径。\par}
-}{
-\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
-}
-
-\vfill
-\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
-\textbf{视频作者/频道}：\videochannel\par
-\textbf{发布日期}：\videopublishdate\par
-\textbf{视频时长}：\videoduration\par
-\textbf{视频链接}：
-\ifdefempty{\videourl}{
-未填写
-}{
-\href{\videourl}{\nolinkurl{\videourl}}
-}
-\end{tcolorbox}
-\end{titlepage}
-
+\maketitle
 \tableofcontents
 \newpage
-
-%% --- 正文内容开始 --- %%
-
-\section{数据为何成了 foundation model 时代最难复制的护城河}
-
-\subsection{为什么公司最不愿意公开的是数据}
-第 13 讲一开场就抛出一个很尖锐的判断：如果说架构和训练系统在公开论文里越来越透明，那么真正最神秘的部分反而是数据。课程用 Llama 3 一类开源权重模型做例子指出，模型架构、优化器和部分训练细节常常会被详细披露，但数据来源、筛选和配比往往只给模糊描述。
-
-课程给出的原因有两个。第一是竞争：数据直接决定模型差异化，是最难复制的资产。第二是法律风险：越具体披露数据来源，越容易暴露版权、隐私和合同义务问题。因此在 foundation model 时代，数据既是模型能力的来源，也是组织最不愿完全摊开的秘密。
-
-\begin{figure}[H]
+\section{本章导读}
+本章讨论 \textbf{预训练数据：来源与数据集}。CS336 的第一层目标不是把现成大模型当作黑箱使用，而是把 language model 从输入文本、训练目标、模型结构、数据、系统和评估这些部件重新拆开。只有拆开之后，读者才能判断一个设计选择究竟改变了什么。
+设想有人说模型训练在“互联网上”。教材式回答必须拆开这句话：哪些 crawl、dump、licensed corpora、code、books、papers 和 curated datasets 被采集？谁允许使用？经过了哪些过滤？
+本章对应 CS336 Spring 2026 第 13 个公开视频，并结合课程页提供的可解析资料。视频和课程页给出事实边界；正文把这些材料改写为可自学的教材章节。
+阅读本章时，先理解问题为什么存在，再看定义、公式和实现形态，随后通过例题和练习检查自己是否能独立复现这条 reasoning chain。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.84\textwidth]{../../materials/spring2025-lectures/images/llama3-data.png}
-\caption{课程用公开模型的数据说明方式提醒学生：越重要的数据细节，往往越不透明。}
+\includegraphics[width=0.58\linewidth]{source_anchor.jpg}
+\caption{第 13 讲的课程图像锚点。}
 \end{figure}
-
-\begin{importantbox}{第 13 讲的总判断}
-“数据最重要”不是鸡汤。课程真正想说的是：数据工作既长尾、又依赖人工判断、又有合规风险，因此它比架构和系统更难被完全标准化与复制。
-\end{importantbox}
-
-\subsection{本章小结}
-第 13 讲先把数据的战略地位钉住了。对大模型团队来说，数据不是训练流水线的输入材料，而是最核心、最难复制、也最难完全公开的能力来源。
-
-\section{从 pretraining 到 post-training：数据质量沿着训练阶段不断提高}
-
-\subsection{三阶段视角：大而杂，逐渐走向小而精}
-课程把训练阶段拆成三层：pre-training、mid-training 和 post-training。这个划分非常重要，因为它解释了为什么“好数据”不能只按一个统一标准来看。预训练更关心覆盖广、规模大、信息密度足够高；中训练更关心能力增强，比如长上下文或学科强化；后训练则更关心行为控制、指令跟随和安全性。
-
-课程给出的总体规律很值得记住：从前到后，数据通常会从“大规模、质量参差、贴近自然分布”逐步转向“小规模、质量更高、目标更明确”。这不意味着后面的数据绝对更“真实”，而是它们越来越像人为设计的干预信号。
-
-\begin{figure}[H]
+\subsection{本章知识路线}
+\begin{itemize}
+\item 本章首先说明 预训练数据：来源与数据集 为什么是 language modeling pipeline 中不可跳过的一环。
+\item 其次定义本章反复使用的术语，并说明这些术语对应的计算对象或系统对象。
+\item 随后用公式和伪代码表达主要机制，让概念能够落到可计算的变量上。
+\item 最后给出例题、风险讨论和练习，便于读者检查自己是否真正掌握了机制。
+\end{itemize}
+\subsection{结构图}
+下面的图用于帮助读者定位本章的核心结构。先看概念之间的依赖，再回到正文中的公式、伪代码和例题。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/olmo2-pretraining.png}
-\caption{OLMo 2 的例子说明：预训练阶段首先关注的是大规模基础语料。}
+\includegraphics[width=0.72\linewidth]{figures/source_grounded_concept_map.png}
+\caption{第 13 讲概念图：本章问题、术语和机制的关系。}
 \end{figure}
-
-\begin{figure}[H]
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/olmo2-dolmino.png}
-\caption{课程用 OLMo 的中训练示意图说明：后续阶段会更针对能力缺口做数据干预。}
+\includegraphics[width=0.72\linewidth]{figures/source_grounded_checklist.png}
+\caption{第 13 讲学习路径：从问题定义进入公式、实现、实验和练习。}
 \end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/tulu.png}
-\caption{后训练阶段的数据已经从“自然文档”转向更明确的行为和指令分布。}
-\end{figure}
-
-\subsection{为什么这套分层非常关键}
-如果没有这套分层，学生就很容易把“训练数据”理解成某个固定大桶：从网络上抓下来，清洗一下，喂进去就行。课程明确反对这种看法。不同阶段的数据承担的是不同角色，预训练负责世界覆盖，mid-training 负责补特定能力，post-training 负责塑造交互行为。于是同一份数据在不同阶段的价值会完全不同。
-
-\begin{knowledgebox}{base model 与 instruct model 的真正差别}
-课程在术语上也做了澄清：base model 往往是 pretraining 加 mid-training 之后的结果，而 instruct/chat model 则是在此基础上继续做 post-training。也就是说，两者往往不是不同架构，而是同一基础模型看到的数据分布不同。
-\end{knowledgebox}
-
-\subsection{本章小结}
-数据不是一锅炖。第 13 讲通过 pretraining、mid-training、post-training 的分层视角，让我们看到“规模、质量和目标”会随着训练阶段不断变化。
-
-\section{预训练数据到底来自哪里：网页、书籍、论文、代码与社区文本}
-
-\subsection{预训练不是“全网抓一遍”，而是复杂的数据供应链}
-课程接下来做了非常密集的一次数据源巡礼：BooksCorpus、Wikipedia、WebText、Common Crawl、C4、The Pile、RedPajama、FineWeb、Dolma、The Stack、Project Gutenberg、Stack Exchange、GitHub 等。课程的重点不是让你背名字，而是让你看到真实数据管线有多复杂。
-
-例如 Common Crawl 只是一个定期抓取网页的大型基础设施，它给你的往往是 WARC 或 WET 文件，而不是可以直接训练的干净文本。网页要先转纯文本，模板和导航条要剔除，语言要识别，重复内容要去掉，低质量页面要过滤，PII 和明显不当内容也要处理。也就是说，\textbf{原始网页和可训练文档之间，隔着一整条数据加工链。}
-
-\subsection{HTML 转文本、去重和过滤为什么会改变模型质量}
-课程特别指出，很多人以为“数据工程就是脏活累活”，但事实上连 HTML 转文本这种看似基础的环节都会显著影响最终下游表现。Common Crawl 的不同处理方式会得到完全不同的文本分布，而 C4、RefinedWeb、FineWeb、Dolma 等数据集的差异，也大量体现在这些处理选择上。
-
-这就是为什么课程反复讲 C4、CCNet、The Pile、RedPajama 这些项目。它们提供的不只是数据集本身，更是一组对于“什么叫可训练文本”的工程判断：哪些页面更像自然语言、哪些像模板垃圾、哪些虽然大但价值有限。
-
-\subsection{不同来源带来不同能力和风险}
-网页、书籍、论文、代码和问答社区文本各自承担不同角色。网页提供规模和广覆盖，书籍提供长程叙事和稳定文风，论文提供专业知识和形式化表达，代码对程序任务和某些推理任务都很有帮助，问答社区文本则更接近 instruction-following 和真实信息请求场景。
-
-课程在这里特别有价值的一点，是没有把任何来源神化。Wikipedia 虽然高质量，但也会受编辑机制和投毒攻击影响；Books3 这类影子图书馆材料能力价值很高，却伴随极强版权风险；GitHub 和 Stack Exchange 有丰富元数据，但也充满重复、fork 和许可问题。也就是说，\textbf{每一种来源都是能力、噪声和法律风险的捆绑包。}
-
-\subsection{从 BERT、GPT-2 到 LLaMA：公开 recipe 的重心是怎样迁移的}
-官方 \texttt{lecture\_13.py} 其实把一条非常重要的谱系讲得很清楚。早期如 BERT 的预训练语料仍然带有较强的人工挑选痕迹，例如 BooksCorpus 加 Wikipedia；GPT-2 的 WebText 开始明显走向“利用用户行为信号替代人工挑选”，用 Reddit 外链和 karma 当成粗糙质量代理；到了 GPT-3、The Pile、LLaMA、RefinedWeb、FineWeb、Dolma 这些更后期的 recipe，整个问题已经变成“如何在巨大的开放网页池中，通过去重、过滤、语言识别和若干规则或模型，把 raw crawl 压成可训练分布”。
-
-这条谱系的意义在于，它说明公开数据 recipe 的重心已经从“找几份好语料”转向“设计一条可扩展的数据处理管线”。课程列举 The Pile、MassiveText、LLaMA、FineWeb 时，其实并不是在比数据集名气，而是在比这些项目分别如何回答同一个问题：\textbf{开放网页足够大，但要怎样加工，才值得拿去训练 foundation model。}
-
-\subsection{本章小结}
-预训练数据不是“从网上下载文件”的问题，而是一条涵盖抓取、转换、过滤、去重和源类型配比的供应链。课程通过大量具体数据集案例，把这条链的复杂度完整摊开了。
-
-\section{模型式过滤的兴起：从启发式规则到用模型选数据}
-
-\subsection{为什么纯手工规则开始不够用}
-课程在 DataComp-LM、DCLM 和 Nemotron-CC 这一段里传达了一个明显趋势：随着预训练池越来越大，单靠启发式规则很难同时兼顾质量和规模。一套规则也许能去掉不少垃圾，但往往会过于保守，把大量潜在有用数据也一起删掉。
-
-因此，越来越多团队开始用模型来做数据过滤。比如训练 fastText 分类器，把 OpenHermes、ELI5 这类较高质量样本当正例，把较粗糙的网页文本当负例，再把分类器跑到海量候选语料上。这一步让数据过滤从“写规则”升级成“学习一个 quality prior”。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/dclm-quality.png}
-\caption{课程用 DCLM 相关结果说明：模型式质量过滤正在变成更常见的数据工程手段。}
-\end{figure}
-
-\subsection{模型过滤的优势与新问题}
-模型式过滤的优势是更灵活，能在更大语料池里保留更多高价值样本；但新问题也很明显：你到底把什么视为“高质量”？如果正例来自 GPT-4 指令数据和 ELI5，那么过滤器就可能系统性偏向教育性、解释性或特定文风，而不是简单意义上的“通用好文本”。
-
-课程因此没有把模型式过滤描绘成终局。它更像是在说：数据工程已经从“规则清洗”进入“模型筛选”的阶段，但筛选器本身的偏好、保守程度和覆盖范围都会反过来塑造模型。
-
-\begin{warningbox}{关于 model-based filtering 的一个隐患}
-当你用模型去选训练数据时，你实际上把“什么值得学”这件事提前编码进了过滤器。过滤器越强，训练数据分布越不自然；这既可能提升质量，也可能压窄覆盖。
-\end{warningbox}
-
-\subsection{DCLM 和 Nemotron-CC 代表了更近代的 recipe}
-官方脚本在 DCLM 和 Nemotron-CC 这里其实已经明显进入了 2024 年之后的 recipe 风格。DCLM 的核心不是“再做一套规则”，而是先把 Common Crawl 压成一个极大的候选池，再训练质量分类器去选样本；Nemotron-CC 则进一步往前走，认为 FineWebEdu 和 DCLM 仍然过于保守，于是尝试在保住质量的同时拿回更多 token，并且开始用更强模型给文档打“教育价值”分，再蒸馏到更便宜的选择器上。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/nemotron-results.png}
-\caption{Nemotron-CC 的结果体现了一个新趋势：不是简单删更多数据，而是在更大语料池里更精细地保质量、保覆盖。}
-\end{figure}
-
-课程拿这两个案例想说明的是，foundation model 数据工程已经越来越像一个多阶段 pipeline：先有极大候选池，再有 model-based filtering，再有 classifier ensembling，最后甚至还会对低质量文本做 synthetic rephrasing，对高质量文本做 task extraction。也就是说，\textbf{“数据处理”已经开始和“数据生成”交织在一起。}
-
-\subsection{本章小结}
-第 13 讲在这里把数据工程继续推进了一步：过滤不再只是手写规则，而是越来越依赖模型和蒸馏式 quality signal。这让数据处理变得更强，但也引入了新的分布偏见来源。
-
-\section{版权、许可、fair use 与 ToS：数据不是只要看见就能拿来训}
-
-\subsection{版权法关心的是表达，不只是字面复制}
-课程在法律部分非常清楚地说明：互联网绝大多数内容都自动受到版权保护。你是否能拿某份内容训练模型，不只取决于它有没有被模型 verbatim 记住，还取决于获取、复制、转换和最终市场影响这些更底层的问题。
-
-课程特别强调了几个法律直觉。第一，copyright 保护的是 expression 而不是 abstract idea；第二，作品不需要注册就自动受保护；第三，foundation model 训练的第一步“复制数据”本身就已经进入版权讨论范围。这些事实足以打破“网上能看到就等于能拿来训练”的朴素想法。
-
-\subsection{许可、fair use 和 ToS 是三层不同约束}
-课程把合法性拆成三层。第一层是 license：如果拿到了许可，问题会简单很多。第二层是 fair use：在没有许可时，要根据使用目的、作品性质、使用比例和市场影响等因素做复杂判断。第三层则是 terms of service：即便某作品本身可能允许使用，平台合同仍可能禁止特定抓取和下载行为。
-
-这三层约束叠在一起，解释了为什么许多团队宁愿少说细节。数据问题不是单纯的技术处理，而是工程、法务和风险管理的交叉点。
-
-\begin{importantbox}{课程在法律部分最现实的提醒}
-“能训练”不是一个纯技术判断。它同时是许可判断、fair use 判断和合同合规判断。忽略任何一层，都会把数据工程理解得过于天真。
-\end{importantbox}
-
-\subsection{本章小结}
-第 13 讲并没有给出一条简单的合法性公式，而是让学生接受一个现实：数据使用总是在技术价值与法律风险之间做权衡，真正成熟的 pipeline 必须把二者一起管理。
-
-\section{mid-training 与 post-training 数据：能力增强和行为塑形的另一套世界}
-
-\subsection{长上下文和能力增强往往不该在预训练里硬做}
-课程后半段开始转向 mid-training。一个典型例子是长上下文：如果直接在预训练阶段把序列长度推得很大，Transformer 的二次复杂度会让成本爆炸。因此很多团队会在基础预训练之后，再用更针对性的文档、数学和长上下文数据去做能力增强，比如 LongLoRA 一类工作。
-
-这说明数据工程不仅决定“模型会不会”，还决定“哪个能力应该在哪个阶段补”。预训练不是包打天下的大桶；某些能力若在后续阶段补，反而更高效。
-
-\subsection{instruction data 与 synthetic data 已经形成自己的生态}
-课程最后扫过 Super-Natural Instructions、FLAN、Alpaca、Vicuna、WizardLM、MAmmoTH2、OpenHermes、Llama 2 chat、Llama-Nemotron 等数据集，传达出一个非常清晰的趋势：后训练数据已经形成了独立的工业体系，其中 synthetic data 和 dataset aggregation 占比越来越高。
-
-课程尤其强调一个现实：高质量 vendor annotation 的数量未必很大，但往往价值很高；大规模 open 或 synthetic instruction data 则提供覆盖和多样性。团队真正做的是在这些来源之间找平衡，而不是相信某一种来源天然最好。
-
-\subsection{为什么课程把 LongLoRA、FLAN 和 Alpaca 放在同一段}
-官方 \texttt{lecture\_13.py} 这一段有个容易被忽略的意思：mid-training 和 post-training 并不是完全割裂的两个宇宙。LongLoRA 代表“先用针对性数据把能力补起来”，而 FLAN、Super-Natural Instructions、Alpaca、Vicuna 等则代表“把任务或对话行为重新编码成 prompt-response 监督”。它们共同体现了一个趋势：团队越来越少指望预训练一次性把所有能力都学到，而是愿意在后续阶段用更小、更贵、更目标明确的数据做能力和行为定向强化。
-
-课程后面提到的 \texttt{two-phase training} 或“把 instruction tuning 混回 pretraining”的思路，也正是在这个背景下出现的。它试图避免“先海量预训练、再一次性短 SFT”这种过于割裂的流程，而改成让 instruction-style 数据更早进入训练分布，再在最后做更短、更集中的行为定型。
-
-\subsection{本章小结}
-到了 mid-training 和 post-training，数据从“自然文档”逐渐变成“带明确教学意图或行为意图的监督信号”。这使得后期数据的设计空间和预训练数据完全不同。
-
+\section{本章主线}
+本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+\subsection{本章要解决的核心问题}
+本讲进入 data：语言模型并不是训练在“整个互联网”上，而是训练在经过 crawl、dump、extraction、filtering、dedup 和 mixture 的数据产物上。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，预训练数据：来源与数据集 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从机制到资源账本}
+数据来源有技术、法律和伦理约束。robots.txt、ToS、paywall、copyright、privacy、PII、crawler behavior 都会影响可用数据。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，预训练数据：来源与数据集 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从课堂讲解到可复现实验}
+数据 pipeline 必须版本化。没有 provenance、filter version、dedup strategy 和 mixture weights，就无法复现实验或解释模型行为。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，预训练数据：来源与数据集 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\section{术语、符号与问题边界}
+本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
+\begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
+\toprule
+\textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
+\midrule
+1 & pretraining data（预训练数据） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+2 & Common Crawl & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+3 & data mixture（数据混合） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+4 & dataset provenance（数据来源） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+5 & licensing（许可证） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+\bottomrule
+\end{longtable}
+这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
+\subsection{关键词}
+下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
+\begin{itemize}
+\item data, function, e.g., https, copyright, books, filtering, train, training, tokens, language, text, wikipedia, quality
+\end{itemize}
+\section{为什么数据最重要}
+本节讨论 为什么数据最重要。本节关心的不是名称本身，而是它把 预训练数据：来源与数据集 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{课程目标与问题边界}
+视频开场说：给定数据后大家已知道如何训练，接下来问题是应该训练在什么数据上。
+数据决定模型看到的世界、语言、风格、知识和偏见，也决定 downstream 能力的上限。
+课程把互联网数据看作从 live services 到 dump/crawl 再到 processing pipeline 的产物。
+为什么数据最重要 的作用是把 预训练数据：来源与数据集 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{为什么数据最重要 的机制}
+视频开场说：给定数据后大家已知道如何训练，接下来问题是应该训练在什么数据上。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+数据决定模型看到的世界、语言、风格、知识和偏见，也决定 downstream 能力的上限。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+课程把互联网数据看作从 live services 到 dump/crawl 再到 processing pipeline 的产物。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，为什么数据最重要 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{资源、效率与效果的关系}
+\[\mathcal{D}_{\text{train}}\sim \sum_{k=1}^{K} w_k\,\mathcal{D}_k\]
+符号说明：\(\mathcal{D}_k\) 是第 \(k\) 个数据源，\(w_k\) 是混合权重；预训练分布是人为设计的混合。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{把课程目标写成检查流程}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+sources = [web, books, code, wikipedia, papers]
+for source in sources:
+    collect_with_provenance(source)
+    normalize_and_filter(source)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 数据不是从天上掉下来；每个来源都有采集、许可和偏差问题。
+\item 更多 token 不等于更好，低质量 token 会稀释训练预算。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+为什么数据最重要 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+\subsection{怎样检验 这一课程目标}
+检验 这一课程目标 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 data、Common Crawl、source、dataset、provenance 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 这一课程目标，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(\textbackslash{}mathcal\{D\}\_k\textbackslash{}) 是第 \textbackslash{}(k\textbackslash{}) 个数据源，\textbackslash{}(w\_k\textbackslash{}) 是混合权重；预训练分布是人为设计的混合。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：数据不是从天上掉下来；每个来源都有采集、许可和偏差问题；更多 token 不等于更好，低质量 token 会稀释训练预算。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 预训练数据：来源与数据集 的整体结构中。为什么数据最重要 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：为什么数据最重要}
+data（数据）是模型能力、偏差和法律风险的主要来源。在“为什么数据最重要”中，这个概念用于解释 预训练数据：来源与数据集 的一个具体机制。
+Common Crawl 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么数据最重要”中改变了哪个变量或约束。
+source 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么数据最重要”中改变了哪个变量或约束。
+data（数据）是模型能力、偏差和法律风险的主要来源。在“为什么数据最重要”中，这个概念用于解释 预训练数据：来源与数据集 的一个具体机制。
+provenance 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么数据最重要”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{为什么数据最重要 的小结}
+\begin{itemize}
+\item 为什么数据最重要 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{Web、code、books 与 curated datasets}
+现在进入 Web、code、books 与 curated datasets。本节关心的不是名称本身，而是它把 预训练数据：来源与数据集 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Web、code、books 与 curated datasets}
+Common Crawl 提供大规模网页原料，但需要 HTML extraction、language ID、质量过滤和去重。
+code 数据对编程能力关键，但有许可证、重复、生成数据污染和安全风险。
+books、Wikipedia、论文和问答数据更 curated，但规模、许可和代表性不同。
+数据部分的核心问题是分布控制。采集、过滤、去重和混合并不会只改变文件大小，它们会改变模型看到的语言、知识、偏差和 benchmark contamination 风险。
+\subsection{Web、code、books 与 curated datasets 的机制}
+Common Crawl 提供大规模网页原料，但需要 HTML extraction、language ID、质量过滤和去重。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+code 数据对编程能力关键，但有许可证、重复、生成数据污染和安全风险。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+books、Wikipedia、论文和问答数据更 curated，但规模、许可和代表性不同。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Web、code、books 与 curated datasets 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Web、code、books 与 curated datasets 的数据分布视角}
+\[\text{value/source}=\frac{\Delta \text{eval score}}{\text{tokens}\times\text{processing cost}}\]
+符号说明：这个比值是延伸解释，用来表达单位 token 和单位处理成本的边际价值，不是官方唯一指标。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{Web、code、books 与 curated datasets 在数据管线中的实现}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+for document in crawl:
+    text = extract_main_content(document.html)
+    if language_ok(text) and quality_ok(text):
+        write_jsonl(text, metadata=document.metadata)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 网页抽取错误会把导航栏、广告、脚本或重复模板带入训练。
+\item 不同来源的 license 和 consent 不能在技术 pipeline 中被忽略。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Web、code、books 与 curated datasets 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+\subsection{怎样检验 Web、code、books 与 curated datasets}
+检验 Web、code、books 与 curated datasets 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 web、code、books、Wikipedia、license 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Web、code、books 与 curated datasets，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：这个比值是延伸解释，用来表达单位 token 和单位处理成本的边际价值，不是官方唯一指标。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：网页抽取错误会把导航栏、广告、脚本或重复模板带入训练；不同来源的 license 和 consent 不能在技术 pipeline 中被忽略。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 预训练数据：来源与数据集 的整体结构中。Web、code、books 与 curated datasets 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Web、code、books 与 curated datasets}
+web 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Web、code、books 与 curated datasets”中改变了哪个变量或约束。
+decode（解码）逐 token 生成，常受 memory bandwidth 和 KV cache 影响。在“Web、code、books 与 curated datasets”中，这个概念用于解释 预训练数据：来源与数据集 的一个具体机制。
+books 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Web、code、books 与 curated datasets”中改变了哪个变量或约束。
+Wikipedia 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Web、code、books 与 curated datasets”中改变了哪个变量或约束。
+license 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Web、code、books 与 curated datasets”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Web、code、books 与 curated datasets 的小结}
+\begin{itemize}
+\item Web、code、books 与 curated datasets 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{数据集记录与可复现性}
+现在进入 数据集记录与可复现性。本节关心的不是名称本身，而是它把 预训练数据：来源与数据集 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 数据集记录与可复现性}
+课程强调开放模型与开放数据对信任和创新的作用；数据集 provenance 是可复现训练的基础。
+每个数据版本应记录来源 URL、抓取时间、过滤器版本、去重策略、tokenizer 和混合权重。
+数据集本身应当像模型 checkpoint 一样版本化，否则 evaluation 和 scaling 结果难以复现。
+数据集记录与可复现性 的作用是把 预训练数据：来源与数据集 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{数据集记录与可复现性 的机制}
+课程强调开放模型与开放数据对信任和创新的作用；数据集 provenance 是可复现训练的基础。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+每个数据版本应记录来源 URL、抓取时间、过滤器版本、去重策略、tokenizer 和混合权重。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+数据集本身应当像模型 checkpoint 一样版本化，否则 evaluation 和 scaling 结果难以复现。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，数据集记录与可复现性 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{数据集记录与可复现性 的数学表达}
+\[\text{dataset version}=f(\text{sources},\text{filters},\text{dedup},\text{tokenizer},\text{mixture})\]
+符号说明：版本不是文件名，而是由完整 pipeline 决定的可审计对象。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 数据集记录与可复现性 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+manifest = {
+    'source': url,
+    'crawl_time': timestamp,
+    'filters': filter_hash,
+    'tokenizer': tokenizer_hash,
+}
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 只发布 token count 不足以复现数据。
+\item 数据删除请求、法律要求和安全过滤会让数据版本随时间变化。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+数据集记录与可复现性 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+\subsection{怎样检验 数据集记录与可复现性}
+检验 数据集记录与可复现性 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 manifest、version、provenance、filter、tokenizer 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 数据集记录与可复现性，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：版本不是文件名，而是由完整 pipeline 决定的可审计对象。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：只发布 token count 不足以复现数据；数据删除请求、法律要求和安全过滤会让数据版本随时间变化。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 预训练数据：来源与数据集 的整体结构中。数据集记录与可复现性 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：数据集记录与可复现性}
+数据清单（manifest） 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“数据集记录与可复现性”中改变了哪个变量或约束。
+version 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“数据集记录与可复现性”中改变了哪个变量或约束。
+provenance 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“数据集记录与可复现性”中改变了哪个变量或约束。
+filter 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“数据集记录与可复现性”中改变了哪个变量或约束。
+tokenizer 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“数据集记录与可复现性”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{数据集记录与可复现性 的小结}
+\begin{itemize}
+\item 数据集记录与可复现性 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{综合讨论：从局部机制到完整系统}
+本章的主题是 预训练数据：来源与数据集，但它不应被读成几个相邻知识点的拼接。为什么数据最重要、Web、code、books 与 curated datasets、数据集记录与可复现性 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
+这些对象包括 pretraining data（预训练数据）、Common Crawl、data mixture（数据混合）、dataset provenance（数据来源）、licensing（许可证）。读者可以把它们看成一组接口：有的接口连接文本和 token，有的连接模型结构和张量计算，有的连接数据样本和训练目标，有的连接离线评估和在线服务。接口一旦改变，后面的成本、错误类型和优化空间也会随之改变。
+\subsection{为什么数据最重要 在系统中的位置}
+为什么数据最重要 首先提供一个局部解释：视频开场说：给定数据后大家已知道如何训练，接下来问题是应该训练在什么数据上。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，为什么数据最重要 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，为什么数据最重要 不能脱离边界条件理解。一个关键 caveat 是：数据不是从天上掉下来；每个来源都有采集、许可和偏差问题。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{Web、code、books 与 curated datasets 在系统中的位置}
+Web、code、books 与 curated datasets 首先提供一个局部解释：Common Crawl 提供大规模网页原料，但需要 HTML extraction、language ID、质量过滤和去重。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Web、code、books 与 curated datasets 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Web、code、books 与 curated datasets 不能脱离边界条件理解。一个关键 caveat 是：网页抽取错误会把导航栏、广告、脚本或重复模板带入训练。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{数据集记录与可复现性 在系统中的位置}
+数据集记录与可复现性 首先提供一个局部解释：课程强调开放模型与开放数据对信任和创新的作用；数据集 provenance 是可复现训练的基础。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，数据集记录与可复现性 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，数据集记录与可复现性 不能脱离边界条件理解。一个关键 caveat 是：只发布 token count 不足以复现数据。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{把本章知识用于读论文和复现实验}
+读相关论文时，可以把本章变成一个检查表。第一，论文是否清楚定义了输入规模、模型规模、数据来源和评估协议；第二，论文声称的改进落在哪个变量上；第三，作者是否报告了会让结论失效的设置；第四，实验是否能分离模型结构、数据质量、优化设置和系统实现的影响。
+复现实验时，也应避免直接追求大规模。先用最小程序复现一个公式、一个伪代码分支或一个 profile 现象，再扩大输入规模。这样做的原因很简单：如果小规模程序无法解释中间量，大规模训练只会把错误隐藏在日志和随机波动里。
+把这些检查合在一起，本章给出的不是一个固定答案，而是一种阅读 CS336 的方法：每个模型机制都要落到变量，每个变量都要落到测量，每个测量都要说明协议，每个协议都要承认边界。
+因此，本章中的任何一句结论都可以被改写成一个可引用的完整句式：在给定数据、模型、硬件和评估协议下，某个机制改变了某个变量，并通过某个观测指标表现出来。这样的句子比单独背诵术语更长，但它包含了自学、复现和引用时真正需要的信息。
+把本章用于自学时，可以按三遍阅读。第一遍只追踪对象和定义，确认每个术语到底指向文本、token、张量、样本、请求还是评估记录。第二遍追踪公式和伪代码，确认每一步改变了哪些状态。第三遍追踪实验和 caveat，确认哪些结论只在特定规模、数据或硬件条件下成立。
+把本章用于复习时，则应反过来操作：先从一个失败案例或异常指标出发，再回到相应机制。loss 曲线异常可能指向数据、优化或模型容量；吞吐异常可能指向 kernel、通信或调度；benchmark 异常可能指向 contamination、prompt protocol 或采样设置。能够从异常反推机制，是掌握本章的实用标准。
+\section{例题：把概念变成可计算检查}
+\subsection{从网页到训练样本的 provenance}
+一个网页进入训练集，要经过 crawl、HTML extraction、language ID、quality filter 和 dedup。
+\begin{itemize}
+\item 每一步都应写入数据清单（manifest），而不是只留下最终文本。
+\item 过滤器版本和阈值会改变数据分布。
+\item 许可、robots、PII 和删除请求会影响能否持续使用。
+\end{itemize}
+\textbf{结论。} 数据集是 pipeline 的产物，不是文件夹里若干 `.jsonl` 的集合。
+这个例题的目的不是替代完整工程实现，而是给出一种最小推理形式：把问题转成变量，写出近似公式或伪代码，再说明近似何时失效。
+\section{实验设计：从小例子到可复现结论}
+学习 预训练数据：来源与数据集 不能停在概念层。一个教材化结论至少需要四件事：可构造的输入、可观测的中间量、可比较的指标，以及清楚的失败条件。下面的实验设计不是要求训练大模型，而是要求读者用小规模程序复现本章机制。
+\subsection{最小输入}
+先构造只触发本章核心机制的小输入。例如 tokenizer 章节可以用几个包含 rare words 和 Unicode 字符的字符串；GPU 章节可以用一个 elementwise kernel 和一个 GEMM；data 章节可以用十几篇近重复文档。小输入的价值在于它让错误可见。
+\subsection{资源账本}
+对同一输入写下 FLOPs、bytes moved、显存峰值、通信量或样本数量的估算。估算不需要一开始就精确，但必须说明单位和近似假设。随后用 profiler、benchmark、validation loss 或人工检查去验证估算是否同量级。
+\subsection{单变量消融}
+一次只改变一个因素，例如 vocabulary size、head 数、batch size、filter threshold、reward scale、decoding temperature 或 GPU 数量。若多个变量同时变化，实验只能说明系统变了，不能说明机制是什么。
+\subsection{失败条件}
+最后要刻意触发失败：极端 context length、错误 dtype、过小 batch、污染 benchmark、低质量数据或不可靠 verifier。失败条件常常比成功曲线更能说明一个方法的边界。
+\subsection{记录与报告}
+实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
+常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\section{课程资料与回看路径}
+教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
+\subsection{视频回看路径}
+\begin{longtable}{p{0.20\linewidth}p{0.46\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{时间} & \textbf{关键词} & \textbf{复习任务}\\
+\midrule
+00:00:04-00:06:20 & data, training, there's, data., that's, talk, train & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:19:25-00:26:05 & fair, copyright, license, creative, it's, that's, don't & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:40:03-00:46:20 & data, it's, github, books, there's, crawl, code & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:53:24-01:00:55 & data, think, books3, wikipedia, books, trained, quality & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+01:14:57-01:21:49 & data, it's, permissively, think, there's, very, whether & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+\bottomrule
+\end{longtable}
+这些时间段用于定位视频中的讲解顺序。严肃引用时，应回到视频片段确认讲者表述、板书或幻灯片内容。
+回看视频时，不必逐字抄录字幕。更有效的方法是把每个时间段判定为定义、例子、推导、代码解释或 caveat，再把它放回本章对应小节。
+\subsection{课程资料阅读路径}
+\begin{longtable}{p{0.14\linewidth}p{0.48\linewidth}p{0.30\linewidth}}
+\toprule
+\textbf{资料组} & \textbf{标题/页块} & \textbf{关键词}\\
+\midrule
+official\_01 & Lecture 13: Data I & data, train, training, live, language, pre-training, mid-training\\
+official\_03 & - Threshold for copyright is extremely low (e.g., your website is copyrighted) & copyright, work, fair, license, training, copyrighted, over\\
+official\_05 & - Repository: download through git protocol (rather than scraping the GitHub website) & https, github, metadata, arxiv, books, language, crawl\\
+official\_08 & - ... & data, tokens, trained, classifier, result, remove, permissively\\
+official\_10 & Reproduced by Together's RedPajama v1 & function, refinedweb, dolma, stack, reproduced, together, redpajama\\
+\bottomrule
+\end{longtable}
+课程资料通常给出更稳定的标题、公式、图或代码结构；视频则补充动机和口头解释。两者合起来构成本章的事实边界。
+阅读资料时，可以把每个资料组拆成三个对象：一个定义，一个公式或伪代码动作，一个边界条件。这样比逐字翻译页面或脚本更容易形成可用知识。
+\section{实践说明、历史位置与风险}
+预训练数据：来源与数据集 在 CS336 的课程结构中连接基础机制和规模化问题。基础机制解释方法为什么成立；规模化问题检验它在更大模型、更长上下文、更复杂数据或真实 serving workload 下是否仍成立。
+历史位置不等于模型年表。更重要的是识别问题如何迁移：早期方法解决小规模建模问题，现代方法常常解决同一问题在大规模数据、GPU 集群、长上下文或人类偏好约束下的新形态。
+\begin{itemize}
+\item 资料版本限制（version risk）：课程页、公开视频和配套资料可能在学期中更新；引用时应注明访问日期或资料版本。
+\item 测量口径限制（measurement risk）：FLOPs、tokens/s、benchmark score、reward 等数字只有在协议完整时可比较。
+\item 规模外推限制（scaling risk）：小模型或小 batch 的机制不必然外推到 frontier-scale。
+\item 数据分布限制（data risk）：数据来源、过滤和去重策略会改变模型行为，也会改变 evaluation contamination 风险。
+\end{itemize}
+\section{复习要点}
+下面的问题把本章内容压缩为可反复检查的条目。每个条目都应能回到前文的解释、公式、伪代码或例题。
+\begin{longtable}{p{0.16\linewidth}p{0.38\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{条目} & \textbf{对象} & \textbf{检查动作}\\
+\midrule
+条目 1 & pretraining data（预训练数据） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 2 & Common Crawl & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 3 & data mixture（数据混合） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 4 & dataset provenance（数据来源） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 5 & licensing（许可证） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+\bottomrule
+\end{longtable}
+\subsection{综合自测}
+\begin{itemize}
+\item 我能否不用课程原句，独立解释本章中心问题？
+\item 我能否把本章至少一个公式改写成可运行的估算函数？
+\item 我能否指出一个看似改进但实际转移成本的方法？
+\item 我能否回到视频和课程资料，找到支持本章关键论断的位置？
+\item 我能否设计一个最小 ablation，验证本章一个 caveat？
+\end{itemize}
 \section{总结与延伸}
-第 13 讲把“数据”从抽象名词拆成了一整条现实管线。
-
-第一，\textbf{数据是 foundation model 时代最难复制的护城河。} 因为它同时涉及人工判断、长尾清洗和法律风险。
-
-第二，\textbf{训练阶段不同，数据角色也不同。} pretraining 追求广覆盖与规模，mid-training 补能力，post-training 塑行为。
-
-第三，\textbf{可训练语料来自复杂供应链。} 从 Common Crawl 到 C4、The Pile、FineWeb、Dolma、The Stack，真正的价值在于如何转换、过滤、去重和配比，而不是原始来源本身。
-
-第四，\textbf{数据过滤正在模型化。} model-based filtering 能提升质量，但也会把过滤器的偏好编码进训练分布。
-
-第五，\textbf{法律和合同不是外围问题。} 许可、fair use 与 ToS 共同决定了某份数据能否进入训练 pipeline。
-
-第六，\textbf{mid-training 与 post-training 已经形成独立数据生态。} 长上下文、指令跟随、安全与 reasoning traces 往往都在这些后续阶段被强化。
-
-\begin{warningbox}{我对第 13 讲的压缩提醒}
-如果只把这讲理解成“介绍了很多数据集”，那就太浅了。真正的结论是：\textbf{数据工程是一条同时处理来源、质量、重复、目标和合法性的供应链，而模型能力就是这条供应链的产物。}
-\end{warningbox}
-
-下一讲进入 Data II 之后，课程会从“数据从哪里来、能不能用”进一步推进到“怎样具体做过滤、分类、重要性重采样和去重算法”。第 13 讲是全景图，第 14 讲是机械细节。
-
-%% --- 正文内容结束 --- %%
-
+\subsection{本章小结}
+\begin{itemize}
+\item 预训练数据：来源与数据集 的核心不是记忆术语，而是理解对象、变量和机制之间的关系。
+\item 视频给出讲解顺序，课程资料提供可核对的公式、图、代码或页面结构。
+\item 复习时应把每个术语连接到至少一个变量、一个实现动作和一个失败模式。
+\end{itemize}
+\subsection{延伸解释}
+本章中的延伸解释用于连接课程材料中的概念，例如说明公式里的 proxy、解释系统 tradeoff，或把多个材料片段串成一个完整推理链。若需要严肃引用，应回到课程视频和配套资料核对原始表述。
+\subsection{练习}
+\begin{itemize}
+\item 定义题：用中英双语解释本章任意五个重要术语，并说明它们属于 compute、memory、data、optimization、evaluation 还是 deployment 账本。
+\item 推导题：选择本章一个公式，逐个解释符号、单位和近似假设，并说明哪个变量最难在真实系统中测量。
+\item 实现题：把本章伪代码改写成一个最小 Python sanity check，不要求训练大模型，但要输出可检查的中间量。
+\item 资料题：从“课程资料与回看路径”中选择一个视频时间段，回到原始视频核对讲者例子，并记录是否存在字幕误差。
+\item 评估题：为本章方法设计一个 ablation 或 benchmark，说明控制变量、数据版本、指标和 failure criteria。
+\item 边界题：说明本章一个结论在更长 context、更大 batch、更多 GPU 或更复杂数据分布下可能如何失效。
+\item 综合题：把本章内容和前一章或后一章连接起来，写出一个端到端训练/推理 pipeline 中的依赖关系。
+\item 批判题：指出一个容易被营销材料夸大的说法，并用本章的资源账本或评估协议反驳它。
+\end{itemize}
 \end{document}

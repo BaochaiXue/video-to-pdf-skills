@@ -1,172 +1,445 @@
-Assignment 1 leaderboard
-Assignment 2 is out
 Last lecture: high-level overview of GPUs and performance
-This lecture: benchmarking/profiling + write kernels
-You should run this lecture on a GPU to get the full experience.
+
+This lecture: benchmarking/profiling + writing kernels
+
+Summary:
+
+- Know the programming model (PyTorch, Triton, PTX) to give you correctness
+
+- Understand the hardware (SMs, warps, occupancy, bank conflicts, etc.) to optimize performance
+
+- Benchmark to understand scaling
+
+- Profile to see what's being executed for how long
+
+- Triton: think in terms of thread blocks (read to shared memory, do stuff (fusion), write back HBM)
+
+- Examples: GeLU (elementwise), softmax (row-wise), row sum (baby tiling), matmul (tiling)
+
+Next time: more than one GPU!
+
 ## Hardware
-Compute: streaming multiprocessors (SMs) [A100: 108]
-Memory:
-- DRAM [A100: 80GB] - big, slow
-- L2 cache [A100: 40MB]
-- L1 cache [A100: 192KB per SM] - small, fast
-You can look at the specs on your actual GPU.
-Basic structure: run f(i) for all i = 0, ..., N-1
-## Execution model
-- *Thread*: process individual index (i.e., f(i))
-- *Thread block* (a.k.a. concurrent thread arrays): scheduled on a single SM
+
+| Accelerator | A100 | H100 | B200 |
+
++------------------------------------+-----------+-----------+-----------+
+
+| # SMs | 108 | 132 | 148 |
+
++------------------------------------+-----------+-----------+-----------+
+
+| Register size (per SM) | 256 KB | 256 KB | 256 KB |
+
+| L1 cache + shared memory (per SM) | 192 KB | 256 KB | 256 KB |
+
+| L2 cache size | 40 MB | 50 MB | 96-126 MB |
+
+| HBM size | 80 GB | 80 GB | 192 GB |
+
++------------------------------------+-----------+-----------+-----------+
+
+| Register bandwidth | ~116 TB/s | ~401 TB/s | ~447 TB/s |
+
+| L1 cache + shared memory bandwidth | ~19 TB/s | ~33 TB/s | ~19 TB/s |
+
+| L2 cache bandwidth | ~5-8 TB/s | ~12 TB/s | ~9 TB/s |
+
+| HBM bandwidth | 2 TB/s | 3.35 TB/s | 8 TB/s |
+
+(B200s also have tensor memory (TMEM) for tensor cores (between registers and shared memory) that are invisible to programmer.)
+
+## Programming model
+
+- *Thread*: executes code on a small part of the data
+
+- *Thread block* or concurrent thread array (CTA): a group of threads
+
 - *Grid*: collection of thread blocks
-Why thread blocks? Shared memory.
-- Intuition: group f(i)'s that read similar data together
-- Threads within a thread block have shared memory (as fast as L1 cache) [A100: 164KB]
-- Can synchronize threads (for reading/writing) within a block (but not across blocks)
-### Hardware and execution interact.
-Thread blocks scheduled onto SMs in waves.
-Problem: last wave has fewer thread blocks, leaving some SMs idle (low occupancy).
-Wave quantization: make number of thread blocks divide # SMs.
-Rule of thumb: number of thread blocks should be >= 4x # SMs
-Challenge: some aspects of hardware are hidden from the execution model (e.g., scheduling, # SMs).
-### Arithmetic intensity: # FLOPs / # bytes
-- If high, operation is compute-bound (good)
-- If low, operation is memory-bound (bad)
-General rule: matrix multiplication is compute-bound, everything else is memory-bound
-IMPORTANT: benchmark/profile your code!
-You can read spec sheets (marketing material) and papers
-...but performance depends on your library version, your hardware, your workload
-...so there is no substitute for benchmarking/profiling your code.
-Example computation: running forward/backward passes on an MLP.
+
+(H100s and B200s also have thread block clusters that enable distributed shared memory.)
+
+Why thread blocks?
+
+For elementwise operations (e.g., GeLU), threads are most natural: each thread processes one element.
+
+- f(i) for i = 0, ..., N-1
+
+However, for non-elementwise operations like softmax or matrix multiplication, threads need to communicate.
+
+Reading/writing from HBM is slow, so use shared memory (local to SM).
+
+Thread block: a collection of threads that access the same shared memory.
+
+Consequently, a thread block is scheduled on one SM.
+
+In Triton, think natively in terms of thread blocks (later).
+
+## Interaction between programming model and hardware
+
+Programming model provides an abstraction of the hardware.
+
+In principle, don't need to think about anything else (for correctness).
+
+In practice, performance is very sensitive to the hardware, so need to understand it to obtain high performance.
+
+Let's go over some considerations.
+
+**Warps**:
+
+- Within a thread block, threads are grouped into warps (32 threads per warp).
+
+- Example: thread block has 64 threads => it has 2 warps.
+
+| TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT | TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT |
+
+- All threads within a warp must execute same instructions in lockstep on an SM.
+
+- Control divergence: if different threads in a warp need to execute different instructions (if A, else B), must be done sequentially (bad)
+
+| AAAAAAAAA....................... |
+
+| .........BBBBBBBBBBBBBBBBBBBBBBB |
+
+- SM runs multiple warps and switches between them (e.g., when one warp is blocked on HBM reads/writes) with zero cost.
+
+**(Warp) occupancy**:
+
+- Each thread can use between 0 and 255 registers.
+
+- The more registers threads use, the fewer threads can be scheduled on an SM (low occupancy).
+
+- Low occupancy isn't necessarily bad if each thread is doing more work.
+
+- Example: thread coarsening (each thread processes multiple elements).
+
+- Example: thread block has 64 threads, each using 160 registers, SM has 65536 registers
+
+**Bank conflicts** (shared memory):
+
+- Shared memory is divided into 32 banks, each 4 bytes wide.
+
+B00 B01 B02 B03 B04 B05 B06 B07 B08 B09 B10 B11 B12 B13 B14 B15 B16 B17 B18 B19 B20 B21 B22 B23 B24 B25 B26 B27 B28 B29 B30 B31
+
+... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+
+... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+
+... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+
+- Each cycle, each bank can only be accessed by one thread (if not the same exact location).
+
+- If multiple threads access the same bank, accesses serialized (bank conflict).
+
+- Worst case example: matrix where each row spans all banks; 32 threads accessing first column results in 32-way bank conflict!
+
+- Unavoidable: when doing matmul A @ B, access rows of A and columns of B
+
+- Solution: swizzling rearranges shared memory (e.g., row xor col) to avoid bank conflicts
+
+**Memory coalescing** (HBM):
+
+- When the 32 threads in a warp access HBM, memory accesses combined into transactions of 128 bytes (cache lines).
+
+M00 M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12 M13 M14 M15 M16 M17 M18 M19 M20 M21 M22 M23 M24 M25 M26 M27 M28 M29 M30 M31
+
+M32 M33 M34 M35 M36 M37 M38 M39 M40 M41 M42 M43 M44 M45 M46 M47 M48 M49 M50 M51 M52 M53 M54 M55 M56 M57 M58 M59 M60 M61 M62 M63
+
+- Best case: full coalescing, all threads access the same cache line (32 threads x 4 bytes = 128 bytes).
+
+**Block occupancy**:
+
+- Thread blocks scheduled onto SMs in waves.
+
+- B200 has 148 SMs, if we launch 160 thread blocks, first wave has 148 blocks, second wave has 12 blocks.
+
+- Wave quantization problem: last wave has fewer thread blocks, leaving some SMs idle (low block occupancy).
+
+- Solution: make number of thread blocks divide # SMs.
+
+Summary:
+
+- Programming model: grid (HBM) -> thread block (shared memory) -> thread (registers)
+
+- Details of hardware (warps, bank conflicts, memory coalescing, occupancy) determine performance
+
+Recipe for success:
+
+1. Benchmark and profile your code
+
+2. Make changes
+
+3. Benchmark and profile your code again
+
+Benchmark and profile your code!
+
 Benchmarking measures the wall-clock time of performing some operation.
+
 It only gives you end-to-end time, not where time is spent (profiling).
+
 It is still useful for:
+
 - comparing different implementations (which is faster?), and
+
 - understanding how performance scales (e.g., with dimension).
-Let's define a convenient function for benchmarking an arbitrary function.
-### Benchmarking matrix multiplication
-First, let us benchmark matrix multiplication of square matrices.
-Let us benchmark our MLP!
-Scale the number of steps.
-Scale the number of layers.
-Scale the batch size.
-Scale the dimension.
-The timings are not always predictable due to the non-homogenous nature of CUDA kernels, hardware, etc.
-You can also use torch.utils.benchmark, which provides more amenities.
-We did not use this to make benchmarking more transparent.
+
+You can use [`torch.utils.benchmark`](https://pytorch.org/tutorials/recipes/recipes/benchmark.html).
+
+We will roll our own to make benchmarking more transparent.
+
+Note: time is roughly constant when dimension is small, then cubic scaling.
+
 While benchmarking looks at end-to-end time, profiling looks at where time is spent.
-Obvious: profiling helps you understand where time is being spent.
-Deeper: profiling helps you understand (what is being called).
-PyTorch has a nice built-in profiler
-Let's profile some code to see what is going on under the hood.
-Let's start with some basic operations.
-Observations
-- You can see what CUDA kernels are actually being called.
-- Different CUDA kernels are invoked depending on the tensor dimensions.
-Name of CUDA kernel tells us something about the implementation.
-Example: cutlass_80_simt_sgemm_256x128_8x4_nn_align1
-- cutlass: NVIDIA's CUDA library for linear algebra
-- 256x128: tile size
-Let's now look at some composite operations.
-Now let's profile our MLP.
-We will also visualize our stack trace using a flame graph, which reveals where time is being spent.
-Every time you make a change, benchmark/profile!
-Horace He's blog post
-Analogy: warehouse : DRAM :: factory : SRAM
-Each operation needs to read/compute/write:
-If we *fuse* the operations, only need to read/write once:
-To see the effect of fusion, let's consider the GeLU activation function.
-Let's consider two ways to compute GeLU:
-1. The default PyTorch implementation (fused):
-2. We can also write our own by hand (not fused):
-Let's benchmark.
-Could not compare times - benchmark results were None
-Let's look under the hood.
-The PyTorch just calls one kernel whereas the others are atomic (remember the warehouse/factory)
-Now let's open the box to understand what's going on inside a CUDA kernel by writing our own.
-Let's write the GeLU function in CUDA.
-CUDA is an extension of C/C++ with APIs for managing GPUs.
-Simplified picture: write f(i), CUDA kernel computes f(i) for all i.
-Grid: collection of thread blocks: numBlocks = (2, 4), blockDim = (1, 8)
-Thread block: collection of threads: blockIdx = (0, 1)
-Thread: single unit of operation: threadIdx = (0, 3).
-You write code that a thread execute, using (blockIdx, blockDim, threadIdx) to determine what to do.
-Set CUDA_LAUNCH_BLOCKING so that if there are errors, CUDA will tell you what went wrong.
-The load_inline function makes it convenient to write CUDA code and bind it to a Python module for immediate use.
-Compile the CUDA code and bind it to a Python module.
-Check correctness of our implementation.
-Benchmark our CUDA version.
-Our CUDA implementation is faster than manual, but not as good as PyTorch.
-Elementwise operations are easy in CUDA (though you can still be smarter).
-But most interesting operations (e.g., matmul, softmax, RMSNorm) require reading multiple values.
-For that, you have to think about managing shared memory, etc.
-Developed by OpenAI in 2021
-Make GPU programming more accessible
-- Write in Python
-- Think about thread blocks rather than threads
-What does Triton offer?
-CUDA      Triton
-- Memory coalescing (transfer from DRAM)     manual    automatic
-- Shared memory management                   manual    automatic
-- Scheduling within SMs                      manual    automatic
-- Scheduling across SMs                      manual    manual
-Compiler does more work, can actually outperform PyTorch implementations!
-One big advantage of Triton is that you can step through the Python code.
-Let's step through a Triton kernel.
-PTX (parallel thread execution) is like an assembly language for GPUs.
-We can see the PTX code generated by Triton.
-PTX is not generated when in interpret mode.
-Let's go poke around at the PTX code.
+
+Independent of time, profiling also helps you understand what's going under the hood.
+
+PyTorch has a built-in [profiler](https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html).
+
+In your assignment, you will use nsight to get more details.
+
+## add(dim=2048)
+
+## matmul(dim=2048)
+
+## matmul(dim=128)
+
 Observations:
+
+- You can see which CUDA kernels are actually being called (the long names).
+
+- Different CUDA kernels are invoked depending on the tensor dimensions.
+
+Name of CUDA kernel tells us something about the implementation.
+
+Example: cutlass3x_sm100_simt_sgemm_f32_f32_f32_f32_f32_64x64x16_1x1x1_3_nnn_align1_bi...
+
+- cutlass: NVIDIA's CUDA library for linear algebra
+
+- sm100: corresponds to the NVIDIA Blackwell architecture (B200)
+
+- f32: float32
+
+- 64x64x16: tile shape (more on this later)
+
+Let's benchmark and profile the [GeLU activation function](https://pytorch.org/docs/stable/generated/torch.nn.GELU.html).
+
+The builtin and compiled versions are significantly faster!
+
+To understand why, let's look at the profiler to see where time is being spent.
+
+## naive_gelu
+
+## builtin_gelu
+
+## compiled_gelu
+
+Notes:
+
+- Naive implementation: multiple kernels, requires many reads/writes from/to HBM (**no fusion**).
+
+- Builtin and compiled versions: one kernel (**kernel fusion**), one read from HBM, one write to HBM.
+
+- The compiled kernel is a Triton kernel.
+
+In CUDA (developed by NVIDIA), specify what each thread does.
+
+- Pros: fine-grained control
+
+- Cons: need to manage more things (e.g., shared memory)
+
+In Triton (developed by OpenAI), specify what each thread block does.
+
+- Generally powerful enough (especially when getting started)
+
+- Conceptual framework: load data into shared memory, operate on it, write back to global memory
+
+Let's write the Triton kernel for GeLU.
+
+Triton compiles down to PTX (parallel thread execution), an assembly language for GPUs.
+
+We can see the PTX code generated by Triton.
+
+Observations:
+
 - ld.global.* and st.global.* reads and writes from global memory
+
 - %ctaid.x is block index, %tid.x is thread index
+
 - %f* are floating point registers, %r* are integer registers
+
 - One thread processes 8 elements at the same time (thread coarsening)
-Check that it's correct.
-Let's now benchmark it compared to the PyTorch and CUDA implementations.
-Remember to set TRITON_INTERPRET=0 for good performance.
-Our Triton implementation (triton_gelu):
-- is almost as good as the PyTorch implementation (pytorch_gelu).
-- is actually slower than our naive CUDA implementation (cuda_gelu).
-Triton operates on blocks, CUDA operates on threads.
-Blocks allows Triton compiler to do other optimizations (e.g., thread coarsening).
-Everything is way faster than the manual implementation (manual_gelu).
-So far, we have seen three ways to write GeLU:
-- Use the default PyTorch function
-- Write it in Python
-- Write it in CUDA
-- Write it in Triton
-- Write it in Python and compile it into Triton
-Check correctness of our implementation.
-Let's benchmark and profile it!
-Let's look under the hood
+
 So far, we've looked at elementwise operations in Triton (e.g., GeLU).
+
 Now let us look at operations that aggregate over multiple values.
-We will roughly follow the Triton fused softmax tutorial:
+
 Recall the softmax operation is used in attention and generating probabilities.
-Normalize each row of a matrix:
-[A1 A2 A3]   =>   [A1/A A2/A A3/A]
-[B1 B2 B3]   =>   [B1/B B2/B B3/B]
+
+Exponentiate and normalize each row of a matrix:
+
+[0 0 0] => [1/3 1/3 1/3]
+
+[1 1 -inf] [1/2 1/2 0 ]
+
 Let's first start with the naive implementation and keep track of reads/writes.
+
 Now let us write the Triton kernel.
-Check our implementations are correct.
-Now let's benchmark everything.
-Look under the hood using the profiler.
-Let's end by looking at the PTX code.
-## Summary
-Gap between the programming model (PyTorch, Triton, PTX) and hardware => performance mysteries
-Benchmarking for understanding scaling
-Profiling for understanding internals of PyTorch functions (bottoms out with kernels)
-Looking at PTX assembly to understand internals of CUDA kernels
-5 ways to write a function: manual, PyTorch, compiled, CUDA, Triton
-GeLU (element-wise), softmax (row-wise), matmul (complex aggregation)
-Key principle: organize computation to minimize reads/writes
-Key ideas: kernel fusion (warehouse/factory analogy), tiling (shared memory)
-Automatic compilers (Triton, torch.compile) will get better over time
-Horace He's blog post
-CUDA MODE Lecture 1: how to profile CUDA kernels in PyTorch
-CUDA MODE Lecture 2: Chapters 1-3 of PPMP book
-CUDA MODE Lecture 3: Getting started with CUDA for Python Programmers
-CUDA MODE Lecture 4: Compute and memory basics
-CUDA MODE Lecture 8: CUDA performance checklist
-HetSys Course: Lecture 1: Programming heterogenous computing systems with GPUs
-HetSys Course: Lecture 2: SIMD processing and GPUs
-HetSys Course: Lecture 3: GPU Software Hierarchy
-HetSys Course: Lecture 4: GPU Memory Hierarchy
-HetSys Course: Lecture 5: GPU performance considerations
+
+In the softmax example, an entire row fits in a block, so the reduction happens within a block (handled by Triton).
+
+What if the row doesn't fit in a block?
+
+Example: 4096 columns, but block size is 1024...
+
+Strategy:
+
+- Break up row into tiles (4 in the example above)
+
+- Each thread iterates over tiles and accumulates a sum
+
+- Do final reduction (sum) over accumulators of each thread (shared memory or warp shuffles)
+
+Consider the simpler example (row sum instead of softmax):
+
+Matrix multiplication is the bread and butter of deep learning.
+
+How should we build a matmul kernel?
+
+| k n
+
+| [ A1 A2 A3 ] [ B1 B2 B3 ] [ C1 C2 C3 ]
+
+| m [ A4 A5 A6 ] * k [ B4 B5 B6 ] = [ C4 C5 C6 ]
+
+| [ A7 A8 A9 ] [ B7 B8 B9 ] [ C7 C8 C9 ]
+
+**Naive approach:**
+
+Fix any (m, n).
+
+For each k:
+
+- Read A[m, k] and B[k, n] from HBM.
+
+- Multiply and accumulate.
+
+Write result to C[m, n] in HBM.
+
+Bottleneck: M K N reads, M N writes
+
+Arithmetic intensity: O(1)
+
+Computing C4 and C5 both need A4, A5, A6.
+
+Can we read A4, A5, A6 from HBM once to compute both?
+
+Answer: yes, using shared memory!
+
+**Idealized approach:**
+
+- Load all of A and B into shared memory, then compute C.
+
+- Now we get M K + K N reads and M N writes.
+
+- This yields the idealized O(N) arithmetic intensity from before.
+
+- However, A and B are usually too large to fit in shared memory.
+
+**Tiling:**
+
+Key idea: divide the matrix C into output tiles (thread blocks).
+
+Fix an output tile in C.
+
+For each pair of (row tile of A, column tile of B):
+
+- Load the corresponding A tile and B tile from HBM into shared memory.
+
+- Perform matrix multiplication on the tiles.
+
+- Accumulate into the partial sum (in shared memory).
+
+Write output tile to HBM.
+
+Arithmetic intensity: O(tile_size).
+
+Bonus:
+
+- Often, you want to apply an elementwise activation function.
+
+- Example: GeLU(A @ B)
+
+- Solution: kernel fusion!
+
+**Implementation.**
+
+Review: each matrix is linearized in memory
+
+We will roughly follow the Triton fused softmax tutorial:
+
+Function: main
+
+Function: review_of_gpus
+
+Function: benchmarking_and_profiling
+
+Function: benchmarking
+
+Function: benchmark
+
+Function: profiling
+
+Function: profile
+
+Function: naive_vs_builtin_vs_compiled_gelu
+
+Function: triton_introduction
+
+Function: triton_gelu_example
+
+Function: triton_gelu
+
+Function: triton_gelu_kernel
+
+Function: triton_softmax_example
+
+Function: naive_softmax
+
+Function: triton_softmax
+
+Function: triton_softmax_kernel
+
+Function: triton_row_sum_example
+
+Function: builtin_row_sum
+
+Function: triton_row_sum
+
+Function: row_sum_kernel
+
+Function: triton_matmul_relu_example
+
+Function: naive_matmul_relu
+
+Function: triton_matmul_relu
+
+Function: matmul_relu_kernel
+
+Function: run_operation1
+
+Function: run_operation2
+
+Function: naive_gelu
+
+Function: builtin_gelu
+
+Function: pytorch_softmax
+
+Function: check_equal_1d
+
+Function: check_equal_2d
+
+Function: check_equal_2d_2d
+
+Function: mean
+
+Function: output_ptx

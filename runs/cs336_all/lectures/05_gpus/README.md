@@ -1,9 +1,5 @@
-# Lecture 5: GPUs
+# Lecture 05: GPU/TPU 硬件模型
 
-- Video ID: `6OBtO9niT00`
-- Cover: [cover.jpg](cover.jpg)
-- Transcript: [transcript.txt](transcript.txt)
-- Official material: [official.txt](official.txt)
-- Generated notes: [notes.md](notes.md)
-
-This folder is the lecture-specific workspace for refining this lecture into its own polished note/PDF.
+- video: https://www.youtube.com/watch?v=izZba4UA7iY
+- material: lecture_05.pdf
+- basis: Spring 2026 public playlist subtitles + official course page/materials.

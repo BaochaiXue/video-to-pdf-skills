@@ -1,251 +1,479 @@
+Announcements:
+
+- Join the CS336 slack
+
+- Sign up on Modal with your **Stanford** email
+
+- Read the [AI policy guide](https://docs.google.com/document/d/1SZAlExB1qAc9izHt54gwunNpjKE6wXb8Y7yA_e-baK8/edit?tab=t.0)
+
+- Read the [cluster guide](https://docs.google.com/document/d/1cHE0iKVyXLJ3XpIs2XuXTmZ-HMmPk2hIPeCvy-AydMg/edit?tab=t.otis27tacaef)
+
+Marin 1e23 FLOPs run finished and [matched forecasts](https://x.com/WilliamBarrHeld/status/2039373983632814318)!
+
 Last lecture: overview, tokenization
-Overview of this lecture:
-- We will discuss all the **primitives** needed to train a model.
-- We will go bottom-up from tensors to models to optimizers to the training loop.
-- We will pay close attention to efficiency (use of **resources**).
-In particular, we will account for two types of resources:
-- Memory (GB)
-- Compute (FLOPs)
-Let's do some napkin math.
-**Question**: How long would it take to train a 70B parameter model on 15T tokens on 1024 H100s?
-**Question**: What's the largest model that can you can train on 8 H100s using AdamW (naively)?
-Caveat 1: we are naively using float32 for parameters and gradients.  We could also use bf16 for parameters and gradients (2 + 2) and keep an extra float32 copy of the parameters (4). This doesn't save memory, but is faster.
-Caveat 2: activations are not accounted for (depends on batch size and sequence length).
-This is a rough back-of-the-envelope calculation.
-We will not go over the Transformer.
-There are excellent expositions:
-Instead, we'll work with simpler models.
-What knowledge to take away:
-- Mechanics: straightforward (just PyTorch)
+
+Today: resource accounting (systems)
+
+Recall: what's the best model one can train given fixed resources (compute, memory)?
+
+In other words: maximize (computational) **efficiency**.
+
+Prerequisite: understand the resources (compute, memory) for a given computation.
+
+What knowledge to take away from this lecture:
+
+- Mechanics: straightforward (PyTorch semantics)
+
 - Mindset: resource accounting (remember to do it)
-- Intuitions: broad strokes (no large models)
-## Memory accounting
-Tensors are the basic building block for storing everything: parameters, gradients, optimizer state, data, activations.
-You can create tensors in multiple ways:
-Allocate but don't initialize the values:
-...because you want to use some custom logic to set the values later
-Almost everything (parameters, gradients, activations, optimizer states) are stored as floating point numbers.
-## float32
-The float32 data type (also known as fp32 or single precision) is the default.
-Traditionally, in scientific computing, float32 is the baseline; you could use double precision (float64) in some cases.
+
+- Intuitions: get a sense of how resources are spent, no ML magic today
+
+Summary:
+
+- Everything is operations on tensors (parameters, gradients, activations, optimizer states, data)
+
+- einops: better way to think about tensor operations
+
+- 6 (# data points) (# parameters) FLOPs per training step
+
+- Arithmetic intensity / roofline analysis: compute-bound or memory-bound?
+
+- Matrix multiplications are compute-bound, elementwise operations are memory-bound
+
+- Gradient accumulation, activation checkpointing: reduce memory to use bigger batch sizes
+
+**Question**: How long would it take to train a 70B parameter model on 15T tokens on 1024 H100s?
+
+**Question**: What's the largest model that can you can train on 8 H100s using AdamW?
+
+Caveat: activations are not accounted for (depends on batch size and sequence length), so this is an upper bound.
+
+This is a rough back-of-the-envelope calculation.
+
+But it gives you the flavor of napkin math one can quickly do to get a sense of resources.
+
+Tensors are the basic building block for storing everything:
+
+- data
+
+- parameters
+
+- gradients
+
+- optimizer state
+
+- activations
+
+Each tensor has a rank, which is the number of dimensions.
+
+In Transformers, will see tensors of rank 4:
+
+Elements of tensors are generally floating point numbers.
+
+## fp32
+
+The fp32 data type (also known as float32 or single precision) is the default.
+
+Traditionally, in scientific computing, fp32 is the baseline; you could use double precision (fp64) in some cases.
+
 In deep learning, you can be a lot sloppier.
+
 Let's examine memory usage of these tensors.
+
 Memory is determined by the (i) number of values and (ii) data type of each value.
+
 One matrix in the feedforward layer of GPT-3:
-...which is a lot!
-## float16
-The float16 data type (also known as fp16 or half precision) cuts down the memory.
+
+## fp16
+
+The fp16 data type (also known as float16 or half precision) cuts down the memory.
+
 However, the dynamic range (especially for small numbers) isn't great.
+
 If this happens when you train, you can get instability.
-## bfloat16
-Google Brain developed bfloat (brain floating point) in 2018 to address this issue.
-bfloat16 uses the same memory as float16 but has the same dynamic range as float32!
+
+## bf16
+
+Google Brain developed brain floating point (bf16) in 2018 to address this issue.
+
+bf16 uses the same memory as fp16 but has the same dynamic range as fp32!
+
 The only catch is that the resolution is worse, but this matters less for deep learning.
-Let's compare the dynamic ranges and memory usage of the different data types:
-## fp8
-In 2022, FP8 was standardized, motivated by machine learning workloads.
-H100s support two variants of FP8: E4M3 (range [-448, 448]) and E5M2 ([-57344, 57344]).
-Reference:
+
+## Mixed precision
+
 Implications on training:
-- Training with float32 works, but requires lots of memory.
-- Training with fp8, float16 and even bfloat16 is risky, and you can get instability.
-- Solution (later): use mixed precision training, see
-## Compute accounting
+
+- Training with fp32 works, but requires lots of memory.
+
+- Training with fp16 and even bf16 is risky, and you can get instability.
+
+- Use bf16 for parameters, activations, and gradients
+
+- Use fp32 for optimizer states
+
+Tries to cast things into bf16 when safe (matmuls, not exp).
+
+## fp8
+
+In 2022, fp8 was standardized, motivated by machine learning workloads [primer](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/fp8_primer.html).
+
+H100s support two variants of FP8: E4M3 (range [-448, 448]) and E5M2 ([-57344, 57344]).
+
+## fp4
+
+In 2025, NVIDIA developed [nvfp4](https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/)
+
+Only 4 bits per value!
+
+Values: -6, -4, -3, -2, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2, 3, 4, 6
+
+Use a separate scale factor per block, so actually get more dynamic range (but just can't vary freely from neighbors).
+
+Some of this is done in NVIDIA libraries outside of user control.
+
 By default, tensors are stored in CPU memory.
-However, in order to take advantage of the massive parallelism of GPUs, we need to move them to GPU memory.
-Let's first see if we have any GPUs.
-Move the tensor to GPU memory (device 0).
-Or create a tensor directly on the GPU:
-Most tensors are created from performing operations on other tensors.
-Each operation has some memory and compute consequence.
-What are tensors in PyTorch?
-PyTorch tensors are pointers into allocated memory
-...with metadata describing how to get to any element of the tensor.
-To go to the next row (dim 0), skip 4 elements in storage.
-To go to the next column (dim 1), skip 1 element in storage.
-To find an element:
-Many operations simply provide a different **view** of the tensor.
-This does not make a copy, and therefore mutations in one tensor affects the other.
-Get row 0:
-Get column 1:
-View 2x3 matrix as 3x2 matrix:
-Transpose the matrix:
-Check that mutating x also mutates y.
-Note that some views are non-contiguous entries, which means that further views aren't possible.
-One can enforce a tensor to be contiguous first:
-Views are free, copying take both (additional) memory and compute.
-These operations apply some operation to each element of the tensor
-...and return a (new) tensor of the same shape.
-triu takes the upper triangular part of a matrix.
-This is useful for computing an causal attention mask, where M[i, j] is the contribution of i to j.
-Finally, the bread and butter of deep learning: matrix multiplication.
-In general, we perform operations for every example in a batch and token in a sequence.
-In this case, we iterate over values of the first 2 dimensions of x and multiply by w.
-Traditional PyTorch code:
-Easy to mess up the dimensions (what is -2, -1?)...
+
+However, what about GPUs?
+
+In order to take advantage of the massive parallelism of GPUs, we need to move them to GPU memory.
+
+Or create the tensor directly on the GPU:
+
 Einops is a library for manipulating tensors where dimensions are named.
+
 It is inspired by Einstein summation notation (Einstein, 1916).
-How do you keep track of tensor dimensions?
-Old way:
-New (jaxtyping) way:
-Note: this is just documentation (no enforcement).
+
+Traditional PyTorch code:
+
+Easy to mess up the dimensions (what is -2, -1?)...
+
 Einsum is generalized matrix multiplication with good bookkeeping.
-Define two tensors:
-Old way:
-New (einops) way:
+
+Let's try a more complex example...
+
 Dimensions that are not named in the output are summed over.
-Or can use ... to represent broadcasting over any number of dimensions:
+
 You can reduce a single tensor via some operation (e.g., sum, mean, max, min).
-Old way:
-New (einops) way:
+
 Sometimes, a dimension represents two dimensions
+
 ...and you want to operate on one of them.
-...where total_hidden is a flattened representation of heads * hidden1
-Break up total_hidden into two dimensions (heads and hidden1):
-Perform the transformation by w:
-Combine heads and hidden2 back together:
+
+...where `total_hidden` is a flattened representation of `heads * hidden1`
+
 Having gone through all the operations, let us examine their computational cost.
+
 A floating-point operation (FLOP) is a basic operation like addition (x + y) or multiplication (x y).
+
 Two terribly confusing acronyms (pronounced the same!):
+
 - FLOPs: floating-point operations (measure of computation done)
+
 - FLOP/s: floating-point operations per second (also written as FLOPS), which is used to measure the speed of hardware.
+
 ## Intuitions
-Training GPT-3 (2020) took 3.14e23 FLOPs.
-Training GPT-4 (2023) is speculated to take 2e25 FLOPs
-US executive order: any foundation model trained with >= 1e26 FLOPs must be reported to the government (revoked in 2025)
-A100 has a peak performance of 312 teraFLOP/s
-H100 has a peak performance of 1979 teraFLOP/s with sparsity, 50% without
+
 8 H100s for 2 weeks:
+
 ## Linear model
-As motivation, suppose you have a linear model.
-- We have n points
-- Each point is d-dimsional
-- The linear model maps each d-dimensional vector to a k outputs
+
+How many FLOPs is this matmul?
+
 We have one multiplication (x[i][j] * w[j][k]) and one addition per (i, j, k) triple.
-## FLOPs of other operations
-- Elementwise operation on a m x n matrix requires O(m n) FLOPs.
-- Addition of two m x n matrices requires m n FLOPs.
-In general, no other operation that you'd encounter in deep learning is as expensive as matrix multiplication for large enough matrices.
-Interpretation:
-- B is the number of data points
-- (D K) is the number of parameters
-- FLOPs for forward pass is 2 (# tokens) (# parameters)
-It turns out this generalizes to Transformers (to a first-order approximation).
-How do our FLOPs calculations translate to wall-clock time (seconds)?
-Let us time it!
-Each GPU has a specification sheet that reports the peak performance.
-- A100
-- H100
+
+We can also time this operation to see how long it takes.
+
+The actual FLOP/s of this operation:
+
+Each GPU has a specification sheet that provides the peak performance.
+
 Note that the FLOP/s depends heavily on the data type!
-No CUDA device available, so can't get FLOP/s.
+
 ## Model FLOPs utilization (MFU)
-Definition: (actual FLOP/s) / (promised FLOP/s) [ignore communication/overhead]
-Usually, MFU of >= 0.5 is quite good (and will be higher if matmuls dominate)
-Let's do it with bfloat16:
-Note: comparing bfloat16 to float32, the actual FLOP/s is higher.
-The MFU here is rather low, probably because the promised FLOPs is a bit optimistic.
-## Summary
-- Matrix multiplications dominate: (2 m n p) FLOPs
-- FLOP/s depends on hardware (H100 >> A100) and data type (bfloat16 >> float32)
-- Model FLOPs utilization (MFU): (actual FLOP/s) / (promised FLOP/s)
-So far, we've constructed tensors (which correspond to either parameters or data) and passed them through operations (forward).
+
+Definition: MFU = (actual FLOP/s) / (promised FLOP/s) [ignore communication/overhead]
+
+Usually, MFU of ≥ 0.5 is quite good!
+
+But why is MFU not closer to 1?
+
+To answer this question, we need to look more closely at how computations are done on GPUs...
+
+How to compute a thing:
+
+1. Send inputs from memory to accelerator
+
+2. Perform computation
+
+3. Send outputs from accelerator to memory
+
+How long does this take?
+
+Depends on two things:
+
+1. Accelerator speed (FLOP/s)
+
+2. Memory bandwidth (bytes/s)
+
+Assume we can overlap communication and computation perfectly.
+
+What is the bottleneck?
+
+- Memory-bound: communication time > computation time
+
+- Compute-bound: computation time > communication time
+
+In this case, ReLU is memory-bound.
+
+Alternative way to see this:
+
+Accelerator intensity: how much work can the accelerator do per byte transferred?
+
+Arithmetic intensity: how much actual work per byte for this workload?
+
+What is the bottleneck?
+
+- Memory-bound: arithmetic intensity < accelerator intensity
+
+- Compute-bound: arithmetic intensity > accelerator intensity
+
+In general, we'll find ourselves memory bound.
+
+Can we increase arithmetic intensity?
+
+Note that GeLU does more work than ReLU per byte moved, so it has higher arithmetic intensity.
+
+But still memory-bound!
+
+In other words, ReLU is not faster than GeLU (when doing things in an isolated way).
+
+Memory-bound!
+
+Memory-bound!
+
+Finally, compute-bound!
+
+As long as we have large matrices, we're compute-bound (saturating the accelerator).
+
+Training Transformers involves big matrix multiplications.
+
+Matrix-vector product is what happens during inference, which is why inference is memory-bound.
+
+Note: arithmetic/accelerator intensity also depends on the precision (bf16 versus fp32).
+
+We can visualize the relationship between arithmetic intensity and performance using roofline plots.
+
+- Each slice on the x-axis is a particular computation (with some arithmetic intensity)
+
+- Each piecewise linear function corresponds to a particular hardware
+
+- Kink is the accelerator intensity (transition from memory-bound to compute-bound)
+
+We can now relate this back to MFU:
+
+MFU = min(1, arithmetic-intensity / accelerator-intensity)
+
+So far, we've constructed tensors and passed them through operations (forward).
+
 Now, we're going to compute the gradient (backward).
+
 As a simple example, let's consider the simple linear model:
+
 y = 0.5 (x * w - 5)^2
+
 Forward pass: compute loss
+
 Backward pass: compute gradients
-Let us do count the FLOPs for computing gradients.
-Revisit our linear model
-Model: x --w1--> h1 --w2--> h2 -> loss
-Recall the number of forward FLOPs:
-- Multiply x[i][j] * w1[j][k]
-- Add to h1[i][k]
-- Multiply h1[i][j] * w2[j][k]
-- Add to h2[i][k]
-How many FLOPs is running the backward pass?
-Recall model: x --w1--> h1 --w2--> h2 -> loss
+
+Let us count the FLOPs for computing gradients.
+
+Define a simplified model (2-layer linear network):
+
+## Zoom in on one layer
+
+Let's focus on the second layer (h2 = h1 @ w2)
+
+**Forward pass**: Recall the number of forward FLOPs:
+
+**Backward pass**: How many FLOPs is running the backward pass?
+
+We need to compute:
+
 - h1.grad = d loss / d h1
-- h2.grad = d loss / d h2
-- w1.grad = d loss / d w1
+
 - w2.grad = d loss / d w2
-Focus on the parameter w2.
-Invoke the chain rule.
-w2.grad[j,k] = sum_i h1[i,j] * h2.grad[i,k]
-For each (i, j, k), multiply and add.
-h1.grad[i,j] = sum_k w2[j,k] * h2.grad[i,k]
-For each (i, j, k), multiply and add.
-This was for just w2 (D*K parameters).
-Can do it for w1 (D*D parameters) as well (though don't need x.grad).
-A nice graphical visualization:
-Putting it togther:
+
+Note that the backward pass is 2x more expensive than the forward pass.
+
+## Consider all layers
+
+This was just for w2, need to apply it to all parameters in the network.
+
+Putting it together:
+
 - Forward pass: 2 (# data points) (# parameters) FLOPs
+
 - Backward pass: 4 (# data points) (# parameters) FLOPs
+
 - Total: 6 (# data points) (# parameters) FLOPs
-## Models
-Model parameters are stored in PyTorch as nn.Parameter objects.
-## Parameter initialization
-Let's see what happens.
-Large values can cause gradients to blow up and cause training to be unstable.
-We want an initialization that is invariant to input_dim.
-To do that, we simply rescale by 1/sqrt(input_dim)
-Up to a constant, this is Xavier initialization.
-To be extra safe, we truncate the normal distribution to [-3, 3] to avoid any chance of outliers.
-Let's build up a simple deep linear model using nn.Parameter.
-Remember to move the model to the GPU.
-Run the model on some data.
-Training loop and best practices
-Randomness shows up in many places: parameter initialization, dropout, data ordering, etc.
-For reproducibility, we recommend you always pass in a different random seed for each use of randomness.
-Determinism is particularly useful when debugging, so you can hunt down the bug.
-There are three places to set the random seed which you should do all at once just to be safe.
-In language modeling, data is a sequence of integers (output by the tokenizer).
-It is convenient to serialize them as numpy arrays (done by the tokenizer).
-You can load them back as numpy arrays.
-Don't want to load the entire data into memory at once (LLaMA data is 2.8TB).
-Use memmap to lazily load only the accessed parts into memory.
-A *data loader* generates a batch of sequences for training.
-Sample batch_size random positions into data.
-Index into the data.
-## Pinned memory
-By default, CPU tensors are in paged memory. We can explicitly pin.
-This allows us to copy x from CPU into GPU asynchronously.
-This allows us to do two things in parallel (not done here):
-- Fetch the next batch of data into CPU
-- Process x on the GPU.
-Recall our deep linear model.
+
+This is for multilayer perceptrons (MLPs)
+
+...but it turns out to be a good approximation for Transformers for short context lengths as well.
+
+Consider a deep network with L layers and D-dimensional inputs, activations, and outputs.
+
+Recall our deep network.
+
 Let's define the AdaGrad optimizer
+
 - momentum = SGD + exponential averaging of grad
+
 - AdaGrad = SGD + averaging by grad^2
-- RMSProp = AdaGrad + exponentially averaging of grad^2
+
+- RMSProp = AdaGrad but with exponential averaging of grad^2
+
 - Adam = RMSProp + momentum
-AdaGrad:
-Compute gradients
-Take a step
-Free up the memory (optional)
+
 ## Memory
-## Compute (for one step)
+
+It is customary to use fp32 for stability (accumulating averages over powers over many steps).
+
+Optimizer state memory:
+
+- AdaGrad: 4 bytes/parameter for storing second moments
+
+- Adam: 8 bytes/parameter for storing first and second moments
+
+## Compute (for one training step)
+
 ## Transformers
+
 The accounting for a Transformer is more complicated, but the same idea.
+
 Assignment 1 will ask you to do that.
-Blog post describing memory usage for Transformer training
-Blog post descibing FLOPs for a Transformer:
-Generate data from linear function with weights (0, 1, 2, ..., D-1).
-Let's do a basic run
-Do some hyperparameter tuning
-Training language models take a long time and certainly will certainly crash.
-You don't want to lose all your progress.
-During training, it is useful to periodically save your model and optimizer state to disk.
-Save the checkpoint:
-Load the checkpoint:
-Choice of data type (float32, bfloat16, fp8) have tradeoffs.
-- Higher precision: more accurate/stable, more memory, more compute
-- Lower precision: less accurate/stable, less memory, less compute
-How can we get the best of both worlds?
-Solution: use float32 by default, but use {bfloat16, fp8} when possible.
-A concrete plan:
-- Use {bfloat16, fp8} for the forward pass (activations).
-- Use float32 for the rest (parameters, gradients).
-- Mixed precision training
+
+Large batch sizes: improve training stability
+
+However, activation memory scales with batch size, so might run out.
+
+Gradient accumulation:
+
+- Compute gradient on micro batches
+
+- Accumulate the gradients (don't zero it out)
+
+- Every batch_size / micro_batch_size steps, update the parameters and zero out the gradients
+
+For training, we need to store the activations of all layers
+
+For inference, we don't compute gradients, so we only need to store the current layer's activations.
+
+The memory usage is
+
+Can we reduce this?
+
+Activation checkpointing = gradient checkpointing = rematerialization
+
+Key idea:
+
+- Forward pass: keep only activations at subset of layers
+
+- Backward pass: recompute the missing activations from the last checkpoint
+
+Philosophy: tradeoff memory for compute
+
+Can we reduce this even more, especially for deep networks (large L)?
+
+How frequently to checkpoint?
+
+- If store each layer's activations, then activation memory is O(L) and no recomputation.
+
+- If store no activations, then activation memory is O(1) and compute is O(L^2) (recompute from the start for each layer).
+
+- If store every sqrt(L) layers, then activation memory is O(sqrt(L)) and O(L) recomputation.
+
+Example: parameters of the DeepSeek v3.2 model
+
+Solution: mixed precision training
+
 Pytorch has an automatic mixed precision (AMP) library.
-NVIDIA's Transformer Engine supports FP8 for linear layers
-Use FP8 pervasively throughout training
+
+Reference:
+
+Nemotron 3 Super was trained in NVFP4
+
+Training GPT-3 (2020) took 3.14e23 FLOPs.
+
+Training GPT-4 (2023) is speculated to take 2e25 FLOPs.
+
+H100 has a peak performance of 1979 teraFLOP/s with sparsity, 50% without
+
+- Example:
+
+AdaGrad
+
+Blog post describing memory usage for Transformer training
+
+Blog post describing FLOPs for a Transformer:
+
+Function: main
+
+Function: motivating_questions
+
+Function: tensors_basics
+
+Function: tensors_memory
+
+Function: tensors_on_gpus
+
+Function: tensor_einops
+
+Function: einops_motivation
+
+Function: einops_einsum
+
+Function: einops_reduce
+
+Function: einops_rearrange
+
+Function: tensor_operations_flops
+
+Function: arithmetic_intensity
+
+Function: arithmetic_intensity_relu
+
+Function: arithmetic_intensity_gelu
+
+Function: arithmetic_intensity_dot_product
+
+Function: arithmetic_intensity_matrix_vector_product
+
+Function: arithmetic_intensity_matmul
+
+Function: roofline_plots
+
+Function: gradients_basics
+
+Function: gradients_flops
+
+Function: deep_network
+
+Function: optimizer
+
+Function: train_loop
+
+Function: gradient_accumulation
+
+Function: activation_checkpointing
+
+Function: get_memory_usage
+
+Function: get_promised_flop_per_sec
+
+Function: benchmark
+
+Function: get_num_parameters
+
+Official reading markers: deepseek_v3_2_2025, adagrad_2011, nemotron_3_super_2026

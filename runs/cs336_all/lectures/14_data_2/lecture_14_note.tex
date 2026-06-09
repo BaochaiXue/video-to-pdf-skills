@@ -1,352 +1,380 @@
 \documentclass[a4paper]{article}
-
-% Basic packages
 \usepackage[fontset=fandol]{ctex}
-\usepackage{amsmath, amssymb}
+\usepackage[margin=1.65cm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage[margin=2.5cm]{geometry}
-\usepackage[most]{tcolorbox}
-\usepackage{etoolbox}
-\usepackage{listings}
 \usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{subcaption}
-\usepackage{float}
-\usepackage{tikz}
-\IfFileExists{pgfplots.sty}{
-    \usepackage{pgfplots}
-    \pgfplotsset{compat=1.18}
-}{}
-
-% Highlight boxes
-\newtcolorbox{knowledgebox}[1]{
-    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
-    boxrule=1pt, sharp corners
-}
-
-\newtcolorbox{importantbox}[1]{
-    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
-    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newtcolorbox{warningbox}[1]{
-    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-% Listings
-\lstset{
-    language=Python,
-    basicstyle=\ttfamily\small,
-    keywordstyle=\color{blue},
-    stringstyle=\color{red!60!black},
-    commentstyle=\color{green!60!black},
-    breaklines=true,
-    frame=single,
-    numbers=left,
-    numberstyle=\tiny\color{gray},
-    captionpos=b,
-    extendedchars=false
-}
-
-% Front-page metadata
-\newcommand{\notetitle}{CS336 第 14 讲：数据工程 II}
-\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 14 讲视频、字幕与课程材料整理}
-\newcommand{\notedate}{\today}
-\newcommand{\videochannel}{Stanford Online}
-\newcommand{\videopublishdate}{2025年06月16日}
-\newcommand{\videoduration}{1:19:11}
-\newcommand{\videourl}{https://www.youtube.com/watch?v=9Cd0THLS1t0}
-\newcommand{\videocoverpath}{cover.jpg}
-
+\usepackage{longtable,booktabs}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,keepspaces=true}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{2em}
+\sloppy
+\title{第 14 讲：数据过滤、去重、混合与合成数据}
+\author{CS336 Spring 2026 public videos and official course materials}
+\date{}
 \begin{document}
-
-\begin{titlepage}
-\centering
-{\Large 课程笔记\par}
-\vspace{1.2cm}
-{\huge\bfseries \notetitle\par}
-\vspace{0.8cm}
-{\large \noteauthors\par}
-\vspace{0.3cm}
-{\large \notedate\par}
-\vspace{1.2cm}
-
-\ifdefempty{\videocoverpath}{
-{\small 请在生成笔记时填入视频封面图的本地路径。\par}
-}{
-\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
-}
-
-\vfill
-\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
-\textbf{视频作者/频道}：\videochannel\par
-\textbf{发布日期}：\videopublishdate\par
-\textbf{视频时长}：\videoduration\par
-\textbf{视频链接}：
-\ifdefempty{\videourl}{
-未填写
-}{
-\href{\videourl}{\nolinkurl{\videourl}}
-}
-\end{tcolorbox}
-\end{titlepage}
-
+\maketitle
 \tableofcontents
 \newpage
-
-%% --- 正文内容开始 --- %%
-
-\section{Data II：从“知道数据重要”到“真的会筛、会选、会去重”}
-
-\subsection{课程为什么要单独讲算法工具}
-第 13 讲是全景图，告诉你数据是能力护城河；第 14 讲则开始拆机械结构：如果你手里有一大池原始数据 $R$，再给你一小份“你真正想要的”目标数据 $T$，怎样从 $R$ 中找出一个更像 $T$ 的子集 $T'$？
-
-这就是课程设定的统一抽象。它之所以重要，是因为很多数据工程任务都能被写成这个模式：想找英文文本、想找高质量教育文本、想找数学文本、想去掉有毒或重复内容，本质上都是在巨大的原始候选池里做选择，而不是凭空造数据。
-
-\begin{figure}[H]
+\section{本章导读}
+本章讨论 \textbf{数据过滤、去重、混合与合成数据}。CS336 的第一层目标不是把现成大模型当作黑箱使用，而是把 language model 从输入文本、训练目标、模型结构、数据、系统和评估这些部件重新拆开。只有拆开之后，读者才能判断一个设计选择究竟改变了什么。
+设想你有十万亿 raw tokens，但里面有重复网页、模板、PII、低质量文本和 benchmark 泄漏。数据处理不是清洁工序，而是训练目标的一部分；过滤、去重、混合和合成数据共同决定模型行为。
+本章对应 CS336 Spring 2026 第 14 个公开视频，并结合课程页提供的可解析资料。视频和课程页给出事实边界；正文把这些材料改写为可自学的教材章节。
+阅读本章时，先理解问题为什么存在，再看定义、公式和实现形态，随后通过例题和练习检查自己是否能独立复现这条 reasoning chain。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.78\textwidth]{../../materials/spring2025-lectures/images/raw-target-schema.png}
-\caption{课程用一个统一的 schema 描述数据选择问题：从巨大的 raw pool 中挑出更接近目标分布的子集。}
+\includegraphics[width=0.58\linewidth]{source_anchor.jpg}
+\caption{第 14 讲的课程图像锚点。}
 \end{figure}
-
-\begin{importantbox}{第 14 讲的总目标}
-把“数据质量很重要”这句正确但空泛的话，具体化成一套可以在线性规模上运行的算法工具：语言模型打分、线性分类器、重要性重采样、哈希去重与近重复检测。
-\end{importantbox}
-
-\subsection{本章小结}
-第 14 讲首先把数据处理抽象成“目标分布选择”问题。只要抓住这个统一视角，后面的 KenLM、fastText、DSIR 和 MinHash 就不再是零散技巧，而是同一类问题的不同解法。
-
-\section{KenLM 与 CCNet：用 n-gram 语言模型做快速质量过滤}
-
-\subsection{为什么课程先讲最简单的模型}
-课程没有一上来就用大型神经网络做过滤，而是先讲 n-gram 语言模型和 KenLM。这很有深意，因为数据工程的第一约束常常不是“模型够不够强”，而是“你能不能在海量语料上跑得动”。KenLM 这类方法虽然粗糙，却极快，因此非常适合做第一层筛选。
-
-对一个 $n$-gram 语言模型，最基本的极大似然估计可以写成：
-\[
-p(w_t \mid w_{t-n+1:t-1}) = \frac{\mathrm{count}(w_{t-n+1}, \ldots, w_t)}{\mathrm{count}(w_{t-n+1}, \ldots, w_{t-1})}.
-\]
-课程马上提醒，真实语料里高阶 $n$-gram 非常稀疏，所以必须做 Kneser-Ney smoothing 之类的平滑。直观上，这就是在说：如果长上下文统计不可靠，就适度退回更短上下文。
-
-\subsection{CCNet 的关键思想：保留“看起来像高质量语料”的文档}
-CCNet 的做法很有代表性。它把段落或文档放进一个简单语言模型里，根据 perplexity 或近似分数排序，再保留更像目标高质量文本的那一部分。课程拿它来说明一个很有力量的观点：\textbf{“好数据”并不一定要靠昂贵模型判断，很多时候一个高速但粗糙的打分器就能显著改善训练语料。}
-
-这种方法的优势是速度快、易扩展、可用于低资源语言；缺点也很明显，它只能抓住非常粗粒度的语言分布相似性，难以表达更抽象的“教育性”“事实性”或“任务价值”。
-
-\begin{knowledgebox}{KenLM 的真正定位}
-课程并没有把 KenLM 当成终极方案，而是当成“在海量语料上先做一轮粗筛”的基础工具。它便宜、可扩展、足够解释性强，因此很适合做 pipeline 里的第一层。
-\end{knowledgebox}
-
-\subsection{本章小结}
-KenLM 和 CCNet 代表了一类朴素但高性价比的数据工程方法：先用可扩展的语言模型近似“目标文档长什么样”，再按分数做快速筛选。
-
-\section{fastText 与 DSIR：从分类到分布匹配}
-
-\subsection{fastText：用线性分类器学“什么像目标数据”}
-课程接着讲 fastText，核心原因仍然是它快。fastText 本质上是带词嵌入平均和哈希 n-gram 的线性分类器，训练和推理都远比大型 Transformer 轻量。对于“英语还是非英语”“高质量还是低质量”“有毒还是无毒”这类二分类任务，它往往已经够用。
-
-课程的重点不是 fastText 的每个细节，而是它提供了一种从启发式规则升级到学习式过滤的桥梁：不再手写“哪些词像垃圾”，而是收集正负样本，训练一个分类器，然后把它跑到整个数据池上。这种思路在语言识别、质量过滤、毒性过滤里都反复出现。
-
-\subsection{为什么 fastText 比朴素 bag-of-words 更适合海量语料}
-课程这里其实隐含了一层重要的参数化直觉。最朴素的 bag-of-words 分类器，如果词表大小是 $V$、类别数是 $K$，直接做线性分类往往需要大约 $V\times K$ 个参数。对于超大词表和多语言场景，这个参数量会非常难看。
-
-fastText 的思路是先给词学习一个低维向量，再把文档中的词向量做平均或求和，于是参数规模更接近
-\[
-H(V+K),
-\]
-其中：
+\subsection{本章知识路线}
 \begin{itemize}
-\item $V$：词表大小；
-\item $K$：类别数；
-\item $H$：嵌入维度。
+\item 本章首先说明 数据过滤、去重、混合与合成数据 为什么是 language modeling pipeline 中不可跳过的一环。
+\item 其次定义本章反复使用的术语，并说明这些术语对应的计算对象或系统对象。
+\item 随后用公式和伪代码表达主要机制，让概念能够落到可计算的变量上。
+\item 最后给出例题、风险讨论和练习，便于读者检查自己是否真正掌握了机制。
 \end{itemize}
-
-这比直接给每个词、每个类别都配一套独立权重更省，也让并行 SGD 和流式训练更现实。课程随后又补了一步：当我们把 bigram、trigram 也纳入特征时，特征空间会爆炸，于是需要 hashing trick 把这些 n-gram 映射到固定桶里。也就是说，\textbf{fastText 好用不只是因为“它是线性模型”，而是因为它把参数规模和特征规模都压进了一个能在网页语料上跑起来的范围。}
-
-\subsection{DSIR：不只看像不像目标，还看原始分布有多不同}
-比分类器更进一步的是 DSIR（Data Selection via Importance Resampling）。课程把它解释成一个更“分布论”的做法：你不只是判断某个样本是不是目标类，而是想估计它在目标分布 $p_T$ 下比在原始分布 $p_R$ 下有多“值得被保留”。
-
-它的核心分数可以写成：
-\[
-s(x) = \frac{p_T(x)}{p_R(x)}.
-\]
-如果某个样本在目标分布下相对更常见、在原始分布下相对没那么常见，那么这个样本就更值得被重采样进新语料。课程用 DSIR 想说明：\textbf{数据选择不一定只是二分类，也可以是更细腻的分布重加权问题。}
-
-\begin{figure}[H]
+\subsection{结构图}
+下面的图用于帮助读者定位本章的核心结构。先看概念之间的依赖，再回到正文中的公式、伪代码和例题。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/dsir-results.png}
-\caption{DSIR 通过重要性重采样，有时能比启发式分类拿到更好的下游效果。}
+\includegraphics[width=0.72\linewidth]{figures/source_grounded_concept_map.png}
+\caption{第 14 讲概念图：本章问题、术语和机制的关系。}
 \end{figure}
-
-\subsection{为什么课程把 fastText 和 DSIR 放在一起讲}
-因为二者代表了两种不同层次的建模方式。fastText 更像判别式分类器，学的是“像不像目标”；DSIR 更像概率比估计，学的是“这个样本相对来说更应该来自哪个分布”。它们计算复杂度相近，但表达的统计假设不同。
-
-\begin{warningbox}{关于“更智能的数据选择”的一个现实提醒}
-方法越复杂，不代表一定越好。课程强调，真正的约束来自规模和可部署性。一个理论上更漂亮但跑不动的选择器，在 240T token 语料面前往往毫无价值。
-\end{warningbox}
-
-\subsection{从 OpenMathText 到 phi-1：target 定义决定过滤器会偏向什么}
-课程随后举了几类非常有代表性的应用。OpenMathText 用规则加 KenLM、fastText 去找“更像数学文本”的网页；GPT-3 和 LLaMA 这类工作会把 Wikipedia、WebText 或参考页面当作正例，学“更像优质网页”的过滤器；phi-1 则更激进，直接围绕“高质量教材风格代码数据”去选样本。
-
-这些案例背后有同一个结论：过滤器从来不是抽象地学“好数据”，而是在学“更像哪一种好数据”。如果你的正例偏向百科和书面文风，模型就会被拉向那一侧；如果正例偏向教育性解释或数学证明，模型就会在那些能力上更容易占便宜。课程把这些例子放在一起，其实是在提醒学生：\textbf{数据选择算法只是一半，另一半是你拿什么来定义目标分布。}
-
-\subsection{本章小结}
-fastText 和 DSIR 把数据工程从“规则过滤”推进到了“学习式选择”。前者擅长快速分类，后者擅长分布重加权，二者一起构成了现代过滤 pipeline 的主干。
-
-\section{同一套工具可以服务很多任务：语言识别、质量过滤、毒性控制}
-
-\subsection{课程为什么强调“先统一框架，再谈应用”}
-第 14 讲很强调一个思想：同样的数据选择 machinery 可以复用于不同任务。只要你能定义目标数据 $T$，就可以把语言识别、数学文本筛选、教育价值筛选和毒性过滤都放进同一个框架里。
-
-例如语言识别可以用 off-the-shelf 的 fastText 语言分类器；质量过滤可以让目标语料来自 Wikipedia、WebText 或高质量 instruction data；毒性过滤则可以把 Jigsaw 一类带标注的评论数据当作监督源。差别不在算法骨架，而在你选了什么 target，以及阈值设在哪里。
-
-\subsection{目标定义本身就是价值判断}
-课程在这里的启发很强。所谓“高质量数据”并不是自然存在的，而是由你选取的正负样本定义出来的。如果你拿 OpenHermes、ELI5 做正例，你学出来的是一种偏教育性、解释性、任务导向的 quality prior；如果你拿 Wikipedia references 做正例，你学出来的就是另一种 prior。
-
-这意味着数据工程并不是中立流水线。选择什么目标，实际上就是在决定模型以后更擅长什么风格、什么语域和什么任务。
-
-\subsection{本章小结}
-同一个算法框架可以被重复利用，但目标定义永远不是中性的。课程借此提醒学生：数据筛选同时是在做价值选择。
-
-\section{去重不是附属工作，而是线性规模训练的必要条件}
-
-\subsection{为什么重复数据会系统性伤害训练}
-课程在去重部分首先说明了为什么这件事如此重要。重复文本会带来两类问题：第一，浪费 token 预算，让模型反复在同样内容上优化；第二，增加记忆化风险，放大版权和隐私问题。特别是在网页、代码和论坛数据中，镜像、模板、fork、转载和轻微改写都极其常见。
-
-因此，去重不是“锦上添花”的清洗步骤，而是大规模训练能否有效利用算力的前提条件。
-
-\subsection{从 exact duplicates 到 near duplicates}
-课程把重复分成 exact duplicates 和 near duplicates。exact match 可以直接哈希后去重，语义很清晰；但大量现实重复并不是逐字相同，而是只差几个 token、几个段落或格式细节。于是我们需要一个更弱但更可扩展的相似性定义。
-
-课程采用的标准度量是 Jaccard 相似度：
-\[
-J(A, B) = \frac{|A \cap B|}{|A \cup B|}.
-\]
-如果把文档表示成 n-gram 集合，那么 Jaccard 就能自然描述两个文档共享多少局部内容。
-
-\begin{figure}[H]
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.9\textwidth]{near_duplicate_examples.png}
-\caption{课程给出的 near-duplicate 例子：文字表面不同，但大量局部 n-gram 几乎完全重合。}
+\includegraphics[width=0.72\linewidth]{figures/source_grounded_checklist.png}
+\caption{第 14 讲学习路径：从问题定义进入公式、实现、实验和练习。}
 \end{figure}
-
-\subsection{Bloom filter、MinHash 与 LSH 为什么能在线性时间里工作}
-课程非常强调可扩展性。Bloom filter 提供的是近似集合成员测试，用很小内存换取极低误判率；MinHash 的关键性质是：
-\[
-\Pr[h(A)=h(B)] = J(A, B),
-\]
-也就是说，哈希碰撞概率直接等于 Jaccard 相似度。再往上，通过 locality-sensitive hashing（LSH）把多个 MinHash 按 band 组织起来，就能把“相似文档更容易碰撞”变成“超过阈值的文档几乎一定被提名”。
-
-课程虽然没有要求学生记住所有推导细节，但它明确给出一个高度值得记住的式子：如果单个 band 有 $r$ 个哈希，总共 $b$ 个 band，相似度为 $s$ 的两个样本被提名为候选的概率近似是
-\[
-1 - (1 - s^r)^b.
-\]
-这说明 banding 结构可以把原本平滑的碰撞概率，压成一个更接近阈值函数的选择器。
-
-\subsection{Bloom filter 是去重流水线里的低成本门卫}
-课程在 MinHash 之前先讲 Bloom filter，不是因为它更“高级”，而是因为它在 exact duplicate 和近似成员测试上都太实用了。Bloom filter 的核心是：用 $k$ 个哈希函数把一个元素映射到一个位数组里，只要某一位为 0，就能确定该元素不在集合中；如果对应位都为 1，它“很可能”在集合中，但也可能是误判。
-
-在常见近似下，Bloom filter 的假阳性率可以写成
-\[
-f \approx \left(1 - e^{-kn/m}\right)^k,
-\]
-其中：
+\section{本章主线}
+本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+\subsection{本章要解决的核心问题}
+本讲继续 data，重点是 filtering、deduplication、mixing 和 synthetic data。数据处理不是清洁步骤，而是模型能力和风险的主要决定因素。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，数据过滤、去重、混合与合成数据 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从机制到资源账本}
+MinHash/Jaccard/LSH 让近重复检测可以扩展到大规模语料；去重既节省 compute，也降低 memorization 和 benchmark contamination。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，数据过滤、去重、混合与合成数据 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从课堂讲解到可复现实验}
+data mixture 和 synthetic data 需要评估闭环。提高某类数据比例可能增强对应能力，也可能损害通用性、安全性或长尾覆盖。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，数据过滤、去重、混合与合成数据 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\section{术语、符号与问题边界}
+本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
+\begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
+\toprule
+\textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
+\midrule
+1 & filtering（过滤） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+2 & deduplication（去重） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+3 & MinHash & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+4 & Jaccard similarity & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+5 & data mixing（数据混合） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+6 & synthetic data（合成数据） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+\bottomrule
+\end{longtable}
+这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
+\subsection{关键词}
+下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
 \begin{itemize}
-\item $n$：插入元素数；
-\item $m$：位数组大小；
-\item $k$：哈希函数数量；
-\item $f$：假阳性概率。
+\item data, filtering, function, hash, quality, e.g., train, scale, first, sources, tasks, github, small, item
 \end{itemize}
-
-课程想让学生看到的是一个典型工程权衡：更多内存 $m$ 会降低误判，更多哈希函数 $k$ 也会降低误判，但会增加计算量。最优 $k$ 大约在
-\[
-k^\star \approx \frac{m}{n}\ln 2
-\]
-附近。像 Dolma 这样的数据集之所以能把 paragraph 级去重推到极低误判率，就是因为它愿意在这一步花额外内存，先把大量显然没见过的样本快速排除掉。
-
-\subsection{课程隐含的数据去重流水线，其实可以写成一段伪代码}
-第 14 讲虽然没有把整套系统写成正式代码，但从讲课顺序看，它实际上给出了一条非常明确的工程流水线：先做轻量级 exact duplicate 过滤，再用 MinHash/LSH 只提名候选近重复，最后才进入更昂贵的比对或人工验收。把这条逻辑写成伪代码，能更清楚地看到课程强调的“先用便宜算法缩小搜索空间，再把贵计算留给少数候选”。
-
-\begin{lstlisting}[caption={根据课程内容重建的近重复检测流水线伪代码},label={lst:data2-dedup-pipeline}]
-def deduplicate_corpus(documents, num_perm, bands, rows_per_band):
-    exact_filter = BloomFilter(expected_items=len(documents))
-    signatures = {}
-    buckets = {}
-    kept = []
-
-    for doc in documents:
-        shingles = extract_ngrams(doc)
-        exact_key = stable_hash(shingles)
-        if exact_key in exact_filter:
-            continue
-        exact_filter.add(exact_key)
-
-        signature = minhash_signature(shingles, num_perm=num_perm)
-        signatures[doc.id] = signature
-
-        is_near_duplicate = False
-        for band_id, band_value in lsh_bands(signature, bands, rows_per_band):
-            bucket_key = (band_id, band_value)
-            for candidate_id in buckets.get(bucket_key, []):
-                candidate_ngrams = load_cached_ngrams(candidate_id)
-                if jaccard(shingles, candidate_ngrams) >= THRESHOLD:
-                    is_near_duplicate = True
-                    break
-            if is_near_duplicate:
-                break
-            buckets.setdefault(bucket_key, []).append(doc.id)
-
-        if not is_near_duplicate:
-            kept.append(doc)
-
-    return kept
+\section{Filtering 的目标与方法}
+现在进入 Filtering 的目标与方法。本节关心的不是名称本身，而是它把 数据过滤、去重、混合与合成数据 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Filtering 的目标与方法}
+视频开场回顾上一讲：互联网由 live services 构成，数据需要 dump/crawl 和 processing。
+过滤把原始 crawl 转成可训练数据，常见维度包括语言、长度、质量、毒性、PII、格式、重复模板和 classifier score。
+过滤器可以是规则、统计模型、分类器或 model-based judge；关键是衡量过滤对最终模型的影响。
+数据部分的核心问题是分布控制。采集、过滤、去重和混合并不会只改变文件大小，它们会改变模型看到的语言、知识、偏差和 benchmark contamination 风险。
+\subsection{Filtering 的目标与方法 的机制}
+视频开场回顾上一讲：互联网由 live services 构成，数据需要 dump/crawl 和 processing。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+过滤把原始 crawl 转成可训练数据，常见维度包括语言、长度、质量、毒性、PII、格式、重复模板和 classifier score。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+过滤器可以是规则、统计模型、分类器或 model-based judge；关键是衡量过滤对最终模型的影响。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Filtering 的目标与方法 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Filtering 的目标与方法 的数据分布视角}
+\[\mathcal{D}_{\text{filtered}}=\{x\in\mathcal{D}: q(x)\ge \tau\}\]
+符号说明：\(q(x)\) 是质量函数，\(\tau\) 是阈值；阈值越高，质量可能升高但覆盖面下降。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{Filtering 的目标与方法 在数据管线中的实现}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+for doc in raw_docs:
+    score = quality_model(doc)
+    if score >= threshold and not unsafe(doc):
+        keep(doc)
 \end{lstlisting}
-
-这段伪代码对应课程里的三层结构。第一层 Bloom filter 负责拦住最容易识别的 exact duplicates；第二层 MinHash 签名把原始 n-gram 集合压缩成可比对的短表示；第三层 LSH banding 只让高相似度文档在同一桶里相遇，从而避免全体两两比较。课程真正要学生掌握的不是某个库函数名字，而是这条复杂度控制链条：\textbf{大部分样本只接受便宜检查，只有少数可疑候选才值得付出更高代价。}
-
-\subsection{LSH 的 band 参数，其实就是在调一条“阈值 S 曲线”}
-MinHash 单独使用时，碰撞概率等于 Jaccard，相似样本只是“平均上更容易撞上”，但边界很软。LSH 的 banding 技巧之所以巧妙，就在于它把这种平滑概率重新塑形成更陡峭的阈值曲线。课程虽然只给了公式，但配图其实更直观：参数一改，整条“被提名概率”曲线就会左右平移、陡峭或变缓。
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}{0.48\textwidth}
-\centering
-\includegraphics[width=\textwidth]{lsh_threshold_curve.png}
-\caption{固定参数时，LSH 会把相似度映射成一条近似阈值曲线。}
-\end{subfigure}
-\begin{subfigure}{0.48\textwidth}
-\centering
-\includegraphics[width=\textwidth]{lsh_bands_curve.png}
-\caption{改变 band 数 $b$ 会直接改变阈值位置和曲线陡峭程度。}
-\end{subfigure}
-\caption{LSH 的本质不是“更复杂的哈希”，而是用 band 参数把候选提名概率压成更像阈值函数的选择器。}
-\end{figure}
-
-这一步的工程意义很大。你不是在问“两个文档是否完全一样”，而是在问“我愿意把多高相似度的样本当成候选近重复”。LSH 的参数调优，本质上就是在把这个容忍度编码进算法。
-
-\subsection{本章小结}
-去重部分真正教会学生的是：大规模数据工程几乎所有算法都要围绕“线性规模可运行”来设计。Bloom filter、MinHash 和 LSH 之所以重要，不是因为它们优雅，而是因为它们让近重复检测在现实语料上可做。
-
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 过强过滤会删除长尾语言、非标准文本或弱势群体表达。
+\item 过滤器自身可能被训练数据偏差污染。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Filtering 的目标与方法 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 Filtering 的目标与方法}
+检验 Filtering 的目标与方法 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 filtering、quality、classifier、threshold、PII 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Filtering 的目标与方法，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(q(x)\textbackslash{}) 是质量函数，\textbackslash{}( au\textbackslash{}) 是阈值；阈值越高，质量可能升高但覆盖面下降。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：过强过滤会删除长尾语言、非标准文本或弱势群体表达；过滤器自身可能被训练数据偏差污染。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 数据过滤、去重、混合与合成数据 的整体结构中。Filtering 的目标与方法 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Filtering 的目标与方法}
+filtering 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
+quality 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
+classifier 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
+threshold 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
+PII 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Filtering 的目标与方法 的小结}
+\begin{itemize}
+\item Filtering 的目标与方法 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{Deduplication 与 MinHash}
+现在进入 Deduplication 与 MinHash。本节关心的不是名称本身，而是它把 数据过滤、去重、混合与合成数据 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Deduplication 与 MinHash}
+去重减少 memorization、污染和无效 token；视频关键词显示本讲重点包括 hash、Jaccard 和 deduplication。
+exact dedup 处理完全重复，near dedup 处理模板相似或轻微改写文本。
+MinHash 用随机哈希近似 Jaccard similarity，使大规模 near-duplicate 检索可行。
+数据部分的核心问题是分布控制。采集、过滤、去重和混合并不会只改变文件大小，它们会改变模型看到的语言、知识、偏差和 benchmark contamination 风险。
+\subsection{Deduplication 与 MinHash 的机制}
+去重减少 memorization、污染和无效 token；视频关键词显示本讲重点包括 hash、Jaccard 和 deduplication。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+exact dedup 处理完全重复，near dedup 处理模板相似或轻微改写文本。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+MinHash 用随机哈希近似 Jaccard similarity，使大规模 near-duplicate 检索可行。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Deduplication 与 MinHash 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Deduplication 与 MinHash 的数据分布视角}
+\[J(A,B)=\frac{|A\cap B|}{|A\cup B|},\qquad \Pr[h_{\min}(A)=h_{\min}(B)]=J(A,B)\]
+符号说明：\(A,B\) 是文档的 shingle 集合；MinHash 碰撞概率等于 Jaccard 相似度。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{Deduplication 与 MinHash 在数据管线中的实现}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+shingles = make_ngrams(document)
+signature = [min_hash(shingles, seed) for seed in seeds]
+bucket_by_bands(signature)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 去重粒度会影响效果：document-level、paragraph-level、line-level 的 tradeoff 不同。
+\item near dedup 太激进会删除合法引用、模板化代码或多语言平行文本。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Deduplication 与 MinHash 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 Deduplication 与 MinHash}
+检验 Deduplication 与 MinHash 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 deduplication、MinHash、Jaccard、shingle、hash 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Deduplication 与 MinHash，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(A,B\textbackslash{}) 是文档的 shingle 集合；MinHash 碰撞概率等于 Jaccard 相似度。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：去重粒度会影响效果：document-level、paragraph-level、line-level 的 tradeoff 不同；near dedup 太激进会删除合法引用、模板化代码或多语言平行文本。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 数据过滤、去重、混合与合成数据 的整体结构中。Deduplication 与 MinHash 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Deduplication 与 MinHash}
+deduplication（去重）降低重复、污染和 memorization 风险。在“Deduplication 与 MinHash”中，这个概念用于解释 数据过滤、去重、混合与合成数据 的一个具体机制。
+MinHash 用哈希签名近似 Jaccard similarity 以做大规模近重复检测。在“Deduplication 与 MinHash”中，这个概念用于解释 数据过滤、去重、混合与合成数据 的一个具体机制。
+Jaccard 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Deduplication 与 MinHash”中改变了哪个变量或约束。
+shingle 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Deduplication 与 MinHash”中改变了哪个变量或约束。
+MinHash 用哈希签名近似 Jaccard similarity 以做大规模近重复检测。在“Deduplication 与 MinHash”中，这个概念用于解释 数据过滤、去重、混合与合成数据 的一个具体机制。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Deduplication 与 MinHash 的小结}
+\begin{itemize}
+\item Deduplication 与 MinHash 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{Mixture 与 synthetic data}
+现在进入 Mixture 与 synthetic data。本节关心的不是名称本身，而是它把 数据过滤、去重、混合与合成数据 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Mixture 与 synthetic data}
+数据混合决定不同来源在训练中的采样概率；它影响能力分布和安全行为。
+合成数据可以补齐稀缺任务、改善 instruction following 或 reasoning，但会引入模型偏差和退化风险。
+课程把 mixing、filtering、dedup 和 synthetic data 放在同一讲，说明数据 pipeline 是一个联合优化问题。
+数据部分的核心问题是分布控制。采集、过滤、去重和混合并不会只改变文件大小，它们会改变模型看到的语言、知识、偏差和 benchmark contamination 风险。
+\subsection{Mixture 与 synthetic data 的机制}
+数据混合决定不同来源在训练中的采样概率；它影响能力分布和安全行为。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+合成数据可以补齐稀缺任务、改善 instruction following 或 reasoning，但会引入模型偏差和退化风险。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+课程把 mixing、filtering、dedup 和 synthetic data 放在同一讲，说明数据 pipeline 是一个联合优化问题。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Mixture 与 synthetic data 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Mixture 与 synthetic data 的数据分布视角}
+\[p(x)=\sum_k w_k p_k(x),\qquad \sum_k w_k=1\]
+符号说明：\(p_k\) 是第 \(k\) 个数据源分布，\(w_k\) 是采样权重；权重改变等价于改变训练目标分布。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{Mixture 与 synthetic data 在数据管线中的实现}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+while training:
+    source = sample_source(weights)
+    batch = sample_batch(source)
+    train_on(batch)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item synthetic data 需要质量控制，否则会放大 teacher model 的错误。
+\item 混合权重最好通过 ablation、scaling 和 downstream eval 联合确定。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Mixture 与 synthetic data 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 Mixture 与 synthetic data}
+检验 Mixture 与 synthetic data 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 mixing、synthetic data、weights、sampling、ablation 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Mixture 与 synthetic data，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(p\_k\textbackslash{}) 是第 \textbackslash{}(k\textbackslash{}) 个数据源分布，\textbackslash{}(w\_k\textbackslash{}) 是采样权重；权重改变等价于改变训练目标分布。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：synthetic data 需要质量控制，否则会放大 teacher model 的错误；混合权重最好通过 ablation、scaling 和 downstream eval 联合确定。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 数据过滤、去重、混合与合成数据 的整体结构中。Mixture 与 synthetic data 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Mixture 与 synthetic data}
+mixing 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Mixture 与 synthetic data”中改变了哪个变量或约束。
+data（数据）是模型能力、偏差和法律风险的主要来源。在“Mixture 与 synthetic data”中，这个概念用于解释 数据过滤、去重、混合与合成数据 的一个具体机制。
+weights 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Mixture 与 synthetic data”中改变了哪个变量或约束。
+sampling 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Mixture 与 synthetic data”中改变了哪个变量或约束。
+ablation 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Mixture 与 synthetic data”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Mixture 与 synthetic data 的小结}
+\begin{itemize}
+\item Mixture 与 synthetic data 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{综合讨论：从局部机制到完整系统}
+本章的主题是 数据过滤、去重、混合与合成数据，但它不应被读成几个相邻知识点的拼接。Filtering 的目标与方法、Deduplication 与 MinHash、Mixture 与 synthetic data 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
+这些对象包括 filtering（过滤）、deduplication（去重）、MinHash、Jaccard similarity、data mixing（数据混合）、synthetic data（合成数据）。读者可以把它们看成一组接口：有的接口连接文本和 token，有的连接模型结构和张量计算，有的连接数据样本和训练目标，有的连接离线评估和在线服务。接口一旦改变，后面的成本、错误类型和优化空间也会随之改变。
+\subsection{Filtering 的目标与方法 在系统中的位置}
+Filtering 的目标与方法 首先提供一个局部解释：视频开场回顾上一讲：互联网由 live services 构成，数据需要 dump/crawl 和 processing。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Filtering 的目标与方法 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Filtering 的目标与方法 不能脱离边界条件理解。一个关键 caveat 是：过强过滤会删除长尾语言、非标准文本或弱势群体表达。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{Deduplication 与 MinHash 在系统中的位置}
+Deduplication 与 MinHash 首先提供一个局部解释：去重减少 memorization、污染和无效 token；视频关键词显示本讲重点包括 hash、Jaccard 和 deduplication。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Deduplication 与 MinHash 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Deduplication 与 MinHash 不能脱离边界条件理解。一个关键 caveat 是：去重粒度会影响效果：document-level、paragraph-level、line-level 的 tradeoff 不同。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{Mixture 与 synthetic data 在系统中的位置}
+Mixture 与 synthetic data 首先提供一个局部解释：数据混合决定不同来源在训练中的采样概率；它影响能力分布和安全行为。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Mixture 与 synthetic data 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Mixture 与 synthetic data 不能脱离边界条件理解。一个关键 caveat 是：synthetic data 需要质量控制，否则会放大 teacher model 的错误。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{把本章知识用于读论文和复现实验}
+读相关论文时，可以把本章变成一个检查表。第一，论文是否清楚定义了输入规模、模型规模、数据来源和评估协议；第二，论文声称的改进落在哪个变量上；第三，作者是否报告了会让结论失效的设置；第四，实验是否能分离模型结构、数据质量、优化设置和系统实现的影响。
+复现实验时，也应避免直接追求大规模。先用最小程序复现一个公式、一个伪代码分支或一个 profile 现象，再扩大输入规模。这样做的原因很简单：如果小规模程序无法解释中间量，大规模训练只会把错误隐藏在日志和随机波动里。
+把这些检查合在一起，本章给出的不是一个固定答案，而是一种阅读 CS336 的方法：每个模型机制都要落到变量，每个变量都要落到测量，每个测量都要说明协议，每个协议都要承认边界。
+因此，本章中的任何一句结论都可以被改写成一个可引用的完整句式：在给定数据、模型、硬件和评估协议下，某个机制改变了某个变量，并通过某个观测指标表现出来。这样的句子比单独背诵术语更长，但它包含了自学、复现和引用时真正需要的信息。
+把本章用于自学时，可以按三遍阅读。第一遍只追踪对象和定义，确认每个术语到底指向文本、token、张量、样本、请求还是评估记录。第二遍追踪公式和伪代码，确认每一步改变了哪些状态。第三遍追踪实验和 caveat，确认哪些结论只在特定规模、数据或硬件条件下成立。
+把本章用于复习时，则应反过来操作：先从一个失败案例或异常指标出发，再回到相应机制。loss 曲线异常可能指向数据、优化或模型容量；吞吐异常可能指向 kernel、通信或调度；benchmark 异常可能指向 contamination、prompt protocol 或采样设置。能够从异常反推机制，是掌握本章的实用标准。
+\section{例题：把概念变成可计算检查}
+\subsection{MinHash 近重复检测}
+把每篇文档表示为 shingle 集合，用 MinHash 估计 Jaccard similarity。
+\begin{itemize}
+\item 若两文档 shingle 集合相似，MinHash signature 更可能碰撞。
+\item LSH banding 把候选对数量降到可处理范围。
+\item 最后仍需阈值和人工/规则策略决定删哪一份。
+\end{itemize}
+\textbf{结论。} 去重是统计近似、系统扩展和语料政策的组合问题。
+这个例题的目的不是替代完整工程实现，而是给出一种最小推理形式：把问题转成变量，写出近似公式或伪代码，再说明近似何时失效。
+\section{实验设计：从小例子到可复现结论}
+学习 数据过滤、去重、混合与合成数据 不能停在概念层。一个教材化结论至少需要四件事：可构造的输入、可观测的中间量、可比较的指标，以及清楚的失败条件。下面的实验设计不是要求训练大模型，而是要求读者用小规模程序复现本章机制。
+\subsection{最小输入}
+先构造只触发本章核心机制的小输入。例如 tokenizer 章节可以用几个包含 rare words 和 Unicode 字符的字符串；GPU 章节可以用一个 elementwise kernel 和一个 GEMM；data 章节可以用十几篇近重复文档。小输入的价值在于它让错误可见。
+\subsection{资源账本}
+对同一输入写下 FLOPs、bytes moved、显存峰值、通信量或样本数量的估算。估算不需要一开始就精确，但必须说明单位和近似假设。随后用 profiler、benchmark、validation loss 或人工检查去验证估算是否同量级。
+\subsection{单变量消融}
+一次只改变一个因素，例如 vocabulary size、head 数、batch size、filter threshold、reward scale、decoding temperature 或 GPU 数量。若多个变量同时变化，实验只能说明系统变了，不能说明机制是什么。
+\subsection{失败条件}
+最后要刻意触发失败：极端 context length、错误 dtype、过小 batch、污染 benchmark、低质量数据或不可靠 verifier。失败条件常常比成功曲线更能说明一个方法的边界。
+\subsection{记录与报告}
+实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
+常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\section{课程资料与回看路径}
+教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
+\subsection{视频回看路径}
+\begin{longtable}{p{0.20\linewidth}p{0.46\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{时间} & \textbf{关键词} & \textbf{复习任务}\\
+\midrule
+00:00:05-00:07:15 & data, there's, pdfs, then, text, html, data. & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:20:31-00:26:58 & data, there's, training, good, train, probably, then & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:41:19-00:49:49 & probability, then, band, it's, threshold, data, similarity & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:56:52-01:03:27 & then, mixture, train, data, very, mixing, training & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+01:17:25-01:24:24 & then, data, swe-zero, there's, agent, generate, tasks & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+\bottomrule
+\end{longtable}
+这些时间段用于定位视频中的讲解顺序。严肃引用时，应回到视频片段确认讲者表述、板书或幻灯片内容。
+回看视频时，不必逐字抄录字幕。更有效的方法是把每个时间段判定为定义、例子、推导、代码解释或 caveat，再把它放回本章对应小节。
+\subsection{课程资料阅读路径}
+\begin{longtable}{p{0.14\linewidth}p{0.48\linewidth}p{0.30\linewidth}}
+\toprule
+\textbf{资料组} & \textbf{标题/页块} & \textbf{关键词}\\
+\midrule
+official\_01 & Lecture 14: Data II & data, filtering, service, github, crawl, deduplication, mixing\\
+official\_03 & - Result: produced 14.7B tokens, used to train 1.4B models that do better than models ... & data, train, samples, wikipedia, quality, filtering, duplicates\\
+official\_05 & Let's now look at approximate set membership. & first, jaccard, hash, similarity, items, item, threshold\\
+official\_08 & - Questions come from 27 human and synthetic sources (e.g., StackExchange, ... & tasks, github, better, agent, sources, execution, trajectories\\
+official\_10 & Simulated epoching & function, simulated, epoching, openthoughts, swe-smith, swe-zero, swe-rebench\\
+\bottomrule
+\end{longtable}
+课程资料通常给出更稳定的标题、公式、图或代码结构；视频则补充动机和口头解释。两者合起来构成本章的事实边界。
+阅读资料时，可以把每个资料组拆成三个对象：一个定义，一个公式或伪代码动作，一个边界条件。这样比逐字翻译页面或脚本更容易形成可用知识。
+\section{实践说明、历史位置与风险}
+数据过滤、去重、混合与合成数据 在 CS336 的课程结构中连接基础机制和规模化问题。基础机制解释方法为什么成立；规模化问题检验它在更大模型、更长上下文、更复杂数据或真实 serving workload 下是否仍成立。
+历史位置不等于模型年表。更重要的是识别问题如何迁移：早期方法解决小规模建模问题，现代方法常常解决同一问题在大规模数据、GPU 集群、长上下文或人类偏好约束下的新形态。
+\begin{itemize}
+\item 资料版本限制（version risk）：课程页、公开视频和配套资料可能在学期中更新；引用时应注明访问日期或资料版本。
+\item 测量口径限制（measurement risk）：FLOPs、tokens/s、benchmark score、reward 等数字只有在协议完整时可比较。
+\item 规模外推限制（scaling risk）：小模型或小 batch 的机制不必然外推到 frontier-scale。
+\item 数据分布限制（data risk）：数据来源、过滤和去重策略会改变模型行为，也会改变 evaluation contamination 风险。
+\end{itemize}
+\section{复习要点}
+下面的问题把本章内容压缩为可反复检查的条目。每个条目都应能回到前文的解释、公式、伪代码或例题。
+\begin{longtable}{p{0.16\linewidth}p{0.38\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{条目} & \textbf{对象} & \textbf{检查动作}\\
+\midrule
+条目 1 & filtering（过滤） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 2 & deduplication（去重） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 3 & MinHash & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 4 & Jaccard similarity & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 5 & data mixing（数据混合） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 6 & synthetic data（合成数据） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+\bottomrule
+\end{longtable}
+\subsection{综合自测}
+\begin{itemize}
+\item 我能否不用课程原句，独立解释本章中心问题？
+\item 我能否把本章至少一个公式改写成可运行的估算函数？
+\item 我能否指出一个看似改进但实际转移成本的方法？
+\item 我能否回到视频和课程资料，找到支持本章关键论断的位置？
+\item 我能否设计一个最小 ablation，验证本章一个 caveat？
+\end{itemize}
 \section{总结与延伸}
-第 14 讲把数据工程的机械细节真正摊开了。
-
-第一，\textbf{很多数据问题都能抽象成“从 raw pool 中选出更像 target 的子集”。} 这个统一视角把质量过滤、语言识别和主题筛选连接了起来。
-
-第二，\textbf{KenLM/CCNet 代表了高速粗筛。} 简单语言模型虽然不够精细，但在超大语料上极具性价比。
-
-第三，\textbf{fastText 和 DSIR 把过滤推进成学习式选择。} 一个偏分类，一个偏分布重加权，都是现代数据 pipeline 的常用武器。
-
-第四，\textbf{同样的 machinery 可以服务不同目标。} 语言、质量、毒性、数学文本等都可以视作 target-definition 问题。
-
-第五，\textbf{去重是算力效率问题，也是记忆化风险问题。} exact hash、Bloom filter、MinHash 和 LSH 一起构成了现实可扩展的去重工具箱。
-
-\begin{warningbox}{我对第 14 讲的压缩提醒}
-如果只记住“要做过滤、要做去重”，那还远远不够。真正要学到的是：\textbf{数据工程的核心挑战不是提出一个很聪明的定义，而是用足够便宜、足够可扩展的算法把这个定义在海量语料上真正跑起来。}
-\end{warningbox}
-
-到这里，CS336 的数据章节形成了闭环：第 13 讲讲全景和来源，第 14 讲讲算法和机制。接下来进入对齐章节时，你会发现后训练数据集的构建，同样遵守这里建立的“目标定义、过滤、去重和高价值保留”逻辑。
-
-%% --- 正文内容结束 --- %%
-
+\subsection{本章小结}
+\begin{itemize}
+\item 数据过滤、去重、混合与合成数据 的核心不是记忆术语，而是理解对象、变量和机制之间的关系。
+\item 视频给出讲解顺序，课程资料提供可核对的公式、图、代码或页面结构。
+\item 复习时应把每个术语连接到至少一个变量、一个实现动作和一个失败模式。
+\end{itemize}
+\subsection{延伸解释}
+本章中的延伸解释用于连接课程材料中的概念，例如说明公式里的 proxy、解释系统 tradeoff，或把多个材料片段串成一个完整推理链。若需要严肃引用，应回到课程视频和配套资料核对原始表述。
+\subsection{练习}
+\begin{itemize}
+\item 定义题：用中英双语解释本章任意五个重要术语，并说明它们属于 compute、memory、data、optimization、evaluation 还是 deployment 账本。
+\item 推导题：选择本章一个公式，逐个解释符号、单位和近似假设，并说明哪个变量最难在真实系统中测量。
+\item 实现题：把本章伪代码改写成一个最小 Python sanity check，不要求训练大模型，但要输出可检查的中间量。
+\item 资料题：从“课程资料与回看路径”中选择一个视频时间段，回到原始视频核对讲者例子，并记录是否存在字幕误差。
+\item 评估题：为本章方法设计一个 ablation 或 benchmark，说明控制变量、数据版本、指标和 failure criteria。
+\item 边界题：说明本章一个结论在更长 context、更大 batch、更多 GPU 或更复杂数据分布下可能如何失效。
+\item 综合题：把本章内容和前一章或后一章连接起来，写出一个端到端训练/推理 pipeline 中的依赖关系。
+\item 批判题：指出一个容易被营销材料夸大的说法，并用本章的资源账本或评估协议反驳它。
+\end{itemize}
 \end{document}

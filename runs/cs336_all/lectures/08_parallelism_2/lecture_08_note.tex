@@ -1,193 +1,380 @@
 \documentclass[a4paper]{article}
 \usepackage[fontset=fandol]{ctex}
-\usepackage{amsmath, amssymb}
+\usepackage[margin=1.65cm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage[margin=2.4cm]{geometry}
-\usepackage[most]{tcolorbox}
-\usepackage{etoolbox}
 \usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{subcaption}
-\usepackage{float}
+\usepackage{longtable,booktabs}
+\usepackage{xcolor}
+\usepackage{enumitem}
 \usepackage{listings}
-
-\lstset{
-  basicstyle=\ttfamily\small,
-  breaklines=true,
-  columns=fullflexible,
-  frame=single
-}
-
-\newtcolorbox{knowledgebox}[1]{enhanced,colback=blue!5!white,colframe=blue!75!black,colbacktitle=blue!75!black,coltitle=white,fonttitle=\bfseries,title=#1,attach boxed title to top left={yshift=-2mm,xshift=2mm},boxrule=1pt,sharp corners}
-\newtcolorbox{importantbox}[1]{enhanced,colback=yellow!10!white,colframe=yellow!80!black,colbacktitle=yellow!80!black,coltitle=black,fonttitle=\bfseries,title=#1,sharp corners}
-\newtcolorbox{warningbox}[1]{enhanced,colback=red!5!white,colframe=red!75!black,colbacktitle=red!75!black,coltitle=white,fonttitle=\bfseries,title=#1,sharp corners}
-
-\newcommand{\notetitle}{CS336 第 8 讲：跨 GPU 通信与分布式训练原语}
-\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 8 讲视频、字幕与官方课程材料重写}
-\newcommand{\notedate}{2026-04-07}
-\newcommand{\videochannel}{Stanford Online}
-\newcommand{\videopublishdate}{2025年05月15日}
-\newcommand{\videoduration}{1:15:10}
-\newcommand{\videourl}{https://www.youtube.com/watch?v=LHpr5ytssLo}
-\newcommand{\videocoverpath}{cover.jpg}
-
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,keepspaces=true}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{2em}
+\sloppy
+\title{第 08 讲：现代训练并行栈}
+\author{CS336 Spring 2026 public videos and official course materials}
+\date{}
 \begin{document}
-\begin{titlepage}
-\centering
-{\Large 课程笔记\par}
-\vspace{1.2cm}
-{\huge\bfseries \notetitle\par}
-\vspace{0.8cm}
-{\large \noteauthors\par}
-\vspace{0.3cm}
-{\large \notedate\par}
-\vspace{1.2cm}
-\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
-\vfill
-\begin{tcolorbox}[width=0.9\textwidth,colback=black!2!white,colframe=black!60,sharp corners]
-\textbf{视频作者/频道}：\videochannel\par
-\textbf{发布日期}：\videopublishdate\par
-\textbf{视频时长}：\videoduration\par
-\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
-\end{tcolorbox}
-\end{titlepage}
+\maketitle
 \tableofcontents
 \newpage
-
-\section{从单 GPU 到多 GPU：这一讲想解决什么}
-第 7 讲已经讲清了分布式训练的几个大方向：data parallel、ZeRO、pipeline、tensor parallel。第 8 讲继续往前推进，但角度更“系统工程”一些。它不再只问“有哪些策略”，而是问：\textbf{跨 GPU / 跨节点通信的基本原语是什么，硬件拓扑会怎样限制这些原语，而这些原语又如何在实际训练代码里落地？}
-
-课程开场就把统一主题说破：无论是在单 GPU 内部还是多 GPU 之间，真正难的都不是“算”，而是“数据离算子太远”。上周我们通过 fusion / tiling 减少显存访问；这周则是通过 replication / sharding / collective communication 去减少跨 GPU 与跨节点的数据搬运。
-
-\begin{importantbox}{第 8 讲的压缩目标}
-把“分布式训练”从几类概念性并行策略，进一步压缩成通信原语、硬件拓扑和真实代码结构三层之间的映射关系。
-\end{importantbox}
-
-\section{Collective operations：分布式程序的语法}
-\subsection{为什么课程把 collective operation 放在最前面}
-课程明确指出，collective operations 是现代分布式编程的概念基元。你可以把它们理解成“由一组 rank 共同参与、并且通信模式事先就被抽象好的大动作”。比起手工管理很多点对点消息，它们更适合大规模训练。
-
-第 8 讲逐个回顾了 broadcast、scatter、gather、reduce、all-gather、reduce-scatter、all-reduce。这些名字如果只背定义其实意义不大；真正重要的是理解它们在训练里分别扮演什么角色：
+\section{本章导读}
+本章讨论 \textbf{现代训练并行栈}。CS336 的第一层目标不是把现成大模型当作黑箱使用，而是把 language model 从输入文本、训练目标、模型结构、数据、系统和评估这些部件重新拆开。只有拆开之后，读者才能判断一个设计选择究竟改变了什么。
+设想你要训练一个模型，其参数、optimizer state 和 activation 都超过单机容量。现代训练 recipe 会组合 FSDP/ZeRO、tensor parallel、pipeline parallel、expert parallel 和 checkpointing；本章把它们放入同一张显存-通信账本。
+本章对应 CS336 Spring 2026 第 08 个公开视频，并结合课程页提供的可解析资料。视频和课程页给出事实边界；正文把这些材料改写为可自学的教材章节。
+阅读本章时，先理解问题为什么存在，再看定义、公式和实现形态，随后通过例题和练习检查自己是否能独立复现这条 reasoning chain。
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.58\linewidth]{source_anchor.jpg}
+\caption{第 08 讲的课程图像锚点。}
+\end{figure}
+\subsection{本章知识路线}
 \begin{itemize}
-\item 广播参数或配置。
-\item 收集或拆分分片后的 tensor。
-\item 归约不同 rank 上的梯度或统计量。
-\item 在 all-reduce 与 reduce-scatter + all-gather 的等价关系下做更省带宽的实现。
+\item 本章首先说明 现代训练并行栈 为什么是 language modeling pipeline 中不可跳过的一环。
+\item 其次定义本章反复使用的术语，并说明这些术语对应的计算对象或系统对象。
+\item 随后用公式和伪代码表达主要机制，让概念能够落到可计算的变量上。
+\item 最后给出例题、风险讨论和练习，便于读者检查自己是否真正掌握了机制。
 \end{itemize}
-
-\begin{figure}[H]
+\subsection{结构图}
+下面的图用于帮助读者定位本章的核心结构。先看概念之间的依赖，再回到正文中的公式、伪代码和例题。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.86\textwidth]{frames/collective_slide.png}
-\caption{课程用几种经典 collective primitive 先建立分布式训练的“语法层”。}
+\includegraphics[width=0.72\linewidth]{pdf_pages/page-02.jpg}
+\caption{官方材料图页：现代训练并行栈 的课程页/PDF/script 图像锚点。}
 \end{figure}
-
-\subsection{all-reduce 为什么经常被改写成 reduce-scatter + all-gather}
-这一点在第 7 讲已经提过，但第 8 讲把它 concretize 成 code-level intuition。all-reduce 看似是“每个人都拿到全局归约结果”，但在带宽受限场景里，拆成 reduce-scatter 再 all-gather 往往更接近底层最优。原因在于：你先只拿自己负责的那段归约结果，再在必要时把各段聚回来，能减少中间步骤里的冗余传输。
-
-\begin{knowledgebox}{为什么这条等价关系值得反复记忆}
-因为 ZeRO、FSDP 以及很多自定义分布式训练实现，都会不断利用“先分片归约、后按需聚合”这套逻辑。它不是实现细节，而是现代训练系统的中心结构之一。
-\end{knowledgebox}
-
-\subsection{本章小结}
-collective primitives 就像分布式训练的指令集。理解它们之后，后面的各种并行策略不再是黑箱框架名称，而是具体通信组合。
-
-\section{硬件拓扑决定了哪些通信模式是现实可行的}
-\subsection{PCIe、NVLink、NVSwitch 与“层级化带宽”}
-课程这一讲特别强调，分布式训练必须服从硬件拓扑。单节点内 GPU 之间可能靠 NVLink 直接互连，多节点之间则可能走更慢的网络；不同互连层级的带宽和时延差异，会直接改变什么样的并行方案合理。
-
-第 8 讲和第 5 讲其实在更高层上形成了呼应：单 GPU 里有 L1 / HBM / global memory 的 hierarchy；多 GPU 场景则继续出现 node 内、node 间、交换结构和 NIC 的 hierarchy。于是“靠近算子更快、跨层移动更贵”这条原则，从单卡一直延续到了整个机群。
-
-\begin{warningbox}{关于分布式训练最危险的简化}
-不要把“多 GPU”理解成统一资源池。不同 GPU 之间的带宽差异巨大；同样一个 collective，在 node 内和 node 间的代价可能完全不同。
-\end{warningbox}
-
-\subsection{为什么 NCCL 会成为实际训练里的关键组件}
-课程专门提到 NCCL，不是为了介绍一个库，而是为了说明：collective operation 的高层接口最终都要落到低层拓扑感知与 packet scheduling 上。NCCL 会探测 GPU 拓扑、选择路径、组织 CUDA kernel 去发收数据。也就是说，\textbf{分布式训练从来不只是 Python 代码逻辑，而是通信库和底层硬件共同决定的系统行为。}
-
-\subsection{PyTorch distributed 的意义是什么}
-PyTorch 的 `torch.distributed` 在这里扮演的是“把 collectives 包成可用编程接口”的角色。课程故意不一上来就讲更高级框架，而是从更基础的分布式接口讲起，因为它想让学生先看懂底层动作，再理解更高级封装究竟替你管理了什么复杂度。
-
-\subsection{本章小结}
-第 8 讲前半部分真正建立的是一种层级化通信思维：collective 并不是抽象数学操作，它们的成本要通过特定硬件互连才能兑现，而 NCCL / `torch.distributed` 则把这一层复杂性部分封装起来。
-
-\section{把并行策略 concretize 成代码：data / tensor / pipeline 三种分片}
-\subsection{课程为什么选择用深 MLP 演示分布式训练}
-课程明确说，它用 deep MLP 而不是完整 Transformer 来演示不同并行策略，是因为 MLP 在很多语言模型里本来就是主要计算瓶颈之一，而且结构更容易看清楚。这种选择和前几讲的风格一致：先抓最能暴露系统本质的骨架，再逐步扩展到更复杂模型。
-
-\subsection{Data parallel：切 batch，参数保持一致}
-在代码层，data parallel 的含义很直接：每个 rank 拿数据的一部分，各自做前向反向，然后通过梯度 all-reduce 保持参数一致。课程强调的关键点是：loss 在本地不同、梯度同步后才一致、参数因此维持一致。这一套逻辑把“同一模型副本 + 不同数据切片”写得很清楚。
-
-\begin{figure}[H]
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.58\textwidth]{../../materials/spring2025-lectures/images/data-parallelism.png}
-\caption{data parallel 的直觉：切的是 batch，不是模型本体。}
+\includegraphics[width=0.72\linewidth]{pdf_pages/page-01.jpg}
+\caption{官方材料图页：现代训练并行栈 的课程页/PDF/script 图像锚点。}
 \end{figure}
-
-\begin{lstlisting}[language=Python,caption={课程里 data parallel 的代码骨架：本地反向后做 all-reduce}]
-loss = model(local_batch).mean()
-loss.backward()
-for param in model.parameters():
-    dist.all_reduce(param.grad, op=dist.ReduceOp.SUM)
-    param.grad /= world_size
-optimizer.step()
+\section{本章主线}
+本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+\subsection{本章要解决的核心问题}
+本讲把并行机制提升到现代大模型训练 recipe。真实训练通常组合 ZeRO/FSDP、tensor parallel、pipeline parallel、expert parallel 和 activation checkpointing。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，现代训练并行栈 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从机制到资源账本}
+并行策略的本质是在显存、FLOPs 和通信之间换资源。sharding 降低每卡状态，但增加 all-gather/reduce-scatter；checkpointing 降低 activation memory，但增加 recompute。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，现代训练并行栈 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从课堂讲解到可复现实验}
+训练系统还要考虑拓扑、rank placement、failure recovery、checkpoint format 和不同 parallel dimensions 的组合，而不是只写一个 all-reduce。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，现代训练并行栈 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\section{术语、符号与问题边界}
+本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
+\begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
+\toprule
+\textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
+\midrule
+1 & FSDP（fully sharded data parallel） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+2 & ZeRO & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+3 & expert parallelism（专家并行） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+4 & sequence parallelism（序列并行） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+5 & activation checkpointing（激活检查点） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+\bottomrule
+\end{longtable}
+这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
+\subsection{关键词}
+下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
+\begin{itemize}
+\item parallel, parallelism, zero, memory, stage, tensor, pipeline, communication, gpus, params, activation, param, scaling, data
+\end{itemize}
+\section{从机制到现代 recipe}
+现在进入 从机制到现代 recipe。本节关心的不是名称本身，而是它把 现代训练并行栈 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 从机制到现代 recipe}
+视频延续 parallelism 主题，但更强调现代大模型训练中的细节、trivia 和复杂性。
+训练大模型通常不是选择一种并行，而是组合数据并行、FSDP/ZeRO、tensor parallel、pipeline parallel 和 expert parallel。
+并行 recipe 的正确性包括数值等价、随机性控制、checkpoint 恢复和故障处理。
+从机制到现代 recipe 的作用是把 现代训练并行栈 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{从机制到现代 recipe 的机制}
+视频延续 parallelism 主题，但更强调现代大模型训练中的细节、trivia 和复杂性。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+训练大模型通常不是选择一种并行，而是组合数据并行、FSDP/ZeRO、tensor parallel、pipeline parallel 和 expert parallel。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+并行 recipe 的正确性包括数值等价、随机性控制、checkpoint 恢复和故障处理。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，从机制到现代 recipe 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{从机制到现代 recipe 的数学表达}
+\[\text{memory per GPU}\approx \frac{\text{parameters}+\text{gradients}+\text{optimizer states}}{\text{shard count}}+\text{activations}\]
+符号说明：shard count 表示状态被切到多少设备；activations 是否能切分取决于并行策略和 checkpointing。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 从机制到现代 recipe 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+for layer in model:
+    all_gather_shard(layer.params)
+    y = layer(x)
+    free_full_params(layer)
+reduce_scatter_gradients()
 \end{lstlisting}
-
-这段代码不是在炫技，而是在把课程口头解释 concretize 成最小实现骨架。它清楚表达了 data parallel 的三层逻辑：每个 rank 先看自己的 batch，梯度通过 collective 同步成全局平均，然后各副本再执行一致的参数更新。你一旦能把课程讲解压缩成这样一段代码，就更容易看懂 DDP、FSDP 或 ZeRO 只是在哪些位置继续做了更细的分片与调度。
-
-\subsection{Tensor parallel：切层内宽度，激活要频繁协同}
-tensor parallel 的关键不同，在于每个 rank 拿每层的一部分权重矩阵。你切开的是层内宽度，因此需要对 activations 做更细粒度的通信和同步。它的好处是没有 pipeline 的 bubble，坏处则是对高带宽互连依赖更强。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.58\textwidth]{../../materials/spring2025-lectures/images/tensor-parallelism.png}
-\caption{tensor parallel 切的是层内矩阵宽度，因此通信粒度更细，也更依赖快链路。}
-\end{figure}
-
-\subsection{Pipeline parallel：切层段，activation 顺着 stage 往前流}
-pipeline parallel 的实现图景最容易想象：模型被切成若干连续 stage，每个 stage 在不同 rank 上。数据和 activation 在这些 stage 之间流动。课程也专门提醒：这里没有详细处理 overlapped communication / computation 以及复杂 pipeline schedule，但基础直觉已经足够清楚。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.58\textwidth]{../../materials/spring2025-lectures/images/pipeline-parallelism.png}
-\caption{pipeline parallel 按深度切模型，本质是让 activation 在 stage 间流动。}
-\end{figure}
-
-\subsection{为什么真实系统里通常不止一种分片方式}
-这一讲的一个关键结论是：这些策略不是互斥的。你完全可能在同一系统里同时使用 data parallel、tensor parallel 和 pipeline parallel。原因很简单：它们分别切 batch、宽度和深度，解决的不是同一个约束。
-
-\begin{importantbox}{关于分布式训练的一个统一理解}
-切 batch、切宽度、切深度，本质上是在不同维度上重新分配“谁持有哪些参数、谁算哪些激活、谁承担哪些通信”。只要这样理解，很多具体框架实现都会变得更好读。
-\end{importantbox}
-
-\subsection{本章小结}
-第 8 讲这部分把并行策略从抽象设计变成了代码对象。data parallel、tensor parallel 和 pipeline parallel 的差别，本质上就是分片对象不同、通信对象不同、瓶颈位置也不同。
-
-\section{硬件层级不会消失，并行只是在更高层重演上一讲的故事}
-\subsection{为什么课程最后说“we will always want bigger models”}
-第 8 讲最后一句特别值得记住：硬件越来越快，但我们总会想训练更大的模型。因此，这种层级结构不会消失。换句话说，即便单卡更强、互连更快，工程师最终也还是会继续把问题推到更大的模型、更长序列、更高吞吐场景里，于是层级化 memory / communication 问题会一次次重演。
-
-\begin{knowledgebox}{第 8 讲和第 5 讲之间最重要的呼应}
-第 5 讲讲的是单 GPU 上的 memory hierarchy 与数据搬运瓶颈；第 8 讲讲的是多 GPU / 多节点上的 communication hierarchy。它们其实是同一个故事在两个尺度上的重复。
-\end{knowledgebox}
-
-\subsection{本章小结}
-这一讲最值得带走的不是某一条 API，而是一个结构性理解：\textbf{并行训练从来不是把更多卡拼起来这么简单，而是把上一讲在单卡里发生的“数据远离计算”问题，重新放大到跨卡和跨节点层级。}
-
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item FSDP 减显存但增加 all-gather/reduce-scatter 通信。
+\item checkpointing 降 activation memory，但增加 recomputation FLOPs。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+从机制到现代 recipe 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 从机制到现代 recipe}
+检验 从机制到现代 recipe 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 FSDP、ZeRO、shard、checkpointing、all-gather 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 从机制到现代 recipe，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：shard count 表示状态被切到多少设备；activations 是否能切分取决于并行策略和 checkpointing。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：FSDP 减显存但增加 all-gather/reduce-scatter 通信；checkpointing 降 activation memory，但增加 recomputation FLOPs。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 现代训练并行栈 的整体结构中。从机制到现代 recipe 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：从机制到现代 recipe}
+FSDP 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从机制到现代 recipe”中改变了哪个变量或约束。
+ZeRO 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从机制到现代 recipe”中改变了哪个变量或约束。
+shard 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从机制到现代 recipe”中改变了哪个变量或约束。
+checkpointing 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从机制到现代 recipe”中改变了哪个变量或约束。
+all-gather 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从机制到现代 recipe”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{从机制到现代 recipe 的小结}
+\begin{itemize}
+\item 从机制到现代 recipe 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{通信拓扑与 collectives}
+现在进入 通信拓扑与 collectives。本节关心的不是名称本身，而是它把 现代训练并行栈 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 通信拓扑与 collectives}
+现代 GPU 集群有 node 内 NVLink/NVSwitch 和 node 间 InfiniBand/RDMA 等不同带宽层级。
+collective 选择和 rank placement 会直接影响扩展效率。
+ring、tree、hierarchical all-reduce/all-gather 的选择取决于消息大小和拓扑。
+通信拓扑与 collectives 的作用是把 现代训练并行栈 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{通信拓扑与 collectives 的机制}
+现代 GPU 集群有 node 内 NVLink/NVSwitch 和 node 间 InfiniBand/RDMA 等不同带宽层级。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+collective 选择和 rank placement 会直接影响扩展效率。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+ring、tree、hierarchical all-reduce/all-gather 的选择取决于消息大小和拓扑。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，通信拓扑与 collectives 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{通信拓扑与 collectives 的数学表达}
+\[T_{\text{comm}}\approx \alpha\cdot \#\text{messages}+\beta\cdot \#\text{bytes}\]
+符号说明：\(\alpha\) 是 latency 项，\(\beta\) 是带宽倒数；小消息受 latency，大消息受 bandwidth。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 通信拓扑与 collectives 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+place_tensor_parallel_ranks_within_node()
+place_data_parallel_ranks_across_nodes()
+benchmark_collectives()
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 拓扑错误会让理论上合理的并行策略实际很慢。
+\item 通信 overlap 需要 runtime 和 kernel schedule 配合，不能只靠公式。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+通信拓扑与 collectives 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 通信拓扑与 collectives}
+检验 通信拓扑与 collectives 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 NVLink、InfiniBand、collective、latency、bandwidth 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 通信拓扑与 collectives，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}( lpha\textbackslash{}) 是 latency 项，\textbackslash{}(\textbackslash{}beta\textbackslash{}) 是带宽倒数；小消息受 latency，大消息受 bandwidth。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：拓扑错误会让理论上合理的并行策略实际很慢；通信 overlap 需要 runtime 和 kernel schedule 配合，不能只靠公式。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 现代训练并行栈 的整体结构中。通信拓扑与 collectives 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：通信拓扑与 collectives}
+NVLink 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“通信拓扑与 collectives”中改变了哪个变量或约束。
+InfiniBand 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“通信拓扑与 collectives”中改变了哪个变量或约束。
+collective 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“通信拓扑与 collectives”中改变了哪个变量或约束。
+latency 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“通信拓扑与 collectives”中改变了哪个变量或约束。
+bandwidth 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“通信拓扑与 collectives”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{通信拓扑与 collectives 的小结}
+\begin{itemize}
+\item 通信拓扑与 collectives 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{MoE 与长上下文下的并行特殊问题}
+现在进入 MoE 与长上下文下的并行特殊问题。本节关心的不是名称本身，而是它把 现代训练并行栈 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 MoE 与长上下文下的并行特殊问题}
+MoE 引入 expert parallelism：token dispatch 和 combine 需要跨设备通信。
+长上下文引入 sequence/context parallelism：activation 与 attention 的序列维切分变得重要。
+本讲把并行系统看成 constraints satisfaction：模型结构、batch、sequence、hardware topology 和 failure tolerance 必须同时满足。
+MoE 与长上下文下的并行特殊问题 的作用是把 现代训练并行栈 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{MoE 与长上下文下的并行特殊问题 的机制}
+MoE 引入 expert parallelism：token dispatch 和 combine 需要跨设备通信。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+长上下文引入 sequence/context parallelism：activation 与 attention 的序列维切分变得重要。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+本讲把并行系统看成 constraints satisfaction：模型结构、batch、sequence、hardware topology 和 failure tolerance 必须同时满足。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，MoE 与长上下文下的并行特殊问题 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{MoE 与长上下文下的并行特殊问题 的形式化表示}
+\[\text{active FLOPs/token}\ll \text{total parameters}\quad\text{in sparse MoE}\]
+符号说明：MoE 的 total parameters 很大，但每个 token 只走少数 experts，因此 active compute 与总参数量脱钩。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 MoE 与长上下文下的并行特殊问题 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+tokens_by_expert = route(tokens)
+all_to_all(tokens_by_expert)
+run_local_experts()
+all_to_all(combine_outputs)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item all-to-all 是 MoE 的核心瓶颈之一。
+\item 负载均衡 loss 解决的是吞吐问题，同时可能影响表示学习。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+MoE 与长上下文下的并行特殊问题 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 MoE 与长上下文下的并行特殊问题}
+检验 MoE 与长上下文下的并行特殊问题 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 MoE、expert parallel、all-to-all、long context、sequence parallel 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 MoE 与长上下文下的并行特殊问题，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：MoE 的 total parameters 很大，但每个 token 只走少数 experts，因此 active compute 与总参数量脱钩。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：all-to-all 是 MoE 的核心瓶颈之一；负载均衡 loss 解决的是吞吐问题，同时可能影响表示学习。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 现代训练并行栈 的整体结构中。MoE 与长上下文下的并行特殊问题 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：MoE 与长上下文下的并行特殊问题}
+Mixture of Experts (MoE) 用稀疏激活扩展参数容量。在“MoE 与长上下文下的并行特殊问题”中，这个概念用于解释 现代训练并行栈 的一个具体机制。
+expert（专家）是 MoE 中由 router 选择的子网络。在“MoE 与长上下文下的并行特殊问题”中，这个概念用于解释 现代训练并行栈 的一个具体机制。
+all-to-all 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“MoE 与长上下文下的并行特殊问题”中改变了哪个变量或约束。
+long context 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“MoE 与长上下文下的并行特殊问题”中改变了哪个变量或约束。
+sequence parallel 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“MoE 与长上下文下的并行特殊问题”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{MoE 与长上下文下的并行特殊问题 的小结}
+\begin{itemize}
+\item MoE 与长上下文下的并行特殊问题 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{综合讨论：从局部机制到完整系统}
+本章的主题是 现代训练并行栈，但它不应被读成几个相邻知识点的拼接。从机制到现代 recipe、通信拓扑与 collectives、MoE 与长上下文下的并行特殊问题 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
+这些对象包括 FSDP（fully sharded data parallel）、ZeRO、expert parallelism（专家并行）、sequence parallelism（序列并行）、activation checkpointing（激活检查点）。读者可以把它们看成一组接口：有的接口连接文本和 token，有的连接模型结构和张量计算，有的连接数据样本和训练目标，有的连接离线评估和在线服务。接口一旦改变，后面的成本、错误类型和优化空间也会随之改变。
+\subsection{从机制到现代 recipe 在系统中的位置}
+从机制到现代 recipe 首先提供一个局部解释：视频延续 parallelism 主题，但更强调现代大模型训练中的细节、trivia 和复杂性。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，从机制到现代 recipe 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，从机制到现代 recipe 不能脱离边界条件理解。一个关键 caveat 是：FSDP 减显存但增加 all-gather/reduce-scatter 通信。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{通信拓扑与 collectives 在系统中的位置}
+通信拓扑与 collectives 首先提供一个局部解释：现代 GPU 集群有 node 内 NVLink/NVSwitch 和 node 间 InfiniBand/RDMA 等不同带宽层级。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，通信拓扑与 collectives 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，通信拓扑与 collectives 不能脱离边界条件理解。一个关键 caveat 是：拓扑错误会让理论上合理的并行策略实际很慢。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{MoE 与长上下文下的并行特殊问题 在系统中的位置}
+MoE 与长上下文下的并行特殊问题 首先提供一个局部解释：MoE 引入 expert parallelism：token dispatch 和 combine 需要跨设备通信。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，MoE 与长上下文下的并行特殊问题 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，MoE 与长上下文下的并行特殊问题 不能脱离边界条件理解。一个关键 caveat 是：all-to-all 是 MoE 的核心瓶颈之一。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{把本章知识用于读论文和复现实验}
+读相关论文时，可以把本章变成一个检查表。第一，论文是否清楚定义了输入规模、模型规模、数据来源和评估协议；第二，论文声称的改进落在哪个变量上；第三，作者是否报告了会让结论失效的设置；第四，实验是否能分离模型结构、数据质量、优化设置和系统实现的影响。
+复现实验时，也应避免直接追求大规模。先用最小程序复现一个公式、一个伪代码分支或一个 profile 现象，再扩大输入规模。这样做的原因很简单：如果小规模程序无法解释中间量，大规模训练只会把错误隐藏在日志和随机波动里。
+把这些检查合在一起，本章给出的不是一个固定答案，而是一种阅读 CS336 的方法：每个模型机制都要落到变量，每个变量都要落到测量，每个测量都要说明协议，每个协议都要承认边界。
+因此，本章中的任何一句结论都可以被改写成一个可引用的完整句式：在给定数据、模型、硬件和评估协议下，某个机制改变了某个变量，并通过某个观测指标表现出来。这样的句子比单独背诵术语更长，但它包含了自学、复现和引用时真正需要的信息。
+把本章用于自学时，可以按三遍阅读。第一遍只追踪对象和定义，确认每个术语到底指向文本、token、张量、样本、请求还是评估记录。第二遍追踪公式和伪代码，确认每一步改变了哪些状态。第三遍追踪实验和 caveat，确认哪些结论只在特定规模、数据或硬件条件下成立。
+把本章用于复习时，则应反过来操作：先从一个失败案例或异常指标出发，再回到相应机制。loss 曲线异常可能指向数据、优化或模型容量；吞吐异常可能指向 kernel、通信或调度；benchmark 异常可能指向 contamination、prompt protocol 或采样设置。能够从异常反推机制，是掌握本章的实用标准。
+\section{例题：把概念变成可计算检查}
+\subsection{FSDP 为什么省显存但增加通信}
+把参数、梯度和 optimizer state 按 rank shard。每个 layer 计算前需要临时 all-gather 完整参数。
+\begin{itemize}
+\item 静态存储近似除以 shard count。
+\item 前向/反向时需要 all-gather 参数，反向后 reduce-scatter 梯度。
+\item 如果通信不能与计算重叠，显存节省会换来 step time 上升。
+\end{itemize}
+\textbf{结论。} 现代并行栈的每个“省显存”技巧都必须问它把成本转移到了哪里。
+这个例题的目的不是替代完整工程实现，而是给出一种最小推理形式：把问题转成变量，写出近似公式或伪代码，再说明近似何时失效。
+\section{实验设计：从小例子到可复现结论}
+学习 现代训练并行栈 不能停在概念层。一个教材化结论至少需要四件事：可构造的输入、可观测的中间量、可比较的指标，以及清楚的失败条件。下面的实验设计不是要求训练大模型，而是要求读者用小规模程序复现本章机制。
+\subsection{最小输入}
+先构造只触发本章核心机制的小输入。例如 tokenizer 章节可以用几个包含 rare words 和 Unicode 字符的字符串；GPU 章节可以用一个 elementwise kernel 和一个 GEMM；data 章节可以用十几篇近重复文档。小输入的价值在于它让错误可见。
+\subsection{资源账本}
+对同一输入写下 FLOPs、bytes moved、显存峰值、通信量或样本数量的估算。估算不需要一开始就精确，但必须说明单位和近似假设。随后用 profiler、benchmark、validation loss 或人工检查去验证估算是否同量级。
+\subsection{单变量消融}
+一次只改变一个因素，例如 vocabulary size、head 数、batch size、filter threshold、reward scale、decoding temperature 或 GPU 数量。若多个变量同时变化，实验只能说明系统变了，不能说明机制是什么。
+\subsection{失败条件}
+最后要刻意触发失败：极端 context length、错误 dtype、过小 batch、污染 benchmark、低质量数据或不可靠 verifier。失败条件常常比成功曲线更能说明一个方法的边界。
+\subsection{记录与报告}
+实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
+常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\section{课程资料与回看路径}
+教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
+\subsection{视频回看路径}
+\begin{longtable}{p{0.20\linewidth}p{0.46\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{时间} & \textbf{关键词} & \textbf{复习任务}\\
+\midrule
+00:00:05-00:06:18 & going, very, it's, different, many, talk, we're & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:19:06-00:25:30 & going, right., gradients, communication, then, computation, zero & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:38:19-00:44:53 & going, parallel, then, tensor, very, your, communication & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:51:40-00:59:00 & parallel, your, expert, parallelism, tensor, going, very & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+01:12:26-01:19:39 & parallel, expert, tensor, data, pipeline, very, training & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+\bottomrule
+\end{longtable}
+这些时间段用于定位视频中的讲解顺序。严肃引用时，应回到视频片段确认讲者表述、板书或幻灯片内容。
+回看视频时，不必逐字抄录字幕。更有效的方法是把每个时间段判定为定义、例子、推导、代码解释或 caveat，再把它放回本章对应小节。
+\subsection{课程资料阅读路径}
+\begin{longtable}{p{0.14\linewidth}p{0.48\linewidth}p{0.30\linewidth}}
+\toprule
+\textbf{资料组} & \textbf{标题/页块} & \textbf{关键词}\\
+\midrule
+official\_01 & Lecture 8 PA R A L L E L I S M B A S I C S CS336 Tatsu H & parallelism, scaling, parallel, memory, compute, bytes, part\\
+official\_02 & ZeRO stage 1. optimizer state sharding High level idea: • Split up the optimizer ... & zero, stage, parallel, param, params, communication, gradients\\
+official\_03 & Trading communication bandwidth for utilization Some more crazy pipeline patterns can ... & parallel, tensor, attention, memory, pipeline, activations, activation\\
+official\_05 & Careful ‘3D’ parallelism gives linear gains More GPUS, same, flat utilization! & tensor, parallel, zero, stage, parallelism, activation, recomputation\\
+official\_06 & Llama3 405B (Stage 1, small bsz training, Stage 2 pretraining, Stage 3 long-context) & parallelism, stage, megatron, zero1, llama3, long-context, gemma\\
+\bottomrule
+\end{longtable}
+课程资料通常给出更稳定的标题、公式、图或代码结构；视频则补充动机和口头解释。两者合起来构成本章的事实边界。
+阅读资料时，可以把每个资料组拆成三个对象：一个定义，一个公式或伪代码动作，一个边界条件。这样比逐字翻译页面或脚本更容易形成可用知识。
+\section{实践说明、历史位置与风险}
+现代训练并行栈 在 CS336 的课程结构中连接基础机制和规模化问题。基础机制解释方法为什么成立；规模化问题检验它在更大模型、更长上下文、更复杂数据或真实 serving workload 下是否仍成立。
+历史位置不等于模型年表。更重要的是识别问题如何迁移：早期方法解决小规模建模问题，现代方法常常解决同一问题在大规模数据、GPU 集群、长上下文或人类偏好约束下的新形态。
+\begin{itemize}
+\item 资料版本限制（version risk）：课程页、公开视频和配套资料可能在学期中更新；引用时应注明访问日期或资料版本。
+\item 测量口径限制（measurement risk）：FLOPs、tokens/s、benchmark score、reward 等数字只有在协议完整时可比较。
+\item 规模外推限制（scaling risk）：小模型或小 batch 的机制不必然外推到 frontier-scale。
+\item 数据分布限制（data risk）：数据来源、过滤和去重策略会改变模型行为，也会改变 evaluation contamination 风险。
+\item 系统风险（systems risk）：性能剖析结果依赖硬件、driver、kernel、shape 和 batch distribution；脱离 workload 的性能数字不可直接复用。
+\end{itemize}
+\section{复习要点}
+下面的问题把本章内容压缩为可反复检查的条目。每个条目都应能回到前文的解释、公式、伪代码或例题。
+\begin{longtable}{p{0.16\linewidth}p{0.38\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{条目} & \textbf{对象} & \textbf{检查动作}\\
+\midrule
+条目 1 & FSDP（fully sharded data parallel） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 2 & ZeRO & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 3 & expert parallelism（专家并行） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 4 & sequence parallelism（序列并行） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 5 & activation checkpointing（激活检查点） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+\bottomrule
+\end{longtable}
+\subsection{综合自测}
+\begin{itemize}
+\item 我能否不用课程原句，独立解释本章中心问题？
+\item 我能否把本章至少一个公式改写成可运行的估算函数？
+\item 我能否指出一个看似改进但实际转移成本的方法？
+\item 我能否回到视频和课程资料，找到支持本章关键论断的位置？
+\item 我能否设计一个最小 ablation，验证本章一个 caveat？
+\end{itemize}
 \section{总结与延伸}
-第 8 讲最重要的结论可以压缩成四点。
-
-第一，\textbf{collective communication 是分布式训练的语法。} 训练系统的大量复杂行为，最终都能还原成几种 collective 及其组合。
-
-第二，\textbf{硬件拓扑决定了通信现实。} node 内、node 间、PCIe、NVLink、NVSwitch 的差异，会直接改变什么策略可行。
-
-第三，\textbf{data / tensor / pipeline parallel 的差别，本质上是分片对象不同。} 它们并不是名字差异，而是把数据、参数、激活分别切在不同维度。
-
-第四，\textbf{并行训练不会“解决所有问题”，它只是把单卡上的 memory hierarchy 问题扩展成了更大尺度上的 communication hierarchy 问题。}
-
-\begin{warningbox}{我对第 8 讲的压缩提醒}
-不要把分布式训练想成更大的 PyTorch 脚本。真正难的地方，不是多开几个进程，而是怎样在层级化硬件上安排通信、分片与同步，让系统既能跑，又尽量接近线性扩展。
-\end{warningbox}
-
-到这里，parallelism 基础已经铺完。后面的 scaling、inference、data 和 alignment 章节都会把这种“资源层级 + 系统约束”的思想继续推进，只是关注对象从训练切换到别的模块。 
-
+\subsection{本章小结}
+\begin{itemize}
+\item 现代训练并行栈 的核心不是记忆术语，而是理解对象、变量和机制之间的关系。
+\item 视频给出讲解顺序，课程资料提供可核对的公式、图、代码或页面结构。
+\item 复习时应把每个术语连接到至少一个变量、一个实现动作和一个失败模式。
+\end{itemize}
+\subsection{延伸解释}
+本章中的延伸解释用于连接课程材料中的概念，例如说明公式里的 proxy、解释系统 tradeoff，或把多个材料片段串成一个完整推理链。若需要严肃引用，应回到课程视频和配套资料核对原始表述。
+\subsection{练习}
+\begin{itemize}
+\item 定义题：用中英双语解释本章任意五个重要术语，并说明它们属于 compute、memory、data、optimization、evaluation 还是 deployment 账本。
+\item 推导题：选择本章一个公式，逐个解释符号、单位和近似假设，并说明哪个变量最难在真实系统中测量。
+\item 实现题：把本章伪代码改写成一个最小 Python sanity check，不要求训练大模型，但要输出可检查的中间量。
+\item 资料题：从“课程资料与回看路径”中选择一个视频时间段，回到原始视频核对讲者例子，并记录是否存在字幕误差。
+\item 评估题：为本章方法设计一个 ablation 或 benchmark，说明控制变量、数据版本、指标和 failure criteria。
+\item 边界题：说明本章一个结论在更长 context、更大 batch、更多 GPU 或更复杂数据分布下可能如何失效。
+\item 综合题：把本章内容和前一章或后一章连接起来，写出一个端到端训练/推理 pipeline 中的依赖关系。
+\item 批判题：指出一个容易被营销材料夸大的说法，并用本章的资源账本或评估协议反驳它。
+\end{itemize}
 \end{document}

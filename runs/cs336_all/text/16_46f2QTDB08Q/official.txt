@@ -1,76 +1,7 @@
 Lecture 16
-R E I N FO RC E M E N T L E A RN I NG F RO M V E RI F I A BL E RE WA RD S
-
-                                 CS336
-
-(Remaining content from last lecture..)
-
-DPO – RLHF without tears?
-Try to simplify PPO by..
-• Getting rid of the reward model
-• Getting rid of any on-policy stuff (rollouts, outer loops etc)
-
-Instead
-• Take gradient steps on log-loss of good stuff
-• Take negative gradient steps on bad stuff (appropriately weighted).
-
-DPO – derivation from the RLHF formula
-Our goal is to optimize
-
-Assume that the policy 𝜋 is the set of all policies (nonparametric assumption).
-The maximizer is then,
-
- Solve for the ‘implied reward’
-
-                                                   (This is the equivalence also used in the kimi-think paper)
-
-DPO derivation 2
-We can now optimize the implied reward as a reward model via the Stiennon objective
-
-                                                                             and
-
-This gives the DPO objective,
-
-The key steps?
-1. Make a nonparametric assumption (links 𝜋𝜃 and r in closed form)
-2. Parametrize reward r via the policy
-3. Optimize the reward using supervised losses (which in turn, optimizes the policy)
-      Conceptually.. This is MLE on the pairwise rewards, under nonparametric assumption + alternative parametrization
-
-DPO updates and components
-In some sense, reduces to “pos gradient on good, neg gradient on bad”
-
-                (Scaled by ‘prediction error’ of the implied reward model)
-
-Results – controlled comparison in AF
-Compared to our previous PPO implementation? Same perf (on sim) with no pain!
-
-DPO works
-
-From Chris Manning – Most ‘top open-source’ RLHF models are DPO’d
-
-Variants
-Lots of variants (too many variants), but maybe two of note from the Tulu 3 paper..
- SimPO (no ref)
-
- Length normalized DPO
-
-But PPO does too (and sometimes better?)
-The trickiness of RL-related empirical work..
-
-      Lots of results are highly contingent (on the specifics of the experiment setup)
-
-   Things to watch out for in RLHF
-
-Overoptimization / overfitting on the reward   Mode collapse / entropy
-
-Thins to watch out for - Overoptimization
-Across many different RLHF-style optimizers. Optimizing for reward overfits past a point
-
-  Holds true for human pref (left), noisy LM pref (mid) but not noiseless LM pref (right)
-
-Things to watch out for - mode collapse
-RLHF makes models no longer ‘probabilistic models’ – no calibration by default
+                         P OST- TRAININ G 2
+R E INF O R C E M E NT L E A R NIN G F R O M V ER I F IA B L E R E WA R D S
+                                  CS336
 
 The class thus far
 Pre-training + RLHF gets you to ~ GPT3.5… Today we’ll get all the way to o1/r1
@@ -80,7 +11,7 @@ With RLHF: we can’t cleanly scale out due to overoptimization
 
 Can we work in domains where RL excels? Where we optimize exactly what we want
 
-     The lecture today
+The lecture today
 
 1. Core algorithms..
 
@@ -114,15 +45,16 @@ PPO in practice
     You
       need
         know
-           toyou’re
-             look atina for
-                        liveaimplementation
-                              bad time if there’s
-                                               when
-                                                  a blog
-                                                      talking
-                                                          postabout
-                                                               like this..
+           to look
+             you’reatina for
+                         livea bad time
+                              implementation
+                                        if there’s
+                                                when
+                                                   a blog
+                                                       talking
+                                                          post like
+                                                               aboutthis..
                                                                       PPO
 
 PPO – idealization (?) for language models
@@ -177,7 +109,7 @@ Why not PPO?
 
 Why not DPO?
 
-•    Data not inherently pairwise (or in the form of Bradley -terry comparisons)
+•    Data not inherently pairwise (or in the form of Bradley-terry comparisons)
 •    Offline (though could be made online by iterating)
 
 New kid on the block: GRPO
@@ -298,7 +230,7 @@ From some follow-up analyses in Dr. GRPO..
     Base model
  already has ‘aha’
 
- Pushing performance further – R1
+Pushing performance further – R1
  R1 vs R1-zero
 
  Key differences:
@@ -320,7 +252,7 @@ Even a small number of samples is effective for bootstrapping reasoning from LMs
 
                  1k Math and science questions + Long CoTs from Gemini / r1
 
-  RL step
+RL step
   The RL part is basically the same..
   Minor difference: additional language consistency loss
 
@@ -345,7 +277,7 @@ Pipeline
    Have R1 generate CoT traces (800k!)
    Teach Qwen 2.5 via distillation
 
-  Other, relevant observations
+Other, relevant observations
   There is a whole unsuccessful attempts section
 
          PRMs
@@ -454,6 +386,51 @@ Test time scaling
 Composition of the different stages
 
 Note that math/stem abilities go down (a bit) with general purpose RLHF
+
+Agentic RL
+Qwen 3 Coder Next – Built on Qwen 3 Next, posttrained for agentic abilities
+
+Midtraining
+Coding and other mid-training data sources
+
+Github
+     Long-context “repository level” data (concat files) – 600 Billion tokens
+     Pull request (w/ RAG retrieved context of the repository state)
+
+Common crawl
+   Joint text+code documents + LLM based parsing of HTML
+
+Synthetic data
+     LM prompted QA for web documents about coding
+     Trajectories generated by running coding agents on various environments
+
+Instruction following / Fill-in-the-middle data
+
+Expert models
+
+                   Web dev expert
+
+                     UX expert
+Qwen 3 Next                                            Qwen 3 Next Coder
+                Single-turn QA expert
+
+                     SWE expert
+
+                                        Distillation
+
+Web dev / UX / QA expert
+Web dev expert
+• SFT on “valid web code” based on checks (VLM + agent actions)
+
+UX expert (train on many tool formats)
+
+QA (standard single turn code synthesis – just more data)
+
+Agent environment construction
+
+  Automated SWE-bench style environment construction (800k tasks)
+
+Agent RL
 
 Recap for today
 

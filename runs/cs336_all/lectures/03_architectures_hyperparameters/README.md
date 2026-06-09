@@ -1,9 +1,5 @@
-# Lec. 3: Architectures, Hyperparameters
+# Lecture 03: 现代 Transformer architecture 与 hyperparameters
 
-- Video ID: `ptFiH_bHnJw`
-- Cover: [cover.jpg](cover.jpg)
-- Transcript: [transcript.txt](transcript.txt)
-- Official material: [official.txt](official.txt)
-- Generated notes: [notes.md](notes.md)
-
-This folder is the lecture-specific workspace for refining this lecture into its own polished note/PDF.
+- video: https://www.youtube.com/watch?v=lVynu4bo1rY
+- material: lecture_03.pdf
+- basis: Spring 2026 public playlist subtitles + official course page/materials.

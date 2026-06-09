@@ -1,320 +1,379 @@
 \documentclass[a4paper]{article}
-
-% Basic packages
 \usepackage[fontset=fandol]{ctex}
-\usepackage{amsmath, amssymb}
+\usepackage[margin=1.65cm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage[margin=2.5cm]{geometry}
-\usepackage[most]{tcolorbox}
-\usepackage{etoolbox}
-\usepackage{listings}
 \usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{subcaption}
-\usepackage{float}
-\usepackage{tikz}
-\IfFileExists{pgfplots.sty}{
-    \usepackage{pgfplots}
-    \pgfplotsset{compat=1.18}
-}{}
-
-% Highlight boxes
-\newtcolorbox{knowledgebox}[1]{
-    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
-    boxrule=1pt, sharp corners
-}
-
-\newtcolorbox{importantbox}[1]{
-    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
-    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newtcolorbox{warningbox}[1]{
-    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-% Listings
-\lstset{
-    language=Python,
-    basicstyle=\ttfamily\small,
-    keywordstyle=\color{blue},
-    stringstyle=\color{red!60!black},
-    commentstyle=\color{green!60!black},
-    breaklines=true,
-    frame=single,
-    numbers=left,
-    numberstyle=\tiny\color{gray},
-    captionpos=b,
-    extendedchars=false
-}
-
-% Front-page metadata
-\newcommand{\notetitle}{CS336 第 17 讲：对齐：RL II}
-\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 17 讲视频、字幕与课程材料整理}
-\newcommand{\notedate}{\today}
-\newcommand{\videochannel}{Stanford Online}
-\newcommand{\videopublishdate}{2025年07月08日}
-\newcommand{\videoduration}{1:16:08}
-\newcommand{\videourl}{https://www.youtube.com/watch?v=JdGFdViaOJk}
-\newcommand{\videocoverpath}{cover.jpg}
-
+\usepackage{longtable,booktabs}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,keepspaces=true}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{2em}
+\sloppy
+\title{第 17 讲：Alignment 与 multimodality}
+\author{CS336 Spring 2026 public videos and official course materials}
+\date{}
 \begin{document}
-
-\begin{titlepage}
-\centering
-{\Large 课程笔记\par}
-\vspace{1.2cm}
-{\huge\bfseries \notetitle\par}
-\vspace{0.8cm}
-{\large \noteauthors\par}
-\vspace{0.3cm}
-{\large \notedate\par}
-\vspace{1.2cm}
-
-\ifdefempty{\videocoverpath}{
-{\small 请在生成笔记时填入视频封面图的本地路径。\par}
-}{
-\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
-}
-
-\vfill
-\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
-\textbf{视频作者/频道}：\videochannel\par
-\textbf{发布日期}：\videopublishdate\par
-\textbf{视频时长}：\videoduration\par
-\textbf{视频链接}：
-\ifdefempty{\videourl}{
-未填写
-}{
-\href{\videourl}{\nolinkurl{\videourl}}
-}
-\end{tcolorbox}
-\end{titlepage}
-
+\maketitle
 \tableofcontents
 \newpage
-
-%% --- 正文内容开始 --- %%
-
-\section{把语言模型写成一个 RL 问题：state、action、reward 到底是什么}
-
-\subsection{第 17 讲先把符号和对象理顺}
-第 17 讲延续上一讲的 RLVR 主线，但这次不再讨论大局，而是专门拆机械细节。课程首先把语言模型训练写成一个近似 bandit / episodic RL 问题：
+\section{本章导读}
+本章讨论 \textbf{Alignment 与 multimodality}。CS336 的第一层目标不是把现成大模型当作黑箱使用，而是把 language model 从输入文本、训练目标、模型结构、数据、系统和评估这些部件重新拆开。只有拆开之后，读者才能判断一个设计选择究竟改变了什么。
+设想用户上传一张图并问模型。多模态模型必须把 image、text 甚至 video 接到同一推理接口；问题不只是连接 encoder，而是视觉 grounding、instruction tuning 和 hallucination control。
+本章对应 CS336 Spring 2026 第 17 个公开视频，并结合课程页提供的可解析资料。视频和课程页给出事实边界；正文把这些材料改写为可自学的教材章节。
+阅读本章时，先理解问题为什么存在，再看定义、公式和实现形态，随后通过例题和练习检查自己是否能独立复现这条 reasoning chain。
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.58\linewidth]{source_anchor.jpg}
+\caption{第 17 讲的课程图像锚点。}
+\end{figure}
+\subsection{本章知识路线}
 \begin{itemize}
-\item 状态 $s$：prompt 加当前已生成的前缀；
-\item 动作 $a$：下一 token，或者简化记号下的整段回答；
-\item 奖励 $R(s,a)$：对整段回答的评分，在这一讲里重点是 outcome reward 和 verifiable reward；
-\item 转移 $T(s' \mid s,a)$：基本是确定性的，因为新状态就是旧前缀加上新 token。
+\item 本章首先说明 Alignment 与 multimodality 为什么是 language modeling pipeline 中不可跳过的一环。
+\item 其次定义本章反复使用的术语，并说明这些术语对应的计算对象或系统对象。
+\item 随后用公式和伪代码表达主要机制，让概念能够落到可计算的变量上。
+\item 最后给出例题、风险讨论和练习，便于读者检查自己是否真正掌握了机制。
 \end{itemize}
-
-课程特别提醒，这个设定和机器人 RL 很不一样。语言模型的状态并不是物理世界给你的，而是由文本轨迹构成；这意味着 planning 和 test-time compute 的自由度更大，但也意味着很多经典 RL 假设，例如连续折扣回报或复杂随机转移，在这里不再是中心。
-
-\begin{importantbox}{第 17 讲的任务}
-不是再讲“为什么要做 RL”，而是把 RL 在语言模型里真正起作用的那一套数学和工程部件拆开，看清每一块到底解决什么问题。
-\end{importantbox}
-
-\subsection{本章小结}
-第 17 讲一上来先把语义讲清楚：语言模型里的 RL 不是把传统 RL 公式原封不动搬过来，而是把 prompt-response 生成过程重新解释成一个可优化的轨迹问题。
-
-\section{naive policy gradient：公式很短，方差很大}
-
-\subsection{从目标函数到 log-derivative trick}
-课程从最基础的目标出发：
-\[
-\mathbb{E}[R] = \int p(s)\,\pi(a\mid s)\,R(s,a).
-\]
-对参数求梯度，经过标准的 log-derivative trick，可以得到
-\[
-\nabla \mathbb{E}[R] = \mathbb{E}\left[\nabla \log \pi(a\mid s)\, R(s,a)\right].
-\]
-这个式子非常漂亮，因为它告诉你：只要采样出一条回答，并知道它的奖励，就能用该回答的 log probability 梯度乘以奖励来更新模型。
-
-课程故意把这一步讲得很慢，因为这是后面所有变体的根。无论是 PPO、GRPO 还是别的 policy gradient 算法，本质上都没有离开这个式子，只是在想办法把这个估计器做得更稳、更低方差、更少偏差。
-
-\subsection{为什么 naive 版本会很糟}
-课程给出一个很直观的语言模型设定：奖励是 0/1，只有答对才给 1，答错给 0。这样一来，naive policy gradient 几乎只会在少数正确样本上更新，而大量错误样本都不会告诉模型“你错在哪里”。这种极端稀疏的反馈会让训练信号非常噪。
-
-在 RLHF 里，reward model 往往是连续的，所以这种稀疏性没那么明显；但在 RLVR 里，很多奖励恰恰就是硬判定。课程因此想让学生理解：\textbf{policy gradient 的核心难题，不是公式不会写，而是估计器太吵。}
-
-\subsection{本章小结}
-naive policy gradient 提供了最原始的更新规则，也暴露了最原始的问题：高方差、稀疏奖励和低样本效率。后面所有技巧，都在试图修这些洞。
-
-\section{baseline 与 advantage：为什么“比平均好多少”比“拿了多少分”更重要}
-
-\subsection{baseline 的作用是降方差，而不是改目标}
-课程接下来引入 baseline。核心想法很简单：如果对同一个状态 $s$，整体奖励水平本来就很高，那么直接乘以原始奖励会混淆“这个回答本身有多好”和“这个 prompt 本来就容易拿高分”。
-
-于是我们考虑
-\[
-\nabla \log \pi(a\mid s)\,\bigl(R(s,a)-b(s)\bigr),
-\]
-其中 $b(s)$ 只依赖状态，不依赖动作。课程特别强调，这种减法不会改变目标的期望，只会改变梯度估计的方差。
-
-\subsection{课程那个两状态例子到底想说明什么}
-课程给了一个非常好的例子：状态 $s_1$ 里两个动作都分数很高，状态 $s_2$ 里两个动作都分数较低。如果你只看原始分数，可能会以为 $s_1$ 的次优动作仍然比 $s_2$ 的最优动作更值得强化；但从“相对本状态平均水平高多少”来看，显然不是这样。
-
-这正是 baseline 的意义。它不是在问“这次回答绝对得分多少”，而是在问“在这个 prompt 下，这条回答比通常水平好还是差”。对于语言模型来说，这种相对性非常关键，因为 prompt 难度差异巨大。
-
-官方 \texttt{lecture\_17.py} 甚至把这个例子做成了一个小算术：如果四个样本奖励分别是 \texttt{11, 9, 0, 2}，直接用原始奖励的标准差大约是 \texttt{5.323}；若对两个状态分别减去 baseline \texttt{10} 和 \texttt{1}，新的样本变成 \texttt{1, -1, -1, 1}，标准差会降到大约 \texttt{1.155}。课程借这个极小例子想让学生立刻看见：\textbf{baseline 的主要收益不是“更对”，而是“更稳”。}
-
-\subsection{advantage 其实就是一个更有语义的 baselined reward}
-课程进一步把 baseline 与 advantage 连接起来：
-\[
-V(s) = \mathbb{E}[R \mid s], \qquad Q(s,a)=\mathbb{E}[R\mid s,a], \qquad A(s,a)=Q(s,a)-V(s).
-\]
-如果选择 $b(s)=V(s)$，那么 $R-b(s)$ 就正好变成 advantage。它衡量的不是“这个动作拿了多少奖励”，而是“这个动作比当前状态下的平均动作好多少”。
-
-\begin{knowledgebox}{为什么 advantage 是 RL 里的核心语言}
-因为它自动把“任务本身难不难”这部分剥掉了，留下的只是动作选择本身的相对价值。对语言模型来说，这就像是在不同难度 prompt 间做公平比较。
-\end{knowledgebox}
-
-\subsection{本章小结}
-baseline 和 advantage 让 policy gradient 从“被绝对奖励牵着走”变成“对相对优劣更敏感”。这是从可写公式走向可训练算法的第一步。
-
-\section{GRPO：把多回答组结构变成廉价 advantage}
-
-\subsection{为什么语言模型天然适合 group-relative baseline}
-课程指出，语言模型和很多传统 RL 任务最大的不同之一是：对于同一个 prompt，我们可以非常自然地采样多条回答。于是，不用训练一个单独 value model，也能在组内估一个“平均水平”。这就是 GRPO 的出发点。
-
-最简单的组内优势可以写成
-\[
-\delta_i = \frac{R_i - \mu_g}{\sigma_g + \epsilon},
-\]
-其中 $R_i$ 是组内第 $i$ 条回答的奖励，$\mu_g$ 和 $\sigma_g$ 是该 prompt 对应组内奖励的均值和标准差。课程故意把它讲得很直接：这其实就是把 reward 做 z-score，然后把它当成 advantage 的近似。
-
-\begin{figure}[H]
+\subsection{结构图}
+下面的图用于帮助读者定位本章的核心结构。先看概念之间的依赖，再回到正文中的公式、伪代码和例题。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.82\textwidth]{../../materials/spring2025-lectures/images/grpo-algorithm.png}
-\caption{GRPO 的算法骨架并不复杂：采样一组回答，算 reward，做组内相对归一化，再更新策略。}
+\includegraphics[width=0.72\linewidth]{figures/source_grounded_concept_map.png}
+\caption{第 17 讲概念图：本章问题、术语和机制的关系。}
 \end{figure}
-
-\begin{lstlisting}[caption={极简 GRPO 风格伪代码}]
-responses = model.sample(prompts, group_size=G)
-rewards = verifier(responses)
-advantages = (rewards - rewards.mean(dim=1, keepdim=True)) / (
-    rewards.std(dim=1, keepdim=True) + 1e-4
-)
-loss = -(advantages.detach() * logprob_ratio_clipped).mean()
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.72\linewidth]{figures/source_grounded_checklist.png}
+\caption{第 17 讲学习路径：从问题定义进入公式、实现、实验和练习。}
+\end{figure}
+\section{本章主线}
+本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+\subsection{本章要解决的核心问题}
+本讲补上 multimodality。现代 frontier models 不只处理 text-to-text，而要把 image、video、audio 等模态编码成 token 或 embedding。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，Alignment 与 multimodality 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从机制到资源账本}
+CLIP/SigLIP 用图文对齐学习 image/text representation，LLaVA 等 VLM 再把视觉特征投影到语言模型输入空间并做 instruction tuning。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，Alignment 与 multimodality 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从课堂讲解到可复现实验}
+多模态模型的关键 caveat 是视觉 grounding：模型可能用语言先验回答，而不是忠实读取图像；OCR、chart、spatial reasoning 和 video 都需要单独评估。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，Alignment 与 multimodality 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\section{术语、符号与问题边界}
+本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
+\begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
+\toprule
+\textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
+\midrule
+1 & multimodal model（多模态模型） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+2 & vision-language model (VLM) & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+3 & CLIP & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+4 & image encoder（图像编码器） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+5 & projector（投影器） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+6 & LLaVA & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+\bottomrule
+\end{longtable}
+这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
+\subsection{关键词}
+下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
+\begin{itemize}
+\item text, image, data, images, encoder, tokens, vision, clip, stage, train, training, resolution, function, language
+\end{itemize}
+\section{为什么 CS336 需要 multimodality}
+本节讨论 为什么 CS336 需要 multimodality。本节关心的不是名称本身，而是它把 Alignment 与 multimodality 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{课程目标与问题边界}
+视频说明原计划继续 RL，但课程若完全不讲 multimodality 会不完整，因为主流模型已普遍多模态。
+多模态不是把图片塞进 prompt 那么简单，而是要把图像、视频、音频等信号变成 LM 可处理的 token/embedding。
+本讲是 overview，目标是建立结构图和主要训练阶段，而不是覆盖完整 VLM 课程。
+为什么 CS336 需要 multimodality 的作用是把 Alignment 与 multimodality 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{为什么 CS336 需要 multimodality 的机制}
+视频说明原计划继续 RL，但课程若完全不讲 multimodality 会不完整，因为主流模型已普遍多模态。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+多模态不是把图片塞进 prompt 那么简单，而是要把图像、视频、音频等信号变成 LM 可处理的 token/embedding。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+本讲是 overview，目标是建立结构图和主要训练阶段，而不是覆盖完整 VLM 课程。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，为什么 CS336 需要 multimodality 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{资源、效率与效果的关系}
+\[z_{\text{text}},z_{\text{image}}\in\mathbb{R}^{d}\]
+符号说明：文本和图像被编码到同一维度的表示空间，后续可用于对齐、检索或作为 LM 输入。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{把课程目标写成检查流程}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+image_features = vision_encoder(image)
+image_tokens = projector(image_features)
+logits = language_model(concat(image_tokens, text_tokens))
 \end{lstlisting}
-
-\subsection{为什么旧策略的 log prob 必须被冻结}
-官方 \texttt{lecture\_17.py} 在 walkthrough 里专门插了一个很容易被忽略的工程点：当 loss 里出现
-\[
-\frac{\pi_\theta(a\mid s)}{\pi_{\text{old}}(a\mid s)}
-\]
-这种 ratio 时，\(\pi_{\text{old}}\) 必须被当成常数，而不是继续让梯度流回去。否则，你以为自己在和“旧策略”比较，实际上却是在和一个也会一起移动的目标比较。
-
-这也是为什么很多实现里都会显式 \texttt{detach}，或者在计算旧策略 log prob 时包上 \texttt{torch.no\_grad()}。课程在这里故意给了一个极简例子：如果 \texttt{p\_old} 不冻结，那么 ratio 对同一个参数的梯度会因为分子分母同时依赖它而发生抵消，更新语义完全变味。
-
-\begin{warningbox}{GRPO/PPO 里非常容易犯的实现错误}
-看到 \(\pi(a\mid s) / \pi_{\text{old}}(a\mid s)\) 并不等于真的在比较新旧策略。只有当旧策略被冻结时，这个 ratio 才有“信赖域比较器”的含义。
-\end{warningbox}
-
-\subsection{KL 正则为什么还要保留}
-课程同时提醒，GRPO 不是只算相对奖励就够了。你通常还要加显式 KL 正则，让新策略不要离参考策略跑太远。否则，模型可能为了追逐短期奖励迅速坍塌，忘掉原本的语言能力或进入奇怪的输出模式。
-
-这也是课程反复强调“RL systems is much more complex than pretraining”的原因。即便公式看起来简单，真正的训练里仍然要管理 rollout、reference model、reward computation 和 KL control。
-
-官方 script 这里还给了一个常用的 KL 近似形式：
-\[
-\mathrm{KL}(p\Vert q)=\mathbb{E}_{x\sim p}\!\left[\frac{q(x)}{p(x)}-\log\frac{q(x)}{p(x)}-1\right].
-\]
-它的好处是，可以直接用当前策略样本和参考策略 log prob 做无偏或近似无偏的估计，而不用显式把整份分布枚举出来。对大语言模型来说，这种“只用采样轨迹估 KL”的技巧几乎是不可或缺的。
-
-\subsection{本章小结}
-GRPO 最吸引人的地方，在于利用语言模型天然的 group structure 省掉了 critic。但它仍然需要 reference policy、KL 正则和 careful reward design，绝不是“只有一行 loss”的神奇算法。
-
-\section{raw reward、centered reward 与 normalized reward：训练动态为什么会明显不同}
-
-\subsection{课程为什么用排序任务做 toy experiment}
-第 17 讲用一个“给定若干数字，输出排序结果”的玩具任务来解释 GRPO，非常聪明。这个任务够简单，奖励函数也能明确写出，但训练动态已经能暴露出 policy gradient 的核心问题：如果奖励设计或基线选取不对，模型很容易停在局部最优。
-
-官方 \texttt{lecture\_17.py} 在这里其实给了两种 reward，而不是一种。第一种 \texttt{sort\_distance\_reward} 很硬，只奖励“第几个位置和排好序的答案完全一致”；第二种 \texttt{sort\_inclusion\_ordering\_reward} 更软，一部分奖励来自元素有没有出现在响应里，另一部分来自相邻元素是否已经基本有序。这两个 reward 的差别非常关键，因为它说明：\textbf{verifiable reward 也不等于只有单一硬判定，你仍然可以设计更平滑的部分信用。}
-
-\begin{knowledgebox}{为什么 toy task 要故意给两个 reward}
-因为 RLVR 真正难的往往不是“有没有 verifier”，而是 verifier 给出的信号到底是极端稀疏，还是能提供足够多的中间梯度方向。排序任务只是把这个问题缩小后让你看清楚。
-\end{knowledgebox}
-
-\subsection{直接用 raw reward，为什么效果一般}
-课程先展示了 raw reward 更新。它的特点是：高 reward 的回答得到正推动，但低 reward 的回答未必受到明确的负推动，于是训练容易显得“有信号，但不够锋利”。很多参数会沿着一个模糊方向移动，最后学出一个不差但也不够好的策略。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.88\textwidth]{../../materials/spring2025-lectures/var/policy_gradient_rewards_naive.png}
-\caption{直接用原始 reward 时，训练虽然会进步，但往往更容易卡在次优状态。}
-\end{figure}
-
-\subsection{centered reward 为什么通常更稳}
-课程接着改用 centered reward，也就是先减去组内均值。这样一来，低于平均的回答会得到负更新，高于平均的回答会得到正更新；如果一组回答都一样差或一样好，则不更新。这个机制非常符合直觉，因为它把学习信号集中到“谁比同组其他回答更值得保留”上。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.88\textwidth]{../../materials/spring2025-lectures/var/policy_gradient_centered_rewards_naive.png}
-\caption{组内中心化后，训练动态通常明显更稳，因为差回答会收到明确负信号。}
-\end{figure}
-
-\subsection{标准差归一化带来了什么，又引出了什么}
-最后课程试了 normalized reward，也就是在中心化的基础上再除以组内标准差。直觉上，这会让“同样的绝对优势”在低方差组里被放大，在高方差组里被缩小，从而统一不同 prompt 的更新尺度。
-
-但课程也提醒，这一步并不总是带来显著收益，甚至会引入长度偏置等额外问题。这也是后来一些变体，例如 Dr. GRPO，会对标准差归一化持更谨慎态度的原因。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.88\textwidth]{../../materials/spring2025-lectures/var/policy_gradient_normalized_rewards_naive.png}
-\caption{标准差归一化有时更平滑，但不一定总比 centered reward 更好，也可能带来新的偏差。}
-\end{figure}
-
-\subsection{本章小结}
-这组 toy experiment 最重要的教学价值，是让学生直观看到：reward 形状、baseline 和 normalization 不是实现细节，而是会实打实改写训练动态的核心设计。
-
-\section{从 toy task 回到真实系统：为什么第 17 讲还在讲基础设施}
-
-\subsection{RL 比 pretraining 更像“生成系统加反馈系统的耦合”}
-虽然第 17 讲大部分时间都在讲公式，但官方结尾其实仍然回到了系统视角。原因很简单：你不是在静态数据上算 loss，而是在一个 rollout 系统里先生成，再打分，再更新。于是推理成本、参考模型、reward pipeline、缓存和批处理策略都会重新进入训练闭环。
-
-这也是为什么课程最后反复说 RL systems 比 pretraining 更复杂。预训练阶段你只需要稳定地读数据、前向、反向；到了 RLVR 阶段，你同时在运行一个生成器、一个 verifier、一个参考策略和一个更新器。哪怕公式非常短，系统栈也会自然变厚。
-
-\subsection{本章小结}
-第 17 讲最后留下的不是“GRPO 已经解释完了”，而是一个更现实的认识：policy gradient 框架已经足够清楚，但要把它扩到真正的大模型推理训练，还需要很重的基础设施与 reward engineering。
-
-\section{课程最后想让你记住什么：RLVR 很强，但系统复杂度同样在上升}
-
-\subsection{“If you can measure it, you can optimize it”的前提}
-课程在最后把全局结论讲得很清楚：强化学习之所以成为下一代 reasoning 模型的重要引擎，是因为在一部分任务上，我们终于拿到了足够可测、可验证的奖励。但这句口号有隐藏前提，那就是你测的东西必须真的对，而且不能太容易被钻空子。
-
-\subsection{为什么 RL systems 明显比 pretraining 更复杂}
-第 17 讲最后一句很值得记住：RL systems 比 pretraining 复杂得多。原因不只是多一个 loss，而是整个训练对象变了。你需要做 rollout、保留 reference model、管理 reward pipeline、平衡 KL、处理长短不齐的轨迹，还要面对推理式工作负载带来的系统瓶颈。
-
-\begin{warningbox}{对第 17 讲最容易产生的误读}
-不要因为 GRPO 的伪代码很短，就误以为 reasoning RL 已经“被彻底解决”了。课程的真实态度是：概念骨架已经很清楚，但好 reward、好基础设施和好训练细节仍然决定成败。
-\end{warningbox}
-
-\subsection{本章小结}
-第 17 讲最后把学生带回一个更成熟的位置：policy gradient 框架是清楚的，但把它稳定地用在大模型上，依然需要大量系统和算法工程。
-
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 多模态模型的能力受 vision encoder、数据配对质量和 instruction tuning 共同限制。
+\item 把 image embedding 接到 LM 不保证 spatial reasoning 或视觉 grounding。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+为什么 CS336 需要 multimodality 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 这一课程目标}
+检验 这一课程目标 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 multimodal、image、vision、encoder、tokens 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 这一课程目标，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：文本和图像被编码到同一维度的表示空间，后续可用于对齐、检索或作为 LM 输入。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：多模态模型的能力受 vision encoder、数据配对质量和 instruction tuning 共同限制；把 image embedding 接到 LM 不保证 spatial reasoning 或视觉 grounding。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 Alignment 与 multimodality 的整体结构中。为什么 CS336 需要 multimodality 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：为什么 CS336 需要 multimodality}
+multimodal model（多模态模型）把文本、图像、视频等统一到 token/embedding 接口。在“为什么 CS336 需要 multimodality”中，这个概念用于解释 Alignment 与 multimodality 的一个具体机制。
+image 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么 CS336 需要 multimodality”中改变了哪个变量或约束。
+vision 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么 CS336 需要 multimodality”中改变了哪个变量或约束。
+encoder 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么 CS336 需要 multimodality”中改变了哪个变量或约束。
+tokens 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么 CS336 需要 multimodality”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{为什么 CS336 需要 multimodality 的小结}
+\begin{itemize}
+\item 为什么 CS336 需要 multimodality 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{CLIP 式对比学习与表示对齐}
+现在进入 CLIP 式对比学习与表示对齐。本节关心的不是名称本身，而是它把 Alignment 与 multimodality 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 CLIP 式对比学习与表示对齐}
+字幕关键词显示 CLIP、image、text、encoder 反复出现，是本讲重要主线。
+CLIP 用图文对比学习把匹配图像和文本拉近，把不匹配样本推远。
+这种表示可用于 zero-shot classification、retrieval，也可作为 VLM 的视觉基础。
+CLIP 式对比学习与表示对齐 的作用是把 Alignment 与 multimodality 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{CLIP 式对比学习与表示对齐 的机制}
+字幕关键词显示 CLIP、image、text、encoder 反复出现，是本讲重要主线。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+CLIP 用图文对比学习把匹配图像和文本拉近，把不匹配样本推远。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+这种表示可用于 zero-shot classification、retrieval，也可作为 VLM 的视觉基础。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，CLIP 式对比学习与表示对齐 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{CLIP 式对比学习与表示对齐 的数学表达}
+\[\mathcal{L}_{\text{CLIP}}=-\frac{1}{B}\sum_i \log\frac{\exp(s(z^I_i,z^T_i)/\tau)}{\sum_j\exp(s(z^I_i,z^T_j)/\tau)}\]
+符号说明：\(z^I_i,z^T_i\) 是第 \(i\) 个图像和文本表示，\(s\) 是相似度，\(\tau\) 是 temperature。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 CLIP 式对比学习与表示对齐 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+image_emb = image_encoder(images)
+text_emb = text_encoder(captions)
+loss = contrastive_loss(image_emb, text_emb)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item contrastive alignment 不等于能生成细粒度视觉描述。
+\item batch negatives 的质量和规模会影响表示学习。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+CLIP 式对比学习与表示对齐 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 CLIP 式对比学习与表示对齐}
+检验 CLIP 式对比学习与表示对齐 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 CLIP、contrastive、image encoder、text encoder、temperature 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 CLIP 式对比学习与表示对齐，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(z\textasciicircum{}I\_i,z\textasciicircum{}T\_i\textbackslash{}) 是第 \textbackslash{}(i\textbackslash{}) 个图像和文本表示，\textbackslash{}(s\textbackslash{}) 是相似度，\textbackslash{}( au\textbackslash{}) 是 temperature。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：contrastive alignment 不等于能生成细粒度视觉描述；batch negatives 的质量和规模会影响表示学习。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 Alignment 与 multimodality 的整体结构中。CLIP 式对比学习与表示对齐 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：CLIP 式对比学习与表示对齐}
+CLIP 用图文对比学习对齐 image encoder 和 text encoder。在“CLIP 式对比学习与表示对齐”中，这个概念用于解释 Alignment 与 multimodality 的一个具体机制。
+contrastive 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“CLIP 式对比学习与表示对齐”中改变了哪个变量或约束。
+image encoder 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“CLIP 式对比学习与表示对齐”中改变了哪个变量或约束。
+text encoder 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“CLIP 式对比学习与表示对齐”中改变了哪个变量或约束。
+temperature 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“CLIP 式对比学习与表示对齐”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{CLIP 式对比学习与表示对齐 的小结}
+\begin{itemize}
+\item CLIP 式对比学习与表示对齐 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{VLM instruction tuning 与评估}
+现在进入 VLM instruction tuning 与评估。本节关心的不是名称本身，而是它把 Alignment 与 multimodality 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 VLM instruction tuning 与评估}
+LLaVA 等模型把视觉特征投影成 LM tokens，再用图文指令数据训练对话能力。
+多模态 alignment 包含 helpfulness、安全、拒答、视觉事实性和跨模态 grounding。
+评估 VLM 要覆盖 captioning、VQA、OCR、chart/table、spatial reasoning、video understanding 和 hallucination。
+VLM instruction tuning 与评估 的作用是把 Alignment 与 multimodality 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{VLM instruction tuning 与评估 的机制}
+LLaVA 等模型把视觉特征投影成 LM tokens，再用图文指令数据训练对话能力。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+多模态 alignment 包含 helpfulness、安全、拒答、视觉事实性和跨模态 grounding。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+评估 VLM 要覆盖 captioning、VQA、OCR、chart/table、spatial reasoning、video understanding 和 hallucination。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，VLM instruction tuning 与评估 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{VLM instruction tuning 与评估 的数学表达}
+\[\mathcal{L}_{\text{VLM}}=-\sum_t \log p_\theta(y_t\mid \text{image tokens},x,y_{<t})\]
+符号说明：image tokens 是视觉编码后的连续或离散表示，\(x\) 是文本指令，\(y\) 是回答。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 VLM instruction tuning 与评估 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+for image, instruction, answer in vlm_sft_data:
+    inputs = build_multimodal_prompt(image, instruction)
+    update_cross_entropy(inputs, answer)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item VLM hallucination 可能来自语言先验压过视觉证据。
+\item OCR/图表能力需要专门数据与评估，不能只看通用 caption。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+VLM instruction tuning 与评估 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 VLM instruction tuning 与评估}
+检验 VLM instruction tuning 与评估 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 LLaVA、instruction tuning、VQA、OCR、hallucination 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 VLM instruction tuning 与评估，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：image tokens 是视觉编码后的连续或离散表示，\textbackslash{}(x\textbackslash{}) 是文本指令，\textbackslash{}(y\textbackslash{}) 是回答。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：VLM hallucination 可能来自语言先验压过视觉证据；OCR/图表能力需要专门数据与评估，不能只看通用 caption。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 Alignment 与 multimodality 的整体结构中。VLM instruction tuning 与评估 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：VLM instruction tuning 与评估}
+LLaVA 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“VLM instruction tuning 与评估”中改变了哪个变量或约束。
+instruction tuning 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“VLM instruction tuning 与评估”中改变了哪个变量或约束。
+VQA 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“VLM instruction tuning 与评估”中改变了哪个变量或约束。
+OCR 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“VLM instruction tuning 与评估”中改变了哪个变量或约束。
+hallucination 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“VLM instruction tuning 与评估”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{VLM instruction tuning 与评估 的小结}
+\begin{itemize}
+\item VLM instruction tuning 与评估 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{综合讨论：从局部机制到完整系统}
+本章的主题是 Alignment 与 multimodality，但它不应被读成几个相邻知识点的拼接。为什么 CS336 需要 multimodality、CLIP 式对比学习与表示对齐、VLM instruction tuning 与评估 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
+这些对象包括 multimodal model（多模态模型）、vision-language model (VLM)、CLIP、image encoder（图像编码器）、projector（投影器）、LLaVA。读者可以把它们看成一组接口：有的接口连接文本和 token，有的连接模型结构和张量计算，有的连接数据样本和训练目标，有的连接离线评估和在线服务。接口一旦改变，后面的成本、错误类型和优化空间也会随之改变。
+\subsection{为什么 CS336 需要 multimodality 在系统中的位置}
+为什么 CS336 需要 multimodality 首先提供一个局部解释：视频说明原计划继续 RL，但课程若完全不讲 multimodality 会不完整，因为主流模型已普遍多模态。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，为什么 CS336 需要 multimodality 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，为什么 CS336 需要 multimodality 不能脱离边界条件理解。一个关键 caveat 是：多模态模型的能力受 vision encoder、数据配对质量和 instruction tuning 共同限制。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{CLIP 式对比学习与表示对齐 在系统中的位置}
+CLIP 式对比学习与表示对齐 首先提供一个局部解释：字幕关键词显示 CLIP、image、text、encoder 反复出现，是本讲重要主线。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，CLIP 式对比学习与表示对齐 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，CLIP 式对比学习与表示对齐 不能脱离边界条件理解。一个关键 caveat 是：contrastive alignment 不等于能生成细粒度视觉描述。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{VLM instruction tuning 与评估 在系统中的位置}
+VLM instruction tuning 与评估 首先提供一个局部解释：LLaVA 等模型把视觉特征投影成 LM tokens，再用图文指令数据训练对话能力。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，VLM instruction tuning 与评估 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，VLM instruction tuning 与评估 不能脱离边界条件理解。一个关键 caveat 是：VLM hallucination 可能来自语言先验压过视觉证据。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{把本章知识用于读论文和复现实验}
+读相关论文时，可以把本章变成一个检查表。第一，论文是否清楚定义了输入规模、模型规模、数据来源和评估协议；第二，论文声称的改进落在哪个变量上；第三，作者是否报告了会让结论失效的设置；第四，实验是否能分离模型结构、数据质量、优化设置和系统实现的影响。
+复现实验时，也应避免直接追求大规模。先用最小程序复现一个公式、一个伪代码分支或一个 profile 现象，再扩大输入规模。这样做的原因很简单：如果小规模程序无法解释中间量，大规模训练只会把错误隐藏在日志和随机波动里。
+把这些检查合在一起，本章给出的不是一个固定答案，而是一种阅读 CS336 的方法：每个模型机制都要落到变量，每个变量都要落到测量，每个测量都要说明协议，每个协议都要承认边界。
+因此，本章中的任何一句结论都可以被改写成一个可引用的完整句式：在给定数据、模型、硬件和评估协议下，某个机制改变了某个变量，并通过某个观测指标表现出来。这样的句子比单独背诵术语更长，但它包含了自学、复现和引用时真正需要的信息。
+把本章用于自学时，可以按三遍阅读。第一遍只追踪对象和定义，确认每个术语到底指向文本、token、张量、样本、请求还是评估记录。第二遍追踪公式和伪代码，确认每一步改变了哪些状态。第三遍追踪实验和 caveat，确认哪些结论只在特定规模、数据或硬件条件下成立。
+把本章用于复习时，则应反过来操作：先从一个失败案例或异常指标出发，再回到相应机制。loss 曲线异常可能指向数据、优化或模型容量；吞吐异常可能指向 kernel、通信或调度；benchmark 异常可能指向 contamination、prompt protocol 或采样设置。能够从异常反推机制，是掌握本章的实用标准。
+\section{例题：把概念变成可计算检查}
+\subsection{把 CLIP 表示接入 LLM}
+图像经 vision encoder 得到 patch features，再经 projector 映射到语言模型 hidden size。
+\begin{itemize}
+\item CLIP 式对比学习提供图文对齐表示。
+\item projector 把视觉表示转换成 LM 可消费的 image tokens。
+\item instruction tuning 教模型在视觉上下文中回答问题。
+\end{itemize}
+\textbf{结论。} VLM 的关键不只是接口形状，而是视觉证据是否真正约束了语言输出。
+这个例题的目的不是替代完整工程实现，而是给出一种最小推理形式：把问题转成变量，写出近似公式或伪代码，再说明近似何时失效。
+\section{实验设计：从小例子到可复现结论}
+学习 Alignment 与 multimodality 不能停在概念层。一个教材化结论至少需要四件事：可构造的输入、可观测的中间量、可比较的指标，以及清楚的失败条件。下面的实验设计不是要求训练大模型，而是要求读者用小规模程序复现本章机制。
+\subsection{最小输入}
+先构造只触发本章核心机制的小输入。例如 tokenizer 章节可以用几个包含 rare words 和 Unicode 字符的字符串；GPU 章节可以用一个 elementwise kernel 和一个 GEMM；data 章节可以用十几篇近重复文档。小输入的价值在于它让错误可见。
+\subsection{资源账本}
+对同一输入写下 FLOPs、bytes moved、显存峰值、通信量或样本数量的估算。估算不需要一开始就精确，但必须说明单位和近似假设。随后用 profiler、benchmark、validation loss 或人工检查去验证估算是否同量级。
+\subsection{单变量消融}
+一次只改变一个因素，例如 vocabulary size、head 数、batch size、filter threshold、reward scale、decoding temperature 或 GPU 数量。若多个变量同时变化，实验只能说明系统变了，不能说明机制是什么。
+\subsection{失败条件}
+最后要刻意触发失败：极端 context length、错误 dtype、过小 batch、污染 benchmark、低质量数据或不可靠 verifier。失败条件常常比成功曲线更能说明一个方法的边界。
+\subsection{记录与报告}
+实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
+常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\section{课程资料与回看路径}
+教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
+\subsection{视频回看路径}
+\begin{longtable}{p{0.20\linewidth}p{0.46\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{时间} & \textbf{关键词} & \textbf{复习任务}\\
+\midrule
+00:00:05-00:06:05 & language, give, images, image, tokens., class, models. & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:19:08-00:25:06 & it's, text, image, going, images, another, point & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:38:12-00:44:42 & images, then, multiple, data, image, look, single & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:51:17-00:57:14 & then, it's, video, time, model., they're, i'll & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+01:11:06-01:17:16 & there's, think, training, even, it's, then, your & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+\bottomrule
+\end{longtable}
+这些时间段用于定位视频中的讲解顺序。严肃引用时，应回到视频片段确认讲者表述、板书或幻灯片内容。
+回看视频时，不必逐字抄录字幕。更有效的方法是把每个时间段判定为定义、例子、推导、代码解释或 caveat，再把它放回本章对应小节。
+\subsection{课程资料阅读路径}
+\begin{longtable}{p{0.14\linewidth}p{0.48\linewidth}p{0.30\linewidth}}
+\toprule
+\textbf{资料组} & \textbf{标题/页块} & \textbf{关键词}\\
+\midrule
+official\_01 & Lecture 17: multimodal models & multimodal, modalities, non-text, text, omni, input, combination\\
+official\_03 & - Attention pooling: do QKV with query = global average of activations & text, image, images, classification, large, trained, imagenet\\
+official\_05 & Training: & resolution, image, vision, encoder, multiple, images, video\\
+official\_08 & - Pre-training has 4 stages (train adapter, train all parameters on 8K, 32K, 256K ... & tokens, image, data, train, images, generate, discrete\\
+official\_10 & Initialize LM with Qwen2 and vision encoder from DFN & function, vision, encoder, siglip, chameleon, initialize, qwen2\\
+\bottomrule
+\end{longtable}
+课程资料通常给出更稳定的标题、公式、图或代码结构；视频则补充动机和口头解释。两者合起来构成本章的事实边界。
+阅读资料时，可以把每个资料组拆成三个对象：一个定义，一个公式或伪代码动作，一个边界条件。这样比逐字翻译页面或脚本更容易形成可用知识。
+\section{实践说明、历史位置与风险}
+Alignment 与 multimodality 在 CS336 的课程结构中连接基础机制和规模化问题。基础机制解释方法为什么成立；规模化问题检验它在更大模型、更长上下文、更复杂数据或真实 serving workload 下是否仍成立。
+历史位置不等于模型年表。更重要的是识别问题如何迁移：早期方法解决小规模建模问题，现代方法常常解决同一问题在大规模数据、GPU 集群、长上下文或人类偏好约束下的新形态。
+\begin{itemize}
+\item 资料版本限制（version risk）：课程页、公开视频和配套资料可能在学期中更新；引用时应注明访问日期或资料版本。
+\item 测量口径限制（measurement risk）：FLOPs、tokens/s、benchmark score、reward 等数字只有在协议完整时可比较。
+\item 规模外推限制（scaling risk）：小模型或小 batch 的机制不必然外推到 frontier-scale。
+\item 数据分布限制（data risk）：数据来源、过滤和去重策略会改变模型行为，也会改变 evaluation contamination 风险。
+\item 对齐风险（alignment risk）：post-training 或 multimodal tuning 的行为变化可能提高 helpfulness，同时降低校准、透明度或安全边界。
+\end{itemize}
+\section{复习要点}
+下面的问题把本章内容压缩为可反复检查的条目。每个条目都应能回到前文的解释、公式、伪代码或例题。
+\begin{longtable}{p{0.16\linewidth}p{0.38\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{条目} & \textbf{对象} & \textbf{检查动作}\\
+\midrule
+条目 1 & multimodal model（多模态模型） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 2 & vision-language model (VLM) & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 3 & CLIP & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 4 & image encoder（图像编码器） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 5 & projector（投影器） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 6 & LLaVA & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+\bottomrule
+\end{longtable}
+\subsection{综合自测}
+\begin{itemize}
+\item 我能否不用课程原句，独立解释本章中心问题？
+\item 我能否把本章至少一个公式改写成可运行的估算函数？
+\item 我能否指出一个看似改进但实际转移成本的方法？
+\item 我能否回到视频和课程资料，找到支持本章关键论断的位置？
+\item 我能否设计一个最小 ablation，验证本章一个 caveat？
+\end{itemize}
 \section{总结与延伸}
-第 17 讲把 RLVR 的机械结构彻底拆开，给整门课做了一个很强的技术收束。
-
-第一，\textbf{语言模型里的 RL 仍然从最基本的 policy gradient 出发。} 只是状态、动作和奖励的语义与传统 RL 略有不同。
-
-第二，\textbf{baseline 和 advantage 是降方差的核心。} 它们让模型关注“相对本 prompt 平均水平的提升”，而不是被绝对奖励牵着走。
-
-第三，\textbf{GRPO 利用了语言模型的组结构。} 同一 prompt 采样多条回答，就天然提供了一个便宜的相对比较基线。
-
-第四，\textbf{reward 形状会直接改写训练动态。} raw reward、centered reward 和 normalized reward 的差别不是数学装饰，而是实际影响收敛路径。
-
-第五，\textbf{RLVR 的前提是 reward 足够可测。} 一旦可以可靠验证，RL 才真正能成为能力增长引擎。
-
-第六，\textbf{RL 系统复杂度远高于预训练。} rollout、reward、KL 和 reference model 让整个后训练栈变得更像一个在线优化系统。
-
-\begin{importantbox}{整门 CS336 经过第 17 讲后的最终压缩}
-从零构建语言模型，最后不会停在 tokenization、Transformer 或 scaling law 上，而会自然走向一个更难的问题：当模型已经足够大时，我们还能给它什么样的反馈，才能持续把能力往前推。
-\end{importantbox}
-
-到这里再回看课程开头，就会发现 CS336 的主线非常完整：先把语言模型做出来，再把它做大、做快、做稳、做可评测，最后再去思考如何让它在可验证目标上继续变强。
-
-%% --- 正文内容结束 --- %%
-
+\subsection{本章小结}
+\begin{itemize}
+\item Alignment 与 multimodality 的核心不是记忆术语，而是理解对象、变量和机制之间的关系。
+\item 视频给出讲解顺序，课程资料提供可核对的公式、图、代码或页面结构。
+\item 复习时应把每个术语连接到至少一个变量、一个实现动作和一个失败模式。
+\end{itemize}
+\subsection{延伸解释}
+本章中的延伸解释用于连接课程材料中的概念，例如说明公式里的 proxy、解释系统 tradeoff，或把多个材料片段串成一个完整推理链。若需要严肃引用，应回到课程视频和配套资料核对原始表述。
+\subsection{练习}
+\begin{itemize}
+\item 定义题：用中英双语解释本章任意五个重要术语，并说明它们属于 compute、memory、data、optimization、evaluation 还是 deployment 账本。
+\item 推导题：选择本章一个公式，逐个解释符号、单位和近似假设，并说明哪个变量最难在真实系统中测量。
+\item 实现题：把本章伪代码改写成一个最小 Python sanity check，不要求训练大模型，但要输出可检查的中间量。
+\item 资料题：从“课程资料与回看路径”中选择一个视频时间段，回到原始视频核对讲者例子，并记录是否存在字幕误差。
+\item 评估题：为本章方法设计一个 ablation 或 benchmark，说明控制变量、数据版本、指标和 failure criteria。
+\item 边界题：说明本章一个结论在更长 context、更大 batch、更多 GPU 或更复杂数据分布下可能如何失效。
+\item 综合题：把本章内容和前一章或后一章连接起来，写出一个端到端训练/推理 pipeline 中的依赖关系。
+\item 批判题：指出一个容易被营销材料夸大的说法，并用本章的资源账本或评估协议反驳它。
+\end{itemize}
 \end{document}

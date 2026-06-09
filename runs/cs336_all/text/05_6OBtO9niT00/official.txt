@@ -6,16 +6,16 @@ Lecture 5
 
 Outline and goals
 
-                                ❖ Make CUDA and GPUs less magic
+                               ❖ Make CUDA and GPUs less magic
 
- Understand when GPUs get slow                                              Understand how to make fast algorithms
+ Understand when GPUs get slow                                           Understand how to make fast algorithms
 
-       http s://www.thonking.ai/p/what-shapes-do-mat rix-multiplicat ions                                Dao et al, Flash At ten tion
+       https://www.thonking.ai/p/what-shapes-do-matrix-multiplications                                Dao et al, Flash Attention
 
 Before we start..
 Substantial credit goes to a few sources that I’d like to highlight..
 
-           Horace He’s blog                                                   CUDA Mode group
+Horace He’s blog                        CUDA Mode group                             TPU (and now GPU) book (!!)
 
                   And other sources including https://nichijou.co/, https://jonathan-hui.medium.com/
 
@@ -27,10 +27,10 @@ Organization today:
 
        ❖ Part 3: Putting it together – unpacking FlashAttention
 
-      Setting the stage: compute leads to predictable perf
+Setting the stage: compute leads to predictable perf
   Often times, compute leads to predictable performance gains for language models
 
-                                                                     Kaplan et al, Neural Scalin g Laws
+                                                                     Kaplan et al, Neural Scaling Laws
 
 Faster hardware, better utilization, improved parallelization alone can drive progress (for now..)
 
@@ -57,17 +57,17 @@ CPUs optimize for a few, fast threads while GPUs optimize for many many threads
 
 Anatomy of a GPU (execution units)
 
-Each SM further contains many SPs    GPUs have many SM (streaming
-    (streaming processor) that can   multiprocessors) that independently
-    execute ‘threads’ in parallel    execute ‘blocks’ (jobs).
+Each SM further contains many SPs   GPUs have many SM (streaming
+   (streaming processor) that can   multiprocessors) that independently
+   execute ‘threads’ in parallel    execute ‘blocks’ (jobs).
 
-  Anatomy of a GPU (memory)
+Anatomy of a GPU (memory)
 The closer the memory to the SM, the faster it is – L1 and shared memory is inside
 the SM. L2 cache is on die, and global memory are the memory chips next to the GPU
 
      SRAM (shared/cache memory) is much more expensive (100x) but ~ 8x faster than DRAM (Global memory)
 
-  Execution model of a GPU
+Execution model of a GPU
 
 There are 3 important players in the execution model
 Threads: Threads ‘do the work’ in parallel – all threads execute the same instructions but with
@@ -75,7 +75,7 @@ Threads: Threads ‘do the work’ in parallel – all threads execute the same 
 Blocks: Blocks are groups of threads. Each block runs on a SM w/ its own shared memory.
 Warp: Threads always execute in a ‘warp’ of 32 consecutively numbered threads each.
 
-  Memory model of a GPU
+Memory model of a GPU
 
 Each thread can access its own register, and shared memory within the block.
 Information that goes across blocks need to be read/written to global memory (slow)
@@ -90,6 +90,11 @@ GPUs, TPUs, and many other accelerators are at a high level, similar
    Core structure – lightweight control, fast (big) matmul unit, fast memory.
   Differences - how the accelerators are networked (in the parallelism lecture)
               - no warps (just blocks – tradeoffs in matmul vs non-matmul)
+
+Side thread – What about TPUs?
+
+Core structure – lightweight control, fast (big) matmul unit, fast memory.
+                                                           https://jax-ml.github.io/scaling-book/gpus/
 
 Strengths of the GPU model
 ❖ Easily scales up hard workloads (by adding more SMs)
@@ -160,22 +165,41 @@ Low precision improves arithmetic intensity
 Example: elementwise ReLU (𝑥 = max(0, 𝑥)) on a vector of size 𝑛.
 
 (Float 32 case)
-Memory access: 1 read (x), 1 write (if x < 0), float 32 = 8 bytes
+Memory access: 1 read (x), 1 write (if x < 0), float 32 = 4 bytes per op
 Operations: 1 comparison op, 1 FLOP.
 Intensity: 8 bytes / FLOP
 
 (Float 16)
-Memory access: 1 read (x), 1 write (if x < 0), float 16 = 4 bytes
+Memory access: 1 read (x), 1 write (if x < 0), float 16 = 2 bytes per op
 Operations: 1 comparison op, 1 FLOP.
 Intensity: 4 bytes / FLOP
 
- Low precision drives faster matrix multiplies
+Low precision drives faster matrix multiplies
 
 Lots of operations in modern GPUs are accelerated via low / mixed precision operations
 
-               Tensor cores
+              Tensor cores
 
-                              https://nvlabs.github.io/eccv2020-mixed-precision-tutorial/files/dusan_stosic-training-neural-networks-with-tensor-cores.pdf
+                             https://nvlabs.github.io/eccv2020-mixed-precision-tutorial/files/dusan_stosic-training-neural-networks-with-tensor-cores.pdf
+
+Frontiers in low precision
+Very low precision (FP8) with different tradeoffs                 Multiple scaling factors MXFP8 (Blackwell)
+
+        MXFP8 has many interesting things about it
+        •   Uses E4M3 (more mantissa) due to more scale factors
+        •   Scale factors themselves are FP8 (E8M0), 1 per 32
+        •   Transposes are now nontrivial!
+
+MXFP8 training in practice
+
+Notice – not all weights in MXFP8, transposes also separately quantized
+
+                                                                    https://arxiv.org/html/2506.08027v2
+
+Frontiers in low precision
+MXFP4..
+
+This is all the values you can represent! 1 per 16 scaling, E4M3 scaling factors.
 
 Trick 2: Operator fusion
 Think of a GPU like a factory – inputs come from a warehouse (memory) and is
@@ -192,14 +216,14 @@ What if we have to do many operations? Shipping back and forth is somewhat silly
 
 Example – sines and cosines
 
-Computing sin2 𝑥 + cos 2 𝑥 naively launches 5 CUDA kernels (back and forth)
+Computing sin 2 𝑥 + cos 2 𝑥 naively launches 5 CUDA kernels (back and forth)
 
-                    https://towardsdatascience.com/how-pytorch-2-0-accelerates-deep-learning-with-operator-fusion-and-cpu-gpu-code-generation-35132a85bd26
+                     https://towardsdatascience.com/how-pytorch-2-0-accelerates-deep-learning-with-operator-fusion-and-cpu-gpu-code-generation-35132a85bd26
 
 Fusion example
 
        All 5 pointwise operations can be fused into a single CUDA kernel call.
-   ‘Easy’ fusions like this can be done automatically by compilers ( torch.compile)
+   ‘Easy’ fusions like this can be done automatically by compilers (torch.compile)
 
 Trick 3: recomputation
 
@@ -215,7 +239,7 @@ Let’s say we stack 3 sigmoids on top of each other.
 
 Throw away the activations, re-compute them!
 
-Throwing away computation can actually be optimal, w/ 5/8th the memory accesses!
+Throwing away computation can actually be optimal, w/ 5/8 th the memory accesses!
 
                                  https://dev-discuss.pytorch.org/t/min-cut-optimal-recomputation-i-e-activation-checkpointing-with-aotautograd/467
 
@@ -276,14 +300,14 @@ Factors affecting tile sizes
 • Divisibility of the matrix dim
                                    https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html#tile-quant
 
-   Complexities with tiling 2 – memory alignment
+Complexities with tiling 2 – memory alignment
 
 Memory comes in bursts
 
 Loading tiles are fast if
 bursts align with the matrix
 
-                                                                    https://www.thonking.ai/p/what-shapes-do-matrix-multiplications
+                                                                    https://www.thonki ng.a i/p/what-shapes-do-matrix-mul tiplications
 
 Coalesced accesses may be impossible depending on the dimension of the matrix..
                                 (have to do padding)
@@ -320,15 +344,15 @@ Part 2: wave quantization
 Recap of part 2: making ML workloads go fast
 
 ❖ Reduce memory accesses
-   ❖Coalescing
-   ❖Fusion
+   ❖ Coalescing
+   ❖ Fusion
 
 ❖ Move memory to shared memory
-   ❖Tiling
+   ❖ Tiling
 
 ❖ Trade memory for compute/accuracy
-   ❖Quantization
-   ❖Recomputation
+   ❖ Quantization
+   ❖ Recomputation
 
 Part 3: Using what we know to understand Flash Attention
 Flash attention [Dao et al] dramatically accelerates attention.. But how?

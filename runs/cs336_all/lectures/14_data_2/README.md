@@ -1,10 +1,5 @@
-# Lecture 14: Data 2
+# Lecture 14: 数据过滤、去重、混合与合成数据
 
-- Video ID: `9Cd0THLS1t0`
-- Cover: [cover.jpg](cover.jpg)
-- Transcript: [transcript.txt](transcript.txt)
-- Official material: [official.txt](official.txt)
-- Generated notes: [notes.md](notes.md)
-- Official trace: [official_trace.json](official_trace.json)
-
-This folder is the lecture-specific workspace for refining this lecture into its own polished note/PDF.
+- video: https://www.youtube.com/watch?v=5sxHosTLPF8
+- material: lecture_14.py
+- basis: Spring 2026 public playlist subtitles + official course page/materials.

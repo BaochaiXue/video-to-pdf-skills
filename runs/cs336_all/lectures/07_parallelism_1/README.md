@@ -1,9 +1,5 @@
-# Lecture 7: Parallelism 1
+# Lecture 07: 多 GPU 并行基础
 
-- Video ID: `l1RJcDjzK8M`
-- Cover: [cover.jpg](cover.jpg)
-- Transcript: [transcript.txt](transcript.txt)
-- Official material: [official.txt](official.txt)
-- Generated notes: [notes.md](notes.md)
-
-This folder is the lecture-specific workspace for refining this lecture into its own polished note/PDF.
+- video: https://www.youtube.com/watch?v=SzpOcwdIL0Y
+- material: lecture_07.py
+- basis: Spring 2026 public playlist subtitles + official course page/materials.

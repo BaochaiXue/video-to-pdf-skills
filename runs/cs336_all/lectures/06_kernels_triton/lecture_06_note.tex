@@ -1,262 +1,380 @@
 \documentclass[a4paper]{article}
-
 \usepackage[fontset=fandol]{ctex}
-\usepackage{amsmath, amssymb}
+\usepackage[margin=1.65cm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage[margin=2.4cm]{geometry}
-\usepackage[most]{tcolorbox}
-\usepackage{etoolbox}
 \usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{subcaption}
-\usepackage{float}
+\usepackage{longtable,booktabs}
+\usepackage{xcolor}
+\usepackage{enumitem}
 \usepackage{listings}
-
-\lstset{
-  basicstyle=\ttfamily\small,
-  breaklines=true,
-  columns=fullflexible,
-  frame=single
-}
-
-\newtcolorbox{knowledgebox}[1]{
-    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
-    boxrule=1pt, sharp corners
-}
-
-\newtcolorbox{importantbox}[1]{
-    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
-    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newtcolorbox{warningbox}[1]{
-    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newcommand{\notetitle}{CS336 第 6 讲：Kernel、Triton 与“让 GPU 真正跑快”}
-\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 6 讲视频、字幕与官方课程材料重写}
-\newcommand{\notedate}{2026-04-07}
-\newcommand{\videochannel}{Stanford Online}
-\newcommand{\videopublishdate}{2025年05月08日}
-\newcommand{\videoduration}{1:20:22}
-\newcommand{\videourl}{https://www.youtube.com/watch?v=E8Mju53VB00}
-\newcommand{\videocoverpath}{cover.jpg}
-
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,keepspaces=true}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{2em}
+\sloppy
+\title{第 06 讲：Kernel、Triton 与 XLA}
+\author{CS336 Spring 2026 public videos and official course materials}
+\date{}
 \begin{document}
-
-\begin{titlepage}
-\centering
-{\Large 课程笔记\par}
-\vspace{1.2cm}
-{\huge\bfseries \notetitle\par}
-\vspace{0.8cm}
-{\large \noteauthors\par}
-\vspace{0.3cm}
-{\large \notedate\par}
-\vspace{1.2cm}
-
-\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
-
-\vfill
-\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
-\textbf{视频作者/频道}：\videochannel\par
-\textbf{发布日期}：\videopublishdate\par
-\textbf{视频时长}：\videoduration\par
-\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
-\end{tcolorbox}
-\end{titlepage}
-
+\maketitle
 \tableofcontents
 \newpage
-
-\section{这讲在系统主线中的位置}
-第 5 讲已经解释了 GPU 不是魔法，而是一种受 memory hierarchy 强烈约束的吞吐机器。第 6 讲继续往下一层走：既然我们已经知道 GPU 为什么会快、为什么会慢，那么\textbf{怎样真正写出或理解一个高性能 kernel？} 这就是这讲的中心。
-
-课程把任务拆成两半：一半是 benchmarking / profiling，另一半是 CUDA / Triton 视角下的 kernel 编写。这个拆法很合理，因为你不先知道“慢在哪里”，就没有资格讨论“该怎么改快”。
-
-\begin{importantbox}{第 6 讲的中心命题}
-高性能 kernel 不是“把一段数学公式翻译成 GPU 代码”那么简单，而是要把计算组织成一种符合 GPU execution model 与 memory hierarchy 的形式。
-\end{importantbox}
-
-\subsection{从 A100 / H100 规格到真实 workload}
-课程在最开始先回顾硬件：SM 数量、DRAM、L2、L1 / shared memory 等。这里的重点并不是让学生背规格，而是建立一种“现实硬件是有限资源池”的直觉。即使你有 H100，shared memory 仍然很小；即使 matmul 非常快，global memory 仍然是瓶颈；即使你能开很多线程，thread blocks 仍然要按 SM 分波次调度。
-
-\subsection{本章小结}
-这一讲不是在重复 GPU 课，而是在为 kernel 设计建立实践入口：你不只是需要知道 GPU 有什么组件，还要知道这些组件会怎样真实限制你的程序。
-
-\section{先别优化，先 benchmark / profile}
-\subsection{为什么 benchmarking 比“看 spec sheet”更重要}
-课程对 benchmarking 的态度很明确：你当然可以看论文、看 spec、看厂商材料，但对自己手头的库版本、硬件和 workload 来说，\textbf{没有任何东西能替代直接 benchmark / profile。} 这是因为 kernel 性能高度依赖具体实现、输入形状、数据类型和运行环境。
-
-这一点和第 2 讲的 resource accounting 一脉相承。第 2 讲给你的是一阶近似和数量级判断；第 6 讲要你开始接受另一个现实：很多运行时现象并不是纸面 FLOPs 直接决定的，而必须靠实测来验证。
-
-\subsection{Benchmark 解决的是“有多快”，profiling 解决的是“快慢来自哪”}
-课程区分得很清楚：
+\section{本章导读}
+本章讨论 \textbf{Kernel、Triton 与 XLA}。CS336 的第一层目标不是把现成大模型当作黑箱使用，而是把 language model 从输入文本、训练目标、模型结构、数据、系统和评估这些部件重新拆开。只有拆开之后，读者才能判断一个设计选择究竟改变了什么。
+设想一个 row-wise softmax kernel 比 PyTorch baseline 慢。真正的修复流程不是凭直觉改代码，而是先做 warmup 和同步计时，再用 profiler 找瓶颈，最后通过 tiling、fusion 或 Triton block program 控制数据移动。
+本章对应 CS336 Spring 2026 第 06 个公开视频，并结合课程页提供的可解析资料。视频和课程页给出事实边界；正文把这些材料改写为可自学的教材章节。
+阅读本章时，先理解问题为什么存在，再看定义、公式和实现形态，随后通过例题和练习检查自己是否能独立复现这条 reasoning chain。
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.58\linewidth]{source_anchor.jpg}
+\caption{第 06 讲的课程图像锚点。}
+\end{figure}
+\subsection{本章知识路线}
 \begin{itemize}
-\item \textbf{benchmarking} 给的是 end-to-end wall-clock time。
-\item \textbf{profiling} 则帮你看清具体哪些 op、哪些 kernel、哪些同步点在吃时间。
+\item 本章首先说明 Kernel、Triton 与 XLA 为什么是 language modeling pipeline 中不可跳过的一环。
+\item 其次定义本章反复使用的术语，并说明这些术语对应的计算对象或系统对象。
+\item 随后用公式和伪代码表达主要机制，让概念能够落到可计算的变量上。
+\item 最后给出例题、风险讨论和练习，便于读者检查自己是否真正掌握了机制。
 \end{itemize}
-
-这个区分非常重要。只 benchmark 不 profile，你只能知道 A 比 B 快，却不知道原因；只 profile 不 benchmark，你可能知道热点在哪，却不知道这些热点对整体吞吐的实际贡献有多大。
-
-\subsection{把这套工具链真正用起来}
-课程把 benchmark / profile 讲得很具体，而不是停留在口号上。做基准测试时，\texttt{torch.utils.benchmark} 是一个现成工具，但课堂上仍然保留了一个轻量的 \texttt{benchmark} 包装器，把 warmup、CUDA synchronize 和 trial 平均显式写出来，这样你能看见每一步到底在做什么。做 profiling 时，\texttt{torch.profiler} 可以直接揭示哪些 CUDA kernels 在吃时间，课程里的 MLP 例子还会配合 flame graph 看栈信息。
-
-如果你自己在写 CUDA 扩展，\texttt{CUDA\_LAUNCH\_BLOCKING=1} 也属于同一条工具链：它能让错误在发生的调用点暴露出来，而不是拖到后面的异步 kernel 才一起炸掉。课程明确提到作业里还会继续用 Nsight 往更底层看，因此这是一条从 wall-clock 到 profiler 再到 tracer 的下钻路径，而不是彼此割裂的工具列表。
-
-\subsection{为什么矩阵乘法看起来简单，性能却并不总是可预测}
-课程专门用 square matmul 和一个小 MLP 做 benchmark，随后演示不同维度、层数、batch size 下时间变化并不总是线性可预测。这再次说明：真实 CUDA kernel 会受到 tile 形状、调度、对齐、occupancy 和库内实现细节的影响。
-
-\begin{warningbox}{关于 kernel 性能的一个常见误区}
-“数学上复杂度一样，所以速度应该差不多” 在 GPU 上经常不成立。相同数量级的操作，如果访存模式、tile 对齐或 kernel 调度方式不同，最终时间可能差很多。
-\end{warningbox}
-
-\subsection{本章小结}
-优化之前先 benchmark / profile，并不是保守做法，而是唯一靠谱的起点。因为你要面对的不是抽象程序，而是某个具体环境里的某个具体 kernel。
-
-\subsection{官方脚本补充：benchmarking / profiling 到底落在哪些工具上}
-Spring 2025 的官方 lecture script 在这部分其实比现有讲义更“可执行”。它不是抽象地说“要 benchmark、要 profile”，而是明确给出了一条工具链：
+\subsection{结构图}
+下面的图用于帮助读者定位本章的核心结构。先看概念之间的依赖，再回到正文中的公式、伪代码和例题。
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.72\linewidth]{figures/source_grounded_concept_map.png}
+\caption{第 06 讲概念图：本章问题、术语和机制的关系。}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.72\linewidth]{figures/source_grounded_checklist.png}
+\caption{第 06 讲学习路径：从问题定义进入公式、实现、实验和练习。}
+\end{figure}
+\section{本章主线}
+本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+\subsection{本章要解决的核心问题}
+本讲从 profiling 和 benchmarking 出发，要求先测量再优化。GPU 异步执行意味着计时必须 warmup、同步，并用 profiler 找到真正热点。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，Kernel、Triton 与 XLA 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从机制到资源账本}
+Triton 的教学价值在于把 GPU kernel 写作提升到 block-level 抽象：显式处理 offsets、mask、load、compute、store，同时仍能思考 coalescing、shared memory 和 tiling。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，Kernel、Triton 与 XLA 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从课堂讲解到可复现实验}
+kernel fusion 和 tiling 是减少 HBM 往返的基本策略。它们提高性能的前提是没有引入过高寄存器压力、过低 occupancy 或数值错误。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，Kernel、Triton 与 XLA 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\section{术语、符号与问题边界}
+本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
+\begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
+\toprule
+\textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
+\midrule
+1 & kernel（内核） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+2 & Triton & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+3 & XLA & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+4 & profiling（性能剖析） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+5 & fusion（算子融合） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+6 & tiling（分块） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+\bottomrule
+\end{longtable}
+这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
+\subsection{关键词}
+下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
 \begin{itemize}
-\item 用 \texttt{torch.utils.benchmark} 做可重复的 wall-clock benchmark；
-\item 用 \texttt{torch.profiler} 看 kernel 级执行时间、调用关系与热点；
-\item 在需要强制同步定位错误时，显式打开 \texttt{CUDA\_LAUNCH\_BLOCKING=1}；
-\item 在 profiler 输出上配合 flame graph / trace viewer 去看调用栈，而不是只看一串平铺的时间表。
+\item function, thread, memory, shared, threads, block, triton, blocks, time, example, bank, occupancy, write, registers
 \end{itemize}
-
-这条工具链之所以值得写进教材，是因为它把“benchmarking 回答有多快，profiling 回答为什么快或慢”这句话真正落到了操作层。对系统研究者而言，这一步非常重要：\textbf{没有工具链，方法论就很容易退化成口号。}
-
-\section{Arithmetic Intensity：把所有优化语言统一起来}
-\subsection{为什么课程要把“算术强度”放在整讲中央}
-第 6 讲最重要的统一指标就是 arithmetic intensity：
-\[
-I = \frac{\#\text{FLOPs}}{\#\text{Bytes}}
-\]
-
-课程给出的解释非常直接：如果这个比值高，操作更可能是 compute-bound；如果这个比值低，操作更可能是 memory-bound。它之所以重要，是因为几乎所有 kernel 优化技巧，最终都可以翻译成“怎样提高或保护算术强度”。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.84\textwidth]{frames/arithmetic_intensity.png}
-\caption{课程直接把 arithmetic intensity 放到中间位置：高表示更接近 compute-bound，低表示更容易被 memory-bound 卡死。\protect\footnotemark}
-\end{figure}
-\footnotetext{视频画面时间区间：约 00:07:40--00:08:00。该图来自课程视频中的屏幕画面。}
-
-\subsection{为什么矩阵乘法通常是 compute-bound，而很多别的操作不是}
-矩阵乘法之所以特殊，是因为一次搬进来的数据会被大量重复用于乘加，因此更容易把计算做“厚”；而 elementwise、简单激活、归一化之类的操作，往往每搬一次数据只做很少计算，因此更容易变成 memory-bound。
-
-这就是后面 operator fusion、tiling、shared memory 这些技巧会围着 matmul 以外的操作打转的原因：它们要么试图把本来低强度的操作变得更厚一点，要么至少别让这些操作把整体 pipeline 拖得太惨。
-
-\begin{knowledgebox}{第 6 讲最值得背下来的判断}
-矩阵乘法通常是 compute-bound，很多其余深度学习常见 op 更容易 memory-bound。理解这条经验，会让后面很多 kernel 设计取舍立刻变得顺理成章。
-\end{knowledgebox}
-
-\subsection{本章小结}
-arithmetic intensity 在这讲里起到的是“元语言”作用。它让你不用把每个技巧都孤立记忆，而是统一用“更多计算 / 更少搬运”的尺度去理解它们。
-
-\section{六种常见提速手段：本质都在和 memory 搏斗}
-\subsection{低精度：先从少搬一点数据开始}
-课程再次强调低精度的重要性，但这次重心不是训练稳定性，而是 kernel 性能。位宽下降意味着一次内存传输带来的元素数增加，从而直接改善很多操作的算术强度。尤其在 tensor cores 已经高度优化低精度矩阵乘法的情况下，这种收益非常直接。
-
-\subsection{operator fusion：不要把仓库物流当成默认代价}
-课程用了一个非常好的类比：memory 像仓库，compute 像工厂。如果每做一个小操作都把中间结果运回仓库，再读出来做下一步，那整体性能很可能被物流拖死。fusion 的意义就是把本来会反复读写 global memory 的连续操作合进一个 kernel。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.84\textwidth]{frames/warehouse_factory.png}
-\caption{memory 是仓库，compute 是工厂。这个类比几乎可以概括第 6 讲对 kernel 优化的全部直觉。}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.84\textwidth]{frames/operator_fusion.png}
-\caption{operator fusion 的收益来自减少中间结果反复写回 / 读出 global memory，而不是来自“数学更优雅”。\protect\footnotemark}
-\end{figure}
-\footnotetext{视频画面时间区间：约 00:42:00--00:42:20。该图来自课程视频中的屏幕画面。}
-
-课程用 GeLU 举例非常典型。手写版本会拆成多次 elementwise op，每一步都可能触发独立 kernel；PyTorch 的 fused 版本则只需要更少 kernel 调用。这种差异在 GPU 上会非常大，因为你节省的是 launch 开销和 memory round-trip。
-
-\subsection{recomputation：有时重算比存下再读更划算}
-第 6 讲延续了第 5 讲对 activation checkpointing 的直觉，但放得更通用：有时候保留所有中间结果会导致巨大的 memory 读写开销，倒不如在需要的时候局部重算。只要重算的 FLOPs 比搬运的代价更便宜，这笔账就可能是合算的。
-
-\subsection{coalescing 与 tiling：真正的大头}
-coalesced memory access 和 tiling 可以看作这讲最“硬核”的两部分。前者要求同一 warp 的线程尽量整齐地访问连续内存，从而充分利用 burst mode；后者则通过把矩阵切成 tile 并搬进 shared memory，减少对 global memory 的重复读取。
-
-tiling 为什么重要？因为在非 tiled 矩阵乘法里，很多数据会被反复从远处读进来；一旦 tiled，每个 tile 可以在更近的 shared memory 中被重复利用，从而把 global memory 访问次数压低一个数量级。
-
-\begin{importantbox}{为什么 tiling 是“大招”}
-tiling 不是一个孤立 trick，而是把“尽量在快存储里重复利用数据”这个总原则写成程序结构的方式。很多高性能 matmul、本地 attention 和 fused kernel，本质上都靠它在撑。
-\end{importantbox}
-
-\subsection{本章小结}
-这部分最关键的 takeaway 是：低精度、fusion、recomputation、coalescing、tiling 等技巧并不分裂，它们都在围绕同一个目标工作：让计算更厚，让搬运更少，让数据尽量待在更近的存储层里。
-
-\section{CUDA 与 Triton：为什么课程要你往下看到 kernel 代码}
-\subsection{为什么手写一个简单 CUDA GeLU 仍然很有价值}
-课程先让学生看一个简单的 CUDA GeLU 实现，这件事的意义不在于“未来你必须全部手写 CUDA”，而在于把抽象层扒开，让你看到 kernel 最底层到底在做什么：线程索引怎样决定处理哪个元素、grid / block 怎样映射、边界怎样处理、输出张量怎样写回。
-
-这一步很重要，因为只有理解过这层结构，你才会真正知道 PyTorch fused op 或 Triton kernel 到底替你自动完成了哪些事情。
-
-\begin{lstlisting}[language=Python,caption={课程里 CUDA / Triton 视角的最小 kernel 骨架：先确定索引，再做局部计算}]
+\section{Benchmark/profiling 的基本闭环}
+现在进入 Benchmark/profiling 的基本闭环。本节关心的不是名称本身，而是它把 Kernel、Triton 与 XLA 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Benchmark/profiling 的基本闭环}
+课程材料明确把本讲定位为 GPU 高层概览后的代码层深入：写 Triton kernels、benchmark 和 profiling。
+benchmark 回答端到端多快，profiling 回答时间花在哪里；两者必须迭代使用。
+正确计时 GPU 代码需要 warmup、CUDA events 或同步，否则测到的可能只是 CPU launch time。
+Benchmark/profiling 的基本闭环 的作用是把 Kernel、Triton 与 XLA 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{Benchmark/profiling 的基本闭环 的机制}
+课程材料明确把本讲定位为 GPU 高层概览后的代码层深入：写 Triton kernels、benchmark 和 profiling。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+benchmark 回答端到端多快，profiling 回答时间花在哪里；两者必须迭代使用。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+正确计时 GPU 代码需要 warmup、CUDA events 或同步，否则测到的可能只是 CPU launch time。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Benchmark/profiling 的基本闭环 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Benchmark/profiling 的基本闭环 的数学表达}
+\[\bar t=\frac{1}{n}\sum_{i=1}^{n}t_i,\qquad \operatorname{speedup}=\frac{t_{\text{baseline}}}{t_{\text{optimized}}}\]
+符号说明：\(\bar t\) 是多次 trial 的平均时间；speedup 要在同一输入、同一硬件、同一 dtype 下比较。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 Benchmark/profiling 的基本闭环 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+for _ in range(warmups): run()
+synchronize()
+for trial in trials:
+    start_event.record(); run(); end_event.record(); synchronize()
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 一次 benchmark 不足以说明 scaling；要扫维度、batch 和 dtype。
+\item profiling 结果依赖输入 shape 和编译状态。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Benchmark/profiling 的基本闭环 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+\subsection{怎样检验 Benchmark/profiling 的基本闭环}
+检验 Benchmark/profiling 的基本闭环 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 benchmark、profiling、CUDA event、warmup、speedup 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Benchmark/profiling 的基本闭环，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(\textbackslash{}bar t\textbackslash{}) 是多次 trial 的平均时间；speedup 要在同一输入、同一硬件、同一 dtype 下比较。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：一次 benchmark 不足以说明 scaling；要扫维度、batch 和 dtype；profiling 结果依赖输入 shape 和编译状态。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 Kernel、Triton 与 XLA 的整体结构中。Benchmark/profiling 的基本闭环 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Benchmark/profiling 的基本闭环}
+benchmark 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark/profiling 的基本闭环”中改变了哪个变量或约束。
+profiling 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark/profiling 的基本闭环”中改变了哪个变量或约束。
+CUDA event 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark/profiling 的基本闭环”中改变了哪个变量或约束。
+warmup 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark/profiling 的基本闭环”中改变了哪个变量或约束。
+speedup 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark/profiling 的基本闭环”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Benchmark/profiling 的基本闭环 的小结}
+\begin{itemize}
+\item Benchmark/profiling 的基本闭环 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{Triton 的 programming model}
+现在进入 Triton 的 programming model。本节关心的不是名称本身，而是它把 Kernel、Triton 与 XLA 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Triton 的 programming model}
+Triton 让用户以 block 为单位写 kernel，显式处理 offsets、mask、load、compute、store。
+elementwise GeLU、row-wise softmax、row sum 和 matmul+ReLU 是课程材料中的核心例子。
+高性能 kernel 的关键是减少 HBM 往返、利用 shared/on-chip memory、控制 block size 并让访存合并。
+Triton 的 programming model 的作用是把 Kernel、Triton 与 XLA 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{Triton 的 programming model 的机制}
+Triton 让用户以 block 为单位写 kernel，显式处理 offsets、mask、load、compute、store。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+elementwise GeLU、row-wise softmax、row sum 和 matmul+ReLU 是课程材料中的核心例子。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+高性能 kernel 的关键是减少 HBM 往返、利用 shared/on-chip memory、控制 block size 并让访存合并。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Triton 的 programming model 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Triton 的 programming model 的数学表达}
+\[\operatorname{softmax}(x_i)=\frac{\exp(x_i-\max_j x_j)}{\sum_j\exp(x_j-\max_k x_k)}\]
+符号说明：减去最大值是数值稳定技巧；softmax kernel 通常需要 reduction 和 row-wise normalization。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 Triton 的 programming model 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
 pid = program_id(0)
 offsets = pid * BLOCK + arange(0, BLOCK)
-mask = offsets < n_elements
-x = load(x_ptr + offsets, mask=mask)
+x = load(ptr + offsets, mask=offsets < n)
 y = gelu(x)
-store(y_ptr + offsets, y, mask=mask)
+store(out + offsets, y, mask=offsets < n)
 \end{lstlisting}
-
-这段伪代码的教学作用很明确。它把课程里反复强调的 kernel 实现骨架浓缩成四步：先用 \texttt{program\_id} 或 thread/block 索引确定谁负责哪段数据，再按 mask 处理边界，再在寄存器或更近的层级完成局部计算，最后统一写回输出。也正因为这个骨架很清楚，课程后面才会继续讨论 fusion、tiling 和 Triton 编译器到底替我们省掉了哪些机械活。
-
-\subsection{PTX、\texttt{load\_inline} 与 thread coarsening：为什么这讲会一路下钻到汇编痕迹}
-官方 script 在后半段补了一个很好的教学层次：不仅展示 CUDA / Triton kernel，还进一步让学生去看 PTX 级别的痕迹。这里最重要的不是记忆所有 PTX 指令，而是理解三类信息：
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
 \begin{itemize}
-\item 像 \texttt{ld.global}、\texttt{st.global} 这样的指令直接暴露了 global memory 读写；
-\item 像 \texttt{\%ctaid.x}、\texttt{\%tid.x} 这样的寄存器，直接告诉你 grid/block/thread 索引是如何落到实际执行单元上的；
-\item 通过 \texttt{load\_inline}、编译后 PTX 输出和 Triton tutorial，可以把“高级 kernel 写法”与“底层访存行为”串起来看。
+\item Triton 代码可读性高于手写 PTX/CUDA，但仍需要理解硬件。
+\item mask 处理错误会带来 silent correctness bugs。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
 \end{itemize}
-
-slides 还强调了 \textbf{thread coarsening} 这件事：有时让一个线程处理不止一个元素，会降低 occupancy，但能换来更高的数据复用或更少的控制开销。这个例子非常适合教材，因为它提醒读者：\textbf{高 occupancy 不是唯一目标，真正目标是总吞吐。}
-
-\subsection{五路实现对比：manual / PyTorch / compiled / CUDA / Triton}
-官方脚本里还有一条很值得保留的结构线：用同一个操作，依次比较手写 Python 版本、PyTorch eager 版本、compiled 版本、自定义 CUDA 版本和 Triton 版本。这样做的教学价值极高，因为它让学生看到“优化”不是一个二元开关，而是一条逐层下钻的抽象梯度。
-
-这条五路 taxonomy 也解释了为什么 2026 最新 offering 会把第 6 讲标题升级成 \textit{Kernels, Triton, XLA}。这里的 XLA 不一定意味着整讲都会细讲 JAX 编译器，而是说明课程已经更明确地把“图编译 / kernel lowering / 更低层 IR”纳入同一条性能工程谱系：从 eager 程序，到 compiled graph，到 custom kernel，到 PTX 痕迹，都是同一个问题的不同抽象面。
-
-\subsection{Triton 的真正价值：把大量底层机械活自动化，但不抹掉硬件思维}
-课程对 Triton 的定位非常准确。它不是让你“忘掉硬件”，而是让你以更高层的方式表达 kernel，同时把 memory coalescing、shared memory 管理、部分调度细节交给编译器。也就是说，\textbf{Triton 降低了进入 kernel 世界的门槛，但并没有取消对 hardware-aware 思维的要求。}
-
-\begin{knowledgebox}{为什么 Triton 特别适合 CS336}
-这门课想让学生真正理解 kernel，但又不想让所有人都先被 CUDA 语法细节淹没。Triton 恰好处在一个好位置：你仍然在思考 block、tile、访存与布局，但可以用更高层的写法落地。
-\end{knowledgebox}
-
-\subsection{从 \texttt{load\_inline} 到五种写法}
-课程把 GeLU 放在同一条比较链上，是为了让你看到“从最手工到最自动”的连续谱。\texttt{load\_inline} 的作用，是把一段 CUDA/C++ 代码直接编译并绑定成可调用的 Python 模块，这样你就能很快把手写 kernel 接进实验流程里。它的意义不是让你永远手写扩展，而是让你看清楚 CUDA 层到底暴露了哪些控制权，以及这些控制权会怎样影响性能。
-
-在这个例子里，课程把五种写法并排比较：manual、PyTorch、compiled、CUDA、Triton。最直接的教学结论是，manual 只是基线；PyTorch 的 builtin 版本和 `torch.compile` 的版本都能显著快于 manual；CUDA 版本通常比 manual 好很多，但不一定追得上库内 fused kernel；Triton 和 `torch.compile` 则把“写高层程序”与“得到高性能 kernel”之间的距离拉得更近。这里的重点不是死记一个固定排序，而是理解这些实现对应的是不同层级的抽象和 lowering 路径。
-
-\subsection{XLA 作为更上层的编译参照}
-最新 offering 的标题已经把 XLA 并列进来，这不是要把这一讲改成 JAX 课，而是在提醒你：这一层的思想并不只属于 Triton。课程末尾提到 `torch.compile`，也顺带提到 JAX 的 XLA compiler；它们都在做同一件事，就是把高层张量程序 lower 成更少 kernel launch、更少读写、更符合硬件偏好的执行形态。换句话说，XLA 只是更大编译栈里的一个自然参照点，而不是对前面 GPU 直觉的替代。
-
-\subsection{本章小结}
-第 6 讲最后从 benchmarking/profiling 一路走到 CUDA 和 Triton，其实是在完成一个非常完整的闭环：先测哪里慢，再理解慢的根源，最后把这种理解变成更好的 kernel 设计。
-
+\subsection{与本章其他概念的关系}
+Triton 的 programming model 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+\subsection{怎样检验 Triton 的 programming model}
+检验 Triton 的 programming model 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 Triton、GeLU、softmax、mask、block 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Triton 的 programming model，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：减去最大值是数值稳定技巧；softmax kernel 通常需要 reduction 和 row-wise normalization。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：Triton 代码可读性高于手写 PTX/CUDA，但仍需要理解硬件；mask 处理错误会带来 silent correctness bugs。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 Kernel、Triton 与 XLA 的整体结构中。Triton 的 programming model 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Triton 的 programming model}
+Triton 让课程把 kernel 优化写成可读的 block-level 程序。在“Triton 的 programming model”中，这个概念用于解释 Kernel、Triton 与 XLA 的一个具体机制。
+GeLU 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Triton 的 programming model”中改变了哪个变量或约束。
+softmax 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Triton 的 programming model”中改变了哪个变量或约束。
+mask 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Triton 的 programming model”中改变了哪个变量或约束。
+block 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Triton 的 programming model”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Triton 的 programming model 的小结}
+\begin{itemize}
+\item Triton 的 programming model 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{Fusion、tiling 与 compiler}
+现在进入 Fusion、tiling 与 compiler。本节关心的不是名称本身，而是它把 Kernel、Triton 与 XLA 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Fusion、tiling 与 compiler}
+kernel fusion 把多个 elementwise/reduction 操作合并，减少中间张量写回 HBM。
+tiling 让 matmul 或 attention 在片上内存中复用数据，是 FlashAttention 等算法的核心系统思想。
+XLA/torch.compile 等 compiler 可以自动做一部分融合，但手写 kernel 仍常用于热点路径。
+Fusion、tiling 与 compiler 的作用是把 Kernel、Triton 与 XLA 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{Fusion、tiling 与 compiler 的机制}
+kernel fusion 把多个 elementwise/reduction 操作合并，减少中间张量写回 HBM。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+tiling 让 matmul 或 attention 在片上内存中复用数据，是 FlashAttention 等算法的核心系统思想。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+XLA/torch.compile 等 compiler 可以自动做一部分融合，但手写 kernel 仍常用于热点路径。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Fusion、tiling 与 compiler 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Fusion、tiling 与 compiler 的数学表达}
+\[\text{HBM traffic}_{\text{fused}} < \sum_i \text{HBM traffic}_{i}\]
+符号说明：融合的收益来自减少中间结果读写；但如果融合降低 occupancy 或增加寄存器压力，也可能不划算。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 Fusion、tiling 与 compiler 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+for q_tile in Q:
+    for k_tile, v_tile in KV:
+        update_online_softmax(q_tile, k_tile, v_tile)
+write_output_once()
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item fusion 会增加 kernel 复杂度，debug 和数值验证成本上升。
+\item compiler 生成的 kernel 需要 profile 验证，不能默认最优。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Fusion、tiling 与 compiler 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+\subsection{怎样检验 Fusion、tiling 与 compiler}
+检验 Fusion、tiling 与 compiler 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 fusion、tiling、FlashAttention、XLA、compiler 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Fusion、tiling 与 compiler，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：融合的收益来自减少中间结果读写；但如果融合降低 occupancy 或增加寄存器压力，也可能不划算。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：fusion 会增加 kernel 复杂度，debug 和数值验证成本上升；compiler 生成的 kernel 需要 profile 验证，不能默认最优。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 Kernel、Triton 与 XLA 的整体结构中。Fusion、tiling 与 compiler 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Fusion、tiling 与 compiler}
+fusion 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Fusion、tiling 与 compiler”中改变了哪个变量或约束。
+tiling 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Fusion、tiling 与 compiler”中改变了哪个变量或约束。
+attention（注意力）提供 token 间交互，但长上下文下成本很高。在“Fusion、tiling 与 compiler”中，这个概念用于解释 Kernel、Triton 与 XLA 的一个具体机制。
+XLA 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Fusion、tiling 与 compiler”中改变了哪个变量或约束。
+compiler 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Fusion、tiling 与 compiler”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Fusion、tiling 与 compiler 的小结}
+\begin{itemize}
+\item Fusion、tiling 与 compiler 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{综合讨论：从局部机制到完整系统}
+本章的主题是 Kernel、Triton 与 XLA，但它不应被读成几个相邻知识点的拼接。Benchmark/profiling 的基本闭环、Triton 的 programming model、Fusion、tiling 与 compiler 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
+这些对象包括 kernel（内核）、Triton、XLA、profiling（性能剖析）、fusion（算子融合）、tiling（分块）。读者可以把它们看成一组接口：有的接口连接文本和 token，有的连接模型结构和张量计算，有的连接数据样本和训练目标，有的连接离线评估和在线服务。接口一旦改变，后面的成本、错误类型和优化空间也会随之改变。
+\subsection{Benchmark/profiling 的基本闭环 在系统中的位置}
+Benchmark/profiling 的基本闭环 首先提供一个局部解释：课程材料明确把本讲定位为 GPU 高层概览后的代码层深入：写 Triton kernels、benchmark 和 profiling。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Benchmark/profiling 的基本闭环 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Benchmark/profiling 的基本闭环 不能脱离边界条件理解。一个关键 caveat 是：一次 benchmark 不足以说明 scaling；要扫维度、batch 和 dtype。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{Triton 的 programming model 在系统中的位置}
+Triton 的 programming model 首先提供一个局部解释：Triton 让用户以 block 为单位写 kernel，显式处理 offsets、mask、load、compute、store。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Triton 的 programming model 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Triton 的 programming model 不能脱离边界条件理解。一个关键 caveat 是：Triton 代码可读性高于手写 PTX/CUDA，但仍需要理解硬件。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{Fusion、tiling 与 compiler 在系统中的位置}
+Fusion、tiling 与 compiler 首先提供一个局部解释：kernel fusion 把多个 elementwise/reduction 操作合并，减少中间张量写回 HBM。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Fusion、tiling 与 compiler 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Fusion、tiling 与 compiler 不能脱离边界条件理解。一个关键 caveat 是：fusion 会增加 kernel 复杂度，debug 和数值验证成本上升。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{把本章知识用于读论文和复现实验}
+读相关论文时，可以把本章变成一个检查表。第一，论文是否清楚定义了输入规模、模型规模、数据来源和评估协议；第二，论文声称的改进落在哪个变量上；第三，作者是否报告了会让结论失效的设置；第四，实验是否能分离模型结构、数据质量、优化设置和系统实现的影响。
+复现实验时，也应避免直接追求大规模。先用最小程序复现一个公式、一个伪代码分支或一个 profile 现象，再扩大输入规模。这样做的原因很简单：如果小规模程序无法解释中间量，大规模训练只会把错误隐藏在日志和随机波动里。
+把这些检查合在一起，本章给出的不是一个固定答案，而是一种阅读 CS336 的方法：每个模型机制都要落到变量，每个变量都要落到测量，每个测量都要说明协议，每个协议都要承认边界。
+因此，本章中的任何一句结论都可以被改写成一个可引用的完整句式：在给定数据、模型、硬件和评估协议下，某个机制改变了某个变量，并通过某个观测指标表现出来。这样的句子比单独背诵术语更长，但它包含了自学、复现和引用时真正需要的信息。
+把本章用于自学时，可以按三遍阅读。第一遍只追踪对象和定义，确认每个术语到底指向文本、token、张量、样本、请求还是评估记录。第二遍追踪公式和伪代码，确认每一步改变了哪些状态。第三遍追踪实验和 caveat，确认哪些结论只在特定规模、数据或硬件条件下成立。
+把本章用于复习时，则应反过来操作：先从一个失败案例或异常指标出发，再回到相应机制。loss 曲线异常可能指向数据、优化或模型容量；吞吐异常可能指向 kernel、通信或调度；benchmark 异常可能指向 contamination、prompt protocol 或采样设置。能够从异常反推机制，是掌握本章的实用标准。
+\section{例题：把概念变成可计算检查}
+\subsection{Triton row-wise softmax 的稳定实现}
+一行 logits 需要做 softmax。直接 `exp(x)` 可能溢出，分多个 kernel 又会多次访问 HBM。
+\begin{itemize}
+\item 先在 block 内求 `m=max(x)`，计算 `exp(x-m)`。
+\item 再求和并归一化，把读、reduction、写尽量放在一个 kernel 中。
+\item mask 必须正确处理越界元素，否则会产生 silent numerical bugs。
+\end{itemize}
+\textbf{结论。} Triton 的价值在于把数值稳定性和内存访问模式放在同一个可读程序里。
+这个例题的目的不是替代完整工程实现，而是给出一种最小推理形式：把问题转成变量，写出近似公式或伪代码，再说明近似何时失效。
+\section{实验设计：从小例子到可复现结论}
+学习 Kernel、Triton 与 XLA 不能停在概念层。一个教材化结论至少需要四件事：可构造的输入、可观测的中间量、可比较的指标，以及清楚的失败条件。下面的实验设计不是要求训练大模型，而是要求读者用小规模程序复现本章机制。
+\subsection{最小输入}
+先构造只触发本章核心机制的小输入。例如 tokenizer 章节可以用几个包含 rare words 和 Unicode 字符的字符串；GPU 章节可以用一个 elementwise kernel 和一个 GEMM；data 章节可以用十几篇近重复文档。小输入的价值在于它让错误可见。
+\subsection{资源账本}
+对同一输入写下 FLOPs、bytes moved、显存峰值、通信量或样本数量的估算。估算不需要一开始就精确，但必须说明单位和近似假设。随后用 profiler、benchmark、validation loss 或人工检查去验证估算是否同量级。
+\subsection{单变量消融}
+一次只改变一个因素，例如 vocabulary size、head 数、batch size、filter threshold、reward scale、decoding temperature 或 GPU 数量。若多个变量同时变化，实验只能说明系统变了，不能说明机制是什么。
+\subsection{失败条件}
+最后要刻意触发失败：极端 context length、错误 dtype、过小 batch、污染 benchmark、低质量数据或不可靠 verifier。失败条件常常比成功曲线更能说明一个方法的边界。
+\subsection{记录与报告}
+实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
+常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\section{课程资料与回看路径}
+教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
+\subsection{视频回看路径}
+\begin{longtable}{p{0.20\linewidth}p{0.46\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{时间} & \textbf{关键词} & \textbf{复习任务}\\
+\midrule
+00:00:05-00:07:20 & thread, then, going, there's, memory, threads, think & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:21:09-00:28:32 & then, going, your, time, profiling, it's, think & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:43:33-00:50:41 & going, then, it's, blocksize, block, memory, yeah & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:58:06-01:05:21 & going, then, number, softmax, think, row., that's & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+01:19:28-01:26:30 & then, going, there's, write, think, time, tile & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+\bottomrule
+\end{longtable}
+这些时间段用于定位视频中的讲解顺序。严肃引用时，应回到视频片段确认讲者表述、板书或幻灯片内容。
+回看视频时，不必逐字抄录字幕。更有效的方法是把每个时间段判定为定义、例子、推导、代码解释或 caveat，再把它放回本章对应小节。
+\subsection{课程资料阅读路径}
+\begin{longtable}{p{0.14\linewidth}p{0.48\linewidth}p{0.30\linewidth}}
+\toprule
+\textbf{资料组} & \textbf{标题/页块} & \textbf{关键词}\\
+\midrule
+official\_01 & Last lecture: high-level overview of GPUs and performance & cache, shared, memory, size, bandwidth, performance, triton\\
+official\_03 & | TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT | TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT | & threads, thread, bank, warp, registers, same, multiple\\
+official\_05 & You can use ... & time, pytorch, recipes, cuda, benchmark, https, html\\
+official\_08 & - Multiply and accumulate. & tile, shared, memory, arithmetic, intensity, output, accumulate\\
+official\_10 & Function: triton\_row\_sum & function, triton\_row\_sum, row\_sum\_kernel, triton\_matmul\_relu\_example, naive\_matmul\_relu, triton\_matmul\_relu, matmul\_relu\_kernel\\
+\bottomrule
+\end{longtable}
+课程资料通常给出更稳定的标题、公式、图或代码结构；视频则补充动机和口头解释。两者合起来构成本章的事实边界。
+阅读资料时，可以把每个资料组拆成三个对象：一个定义，一个公式或伪代码动作，一个边界条件。这样比逐字翻译页面或脚本更容易形成可用知识。
+\section{实践说明、历史位置与风险}
+Kernel、Triton 与 XLA 在 CS336 的课程结构中连接基础机制和规模化问题。基础机制解释方法为什么成立；规模化问题检验它在更大模型、更长上下文、更复杂数据或真实 serving workload 下是否仍成立。
+历史位置不等于模型年表。更重要的是识别问题如何迁移：早期方法解决小规模建模问题，现代方法常常解决同一问题在大规模数据、GPU 集群、长上下文或人类偏好约束下的新形态。
+\begin{itemize}
+\item 资料版本限制（version risk）：课程页、公开视频和配套资料可能在学期中更新；引用时应注明访问日期或资料版本。
+\item 测量口径限制（measurement risk）：FLOPs、tokens/s、benchmark score、reward 等数字只有在协议完整时可比较。
+\item 规模外推限制（scaling risk）：小模型或小 batch 的机制不必然外推到 frontier-scale。
+\item 数据分布限制（data risk）：数据来源、过滤和去重策略会改变模型行为，也会改变 evaluation contamination 风险。
+\item 系统风险（systems risk）：性能剖析结果依赖硬件、driver、kernel、shape 和 batch distribution；脱离 workload 的性能数字不可直接复用。
+\end{itemize}
+\section{复习要点}
+下面的问题把本章内容压缩为可反复检查的条目。每个条目都应能回到前文的解释、公式、伪代码或例题。
+\begin{longtable}{p{0.16\linewidth}p{0.38\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{条目} & \textbf{对象} & \textbf{检查动作}\\
+\midrule
+条目 1 & kernel（内核） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 2 & Triton & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 3 & XLA & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 4 & profiling（性能剖析） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 5 & fusion（算子融合） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 6 & tiling（分块） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+\bottomrule
+\end{longtable}
+\subsection{综合自测}
+\begin{itemize}
+\item 我能否不用课程原句，独立解释本章中心问题？
+\item 我能否把本章至少一个公式改写成可运行的估算函数？
+\item 我能否指出一个看似改进但实际转移成本的方法？
+\item 我能否回到视频和课程资料，找到支持本章关键论断的位置？
+\item 我能否设计一个最小 ablation，验证本章一个 caveat？
+\end{itemize}
 \section{总结与延伸}
-第 6 讲最重要的结论可以压缩成四点。
-
-第一，\textbf{benchmark / profile 是 kernel 优化的起点，而不是收尾。} 没有实测，你只是猜。
-
-第二，\textbf{arithmetic intensity 是统一理解 kernel 优化的核心尺度。} 高强度意味着更接近 compute-bound，低强度则意味着你更容易被 memory 拖死。
-
-第三，\textbf{GPU 提速技巧的共同本质，是减少或重组数据搬运。} fusion、recomputation、coalescing、tiling 全都属于这个框架。
-
-第四，\textbf{Triton 的价值不在于隐藏硬件，而在于让你能用更合理的抽象直接表达 hardware-aware kernel。}
-
-\begin{warningbox}{我对第 6 讲的压缩提醒}
-如果你还把 kernel 优化理解成“把公式翻译成更底层代码”，那你会一直抓不到重点。真正的重点是：你有没有把数据组织成 GPU 愿意高效处理的形状。
-\end{warningbox}
-
-这讲之后，自然要进入并行训练与更复杂的系统层，因为单个 GPU 上的 kernel 理解，最终会扩展成多卡、多机上的通信与分片问题。也就是说，第 6 讲是从“硬件直觉”走向“分布式系统直觉”的最后一站。
-
+\subsection{本章小结}
+\begin{itemize}
+\item Kernel、Triton 与 XLA 的核心不是记忆术语，而是理解对象、变量和机制之间的关系。
+\item 视频给出讲解顺序，课程资料提供可核对的公式、图、代码或页面结构。
+\item 复习时应把每个术语连接到至少一个变量、一个实现动作和一个失败模式。
+\end{itemize}
+\subsection{延伸解释}
+本章中的延伸解释用于连接课程材料中的概念，例如说明公式里的 proxy、解释系统 tradeoff，或把多个材料片段串成一个完整推理链。若需要严肃引用，应回到课程视频和配套资料核对原始表述。
+\subsection{练习}
+\begin{itemize}
+\item 定义题：用中英双语解释本章任意五个重要术语，并说明它们属于 compute、memory、data、optimization、evaluation 还是 deployment 账本。
+\item 推导题：选择本章一个公式，逐个解释符号、单位和近似假设，并说明哪个变量最难在真实系统中测量。
+\item 实现题：把本章伪代码改写成一个最小 Python sanity check，不要求训练大模型，但要输出可检查的中间量。
+\item 资料题：从“课程资料与回看路径”中选择一个视频时间段，回到原始视频核对讲者例子，并记录是否存在字幕误差。
+\item 评估题：为本章方法设计一个 ablation 或 benchmark，说明控制变量、数据版本、指标和 failure criteria。
+\item 边界题：说明本章一个结论在更长 context、更大 batch、更多 GPU 或更复杂数据分布下可能如何失效。
+\item 综合题：把本章内容和前一章或后一章连接起来，写出一个端到端训练/推理 pipeline 中的依赖关系。
+\item 批判题：指出一个容易被营销材料夸大的说法，并用本章的资源账本或评估协议反驳它。
+\end{itemize}
 \end{document}

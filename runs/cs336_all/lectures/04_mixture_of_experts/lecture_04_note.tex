@@ -1,365 +1,382 @@
 \documentclass[a4paper]{article}
-
 \usepackage[fontset=fandol]{ctex}
-\usepackage{amsmath, amssymb}
+\usepackage[margin=1.65cm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage[margin=2.4cm]{geometry}
-\usepackage[most]{tcolorbox}
-\usepackage{etoolbox}
 \usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{subcaption}
-\usepackage{float}
-
-\newtcolorbox{knowledgebox}[1]{
-    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
-    boxrule=1pt, sharp corners
-}
-
-\newtcolorbox{importantbox}[1]{
-    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
-    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newtcolorbox{warningbox}[1]{
-    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newcommand{\notetitle}{CS336 第 4 讲：Mixture of Experts 的机制、代价与工程现实}
-\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 4 讲视频、字幕与官方课程材料重写}
-\newcommand{\notedate}{2026-04-07}
-\newcommand{\videochannel}{Stanford Online}
-\newcommand{\videopublishdate}{2025年04月24日}
-\newcommand{\videoduration}{1:22:04}
-\newcommand{\videourl}{https://www.youtube.com/watch?v=LPv1KfUXLCo}
-\newcommand{\videocoverpath}{cover.jpg}
-
+\usepackage{longtable,booktabs}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,keepspaces=true}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{2em}
+\sloppy
+\title{第 04 讲：Attention alternatives 与 Mixture of Experts}
+\author{CS336 Spring 2026 public videos and official course materials}
+\date{}
 \begin{document}
-
-\begin{titlepage}
-\centering
-{\Large 课程笔记\par}
-\vspace{1.2cm}
-{\huge\bfseries \notetitle\par}
-\vspace{0.8cm}
-{\large \noteauthors\par}
-\vspace{0.3cm}
-{\large \notedate\par}
-\vspace{1.2cm}
-
-\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
-
-\vfill
-\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
-\textbf{视频作者/频道}：\videochannel\par
-\textbf{发布日期}：\videopublishdate\par
-\textbf{视频时长}：\videoduration\par
-\textbf{视频链接}：\href{\videourl}{\nolinkurl{\videourl}}
-\end{tcolorbox}
-\end{titlepage}
-
+\maketitle
 \tableofcontents
 \newpage
-
-\section{基于 2026 最新官方 slides 的补充：为什么 Attention Alternatives 会和 MoE 放在同一讲}
-这份讲义的主视频和主字幕来自 Spring 2025 的第 4 讲，因此原始内容几乎完全聚焦 Mixture of Experts（MoE）。但课程最新的 Spring 2026 版本，已经把这一讲的标题扩展成 \textit{Attention alternatives and mixture of experts}。这不是简单改个名字，而是在课程结构上公开了一种新的组织方式：\textbf{在进入稀疏专家之前，先讨论“如果标准 attention 成本越来越高，我们还能怎样改写序列建模主干”。}
-
-这段补充因此不把 2026 slides 当成“新的一讲”，而是把它作为对第 4 讲前半部分的官方增补。它的作用有两个。第一，说明 MoE 并不是唯一的“突破 dense Transformer 伸缩性限制”的路线；第二，说明现代大模型设计正在同时探索两类正交方向：一类改写 attention 的时间与缓存行为，另一类改写 FFN 的参数激活方式。
-
-\begin{importantbox}{为什么要把这段补在 MoE 之前}
-如果只看 2025 视频，第 4 讲很容易被理解成“这就是一堂纯 MoE 课”。但 2026 最新 slides 给出的课程组织更准确：\textbf{这是一堂关于替代性架构路线的课，MoE 只是其中最主流、最工业化的一支。}
-\end{importantbox}
-
-\subsection{Linear Attention：先从最激进的复杂度重写开始}
-2026 slides 先讨论的是 linear attention。它从标准 attention 的最核心表达式出发：
-\[
-\mathrm{Attn}(Q,K,V)=\rho(QK^\top)V.
-\]
-其中：
-\begin{itemize}
-\item $Q \in \mathbb{R}^{n\times d_k}$ 是 query 矩阵；
-\item $K \in \mathbb{R}^{n\times d_k}$ 是 key 矩阵；
-\item $V \in \mathbb{R}^{n\times d_v}$ 是 value 矩阵；
-\item $n$ 是序列长度；
-\item $d_k,d_v$ 分别是 key/value 的通道维度；
-\item $\rho(\cdot)$ 表示 attention 里对相似度矩阵施加的正规化或核映射。
-\end{itemize}
-
-slides 刻意先讨论一个“非常傻但很重要”的变形：如果暂时不管 softmax 等复杂正规化，而把 $\rho$ 看成恒等映射，那么
-\[
-QK^\top V = Q(K^\top V).
-\]
-这一步的意义，不在于它立刻就是一个可直接替换 softmax attention 的好算法，而在于它暴露了一个结构性事实：\textbf{原本看起来必须先构造 $n\times n$ 相似度矩阵的计算，有时可以被重排成更接近线性时间的形式。} 也正是这个重排，让后面一整支“线性 attention / state-space / fast-weight”谱系显得合理。
-
-\subsection{Recurrent form：为什么这类方法会和 RNN、state-space 再次连起来}
-2026 slides 进一步强调，线性 attention 的另一个吸引力，是它天然可以写成 recurrent 形式：
-\[
-S_t = S_{t-1} + k_t v_t^\top,\qquad y_t = q_t^\top S_t.
-\]
-其中：
-\begin{itemize}
-\item $t$ 是当前时间步；
-\item $k_t,v_t,q_t$ 分别是当前位置的 key、value、query；
-\item $S_t$ 是累积到第 $t$ 步的状态矩阵；
-\item $y_t$ 是当前位置的输出。
-\end{itemize}
-
-这条公式传递的核心信息是：\textbf{某些 attention-like 机制并不一定要以“显式地回看所有历史 token”的方式实现；它们也可以把历史压缩进一个递推状态里。} 这就解释了为什么这条路线会和 RetNet、Mamba-2、Gated Delta Net、以及更广义的 fast-weight / test-time training 直觉重新连起来。
-
-\subsection{从 Mamba-2 到 Gated Delta Net：不是放弃 attention，而是在重写状态更新规则}
-2026 slides 给出的过渡方式非常清晰：先从线性 attention 的状态更新式出发，再逐步引入更灵活的门控。以 Mamba-2 风格的写法为例，状态更新可以被改写成
-\[
-S_t=\gamma_t S_{t-1}+k_t v_t^\top,\qquad y_t=q_t^\top S_t + v_t^\top D,
-\]
-其中：
-\begin{itemize}
-\item $\gamma_t$ 是由当前位置输入 $x_t$ 决定的门控因子；
-\item $D$ 是额外的直接项或跳连参数；
-\item $\gamma_t$ 的存在意味着模型不再被迫“无条件保留全部历史”。
-\end{itemize}
-
-而 Gated Delta Net 则进一步把“写入”和“遗忘”都做成显式门控，slides 用到的高层写法是
-\[
-S_t=\gamma_t (I-\beta_t k_tk_t^\top)S_{t-1}+\beta_t k_t v_t^\top,\qquad y_t=q_t^\top S_t.
-\]
-其中：
-\begin{itemize}
-\item $I$ 是单位矩阵；
-\item $\beta_t$ 控制当前 token 的写入强度；
-\item $(I-\beta_t k_tk_t^\top)$ 可以被理解成一种“沿当前 key 方向擦除旧状态”的机制。
-\end{itemize}
-
-这类模型的重要性不在于你要立刻把每条公式背下来，而在于它们说明：\textbf{现代序列建模已经不再只有“标准 softmax attention”和“老式 RNN”这两个极端。} 中间地带正在快速扩张，而且很多方法都把“线性时间推理”“可并行训练”和“更好的长上下文行为”当成主要卖点。
-
-\subsection{Hybrid Attention 与 DSA：工业系统并不总是二选一}
-2026 slides 还特别强调了 hybrid 路线，而不是把 attention alternatives 讲成“谁会彻底替代 Transformer attention”。例如，Minimax、Qwen 3.5 / Qwen Next 这类系统，都在探索“若干层用线性 / GDN / 状态空间式机制，少数层保留全 attention”的混合主干；DeepSeek Sparse Attention（DSA）则代表另一类思路：不改写 attention 的数学定义，而是通过更轻量的索引或稀疏选择，减少真正参与注意力计算的 token 对。
-
-这件事非常重要，因为它给出一个更贴近工业现实的结论：\textbf{大多数前沿系统不会因为某个新机制出现，就把原有 attention 全部推翻；更常见的做法是局部混合、分层替换、或在推理路径上做稀疏适配。}
-
-\begin{knowledgebox}{为什么这段补充对理解 MoE 反而有帮助}
-一旦把线性 attention、hybrid attention、DSA 和 MoE 放在同一页上，你就会发现它们都在回答同一个问题：\textbf{当序列长度、参数量和推理缓存一起爆炸时，哪里该被稀疏化，哪里该被重参数化，哪里该被改写成递推状态？}
-\end{knowledgebox}
-
-\subsection{本章小结}
-2026 最新 slides 对第 4 讲最大的升级，不是重新定义 MoE，而是先用一整段 attention alternatives 把问题空间打开：可以稀疏化 FFN，可以改写 attention，可以做 hybrid，也可以在索引与缓存层动手。补上这段之后，后面的 MoE 才不会被误读成“唯一值得讨论的替代架构”。
-
-\section{为什么 MoE 会在大模型时代重新变得重要}
-在最新官方 2026 材料里，这一讲的后半段才回到 Mixture of Experts。它之所以重要，不是因为这是某种“新奇变体”，而是因为它抓住了大模型时代一个极其现实的问题：\textbf{如果我们继续想提高参数容量和模型能力，但又不想让每个 token 的计算成本同步爆炸，应该怎么办？}
-
-在 dense Transformer 里，每个 token 都会经过同一套完整 FFN 层。参数越大，理论上每个 token 都要为这些参数买单。MoE 的直觉则是：既然不同 token 未必需要同样的专家能力，为什么不把一个大 FFN 替换成很多个大 FFN，再让一个 selector layer 只挑其中少数几个真正参与计算？
-
-\begin{figure}[H]
+\section{本章导读}
+本章讨论 \textbf{Attention alternatives 与 Mixture of Experts}。CS336 的第一层目标不是把现成大模型当作黑箱使用，而是把 language model 从输入文本、训练目标、模型结构、数据、系统和评估这些部件重新拆开。只有拆开之后，读者才能判断一个设计选择究竟改变了什么。
+设想用户要求模型读入一本书长度的上下文，同时服务系统还要低延迟。标准 attention 的二次成本和 KV cache 很快变成瓶颈；本章的问题是：哪些替代结构真的改变复杂度，哪些只是在另一个地方付账？
+本章对应 CS336 Spring 2026 第 04 个公开视频，并结合课程页提供的可解析资料。视频和课程页给出事实边界；正文把这些材料改写为可自学的教材章节。
+阅读本章时，先理解问题为什么存在，再看定义、公式和实现形态，随后通过例题和练习检查自己是否能独立复现这条 reasoning chain。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.9\textwidth]{pdf_pages/page-03.png}
-\caption{MoE 的基本思路：把 dense FFN 替换成一组专家网络，并对每个 token 做稀疏路由。}
+\includegraphics[width=0.58\linewidth]{source_anchor.jpg}
+\caption{第 04 讲的课程图像锚点。}
 \end{figure}
-
-课程直接给出最关键的一句话：\textbf{你可以增加专家数，而不必让 FLOPs 按同样比例上升。} 这就是 MoE 的吸引力所在。它试图把“总参数量”和“每个 token 实际激活的计算量”拆开。
-
-\subsection{MoE 不是为了炫技，而是为了同 FLOP 下获得更高容量}
-第 4 讲前半段反复强调一件事：MoE 的价值不是“参数量看起来很大”，而是“在相近 FLOP 预算下，更多参数容量往往能带来更好的性能”。这和第 3 讲的架构共识思路是连着的。架构设计不是追求造型花哨，而是为了在固定资源账本下，把能力往上推。
-
-\begin{importantbox}{第 4 讲的核心判断}
-MoE 的本质不是免费午餐，而是一种稀疏计算策略：把“更多参数”变成“并非每个 token 都要完整激活的更多参数”，从而在相近训练或推理成本下交换更高模型容量。
-\end{importantbox}
-
-\subsection{为什么这几年 MoE 再次流行}
-课程给出的原因非常务实，而且基本可以分成四类。
-
-第一，\textbf{same FLOP, more parameters often works better。} 如果每步训练的计算量差不多，但总参数容量更大，那么模型可能用相同计算预算获得更好的表示能力。
-
-第二，\textbf{训练速度可能更快。} 在一些设置下，MoE 不只是“最终效果更好”，还可能更快达到相近质量。
-
-第三，\textbf{它在开放模型里已经被反复验证。} 课程直接指出，很多高性能开放模型都走向了 MoE，而不再是纯 dense 路线。
-
-第四，\textbf{它天然适合更多设备并行。} 因为专家本来就是分块的，这使得把不同专家放到不同设备上在概念上更自然。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.88\textwidth]{pdf_pages/page-05.png}
-\caption{课程用 OLMoE 等结果说明：MoE 的价值不仅仅是更大参数量，而是可能在 wall-clock 和样本效率上都更有优势。}
-\end{figure}
-
-\subsection{但为什么 MoE 没有更早成为标准答案}
-课程也非常坦率地谈到了 MoE 的麻烦。它没有把 MoE 包装成“大家终于发现的正确道路”，而是指出它长期不够流行的两个主要原因：
+\subsection{本章知识路线}
 \begin{itemize}
-\item 基础设施复杂，尤其是在多机多卡环境下。
-\item 路由与 balancing 相关训练目标很多带有启发式色彩，而且有时不够稳定。
+\item 本章首先说明 Attention alternatives 与 Mixture of Experts 为什么是 language modeling pipeline 中不可跳过的一环。
+\item 其次定义本章反复使用的术语，并说明这些术语对应的计算对象或系统对象。
+\item 随后用公式和伪代码表达主要机制，让概念能够落到可计算的变量上。
+\item 最后给出例题、风险讨论和练习，便于读者检查自己是否真正掌握了机制。
 \end{itemize}
-
-这两个问题一点都不小。dense 模型的好处之一，就是虽然贵，但结构相对规整；而 MoE 引入了显式稀疏路由、token 分配不均、跨设备通信和启发式损失，系统复杂度立刻上升。
-
-\begin{warningbox}{为什么 MoE 不能被理解为“参数翻倍但 FLOPs 不变”}
-即使理论上只激活少数专家，真实系统里仍然会出现路由计算、token 重排、通信、负载不均和训练稳定性问题。这些开销不会让 MoE 失去价值，但它们足以让“稀疏 = 免费”这种说法失真。
-\end{warningbox}
-
-\subsection{本章小结}
-这部分的作用是把 MoE 放回第 2 讲和第 3 讲的共同框架里看。第 2 讲告诉我们要盯住资源账本，第 3 讲告诉我们要识别架构共识，而第 4 讲则把这两件事结合成一个更尖锐的问题：\textbf{能否用稀疏激活，把更大参数容量塞进相近预算里？}
-
-\section{MoE 的基本结构：什么被替换，什么没有变}
-\subsection{主干没变，通常只是把 MLP 换成 MoE 层}
-第 4 讲对 MoE 的第一原则非常明确：绝大多数情况下，MoE 不是把整个 Transformer 彻底推翻，而是\textbf{主要替换掉原来的 FFN / MLP 子层。} 也就是说，注意力结构、残差流、norm 等主干通常保持不变，变化集中发生在“token 进入哪一个专家前馈网络”这一层。
-
-这种设计很有工程意义。因为如果你只替换 MLP，就能在不破坏整条主干结构的前提下，把稀疏化收益集中落在最吃参数的那部分组件上。课程提到，也有人做 attention-side 的 MoE，但那不是最常见路线。
-
-\subsection{稀疏模型与 dense 模型的最重要区别是什么}
-最值得抓住的区别只有一个：\textbf{在 dense 模型里，每个 token 都经过同一套前馈参数；在 MoE 里，每个 token 只经过被路由选中的少数专家。}
-
-这意味着：
+\subsection{结构图}
+下面的图用于帮助读者定位本章的核心结构。先看概念之间的依赖，再回到正文中的公式、伪代码和例题。
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.72\linewidth]{pdf_pages/page-02.jpg}
+\caption{官方材料图页：Attention alternatives 与 Mixture of Experts 的课程页/PDF/script 图像锚点。}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.72\linewidth]{pdf_pages/page-01.jpg}
+\caption{官方材料图页：Attention alternatives 与 Mixture of Experts 的课程页/PDF/script 图像锚点。}
+\end{figure}
+\section{本章主线}
+本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+\subsection{本章要解决的核心问题}
+本讲围绕两个方向：降低 attention 长上下文成本，以及用 MoE 把参数容量和每 token 计算量解耦。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，Attention alternatives 与 Mixture of Experts 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从机制到资源账本}
+linear attention、Mamba、Gated Delta Net 等方法的共同目标是避免完整构造二次复杂度的 attention matrix，同时保留足够的选择性记忆。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，Attention alternatives 与 Mixture of Experts 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从课堂讲解到可复现实验}
+MoE 的核心不是简单堆更多参数，而是 router、expert capacity、load balancing、all-to-all communication 和 active parameters 之间的系统协同。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，Attention alternatives 与 Mixture of Experts 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\section{术语、符号与问题边界}
+本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
+\begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
+\toprule
+\textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
+\midrule
+1 & attention alternatives（注意力替代机制） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+2 & Grouped-Query Attention (GQA) & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+3 & Multi-Query Attention (MQA) & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+4 & linear attention（线性注意力） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+5 & Mixture of Experts (MoE) & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+6 & routing（路由） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+\bottomrule
+\end{longtable}
+这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
+\subsection{关键词}
+下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
 \begin{itemize}
-\item 总参数量可以很大，因为专家很多。
-\item 单 token 计算量不必与总参数量同比上升，因为只激活 top-k 专家。
-\item 真正的关键问题从“参数规模”转移到了“路由是否合理，以及专家是否被充分利用”。
+\item moes, deepseek, attention, routing, experts, linear, qwen, balancing, training, fedus, token, work, shared, active
 \end{itemize}
-
-\begin{knowledgebox}{为什么课程几乎总把 MoE 和 FFN 绑定讨论}
-FFN 在大模型里通常是参数大户之一，把稀疏化集中放在这里，能最大化“更多参数容量但不过度增加每-token 成本”的收益。也正因为如此，MoE 最常见的形态就是“把 FFN 变成一组专家 FFN”。 
-\end{knowledgebox}
-
-\subsection{本章小结}
-MoE 并不是一类完全不同的语言模型，而更像是“在 Transformer 主干内，对 FFN 进行稀疏化重构”的家族方法。理解这一点之后，后面关于 routing、expert size 和 balancing 的讨论就自然了：因为真正变化的，就集中在这几处。
-
-\section{Routing：几乎所有实践最终都回到 top-k token-choice}
-\subsection{MoE 到底有哪些维度会变化}
-课程很早就把 MoE 的设计空间压缩成三大类：
+\section{为什么要替代标准 attention}
+本节讨论 为什么要替代标准 attention。本节关心的不是名称本身，而是它把 Attention alternatives 与 Mixture of Experts 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{课程目标与问题边界}
+视频把本讲定位为更高级的 architecture ideas：上一讲讨论主流 Transformer，本讲讨论 attention 的成本和替代机制。
+标准 attention 的 \textbackslash{}(O(T\textasciicircum{}2)\textbackslash{}) 交互在长上下文、prefill、训练显存和推理 KV cache 中都昂贵。
+GQA/MQA 减少 key/value head 数量，目标是在质量下降可控的情况下降低推理带宽和 cache 占用。
+为什么要替代标准 attention 的作用是把 Attention alternatives 与 Mixture of Experts 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{为什么要替代标准 attention 的机制}
+视频把本讲定位为更高级的 architecture ideas：上一讲讨论主流 Transformer，本讲讨论 attention 的成本和替代机制。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+标准 attention 的 \textbackslash{}(O(T\textasciicircum{}2)\textbackslash{}) 交互在长上下文、prefill、训练显存和推理 KV cache 中都昂贵。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+GQA/MQA 减少 key/value head 数量，目标是在质量下降可控的情况下降低推理带宽和 cache 占用。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，为什么要替代标准 attention 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{资源、效率与效果的关系}
+\[\text{KV cache bytes}\approx 2\cdot L\cdot T\cdot H_{kv}\cdot d_{\text{head}}\cdot b\]
+符号说明：\(L\) 是层数，\(T\) 是上下文长度，\(H_{kv}\) 是 KV heads，\(d_{\text{head}}\) 是 head 维度，\(b\) 是每元素字节数。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{把课程目标写成检查流程}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+if kv_cache_is_bottleneck:
+    share_key_value_heads_with_gqa()
+else:
+    preserve_full_multi_head_attention()
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
 \begin{itemize}
-\item Routing function
-\item Expert sizes
-\item Training objectives
+\item KV head 共享降低内存，但可能损失表示能力。
+\item attention 替代方法要同时看训练吞吐、推理延迟和模型质量。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
 \end{itemize}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.78\textwidth]{pdf_pages/page-14.png}
-\caption{课程用一页标题图把 MoE 变化空间压缩成三件事：路由、专家大小、训练目标。}
-\end{figure}
-
-这三类拆分非常有帮助，因为它避免把 MoE 讨论成“无数 paper 细节堆起来的黑箱”。几乎所有变化，最终都可以落回这三个问题：token 怎么选专家、专家本身多大、训练时如何让路由不塌。
-
-\subsection{为什么 routing 讨论最后几乎总会回到 top-k}
-课程回顾了几种 routing 思路：token-choice、expert-choice、全局优化、hash routing、RL、线性匹配等。看起来花样很多，但它马上指出一个非常现实的结论：\textbf{绝大多数主流系统最后还是选择了标准 token-choice top-k。}
-
-原因并不神秘。top-k 足够简单，可微近似和实现路径都比较成熟，而且能在“效果、复杂度、系统友好性”之间达成很现实的平衡。Switch Transformer 用过 k=1；很多后续模型用 k=2；更晚近系统又探索了更大的 k，例如 Qwen、DBRX、DeepSeek 系列。
-
-为了把课程里的“old and classic top-k routing”说得更具体，我们可以用一组高层公式概括它的机制：
-\[
-s_i(x)=w_i^\top x,\qquad \mathcal{T}_k(x)=\operatorname{TopK}(s(x),k),
-\]
-\[
-y(x)=\sum_{i\in \mathcal{T}_k(x)} p_i(x)\,E_i(x),\qquad
-p_i(x)=\frac{\exp(s_i(x))}{\sum_{j\in \mathcal{T}_k(x)} \exp(s_j(x))}.
-\]
-其中，$x$ 是当前 token 的隐藏状态，$w_i$ 是第 $i$ 个 expert 对应的 router/gating 向量，$s_i(x)$ 是 token 对 expert $i$ 的打分，$\mathcal{T}_k(x)$ 表示分数最高的 $k$ 个 experts，$E_i(\cdot)$ 是第 $i$ 个 expert 的前馈网络，$p_i(x)$ 是只在被选中的 experts 上重新归一化后的门控权重。课程后面提到 DeepSeek v3 会把 softmax 的归一化位置稍微前移，但它特别说明：\textbf{概念上仍然是在做 top-k routing decision。}
-
-\subsection{为什么 RL routing 没有成为主流}
-从理论直觉看，RL 似乎才是更“正确”的路由学习方案，因为 routing 本身就是一个离散决策问题。课程也承认，REINFORCE 一类办法是能工作的。但现实问题在于：\textbf{方差大、实现复杂，而且收益并没有大到足以碾压 top-k 启发式。}
-
-于是工程世界最终选择了一条更粗糙却更可用的路线：直接用 top-k gating，再用各种 balancing 手段把系统维持在可训练状态。
-
-\begin{warningbox}{为什么“理论更优”不一定赢过启发式}
-MoE 再次说明了一个大模型工程常识：如果一个方法虽然概念上更优雅，却大幅增加训练复杂度和不稳定性，那么实践里很可能会输给一个更朴素但更稳定、可扩展的启发式方案。
-\end{warningbox}
-
-\subsection{DeepSeek / Qwen 这类最近变体到底在改什么}
-课程指出，较新的 Chinese LMs 尤其 DeepSeek 和 Qwen，在 routing 之外又做了一个很重要的工程调整：\textbf{更细粒度的专家划分，加上少数始终开启的 shared experts。}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.84\textwidth]{frames/shared_experts.png}
-\caption{课程展示了 shared experts 与 fine-grained experts 的组合思路：不是只靠更大 expert 数量，而是重新设计专家粒度与永远开启的公共通道。\protect\footnotemark}
-\end{figure}
-\footnotetext{视频画面时间区间：00:18:10--00:18:35。该图来自课程视频中的屏幕画面。}
-
-这个设计的直觉很强：shared experts 负责更通用的表示处理，routed experts 负责更具条件性的专门化能力。课程也提醒，相关论文 ablation 并非完全一致，有的工作认为 shared experts 明显有用，有的工作则认为收益更多来自 finer-grained experts 本身。这恰恰说明，MoE 的“正确答案”往往是数据、系统和实现细节共同作用的结果。
-
-\subsection{本章小结}
-Routing 这一节的真正收获是：虽然 MoE 论文很多，但实践层面的收敛比想象中明显。top-k token-choice 是当代主流默认值；shared experts 与 finer-grained experts 是近几年非常值得注意的变体；而更复杂的 routing 方法并没有自动成为赢家。
-
-\section{Balancing 与训练目标：为什么系统效率会反过来塑造优化目标}
-\subsection{MoE 训练最大的系统性风险：专家使用不均}
-一旦引入稀疏路由，一个最直接的问题就出现了：\textbf{如果大部分 token 都被送往少数几个专家，其余专家几乎闲置，系统就既低效又难训。} 于是 balancing 不再是锦上添花，而变成了 MoE 是否能稳定工作的核心条件。
-
-课程在这里展示了负载均衡损失的直觉：频繁被选中的专家会被显式下调，从而鼓励 token 分配更均匀。你可以把这理解成一种面向系统效率的训练正则项。
-
-把这个直觉写成公式，最常见的高层目标可以概括为
-\[
-\mathcal{L}=\mathcal{L}_{\mathrm{LM}}+\lambda\,\mathcal{L}_{\mathrm{balance}},
-\qquad
-f_i=\frac{1}{T}\sum_{t=1}^{T}\mathbf{1}\!\left[i\in\mathcal{T}_k(x_t)\right].
-\]
-其中，$\mathcal{L}_{\mathrm{LM}}$ 是原始语言建模损失，$\mathcal{L}_{\mathrm{balance}}$ 是鼓励 expert 使用更均匀的辅助项，$\lambda$ 控制两类目标的权重，$T$ 是当前 batch 或 sequence 中参与统计的 token 数，$f_i$ 则表示 expert $i$ 被选中的频率。课程并没有把所有 balancing loss 统一成一条唯一正确的公式；它真正强调的是：如果某些 experts 的 $f_i$ 长期明显偏高，系统吞吐、通信和训练稳定性都会一起变差。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.88\textwidth]{frames/load_balancing.png}
-\caption{课程直接展示“移除 load balancing loss 会怎样”的结果：性能和专家分配都会明显恶化。\protect\footnotemark}
-\end{figure}
-\footnotetext{视频画面时间区间：00:37:30--00:37:55。该图来自课程视频中的屏幕画面。}
-
-这张图的意义非常大，因为它说明了第 4 讲的一个核心思想：\textbf{MoE 的训练目标并不只是语言建模损失，它还必须对系统约束作出回应。}
-
-\subsection{为什么课程说这些目标“有点 heuristic”}
-课程对 balancing losses 的评价很坦率：它们很多时候就是 heuristic。不是说没用，相反它们经常非常有用；而是说它们未必来自一个优美、统一、被完全证明的理论框架。它们更像是为了解决“稀疏路由让系统塌掉”这个现实问题而逐步演化出来的工具箱。
-
-\subsection{DeepSeek v3 的所谓 auxiliary-loss-free balancing 为什么值得注意}
-课程还提到 DeepSeek v3 的一个有趣变体：通过 per-expert bias 的在线调节，让某些专家更可能被选中，从而在不完全依赖传统 auxiliary loss 的情况下改善负载均衡。课程也很谨慎地指出，这种方法并不是真的“完全没有 auxiliary 目标”，但它代表了 balancing 设计的一种新方向。
-
-如果只保留课程想传达的机制层含义，这类做法可以抽象成
-\[
-s_i'(x)=s_i(x)+b_i,
-\qquad
-b_i \leftarrow b_i + \eta\,\mathrm{sign}(u^\star-u_i).
-\]
-其中，$s_i(x)$ 是原始 router score，$b_i$ 是 expert $i$ 的可在线更新偏置，$u_i$ 是当前观测到的 expert 负载，$u^\star$ 是期望负载水平，$\eta$ 是更新步长。当某个 expert 过载时，它的 bias 会朝着“更不容易被选中”的方向调整；当某个 expert 长期吃不到 token 时，bias 又会往相反方向推。课程的关键信息是：这不是把 balancing 问题消失掉，而是把“靠显式 auxiliary loss 纠偏”改写成“靠在线 bias 调节纠偏”。
-
-\begin{knowledgebox}{为什么 balancing 设计会持续演化}
-因为它同时面对两个目标：一是语言建模性能不能掉，二是专家利用必须足够均匀、系统吞吐不能太差。只要这两个目标之间还有张力，就会不断有新设计出现。 
-\end{knowledgebox}
-
-\subsection{本章小结}
-在 MoE 里，训练目标第一次被非常显性地系统化了。它不仅服务于预测 token，也服务于“让专家被合理使用”。这使得 MoE 成为一个非常典型的例子：\textbf{系统效率要求会反向塑造优化目标本身。}
-
-\section{DeepSeek 作为案例：现代大规模 MoE 不只是 top-k}
-\subsection{为什么课程最后选择用 DeepSeek 系列做收束}
-课程结尾选择 DeepSeek v1 / v2 / v3 作为案例，不是因为它是唯一好的 MoE 系统，而是因为它把最近几年很多关键设计都放到了一个连续演化谱系里：fine-grained experts、shared experts、不同 balancing 机制，以及与 MoE 配套的其他系统设计。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.86\textwidth]{pdf_pages/page-10.png}
-\caption{DeepSeek 等近期结果说明，MoE 不只是一个理论可能性，而是在公开模型里已经被反复验证的现实路线。}
-\end{figure}
-
-DeepSeek 的价值在于，它把 MoE 从“用 top-k 稀疏化一下 FFN”推进成了更完整的系统工程：不仅要有路由，还要重新思考专家粒度、共享专家、通信平衡、推理缓存和训练稳定性。
-
-\subsection{为什么现代 MoE 经常要和别的结构性改动一起出现}
-课程最后还顺手提到了 MLA 和 MTP。它真正想说的是：\textbf{大规模 MoE 的收益常常要和别的系统性优化叠加才能完全兑现。} 例如，若 KV cache 成本很高，仅靠 MoE 并不能自动解决推理瓶颈；于是像 MLA 这样的低维潜变量注意力设计才会变得重要。
-
-这再次回到 CS336 的总主线：现代大模型设计几乎从来不是“只改一个模块”，而是多项决定同时围绕资源、稳定性和能力在做联合优化。
-
-\begin{importantbox}{第 4 讲的压缩结论}
-MoE 真正让人兴奋的地方，不是“它是稀疏模型”，而是它证明了一个更一般的命题：在大模型时代，参数容量、训练成本和系统复杂度之间并不是一条单线关系，架构可以通过稀疏激活重新改写这三者的耦合方式。
-\end{importantbox}
-
-\subsection{本章小结}
-DeepSeek 这类案例的作用，是把整讲从抽象设计空间拉回真实系统。到这里你会发现，第 4 讲不只是讲 MoE 本身，更是在教你怎样评估一类看似复杂的工业系统设计：它解决了什么资源问题，又引入了什么新复杂度。
-
+\subsection{与本章其他概念的关系}
+为什么要替代标准 attention 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 这一课程目标}
+检验 这一课程目标 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 attention、GQA、MQA、KV cache、long context 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 这一课程目标，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(L\textbackslash{}) 是层数，\textbackslash{}(T\textbackslash{}) 是上下文长度，\textbackslash{}(H\_\{kv\}\textbackslash{}) 是 KV heads，\textbackslash{}(d\_\{ ext\{head\}\}\textbackslash{}) 是 head 维度，\textbackslash{}(b\textbackslash{}) 是每元素字节数。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：KV head 共享降低内存，但可能损失表示能力；attention 替代方法要同时看训练吞吐、推理延迟和模型质量。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 Attention alternatives 与 Mixture of Experts 的整体结构中。为什么要替代标准 attention 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：为什么要替代标准 attention}
+attention（注意力）提供 token 间交互，但长上下文下成本很高。在“为什么要替代标准 attention”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
+GQA 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么要替代标准 attention”中改变了哪个变量或约束。
+MQA 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么要替代标准 attention”中改变了哪个变量或约束。
+KV cache 缓存 key/value，避免重复计算历史上下文。在“为什么要替代标准 attention”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
+long context 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么要替代标准 attention”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{为什么要替代标准 attention 的小结}
+\begin{itemize}
+\item 为什么要替代标准 attention 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{Linear attention、state-space 与 recurrence}
+现在进入 Linear attention、state-space 与 recurrence。本节关心的不是名称本身，而是它把 Attention alternatives 与 Mixture of Experts 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 Linear attention、state-space 与 recurrence}
+课程 slides 把 linear attention、Mamba/SSM 等归入 attention alternatives 的讨论范围。
+核心思想是把全量 pairwise interaction 改写成可递推或可分解的状态更新，从而降低长序列成本。
+这些方法的关键问题不是复杂度公式本身，而是能否保持语言建模所需的选择性记忆和训练稳定性。
+Linear attention、state-space 与 recurrence 的作用是把 Attention alternatives 与 Mixture of Experts 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{Linear attention、state-space 与 recurrence 的机制}
+课程 slides 把 linear attention、Mamba/SSM 等归入 attention alternatives 的讨论范围。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+核心思想是把全量 pairwise interaction 改写成可递推或可分解的状态更新，从而降低长序列成本。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+这些方法的关键问题不是复杂度公式本身，而是能否保持语言建模所需的选择性记忆和训练稳定性。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，Linear attention、state-space 与 recurrence 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{Linear attention、state-space 与 recurrence 的形式化表示}
+\[\operatorname{Attn}(Q,K,V)\approx \phi(Q)\left(\phi(K)^\top V\right)\]
+符号说明：\(\phi(\cdot)\) 是 feature map；近似把 \(T\times T\) attention matrix 的构造改成可结合的矩阵乘积。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 Linear attention、state-space 与 recurrence 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+state = zeros()
+for token in sequence:
+    state = update(state, token)
+    output = readout(state, token)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 线性复杂度不自动意味着实际更快；kernel、memory access 和 hardware utilization 仍然决定吞吐。
+\item 递推结构可能更难并行训练，也可能需要特殊初始化或 normalization。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+Linear attention、state-space 与 recurrence 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 Linear attention、state-space 与 recurrence}
+检验 Linear attention、state-space 与 recurrence 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 linear attention、Mamba、SSM、recurrence、feature map 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Linear attention、state-space 与 recurrence，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(\textbackslash{}phi(\textbackslash{}cdot)\textbackslash{}) 是 feature map；近似把 \textbackslash{}(T imes T\textbackslash{}) attention matrix 的构造改成可结合的矩阵乘积。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：线性复杂度不自动意味着实际更快；kernel、memory access 和 hardware utilization 仍然决定吞吐；递推结构可能更难并行训练，也可能需要特殊初始化或 normalization。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 Attention alternatives 与 Mixture of Experts 的整体结构中。Linear attention、state-space 与 recurrence 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：Linear attention、state-space 与 recurrence}
+attention（注意力）提供 token 间交互，但长上下文下成本很高。在“Linear attention、state-space 与 recurrence”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
+Mamba 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Linear attention、state-space 与 recurrence”中改变了哪个变量或约束。
+SSM 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Linear attention、state-space 与 recurrence”中改变了哪个变量或约束。
+recurrence 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Linear attention、state-space 与 recurrence”中改变了哪个变量或约束。
+feature map 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Linear attention、state-space 与 recurrence”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{Linear attention、state-space 与 recurrence 的小结}
+\begin{itemize}
+\item Linear attention、state-space 与 recurrence 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{MoE 的稀疏计算与路由}
+现在进入 MoE 的稀疏计算与路由。本节关心的不是名称本身，而是它把 Attention alternatives 与 Mixture of Experts 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 MoE 的稀疏计算与路由}
+MoE 让每个 token 只激活少数 experts，从而在参数量很大时保持每 token compute 相对较低。
+routing 决定 token 到 expert 的分配；负载均衡、capacity factor、communication 和 expert parallelism 是核心系统问题。
+MoE 的收益来自参数容量和计算稀疏性的分离，但训练稳定性和 serving 成本会变复杂。
+MoE 的稀疏计算与路由 的作用是把 Attention alternatives 与 Mixture of Experts 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{MoE 的稀疏计算与路由 的机制}
+MoE 让每个 token 只激活少数 experts，从而在参数量很大时保持每 token compute 相对较低。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+routing 决定 token 到 expert 的分配；负载均衡、capacity factor、communication 和 expert parallelism 是核心系统问题。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+MoE 的收益来自参数容量和计算稀疏性的分离，但训练稳定性和 serving 成本会变复杂。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，MoE 的稀疏计算与路由 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{MoE 的稀疏计算与路由 的形式化表示}
+\[y=\sum_{e\in \operatorname{TopK}(r(x))} g_e(x)\,E_e(x)\]
+符号说明：\(r(x)\) 是 router，\(E_e\) 是第 \(e\) 个 expert，\(g_e\) 是 routing weight，TopK 表示只选少数 experts。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 MoE 的稀疏计算与路由 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+scores = router(hidden)
+experts = topk(scores, k=2)
+for expert in experts:
+    dispatch_tokens(expert)
+combine_weighted_outputs()
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item MoE 参数量大不等于每 token FLOPs 大；报告模型大小时要区分 total parameters 和 active parameters。
+\item 路由不均衡会导致部分 experts 过载，吞吐被最慢 shard 拖住。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+MoE 的稀疏计算与路由 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 MoE 的稀疏计算与路由}
+检验 MoE 的稀疏计算与路由 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 MoE、expert、router、TopK、capacity 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 MoE 的稀疏计算与路由，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(r(x)\textbackslash{}) 是 router，\textbackslash{}(E\_e\textbackslash{}) 是第 \textbackslash{}(e\textbackslash{}) 个 expert，\textbackslash{}(g\_e\textbackslash{}) 是 routing weight，TopK 表示只选少数 experts。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：MoE 参数量大不等于每 token FLOPs 大；报告模型大小时要区分 total parameters 和 active parameters；路由不均衡会导致部分 experts 过载，吞吐被最慢 shard 拖住。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 Attention alternatives 与 Mixture of Experts 的整体结构中。MoE 的稀疏计算与路由 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：MoE 的稀疏计算与路由}
+Mixture of Experts (MoE) 用稀疏激活扩展参数容量。在“MoE 的稀疏计算与路由”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
+expert（专家）是 MoE 中由 router 选择的子网络。在“MoE 的稀疏计算与路由”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
+router 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“MoE 的稀疏计算与路由”中改变了哪个变量或约束。
+TopK 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“MoE 的稀疏计算与路由”中改变了哪个变量或约束。
+capacity 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“MoE 的稀疏计算与路由”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{MoE 的稀疏计算与路由 的小结}
+\begin{itemize}
+\item MoE 的稀疏计算与路由 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{综合讨论：从局部机制到完整系统}
+本章的主题是 Attention alternatives 与 Mixture of Experts，但它不应被读成几个相邻知识点的拼接。为什么要替代标准 attention、Linear attention、state-space 与 recurrence、MoE 的稀疏计算与路由 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
+这些对象包括 attention alternatives（注意力替代机制）、Grouped-Query Attention (GQA)、Multi-Query Attention (MQA)、linear attention（线性注意力）、Mixture of Experts (MoE)、routing（路由）。读者可以把它们看成一组接口：有的接口连接文本和 token，有的连接模型结构和张量计算，有的连接数据样本和训练目标，有的连接离线评估和在线服务。接口一旦改变，后面的成本、错误类型和优化空间也会随之改变。
+\subsection{为什么要替代标准 attention 在系统中的位置}
+为什么要替代标准 attention 首先提供一个局部解释：视频把本讲定位为更高级的 architecture ideas：上一讲讨论主流 Transformer，本讲讨论 attention 的成本和替代机制。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，为什么要替代标准 attention 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，为什么要替代标准 attention 不能脱离边界条件理解。一个关键 caveat 是：KV head 共享降低内存，但可能损失表示能力。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{Linear attention、state-space 与 recurrence 在系统中的位置}
+Linear attention、state-space 与 recurrence 首先提供一个局部解释：课程 slides 把 linear attention、Mamba/SSM 等归入 attention alternatives 的讨论范围。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，Linear attention、state-space 与 recurrence 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，Linear attention、state-space 与 recurrence 不能脱离边界条件理解。一个关键 caveat 是：线性复杂度不自动意味着实际更快；kernel、memory access 和 hardware utilization 仍然决定吞吐。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{MoE 的稀疏计算与路由 在系统中的位置}
+MoE 的稀疏计算与路由 首先提供一个局部解释：MoE 让每个 token 只激活少数 experts，从而在参数量很大时保持每 token compute 相对较低。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，MoE 的稀疏计算与路由 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，MoE 的稀疏计算与路由 不能脱离边界条件理解。一个关键 caveat 是：MoE 参数量大不等于每 token FLOPs 大；报告模型大小时要区分 total parameters 和 active parameters。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{把本章知识用于读论文和复现实验}
+读相关论文时，可以把本章变成一个检查表。第一，论文是否清楚定义了输入规模、模型规模、数据来源和评估协议；第二，论文声称的改进落在哪个变量上；第三，作者是否报告了会让结论失效的设置；第四，实验是否能分离模型结构、数据质量、优化设置和系统实现的影响。
+复现实验时，也应避免直接追求大规模。先用最小程序复现一个公式、一个伪代码分支或一个 profile 现象，再扩大输入规模。这样做的原因很简单：如果小规模程序无法解释中间量，大规模训练只会把错误隐藏在日志和随机波动里。
+把这些检查合在一起，本章给出的不是一个固定答案，而是一种阅读 CS336 的方法：每个模型机制都要落到变量，每个变量都要落到测量，每个测量都要说明协议，每个协议都要承认边界。
+因此，本章中的任何一句结论都可以被改写成一个可引用的完整句式：在给定数据、模型、硬件和评估协议下，某个机制改变了某个变量，并通过某个观测指标表现出来。这样的句子比单独背诵术语更长，但它包含了自学、复现和引用时真正需要的信息。
+把本章用于自学时，可以按三遍阅读。第一遍只追踪对象和定义，确认每个术语到底指向文本、token、张量、样本、请求还是评估记录。第二遍追踪公式和伪代码，确认每一步改变了哪些状态。第三遍追踪实验和 caveat，确认哪些结论只在特定规模、数据或硬件条件下成立。
+把本章用于复习时，则应反过来操作：先从一个失败案例或异常指标出发，再回到相应机制。loss 曲线异常可能指向数据、优化或模型容量；吞吐异常可能指向 kernel、通信或调度；benchmark 异常可能指向 contamination、prompt protocol 或采样设置。能够从异常反推机制，是掌握本章的实用标准。
+\section{例题：把概念变成可计算检查}
+\subsection{KV cache 与 GQA 的显存差异}
+比较 full multi-head attention 和 grouped-query attention。假设层数、上下文长度和 head dimension 固定，只减少 KV heads。
+\begin{itemize}
+\item `KV cache bytes ∝ H\_kv`，把 KV heads 从 32 减到 8 会近似把 KV cache 降为四分之一。
+\item query heads 仍可保持较多，以保留表达能力。
+\item 质量损失是否可接受必须通过同等训练/推理评估验证。
+\end{itemize}
+\textbf{结论。} attention 变体往往是在表示能力、cache size 和 memory bandwidth 之间交换资源。
+这个例题的目的不是替代完整工程实现，而是给出一种最小推理形式：把问题转成变量，写出近似公式或伪代码，再说明近似何时失效。
+\section{实验设计：从小例子到可复现结论}
+学习 Attention alternatives 与 Mixture of Experts 不能停在概念层。一个教材化结论至少需要四件事：可构造的输入、可观测的中间量、可比较的指标，以及清楚的失败条件。下面的实验设计不是要求训练大模型，而是要求读者用小规模程序复现本章机制。
+\subsection{最小输入}
+先构造只触发本章核心机制的小输入。例如 tokenizer 章节可以用几个包含 rare words 和 Unicode 字符的字符串；GPU 章节可以用一个 elementwise kernel 和一个 GEMM；data 章节可以用十几篇近重复文档。小输入的价值在于它让错误可见。
+\subsection{资源账本}
+对同一输入写下 FLOPs、bytes moved、显存峰值、通信量或样本数量的估算。估算不需要一开始就精确，但必须说明单位和近似假设。随后用 profiler、benchmark、validation loss 或人工检查去验证估算是否同量级。
+\subsection{单变量消融}
+一次只改变一个因素，例如 vocabulary size、head 数、batch size、filter threshold、reward scale、decoding temperature 或 GPU 数量。若多个变量同时变化，实验只能说明系统变了，不能说明机制是什么。
+\subsection{失败条件}
+最后要刻意触发失败：极端 context length、错误 dtype、过小 batch、污染 benchmark、低质量数据或不可靠 verifier。失败条件常常比成功曲线更能说明一个方法的边界。
+\subsection{记录与报告}
+实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
+常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\section{课程资料与回看路径}
+教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
+\subsection{视频回看路径}
+\begin{longtable}{p{0.20\linewidth}p{0.46\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{时间} & \textbf{关键词} & \textbf{复习任务}\\
+\midrule
+00:00:05-00:07:22 & attention, going, it's, very, think, part, sequence & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:22:10-00:29:16 & going, attention, very, indexer, then, it's, another & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:42:53-00:49:34 & going, token, experts, it's, moes, expert, different & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:56:40-01:03:55 & experts, going, shared, expert, that's, very, it's & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+01:18:41-01:26:07 & think, your, it's, very, model., then, going & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+\bottomrule
+\end{longtable}
+这些时间段用于定位视频中的讲解顺序。严肃引用时，应回到视频片段确认讲者表述、板书或幻灯片内容。
+回看视频时，不必逐字抄录字幕。更有效的方法是把每个时间段判定为定义、例子、推导、代码解释或 caveat，再把它放回本章对应小节。
+\subsection{课程资料阅读路径}
+\begin{longtable}{p{0.14\linewidth}p{0.48\linewidth}p{0.30\linewidth}}
+\toprule
+\textbf{资料组} & \textbf{标题/页块} & \textbf{关键词}\\
+\midrule
+official\_01 & Lecture 4 A T T E N T I O N A LT E R N AT I V E S A N D M I X T U R E S O F E X P E R ... & attention, linear, hybrid, context, form, duality, performance\\
+official\_02 & DSA – Deepseek Sparse Attention (v3.2, GLM5) & experts, fedus, feedforward, deepseek, sparse, attention, glm5\\
+official\_03 & Why are MoEs getting popular? Faster to train MoEs [OlMoE] & moes, getting, popular, results, chinese, quite, earlier\\
+official\_05 & Example from deepseek (v1-2) Per-expert balancing – same as the switch transformer ... & moes, balancing, per-expert, side, additional, parallelism, deepseek\\
+official\_06 & Z-loss stability for the router What happens when we remove the z-loss? & deepseek, active, experts, need, moes, upcycling, shared\\
+\bottomrule
+\end{longtable}
+课程资料通常给出更稳定的标题、公式、图或代码结构；视频则补充动机和口头解释。两者合起来构成本章的事实边界。
+阅读资料时，可以把每个资料组拆成三个对象：一个定义，一个公式或伪代码动作，一个边界条件。这样比逐字翻译页面或脚本更容易形成可用知识。
+\section{实践说明、历史位置与风险}
+Attention alternatives 与 Mixture of Experts 在 CS336 的课程结构中连接基础机制和规模化问题。基础机制解释方法为什么成立；规模化问题检验它在更大模型、更长上下文、更复杂数据或真实 serving workload 下是否仍成立。
+历史位置不等于模型年表。更重要的是识别问题如何迁移：早期方法解决小规模建模问题，现代方法常常解决同一问题在大规模数据、GPU 集群、长上下文或人类偏好约束下的新形态。
+\begin{itemize}
+\item 资料版本限制（version risk）：课程页、公开视频和配套资料可能在学期中更新；引用时应注明访问日期或资料版本。
+\item 测量口径限制（measurement risk）：FLOPs、tokens/s、benchmark score、reward 等数字只有在协议完整时可比较。
+\item 规模外推限制（scaling risk）：小模型或小 batch 的机制不必然外推到 frontier-scale。
+\item 数据分布限制（data risk）：数据来源、过滤和去重策略会改变模型行为，也会改变 evaluation contamination 风险。
+\end{itemize}
+\section{复习要点}
+下面的问题把本章内容压缩为可反复检查的条目。每个条目都应能回到前文的解释、公式、伪代码或例题。
+\begin{longtable}{p{0.16\linewidth}p{0.38\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{条目} & \textbf{对象} & \textbf{检查动作}\\
+\midrule
+条目 1 & attention alternatives（注意力替代机制） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 2 & Grouped-Query Attention (GQA) & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 3 & Multi-Query Attention (MQA) & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 4 & linear attention（线性注意力） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 5 & Mixture of Experts (MoE) & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 6 & routing（路由） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+\bottomrule
+\end{longtable}
+\subsection{综合自测}
+\begin{itemize}
+\item 我能否不用课程原句，独立解释本章中心问题？
+\item 我能否把本章至少一个公式改写成可运行的估算函数？
+\item 我能否指出一个看似改进但实际转移成本的方法？
+\item 我能否回到视频和课程资料，找到支持本章关键论断的位置？
+\item 我能否设计一个最小 ablation，验证本章一个 caveat？
+\end{itemize}
 \section{总结与延伸}
-第 4 讲最重要的结论可以压成四句话。
-
-第一，\textbf{MoE 的核心价值是把“总参数量”和“单 token 实际计算量”解耦。} 这使得模型可以在相近 FLOP 预算下拥有更高总容量。
-
-第二，\textbf{routing 设计虽然花样很多，但实践世界已经明显向 top-k token-choice 收敛。} 这再次说明工程世界偏好“足够好且可扩展”的方案。
-
-第三，\textbf{balancing 不是附加小技巧，而是 MoE 系统能否高效工作的一部分。} 一旦专家分配失衡，MoE 的理论收益就会迅速被系统问题吞掉。
-
-第四，\textbf{现代大规模 MoE 必须作为整套系统工程来看。} DeepSeek 这样的系统说明，真正有效的 MoE 往往不是“替换掉 FFN 就结束”，而是路由、平衡、通信、推理与其他结构优化共同联动的结果。
-
-\begin{warningbox}{我对第 4 讲的最终提醒}
-不要把 MoE 理解成“只要稀疏化就能白捡性能”。MoE 的真正价值建立在一个前提上：你有能力把 routing、load balancing、通信和稳定性这些麻烦一起处理好。
-\end{warningbox}
-
-从后续学习路径看，这一讲和后面的系统课、推理课联系极强。因为 MoE 虽然首先看起来是架构问题，但它几乎每一个收益点都直接依赖系统是否能承接；而它最麻烦的地方，恰恰也都在系统层爆发。
-
+\subsection{本章小结}
+\begin{itemize}
+\item Attention alternatives 与 Mixture of Experts 的核心不是记忆术语，而是理解对象、变量和机制之间的关系。
+\item 视频给出讲解顺序，课程资料提供可核对的公式、图、代码或页面结构。
+\item 复习时应把每个术语连接到至少一个变量、一个实现动作和一个失败模式。
+\end{itemize}
+\subsection{延伸解释}
+本章中的延伸解释用于连接课程材料中的概念，例如说明公式里的 proxy、解释系统 tradeoff，或把多个材料片段串成一个完整推理链。若需要严肃引用，应回到课程视频和配套资料核对原始表述。
+\subsection{练习}
+\begin{itemize}
+\item 定义题：用中英双语解释本章任意五个重要术语，并说明它们属于 compute、memory、data、optimization、evaluation 还是 deployment 账本。
+\item 推导题：选择本章一个公式，逐个解释符号、单位和近似假设，并说明哪个变量最难在真实系统中测量。
+\item 实现题：把本章伪代码改写成一个最小 Python sanity check，不要求训练大模型，但要输出可检查的中间量。
+\item 资料题：从“课程资料与回看路径”中选择一个视频时间段，回到原始视频核对讲者例子，并记录是否存在字幕误差。
+\item 评估题：为本章方法设计一个 ablation 或 benchmark，说明控制变量、数据版本、指标和 failure criteria。
+\item 边界题：说明本章一个结论在更长 context、更大 batch、更多 GPU 或更复杂数据分布下可能如何失效。
+\item 综合题：把本章内容和前一章或后一章连接起来，写出一个端到端训练/推理 pipeline 中的依赖关系。
+\item 批判题：指出一个容易被营销材料夸大的说法，并用本章的资源账本或评估协议反驳它。
+\end{itemize}
 \end{document}

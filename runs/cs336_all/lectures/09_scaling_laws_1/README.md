@@ -1,9 +1,5 @@
-# Lecture 9: Scaling laws 1
+# Lecture 09: Scaling laws 基础
 
-- Video ID: `6Q-ESEmDf4Q`
-- Cover: [cover.jpg](cover.jpg)
-- Transcript: [transcript.txt](transcript.txt)
-- Official material: [official.txt](official.txt)
-- Generated notes: [notes.md](notes.md)
-
-This folder is the lecture-specific workspace for refining this lecture into its own polished note/PDF.
+- video: https://www.youtube.com/watch?v=Q15rhEWZPQ4
+- material: lecture_09.pdf
+- basis: Spring 2026 public playlist subtitles + official course page/materials.

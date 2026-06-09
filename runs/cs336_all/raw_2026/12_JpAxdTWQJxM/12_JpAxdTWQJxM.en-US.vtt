@@ -1,0 +1,5181 @@
+WEBVTT
+Kind: captions
+Language: en-US
+
+00:00:05.720 --> 00:00:09.280
+So today, we're going to
+talk about evaluation.
+
+00:00:09.280 --> 00:00:13.400
+So far in this class
+we've done everything we
+
+00:00:13.400 --> 00:00:15.680
+need to train a language model.
+
+00:00:15.680 --> 00:00:19.920
+We defined the architecture,
+the optimizer, the main training
+
+00:00:19.920 --> 00:00:20.540
+loop.
+
+00:00:20.540 --> 00:00:25.160
+We showed how to make the
+training fast with kernels,
+
+00:00:25.160 --> 00:00:26.840
+parallelism.
+
+00:00:26.840 --> 00:00:29.240
+And then we saw scaling laws.
+
+00:00:29.240 --> 00:00:33.560
+We saw a little bit of how to
+make inference fast as well.
+
+00:00:33.560 --> 00:00:36.840
+So the only missing piece
+now is talking about the data
+
+00:00:36.840 --> 00:00:38.880
+that you train on.
+
+00:00:38.880 --> 00:00:43.360
+So we're going to spend next
+week talking about that.
+
+00:00:43.360 --> 00:00:46.640
+And data is going to
+shape the model behavior.
+
+00:00:46.640 --> 00:00:49.520
+If you train on
+code, then presumably
+
+00:00:49.520 --> 00:00:51.380
+your model is going
+to be good at code.
+
+00:00:51.380 --> 00:00:53.240
+If you train only
+on DNA sequences,
+
+00:00:53.240 --> 00:00:56.320
+it probably can't speak English.
+
+00:00:56.320 --> 00:00:58.920
+But before we even
+get to data, we
+
+00:00:58.920 --> 00:01:02.170
+need to talk about what
+behavior we want from a model,
+
+00:01:02.170 --> 00:01:05.489
+and that's going to be
+the topic of evaluation.
+
+00:01:05.489 --> 00:01:08.290
+So evaluation asks a
+very simple question--
+
+00:01:08.290 --> 00:01:13.250
+given the model that we've
+trained, how good is it?
+
+00:01:13.250 --> 00:01:14.890
+So what is good?
+
+00:01:14.890 --> 00:01:19.770
+So evaluation might seem like
+a fairly mechanical process.
+
+00:01:19.770 --> 00:01:21.290
+You define some
+prompts, you send
+
+00:01:21.290 --> 00:01:23.870
+these prompts to your model,
+you get back some responses,
+
+00:01:23.870 --> 00:01:25.470
+and then you compute
+the accuracy.
+
+00:01:25.470 --> 00:01:29.010
+So why do we have a whole
+lecture on evaluation?
+
+00:01:29.010 --> 00:01:32.110
+But actually, evaluation
+is a very deep topic,
+
+00:01:32.110 --> 00:01:34.690
+and it's also very important
+because evaluation is what
+
+00:01:34.690 --> 00:01:36.650
+shapes the development of AI.
+
+00:01:36.650 --> 00:01:41.050
+Evaluation sets North Stars
+and model developers--
+
+00:01:41.050 --> 00:01:44.690
+open, closed-- everyone
+looks at evaluation
+
+00:01:44.690 --> 00:01:49.290
+as a measure of progress.
+
+00:01:49.290 --> 00:01:52.210
+So by thinking carefully
+about your evaluation,
+
+00:01:52.210 --> 00:01:54.610
+you implicitly shape
+the development
+
+00:01:54.610 --> 00:01:57.790
+of what your model is
+going to be able to do.
+
+00:01:57.790 --> 00:02:01.350
+So what's hard about
+evaluation is the following.
+
+00:02:01.350 --> 00:02:05.190
+So often, you start it with
+an abstract construct of what
+
+00:02:05.190 --> 00:02:07.150
+do I want my model to do?
+
+00:02:07.150 --> 00:02:11.630
+Maybe I want my model to
+be good at conversation
+
+00:02:11.630 --> 00:02:13.750
+or good at reasoning.
+
+00:02:13.750 --> 00:02:14.250
+OK.
+
+00:02:14.250 --> 00:02:16.230
+So those are abstract concepts.
+
+00:02:16.230 --> 00:02:18.470
+And then evaluation
+is really the process
+
+00:02:18.470 --> 00:02:23.030
+of turning that into a concrete
+metric powered by, presumably,
+
+00:02:23.030 --> 00:02:26.670
+some concrete prompts
+or environments.
+
+00:02:26.670 --> 00:02:29.930
+So this is going to
+be the core challenge,
+
+00:02:29.930 --> 00:02:32.270
+and we'll see many
+examples of how
+
+00:02:32.270 --> 00:02:36.190
+this process of abstract
+construct, concrete metric
+
+00:02:36.190 --> 00:02:38.070
+shows up.
+
+00:02:38.070 --> 00:02:42.070
+So let's go back to a question
+of what makes a model good.
+
+00:02:42.070 --> 00:02:44.430
+Just kind of superficially.
+
+00:02:44.430 --> 00:02:47.290
+Maybe a model is good if
+it does well on benchmarks.
+
+00:02:47.290 --> 00:02:49.890
+So there's this website,
+Artificial Analysis,
+
+00:02:49.890 --> 00:02:54.670
+which has become a bit of a
+standard for thinking about
+
+00:02:54.670 --> 00:02:57.200
+quote unquote,
+"intelligence of models."
+
+00:02:57.200 --> 00:02:59.840
+So if you go to
+Artificial Analysis AI,
+
+00:02:59.840 --> 00:03:03.920
+you can see a ranking of
+different models from GPT-5.5,
+
+00:03:03.920 --> 00:03:07.240
+all the way down-- well, there's
+many more models after this
+
+00:03:07.240 --> 00:03:09.640
+point.
+
+00:03:09.640 --> 00:03:13.110
+And so this is a measure.
+
+00:03:13.110 --> 00:03:16.000
+It includes a bunch of different
+data sets, some of which
+
+00:03:16.000 --> 00:03:18.360
+we'll talk about.
+
+00:03:18.360 --> 00:03:20.960
+Or maybe a model is good if
+it does well on benchmark
+
+00:03:20.960 --> 00:03:26.160
+and is also cheap to run,
+because cost should matter.
+
+00:03:26.160 --> 00:03:30.440
+And this plot shows both
+the intelligence index
+
+00:03:30.440 --> 00:03:33.520
+from before, but
+against how much money
+
+00:03:33.520 --> 00:03:38.080
+it costs to run a particular
+model based on inference cost.
+
+00:03:38.080 --> 00:03:41.560
+And you can see, of course,
+as you might expect,
+
+00:03:41.560 --> 00:03:43.820
+that the two are correlated.
+
+00:03:43.820 --> 00:03:47.860
+The more you pay to run, the
+higher the intelligence index,
+
+00:03:47.860 --> 00:03:52.800
+but it's not exactly aligned.
+
+00:03:52.800 --> 00:03:57.770
+But maybe a model is good
+if people just prefer it.
+
+00:03:57.770 --> 00:04:00.150
+Later we'll also go a
+little bit more into depth.
+
+00:04:00.150 --> 00:04:04.010
+So this is the take that
+Arena AI, formerly known
+
+00:04:04.010 --> 00:04:06.290
+as Chatbot Arena, takes.
+
+00:04:06.290 --> 00:04:08.570
+And you can form a
+ranking based on models,
+
+00:04:08.570 --> 00:04:11.330
+based on whether
+people like it or not.
+
+00:04:11.330 --> 00:04:14.690
+Or maybe a model is
+good if people simply
+
+00:04:14.690 --> 00:04:17.870
+choose to use it, and
+therefore, pay for it.
+
+00:04:17.870 --> 00:04:22.010
+So OpenRouter is
+this service that
+
+00:04:22.010 --> 00:04:25.010
+allows one to use
+multiple different models
+
+00:04:25.010 --> 00:04:28.952
+through a central endpoint.
+
+00:04:28.952 --> 00:04:30.410
+And as a result,
+they collect a lot
+
+00:04:30.410 --> 00:04:34.410
+of statistics of what
+models people are using.
+
+00:04:34.410 --> 00:04:37.810
+And they publish
+statistics, which
+
+00:04:37.810 --> 00:04:39.330
+is really interesting
+to look at,
+
+00:04:39.330 --> 00:04:43.210
+the top bottles that are
+used through OpenRouter.
+
+00:04:43.210 --> 00:04:45.650
+So now, this is not
+representative of all model
+
+00:04:45.650 --> 00:04:50.410
+usage, but it gives you a sense
+of what people on open router
+
+00:04:50.410 --> 00:04:51.450
+are doing.
+
+00:04:51.450 --> 00:04:53.840
+And so this is kind of
+more of an economic lens.
+
+00:04:53.840 --> 00:04:58.000
+I don't what good is, but
+if people are paying for it,
+
+00:04:58.000 --> 00:05:01.660
+it must be good.
+
+00:05:01.660 --> 00:05:02.240
+OK.
+
+00:05:02.240 --> 00:05:07.200
+So none of those are
+necessarily the correct answer.
+
+00:05:07.200 --> 00:05:09.760
+I don't know If there
+is a correct answer,
+
+00:05:09.760 --> 00:05:12.820
+but I'm just trying to get you
+to think about different ways
+
+00:05:12.820 --> 00:05:16.060
+of thinking about what good is.
+
+00:05:16.060 --> 00:05:21.180
+So let's start now by looking at
+different ways, concrete ways,
+
+00:05:21.180 --> 00:05:23.300
+of evaluating language models.
+
+00:05:23.300 --> 00:05:26.460
+And there's no better place
+to start than going back
+
+00:05:26.460 --> 00:05:30.860
+to the core idea of a
+language model, which
+
+00:05:30.860 --> 00:05:36.180
+is that it's a distribution P
+of x over sequences of tokens.
+
+00:05:36.180 --> 00:05:38.620
+And through that lens,
+there's a very natural way
+
+00:05:38.620 --> 00:05:41.260
+to evaluate a
+distribution, which
+
+00:05:41.260 --> 00:05:46.540
+is a perplexity, or
+likelihood or log loss.
+
+00:05:46.540 --> 00:05:49.540
+Those are all kind
+of related concepts.
+
+00:05:49.540 --> 00:05:54.240
+And it basically says, I
+have a test data set d,
+
+00:05:54.240 --> 00:05:58.680
+and I'm going to see how much
+probability mass my language
+
+00:05:58.680 --> 00:06:00.920
+model assigns to that d.
+
+00:06:00.920 --> 00:06:03.360
+And I normalize it and
+divide so that the numbers
+
+00:06:03.360 --> 00:06:05.840
+are more interpretable.
+
+00:06:05.840 --> 00:06:07.420
+But that's basically it.
+
+00:06:07.420 --> 00:06:11.720
+How much mass does my
+probability language model
+
+00:06:11.720 --> 00:06:14.440
+assigned to a data set.
+
+00:06:14.440 --> 00:06:16.100
+OK, so this is fairly natural.
+
+00:06:16.100 --> 00:06:19.040
+In fact, when we
+were doing training,
+
+00:06:19.040 --> 00:06:22.600
+we minimized the perplexity
+on the training set.
+
+00:06:22.600 --> 00:06:25.400
+So the obvious thing to do
+is measure the perplexity
+
+00:06:25.400 --> 00:06:28.320
+on the test set, and this is
+what people traditionally did
+
+00:06:28.320 --> 00:06:31.280
+in language modeling research
+for many years throughout
+
+00:06:31.280 --> 00:06:33.240
+the 2010s.
+
+00:06:33.240 --> 00:06:35.380
+If you pick up a
+language modeling paper,
+
+00:06:35.380 --> 00:06:36.640
+this is what they did.
+
+00:06:36.640 --> 00:06:39.840
+And back then,
+standard data sets
+
+00:06:39.840 --> 00:06:44.320
+included the Penn
+Treebank, WikiText-103.
+
+00:06:44.320 --> 00:06:47.200
+There was also this One
+Billion Word Benchmark,
+
+00:06:47.200 --> 00:06:53.330
+which was taken from
+machine translation sources.
+
+00:06:53.330 --> 00:06:56.650
+And this is all in the
+classic paradigm, which is
+
+00:06:56.650 --> 00:06:58.750
+in-distribution of evaluation.
+
+00:06:58.750 --> 00:07:02.110
+You train on some train
+split of that data set,
+
+00:07:02.110 --> 00:07:07.090
+and then you evaluate on some
+test split of that data set.
+
+00:07:07.090 --> 00:07:11.490
+And people actually
+made a lot of progress,
+
+00:07:11.490 --> 00:07:14.450
+which was just measured
+in perplexity reduction.
+
+00:07:14.450 --> 00:07:16.490
+So for example, there's
+this famous paper
+
+00:07:16.490 --> 00:07:22.490
+from 2016, which
+showed that you could
+
+00:07:22.490 --> 00:07:27.450
+apply CNNs and LSTMs to this
+One Billion Word Benchmark
+
+00:07:27.450 --> 00:07:31.090
+and get a huge
+perplexity reduction.
+
+00:07:31.090 --> 00:07:33.110
+And bear in mind,
+around that time,
+
+00:07:33.110 --> 00:07:35.490
+people were talking still
+about n-gram models and maybe
+
+00:07:35.490 --> 00:07:37.650
+hybrid models.
+
+00:07:37.650 --> 00:07:40.890
+And this was the first
+definitive result
+
+00:07:40.890 --> 00:07:46.050
+that showed just pure neural
+is clearly the way to go.
+
+00:07:46.050 --> 00:07:48.280
+OK, so life was very
+simple back then.
+
+00:07:48.280 --> 00:07:49.640
+You train on the train split.
+
+00:07:49.640 --> 00:07:52.900
+You test on a test
+split for perplexity.
+
+00:07:52.900 --> 00:07:58.380
+So then when GPT-2 came
+around in 2019 from OpenAI,
+
+00:07:58.380 --> 00:08:01.540
+they trained on
+the data set called
+
+00:08:01.540 --> 00:08:04.620
+WebText, which was 40
+gigabytes of text websites
+
+00:08:04.620 --> 00:08:07.140
+that were linked from Reddit.
+
+00:08:07.140 --> 00:08:10.920
+And the way they evaluated
+was actually different.
+
+00:08:10.920 --> 00:08:16.060
+They evaluated zero-shot
+on standard data sets
+
+00:08:16.060 --> 00:08:19.380
+that everyone else
+was evaluating on.
+
+00:08:19.380 --> 00:08:21.840
+So this is out-of-distribution
+evaluation.
+
+00:08:21.840 --> 00:08:25.820
+So this is a table from their
+paper, which show that as they
+
+00:08:25.820 --> 00:08:27.400
+train different models.
+
+00:08:27.400 --> 00:08:30.700
+So the biggest model is
+1.5 billion parameters.
+
+00:08:30.700 --> 00:08:36.460
+And they were able to show
+quite a bit of improvement,
+
+00:08:36.460 --> 00:08:39.440
+especially on the
+small data sets.
+
+00:08:39.440 --> 00:08:42.780
+So for example, PTB,
+which is a tiny data set.
+
+00:08:42.780 --> 00:08:46.480
+They were getting 35 perplexity
+compared to the State
+
+00:08:46.480 --> 00:08:48.400
+of The Art, which is 46.
+
+00:08:48.400 --> 00:08:50.820
+Now, if you have enough
+in-distribution data,
+
+00:08:50.820 --> 00:08:53.960
+you don't quite do
+as well as the SOTA.
+
+00:08:53.960 --> 00:08:58.120
+But nonetheless, this
+is kind of impressive,
+
+00:08:58.120 --> 00:09:02.200
+given that this model was not
+trained on One Billion Word's
+
+00:09:02.200 --> 00:09:04.480
+data set at all.
+
+00:09:04.480 --> 00:09:05.120
+I don't know.
+
+00:09:05.120 --> 00:09:07.040
+Maybe there was some
+overlap, because I
+
+00:09:07.040 --> 00:09:14.320
+don't know if they did a
+careful train test decontam.
+
+00:09:14.320 --> 00:09:20.440
+And so it ushered
+in a new paradigm
+
+00:09:20.440 --> 00:09:22.920
+of thinking about language
+models as not just
+
+00:09:22.920 --> 00:09:27.040
+the in-distribution
+setting, but how
+
+00:09:27.040 --> 00:09:31.480
+we wanted to train
+on a large data set
+
+00:09:31.480 --> 00:09:34.560
+and evaluate on standard
+benchmarks, which nowadays I
+
+00:09:34.560 --> 00:09:37.300
+think has been very
+common standard.
+
+00:09:37.300 --> 00:09:41.620
+But back then, it was seen
+as a bit of a novelty.
+
+00:09:46.530 --> 00:09:49.890
+I will also argue, since we're
+talking about perplexity, that
+
+00:09:49.890 --> 00:09:53.050
+perplexity is you all need.
+
+00:09:53.050 --> 00:09:54.990
+I wouldn't to take
+this too seriously,
+
+00:09:54.990 --> 00:09:57.250
+but I think it is
+a mindset, I think,
+
+00:09:57.250 --> 00:10:01.130
+that drives a lot of
+language modeling research.
+
+00:10:01.130 --> 00:10:03.810
+And the basic argument
+goes like this.
+
+00:10:03.810 --> 00:10:05.830
+So there's some true
+distribution out there--
+
+00:10:05.830 --> 00:10:07.290
+let's call it t--
+
+00:10:07.290 --> 00:10:09.970
+and you're training
+this model p.
+
+00:10:09.970 --> 00:10:14.210
+So what is the best
+perplexity you could obtain?
+
+00:10:14.210 --> 00:10:17.890
+Well, the best
+perplexity is the entropy
+
+00:10:17.890 --> 00:10:21.850
+of that true
+distribution, and that
+
+00:10:21.850 --> 00:10:26.130
+is realized when p equals t.
+
+00:10:26.130 --> 00:10:30.290
+So by minimizing
+perplexity, you're basically
+
+00:10:30.290 --> 00:10:35.130
+pushing down the perplexity.
+
+00:10:35.130 --> 00:10:38.610
+And the only unique minimizer
+is when you actually
+
+00:10:38.610 --> 00:10:40.780
+get the true distribution.
+
+00:10:40.780 --> 00:10:44.880
+And when you have the true
+distribution, you're done.
+
+00:10:44.880 --> 00:10:46.066
+You just model everything.
+
+00:10:46.066 --> 00:10:48.060
+You can solve all
+the problems, and you
+
+00:10:48.060 --> 00:10:50.780
+can do things like
+condition on the problem,
+
+00:10:50.780 --> 00:10:52.000
+generate a solution.
+
+00:10:52.000 --> 00:10:55.740
+You can condition on a
+question, generate the answer.
+
+00:10:55.740 --> 00:10:59.140
+So by pushing down
+on perplexity,
+
+00:10:59.140 --> 00:11:03.780
+we'll eventually reach
+AGI, is the argument.
+
+00:11:03.780 --> 00:11:05.500
+I mean, this might
+sound, I don't know,
+
+00:11:05.500 --> 00:11:08.100
+either a bit fantastical.
+
+00:11:08.100 --> 00:11:10.900
+But in some sense,
+this is really,
+
+00:11:10.900 --> 00:11:13.260
+I think, a strong
+driver of many people
+
+00:11:13.260 --> 00:11:16.980
+who have been scaling and
+scaling language models
+
+00:11:16.980 --> 00:11:22.620
+at a time when, maybe, the
+gains weren't as obvious.
+
+00:11:22.620 --> 00:11:24.500
+Before GPT-3, I
+think it wasn't clear
+
+00:11:24.500 --> 00:11:29.180
+that language models were going
+to have such a huge impact.
+
+00:11:29.180 --> 00:11:33.020
+And it was really this belief
+that, if you drove perplexity
+
+00:11:33.020 --> 00:11:36.940
+down, good things will happen.
+
+00:11:36.940 --> 00:11:43.760
+So of course, Perplexity
+is maybe not all.
+
+00:11:43.760 --> 00:11:47.760
+And one way to frame it is
+that perplexity is maybe more
+
+00:11:47.760 --> 00:11:49.025
+than you need.
+
+00:11:49.025 --> 00:11:51.400
+So for example, if you have
+a sentence like "Stanford was
+
+00:11:51.400 --> 00:11:55.360
+founded in 1885,"
+perplexity will say,
+
+00:11:55.360 --> 00:11:59.400
+penalize the prediction
+on all tokens.
+
+00:11:59.400 --> 00:12:03.640
+So in particular, it'll say,
+what is the probability of 1885,
+
+00:12:03.640 --> 00:12:04.920
+given the rest?
+
+00:12:04.920 --> 00:12:07.980
+And that token is
+probably pretty useful.
+
+00:12:07.980 --> 00:12:13.960
+It's basically a Q&amp;A example,
+phrased as sentence completion.
+
+00:12:13.960 --> 00:12:17.480
+So it captures knowledge
+about the world.
+
+00:12:17.480 --> 00:12:22.180
+But other ones-- for example,
+the first word of a sentence,
+
+00:12:22.180 --> 00:12:25.120
+or even "founded"--
+
+00:12:25.120 --> 00:12:29.560
+maybe not that
+interesting, I think.
+
+00:12:29.560 --> 00:12:31.340
+And perplexity doesn't care.
+
+00:12:31.340 --> 00:12:38.250
+It's going to charge you bits
+for every bit of a deviation
+
+00:12:38.250 --> 00:12:41.490
+from the true distribution.
+
+00:12:41.490 --> 00:12:44.150
+So there is a bit
+of a solution here,
+
+00:12:44.150 --> 00:12:47.190
+which is you can always measure
+the conditional perplexity.
+
+00:12:47.190 --> 00:12:48.710
+You can condition
+on some prompt,
+
+00:12:48.710 --> 00:12:53.530
+and then you can measure the
+perplexity of the remaining
+
+00:12:53.530 --> 00:12:54.450
+response.
+
+00:12:54.450 --> 00:12:56.410
+So that allows you
+to, in general,
+
+00:12:56.410 --> 00:12:58.690
+focus on certain
+tokens that you believe
+
+00:12:58.690 --> 00:13:02.730
+to be relevant
+and less on others
+
+00:13:02.730 --> 00:13:06.590
+that are sort of incidental.
+
+00:13:06.590 --> 00:13:08.916
+OK.
+
+00:13:08.916 --> 00:13:11.570
+And also, it's
+important to remember
+
+00:13:11.570 --> 00:13:15.570
+that some benchmarks, even
+though they are not explicitly
+
+00:13:15.570 --> 00:13:17.130
+a perplexity
+measure, are actually
+
+00:13:17.130 --> 00:13:18.930
+just perplexity in disguise.
+
+00:13:18.930 --> 00:13:22.110
+So, for example, if you
+think about closed tasks.
+
+00:13:22.110 --> 00:13:26.110
+There's this lambada paper
+from, actually, a while ago,
+
+00:13:26.110 --> 00:13:29.650
+2016, which is basically
+fill in the blank.
+
+00:13:29.650 --> 00:13:33.290
+And you have a context,
+you have a sentence.
+
+00:13:33.290 --> 00:13:36.380
+"Do you honestly think I will
+want you to have a blank."
+
+00:13:36.380 --> 00:13:40.260
+And the goal is to
+figure out that word.
+
+00:13:40.260 --> 00:13:44.320
+And even though this is
+measured in terms of accuracy,
+
+00:13:44.320 --> 00:13:48.900
+it is really a next-token
+prediction problem.
+
+00:13:48.900 --> 00:13:52.680
+And here, it's not
+perplexity of all the words,
+
+00:13:52.680 --> 00:13:54.000
+it's carefully chosen.
+
+00:13:54.000 --> 00:13:56.940
+If you read this paper,
+it's really carefully chosen
+
+00:13:56.940 --> 00:14:00.060
+to be words, such
+that you actually need
+
+00:14:00.060 --> 00:14:03.780
+a bunch of long-contexts
+to resolve.
+
+00:14:03.780 --> 00:14:08.980
+So this is actually something
+that the early GPT papers really
+
+00:14:08.980 --> 00:14:14.820
+latched on to because they
+were interested in long-context
+
+00:14:14.820 --> 00:14:17.980
+modeling, thinking that
+that was a key to unlocking
+
+00:14:17.980 --> 00:14:20.900
+reasoning and all these things.
+
+00:14:20.900 --> 00:14:24.620
+And really, by
+focusing on positions
+
+00:14:24.620 --> 00:14:29.300
+where, to resolve
+that, it requires
+
+00:14:29.300 --> 00:14:34.870
+long-distance
+dependencies, is a way
+
+00:14:34.870 --> 00:14:39.350
+to sharpen the perplexity
+to some phenomenon
+
+00:14:39.350 --> 00:14:41.910
+that you care about.
+
+00:14:41.910 --> 00:14:44.270
+Here's another
+popular classic data
+
+00:14:44.270 --> 00:14:46.890
+set that you see in some
+language modeling vowels.
+
+00:14:46.890 --> 00:14:47.990
+HellaSwag.
+
+00:14:47.990 --> 00:14:49.170
+So what is HellaSwag?
+
+00:14:49.170 --> 00:14:52.950
+They went to various different
+data sets and sources,
+
+00:14:52.950 --> 00:14:56.030
+and came up with--
+it's multiple choice,
+
+00:14:56.030 --> 00:14:57.850
+but it's really
+sentence completion.
+
+00:14:57.850 --> 00:15:00.130
+And at some level,
+it's perplexity.
+
+00:15:00.130 --> 00:15:01.550
+So here's a sentence.
+
+00:15:01.550 --> 00:15:03.410
+"A woman is outside
+with a bucket and a dog.
+
+00:15:03.410 --> 00:15:04.690
+The dog is running around.
+
+00:15:04.690 --> 00:15:05.805
+She blank."
+
+00:15:05.805 --> 00:15:07.430
+And then you're trying
+to fill in which
+
+00:15:07.430 --> 00:15:10.150
+sentence completes it the best.
+
+00:15:10.150 --> 00:15:12.650
+So it's not exactly perplexity,
+it's multiple choice.
+
+00:15:12.650 --> 00:15:18.910
+But in some ways,
+it's perplexity.
+
+00:15:18.910 --> 00:15:20.970
+So one word of warning.
+
+00:15:20.970 --> 00:15:25.670
+If you ever decide that
+you're sold on perplexity
+
+00:15:25.670 --> 00:15:29.070
+as, really, the
+measure and you're
+
+00:15:29.070 --> 00:15:32.170
+going to launch a leaderboard
+and have people compete
+
+00:15:32.170 --> 00:15:35.890
+against perplexity,
+just a word of caution
+
+00:15:35.890 --> 00:15:39.810
+is that, what is a perplexity
+leaderboard look like?
+
+00:15:39.810 --> 00:15:43.130
+So people are going to submit
+a language model to you,
+
+00:15:43.130 --> 00:15:47.230
+and you have to
+compute a logprob.
+
+00:15:47.230 --> 00:15:51.050
+You send them the test data, and
+they give you back a logprob.
+
+00:15:51.050 --> 00:15:53.130
+Well, you look at
+that and say, hmm,
+
+00:15:53.130 --> 00:15:58.130
+that might be a little
+bit fishy because you
+
+00:15:58.130 --> 00:16:01.650
+need to trust that the
+probabilities they hand back
+
+00:16:01.650 --> 00:16:06.390
+to you are valid and
+that they sum to 1.
+
+00:16:06.390 --> 00:16:08.490
+Otherwise, I could
+just have implement LM,
+
+00:16:08.490 --> 00:16:14.410
+and it always returns 1
+or, I guess, logprob 0.
+
+00:16:14.410 --> 00:16:17.270
+And I would get very
+good perplexity,
+
+00:16:17.270 --> 00:16:22.530
+but clearly, that's not
+a valid distribution.
+
+00:16:22.530 --> 00:16:24.210
+And so with this
+contract it's not
+
+00:16:24.210 --> 00:16:27.650
+really easy to check
+that someone is actually
+
+00:16:27.650 --> 00:16:29.510
+internally having
+a log probability,
+
+00:16:29.510 --> 00:16:30.520
+so there's some trust.
+
+00:16:30.520 --> 00:16:33.860
+Maybe you have to look
+at the code or something.
+
+00:16:33.860 --> 00:16:39.060
+For downstream tasks, this
+is much more straightforward
+
+00:16:39.060 --> 00:16:40.707
+because you can
+have a black box LM.
+
+00:16:40.707 --> 00:16:42.540
+I give you a prompt,
+you give me a response,
+
+00:16:42.540 --> 00:16:46.260
+and I can just use that response
+and calculate some accuracy.
+
+00:16:46.260 --> 00:16:48.140
+So perplexity is
+fundamentally different
+
+00:16:48.140 --> 00:16:50.080
+because it deals
+with distributions,
+
+00:16:50.080 --> 00:16:52.660
+and you have to
+be a bit careful.
+
+00:16:52.660 --> 00:16:55.980
+And not to mention,
+there's lots of problems
+
+00:16:55.980 --> 00:16:57.200
+with autoregressive models.
+
+00:16:57.200 --> 00:17:01.180
+But if you have VAEs or there's
+some models where you can't even
+
+00:17:01.180 --> 00:17:04.780
+compute the distribution--
+you can compute only a bound--
+
+00:17:04.780 --> 00:17:08.460
+then you have to really actually
+trust the math as well that this
+
+00:17:08.460 --> 00:17:11.060
+is actually a valid bound.
+
+00:17:11.060 --> 00:17:12.560
+OK.
+
+00:17:12.560 --> 00:17:16.420
+So The summary of perplexity
+is that it is actually
+
+00:17:16.420 --> 00:17:22.819
+still used quite heavily in
+language model development.
+
+00:17:22.819 --> 00:17:24.280
+It has some nice properties.
+
+00:17:24.280 --> 00:17:27.619
+We saw that it's generally
+used for scaling laws
+
+00:17:27.619 --> 00:17:30.910
+because it's also
+smoothly varying
+
+00:17:30.910 --> 00:17:35.510
+with scale, which is important
+for getting scaling laws.
+
+00:17:35.510 --> 00:17:40.190
+But, at the end of the day,
+especially if you're not
+
+00:17:40.190 --> 00:17:45.070
+a believer, then you need some
+benchmarks to really capture
+
+00:17:45.070 --> 00:17:46.990
+real world situations,
+to convince people
+
+00:17:46.990 --> 00:17:48.990
+that your language
+model is good.
+
+00:17:48.990 --> 00:17:53.090
+For the believers, if I show you
+a remarkably slow perplexity,
+
+00:17:53.090 --> 00:17:56.270
+they'll be convinced.
+
+00:17:56.270 --> 00:17:58.530
+OK, any questions
+about perplexity?
+
+00:18:10.370 --> 00:18:10.870
+OK.
+
+00:18:10.870 --> 00:18:14.550
+Hopefully, everyone's
+a believer now.
+
+00:18:14.550 --> 00:18:18.590
+OK, so let's talk
+about exam benchmarks.
+
+00:18:18.590 --> 00:18:21.830
+So exams, as all of
+your students know,
+
+00:18:21.830 --> 00:18:26.130
+is a way that we
+use to test humans.
+
+00:18:26.130 --> 00:18:28.330
+And so you can adopt
+the same mentality
+
+00:18:28.330 --> 00:18:30.730
+to test language models.
+
+00:18:30.730 --> 00:18:32.370
+The nice thing about
+exams is that you
+
+00:18:32.370 --> 00:18:35.570
+have a very careful
+control over the subject,
+
+00:18:35.570 --> 00:18:38.410
+over the difficulty.
+
+00:18:38.410 --> 00:18:42.510
+You can design them to have
+unambiguous correct answers,
+
+00:18:42.510 --> 00:18:44.650
+which makes them easy to grade.
+
+00:18:44.650 --> 00:18:47.930
+So there's a lot of nice
+properties about exams.
+
+00:18:47.930 --> 00:18:52.410
+And so, for this reason, a
+lot of LM benchmarking culture
+
+00:18:52.410 --> 00:18:56.210
+was based on just
+this idea of exams.
+
+00:18:56.210 --> 00:18:59.783
+So obviously, there's
+been a lot of benchmarks,
+
+00:18:59.783 --> 00:19:01.450
+but I'll just highlight
+some of the ones
+
+00:19:01.450 --> 00:19:04.850
+that I think have
+been influential
+
+00:19:04.850 --> 00:19:07.290
+in the development
+of language models.
+
+00:19:07.290 --> 00:19:11.450
+So this one is MMLU, or Massive
+Multitask Language Understanding
+
+00:19:11.450 --> 00:19:15.770
+from Hendrycks et al, 2020.
+
+00:19:15.770 --> 00:19:19.010
+And at that time,
+it wasn't clear
+
+00:19:19.010 --> 00:19:23.690
+that language models were
+really like general purpose task
+
+00:19:23.690 --> 00:19:24.190
+solvers.
+
+00:19:24.190 --> 00:19:29.460
+This was around the time
+when GPT-3 came out.
+
+00:19:29.460 --> 00:19:31.780
+Many people, I think, still
+thought of language models
+
+00:19:31.780 --> 00:19:33.800
+as, well, language models.
+
+00:19:33.800 --> 00:19:36.340
+You generate fluent English.
+
+00:19:36.340 --> 00:19:38.940
+But they had this
+idea that, well,
+
+00:19:38.940 --> 00:19:41.880
+let's just try to be
+ahead of the curve here.
+
+00:19:41.880 --> 00:19:46.040
+We're going to go
+through 57 subjects,
+
+00:19:46.040 --> 00:19:50.140
+we're going to have
+a team of students
+
+00:19:50.140 --> 00:19:52.900
+scour the internet
+for different sources,
+
+00:19:52.900 --> 00:20:00.020
+and really put together this
+very comprehensive data set.
+
+00:20:00.020 --> 00:20:03.420
+And despite the name MMLU,
+which has the word Language
+
+00:20:03.420 --> 00:20:05.180
+Understanding, it's
+really about testing
+
+00:20:05.180 --> 00:20:07.580
+knowledge and reasoning
+and less so just
+
+00:20:07.580 --> 00:20:09.660
+pure language understanding.
+
+00:20:09.660 --> 00:20:14.020
+And the way they evaluated
+it was with GPT-3,
+
+00:20:14.020 --> 00:20:15.720
+using few-shot prompting.
+
+00:20:15.720 --> 00:20:22.140
+So they essentially said,
+I have formed this prompt.
+
+00:20:22.140 --> 00:20:24.890
+The following are questions
+about high school mathematics.
+
+00:20:24.890 --> 00:20:28.390
+Some in-context examples of
+question, answer, question,
+
+00:20:28.390 --> 00:20:31.510
+answer, and then the final
+question, and then the model
+
+00:20:31.510 --> 00:20:33.830
+has to predict the answer.
+
+00:20:33.830 --> 00:20:35.650
+So this seems very mundane.
+
+00:20:35.650 --> 00:20:38.070
+But at that time
+it was, I think,
+
+00:20:38.070 --> 00:20:41.630
+pretty radical that
+you would construct
+
+00:20:41.630 --> 00:20:46.270
+this fairly complicated question
+and with in-context examples
+
+00:20:46.270 --> 00:20:48.070
+and everything, and
+expect a language
+
+00:20:48.070 --> 00:20:51.830
+model to actually do
+something reasonable.
+
+00:20:51.830 --> 00:20:57.970
+And sure enough, at the outset,
+the models were not great,
+
+00:20:57.970 --> 00:20:58.550
+I would say.
+
+00:21:01.430 --> 00:21:04.890
+Some of the small models
+were barely above chance.
+
+00:21:04.890 --> 00:21:07.470
+And the larger
+model-- this GPT-3--
+
+00:21:07.470 --> 00:21:13.910
+was actually well above chance,
+so this was kind of encouraging.
+
+00:21:13.910 --> 00:21:21.930
+And then over the
+years, as we know,
+
+00:21:21.930 --> 00:21:26.030
+this benchmark has
+essentially saturated.
+
+00:21:26.030 --> 00:21:29.550
+So this is a site I don't think
+this has all the data in it,
+
+00:21:29.550 --> 00:21:32.110
+but about 3.5 Turbo.
+
+00:21:32.110 --> 00:21:35.290
+This was like--
+
+00:21:35.290 --> 00:21:39.570
+I guess, beginning of
+2024-- oh, '23 actually--
+
+00:21:39.570 --> 00:21:41.090
+to GPT-4.
+
+00:21:41.090 --> 00:21:48.030
+And then, now it's in the 90s.
+
+00:21:48.030 --> 00:21:52.250
+So there's also a
+link you can follow up
+
+00:21:52.250 --> 00:21:54.210
+later on, where you can
+actually browse some
+
+00:21:54.210 --> 00:21:57.610
+of the predictions of these
+models, which is always
+
+00:21:57.610 --> 00:22:00.690
+fun to see what models
+actually goof up on
+
+00:22:00.690 --> 00:22:03.850
+and what they get right.
+
+00:22:03.850 --> 00:22:06.355
+OK.
+
+00:22:06.355 --> 00:22:10.930
+So around 2024, when it
+seemed like MMLU, there
+
+00:22:10.930 --> 00:22:13.757
+was a lot of progress
+made, it was like, OK--
+
+00:22:13.757 --> 00:22:15.340
+you're going to see
+this theme again--
+
+00:22:15.340 --> 00:22:18.570
+OK, this benchmark
+is getting too easy.
+
+00:22:18.570 --> 00:22:22.525
+Let's try to make it harder.
+
+00:22:22.525 --> 00:22:23.900
+Well, first of
+all, they actually
+
+00:22:23.900 --> 00:22:26.320
+noticed that there was some
+noisy and trivial problems,
+
+00:22:26.320 --> 00:22:27.900
+so let's get rid of them.
+
+00:22:27.900 --> 00:22:30.960
+Four choices might be
+a little bit too easy,
+
+00:22:30.960 --> 00:22:34.300
+so let's expand that to 10.
+
+00:22:34.300 --> 00:22:38.820
+At that point, it was much more
+in vogue to use chain of thought
+
+00:22:38.820 --> 00:22:42.740
+to solve these benchmarks,
+whereas when GPT-3 came out,
+
+00:22:42.740 --> 00:22:46.300
+that wasn't really a thing.
+
+00:22:46.300 --> 00:22:48.820
+And it's clear that
+some of these questions
+
+00:22:48.820 --> 00:22:52.060
+could benefit from a
+few reasoning steps.
+
+00:22:52.060 --> 00:22:55.740
+So this new
+benchmark was harder.
+
+00:22:55.740 --> 00:22:59.820
+So now the accuracy of
+the model is back at 33.
+
+00:22:59.820 --> 00:23:04.140
+But as you can maybe
+see from the progress
+
+00:23:04.140 --> 00:23:07.600
+so far it started low.
+
+00:23:07.600 --> 00:23:13.200
+And now it's back to I guess
+it's like 88 almost 90, OK.
+
+00:23:13.200 --> 00:23:18.350
+So this benchmark might be a
+little bit too easy as well.
+
+00:23:18.350 --> 00:23:20.830
+OK, so there's another
+benchmark called
+
+00:23:20.830 --> 00:23:26.790
+GPQA, which stands
+for Google-Proof QA.
+
+00:23:26.790 --> 00:23:31.950
+And the idea here is
+that OK, how can we
+
+00:23:31.950 --> 00:23:35.930
+get a really good benchmark?
+
+00:23:35.930 --> 00:23:38.270
+And the idea is that, well,
+if you can solve a problem
+
+00:23:38.270 --> 00:23:39.710
+by looking at Google.
+
+00:23:39.710 --> 00:23:42.230
+Google has the internet
+and a language model
+
+00:23:42.230 --> 00:23:43.370
+is trained on the internet.
+
+00:23:43.370 --> 00:23:46.410
+So if you can just solve it
+then that's probably too easy.
+
+00:23:46.410 --> 00:23:49.970
+So they got some now PhD level.
+
+00:23:49.970 --> 00:23:55.910
+So I think MMLU was
+think about as actually--
+
+00:23:55.910 --> 00:24:00.050
+maybe some of these were like
+undergrad but maybe grad level.
+
+00:24:00.050 --> 00:24:03.110
+But now, it's more explicitly
+about questions that
+
+00:24:03.110 --> 00:24:06.310
+are meant to be pretty hard.
+
+00:24:06.310 --> 00:24:08.897
+And at this point
+now you say, OK,
+
+00:24:08.897 --> 00:24:10.730
+how do I come up with
+really hard questions?
+
+00:24:10.730 --> 00:24:13.790
+You actually have to go through
+quite a bit of human labor
+
+00:24:13.790 --> 00:24:15.960
+to get really hard questions.
+
+00:24:15.960 --> 00:24:19.920
+So this was 61 PhD
+contractors from Upwork.
+
+00:24:19.920 --> 00:24:21.680
+Someone writes a question.
+
+00:24:21.680 --> 00:24:24.680
+It goes through an expert
+validation which then provides
+
+00:24:24.680 --> 00:24:26.920
+feedback on the questions.
+
+00:24:26.920 --> 00:24:29.740
+And then the question writer
+goes and revises the question.
+
+00:24:29.740 --> 00:24:32.360
+And another expert
+looks at the question.
+
+00:24:32.360 --> 00:24:36.340
+And then you have the question.
+
+00:24:36.340 --> 00:24:38.360
+And then you send it
+to some non-experts
+
+00:24:38.360 --> 00:24:41.220
+who are given Google access.
+
+00:24:41.220 --> 00:24:44.120
+And then you see if they
+can solve the question.
+
+00:24:44.120 --> 00:24:47.320
+So there's a subset of these
+questions called the DIAMOND set
+
+00:24:47.320 --> 00:24:51.800
+that you might see in
+people's leaderboards
+
+00:24:51.800 --> 00:24:56.000
+where if the two experts agree
+and at one of the non-experts
+
+00:24:56.000 --> 00:24:59.280
+is able to answer the question,
+then that's deemed a good kind
+
+00:24:59.280 --> 00:25:01.240
+of DIAMOND question.
+
+00:25:01.240 --> 00:25:05.160
+So this is pretty
+rigorous review process.
+
+00:25:05.160 --> 00:25:12.300
+And PhD experts were
+only able to get 65%.
+
+00:25:12.300 --> 00:25:15.680
+So this is I think mostly
+four-way multiple choice.
+
+00:25:15.680 --> 00:25:18.280
+So this is above random.
+
+00:25:18.280 --> 00:25:25.260
+But this is not a good grade if
+you're getting 65% on an exam.
+
+00:25:25.260 --> 00:25:28.900
+And it's not experts, even if
+they had 30 minutes with access
+
+00:25:28.900 --> 00:25:33.860
+to Google, they were getting a
+bit over chance, but not much.
+
+00:25:33.860 --> 00:25:37.820
+And at that point
+GPT-4 was like 39%,
+
+00:25:37.820 --> 00:25:40.960
+and let's see how
+it's doing now.
+
+00:25:45.140 --> 00:25:54.000
+So GPQA is now again 94.
+
+00:25:54.000 --> 00:26:01.692
+So these benchmarks have a shelf
+life of not too high I guess.
+
+00:26:01.692 --> 00:26:03.400
+I will say that some
+of these benchmarks,
+
+00:26:03.400 --> 00:26:05.520
+even though they saturate
+the larger models,
+
+00:26:05.520 --> 00:26:07.060
+they're still useful
+for developing
+
+00:26:07.060 --> 00:26:10.940
+smaller models or fitting
+scaling laws and so on.
+
+00:26:10.940 --> 00:26:14.950
+So then, yeah.
+
+00:26:14.950 --> 00:26:18.670
+How do you know that
+when these tests are
+
+00:26:18.670 --> 00:26:22.390
+being used for training
+and actually your models
+
+00:26:22.390 --> 00:26:24.270
+are communicating with these?
+
+00:26:24.270 --> 00:26:26.690
+Yeah, so this is a very
+important question.
+
+00:26:26.690 --> 00:26:29.750
+So how do you know that
+these questions aren't
+
+00:26:29.750 --> 00:26:32.390
+just in the training set?
+
+00:26:32.390 --> 00:26:35.270
+So the short answer is we
+don't know because I don't know
+
+00:26:35.270 --> 00:26:37.150
+what's in the training set.
+
+00:26:37.150 --> 00:26:39.030
+I'll come back to
+this contamination
+
+00:26:39.030 --> 00:26:42.530
+point a little bit later
+and ways of addressing it.
+
+00:26:42.530 --> 00:26:44.110
+But you should always--
+
+00:26:44.110 --> 00:26:45.330
+I'm glad you asked this.
+
+00:26:45.330 --> 00:26:46.990
+You should always
+take these numbers
+
+00:26:46.990 --> 00:26:51.170
+with a little bit of a grain of
+salt, because it's only trust.
+
+00:26:54.590 --> 00:26:55.970
+Maybe just to say one more.
+
+00:26:55.970 --> 00:26:59.870
+I think train contamination
+is a little bit subtle.
+
+00:26:59.870 --> 00:27:01.830
+Because it's probably
+not the case that
+
+00:27:01.830 --> 00:27:04.310
+they literally train on the set.
+
+00:27:04.310 --> 00:27:08.050
+But questions can be
+derived from other sources.
+
+00:27:08.050 --> 00:27:09.760
+And those sources
+could be trained on.
+
+00:27:09.760 --> 00:27:14.720
+So often contamination is
+a much more subtle process
+
+00:27:14.720 --> 00:27:19.440
+than literally accidentally
+training on the test.
+
+00:27:19.440 --> 00:27:20.700
+Was there another question?
+
+00:27:20.700 --> 00:27:21.480
+Same question.
+
+00:27:21.480 --> 00:27:23.280
+OK, great.
+
+00:27:23.280 --> 00:27:25.800
+Good always good
+to be skeptical.
+
+00:27:25.800 --> 00:27:29.320
+OK, so the final exam
+benchmark I'll talk about
+
+00:27:29.320 --> 00:27:34.400
+is something ominously
+called Humanity's Last Exam.
+
+00:27:34.400 --> 00:27:36.480
+This is from last year.
+
+00:27:36.480 --> 00:27:38.320
+And they were saying,
+OK, well these models
+
+00:27:38.320 --> 00:27:39.500
+are getting so good.
+
+00:27:39.500 --> 00:27:41.560
+Let's just give it
+all we can to create
+
+00:27:41.560 --> 00:27:44.080
+something that's really tough.
+
+00:27:44.080 --> 00:27:46.460
+So this is multimodal,
+many subjects.
+
+00:27:46.460 --> 00:27:47.620
+It's still multiple choice.
+
+00:27:47.620 --> 00:27:50.200
+And I guess some short answer.
+
+00:27:50.200 --> 00:27:53.340
+So this was crowdsourced.
+
+00:27:53.340 --> 00:27:59.120
+They had some money to
+incentivize people who were
+
+00:27:59.120 --> 00:28:01.460
+into money to create questions.
+
+00:28:01.460 --> 00:28:03.240
+They also incentivize
+with authorship
+
+00:28:03.240 --> 00:28:06.160
+for those who are into that.
+
+00:28:06.160 --> 00:28:08.740
+And they went through
+multiple stages of reviews
+
+00:28:08.740 --> 00:28:10.860
+filtered by frontier models.
+
+00:28:10.860 --> 00:28:12.540
+There's a whole process.
+
+00:28:12.540 --> 00:28:15.780
+Another answer to your question
+is that they also held out
+
+00:28:15.780 --> 00:28:18.480
+a private set that was
+not released publicly,
+
+00:28:18.480 --> 00:28:22.340
+so that they could make
+sure that this did not
+
+00:28:22.340 --> 00:28:24.260
+enter training.
+
+00:28:24.260 --> 00:28:26.220
+And then you just
+hope that the APIs
+
+00:28:26.220 --> 00:28:29.440
+that you-- because you still
+have to send this to the model,
+
+00:28:29.440 --> 00:28:32.740
+that those prompts don't
+end up in the training.
+
+00:28:32.740 --> 00:28:36.740
+But let's hope that's the case.
+
+00:28:36.740 --> 00:28:41.640
+So every data set
+paper looks like this.
+
+00:28:41.640 --> 00:28:44.640
+Previous benchmarks, look
+the models are doing so well.
+
+00:28:44.640 --> 00:28:48.460
+My data set, look all the
+models are doing really poorly.
+
+00:28:48.460 --> 00:28:50.320
+So this is a common pattern.
+
+00:28:50.320 --> 00:28:52.200
+And this was especially
+single digits.
+
+00:28:52.200 --> 00:28:55.620
+It's pretty abysmal here.
+
+00:28:55.620 --> 00:29:01.020
+And let's see how
+we're doing in 2026.
+
+00:29:01.020 --> 00:29:05.680
+So this one is-- it
+still has some room.
+
+00:29:05.680 --> 00:29:07.150
+So it's only at--
+
+00:29:07.150 --> 00:29:11.670
+even Mythos is only at 64.7.
+
+00:29:11.670 --> 00:29:16.050
+So this is indeed a pretty-- it
+seems like a pretty hard exam.
+
+00:29:20.550 --> 00:29:26.230
+OK, so to summarize this
+section, as you can see,
+
+00:29:26.230 --> 00:29:28.470
+we've trained it towards
+harder and harder questions
+
+00:29:28.470 --> 00:29:33.030
+as the models improve and we
+saturate existing benchmarks.
+
+00:29:33.030 --> 00:29:37.230
+It's interesting that multiple
+choice format still survives
+
+00:29:37.230 --> 00:29:40.095
+because it's--
+
+00:29:40.095 --> 00:29:41.470
+with multiple
+choice, I mean, you
+
+00:29:41.470 --> 00:29:44.030
+can make it as
+difficult as you want.
+
+00:29:44.030 --> 00:29:47.130
+So some people think, well,
+multiple choice is too easy.
+
+00:29:47.130 --> 00:29:48.990
+Well, I mean, I can
+give you a very hard
+
+00:29:48.990 --> 00:29:51.010
+multiple-choice question.
+
+00:29:51.010 --> 00:29:53.630
+That's not really the point.
+
+00:29:53.630 --> 00:29:56.670
+I think more the point is
+that multiple choice restricts
+
+00:29:56.670 --> 00:29:58.790
+the set of questions
+you can ask.
+
+00:29:58.790 --> 00:30:03.510
+But in terms of difficulty, no
+problem with multiple choice.
+
+00:30:03.510 --> 00:30:07.880
+The main problem with
+exam-based questions
+
+00:30:07.880 --> 00:30:12.400
+is that this does not
+capture real-world usage.
+
+00:30:12.400 --> 00:30:17.160
+No one asks HLE questions
+to a language model
+
+00:30:17.160 --> 00:30:20.440
+except for when you're
+evaluating on HLE.
+
+00:30:20.440 --> 00:30:24.160
+Most of the time people are
+asking open-ended questions.
+
+00:30:24.160 --> 00:30:26.620
+They don't even necessarily
+have a correct answer.
+
+00:30:26.620 --> 00:30:29.800
+They might not be well
+formed, and these benchmarks
+
+00:30:29.800 --> 00:30:33.080
+do not capture that.
+
+00:30:33.080 --> 00:30:37.077
+OK, so question.
+
+00:30:37.077 --> 00:30:39.660
+How is the model output compared
+with the ground truth answer?
+
+00:30:39.660 --> 00:30:42.520
+So for HLE?
+
+00:30:42.520 --> 00:30:44.360
+For accuracy, how is
+the model's output
+
+00:30:44.360 --> 00:30:47.000
+compared with the
+ground truth answer,
+
+00:30:47.000 --> 00:30:48.400
+to calculate the accuracy?
+
+00:30:48.400 --> 00:30:51.880
+To calculate the accuracy
+for how is the ground truth
+
+00:30:51.880 --> 00:30:52.800
+compared.
+
+00:30:52.800 --> 00:30:56.640
+So for multiple
+choice, it's just like,
+
+00:30:56.640 --> 00:30:59.078
+did you get the right answer?
+
+00:30:59.078 --> 00:31:01.620
+So will we check the probability
+distribution for each option
+
+00:31:01.620 --> 00:31:04.850
+or how is--
+
+00:31:04.850 --> 00:31:09.330
+So the language
+model generates C.
+
+00:31:09.330 --> 00:31:12.850
+And my answer is either
+B or C or A or D,
+
+00:31:12.850 --> 00:31:16.010
+and I just check if
+they're the same or not.
+
+00:31:16.010 --> 00:31:18.890
+So we are only
+generating one token?
+
+00:31:18.890 --> 00:31:19.990
+Yes, well, OK.
+
+00:31:19.990 --> 00:31:22.150
+So then the question is
+less about evaluation.
+
+00:31:22.150 --> 00:31:25.250
+But how does the model
+generate an answer?
+
+00:31:25.250 --> 00:31:27.710
+So there's a few options.
+
+00:31:27.710 --> 00:31:30.010
+One is that you generate--
+
+00:31:30.010 --> 00:31:32.450
+literally you sample and
+it generates a letter.
+
+00:31:32.450 --> 00:31:35.670
+Or more commonly now you
+generate a chain of thought.
+
+00:31:35.670 --> 00:31:38.450
+You generate the answer
+maybe some explanation.
+
+00:31:38.450 --> 00:31:43.690
+But there is a way of extracting
+an answer which does matter.
+
+00:31:43.690 --> 00:31:47.150
+And language model evaluations
+can be very sensitive to that
+
+00:31:47.150 --> 00:31:49.230
+but I'm not going to
+talk about that here.
+
+00:31:52.370 --> 00:31:56.890
+So let's talk about a very
+different class of benchmarks
+
+00:31:56.890 --> 00:32:00.490
+called chat benchmarks.
+
+00:32:00.490 --> 00:32:03.850
+So far we've talked about
+multiple-choice tasks.
+
+00:32:03.850 --> 00:32:07.190
+So they're still pretty good
+at capturing some notion
+
+00:32:07.190 --> 00:32:09.950
+of intelligence and difficulty.
+
+00:32:09.950 --> 00:32:13.630
+But most people don't ask a
+multiple-choice exam question
+
+00:32:13.630 --> 00:32:15.990
+to their AI assistant
+unless they're
+
+00:32:15.990 --> 00:32:19.530
+trying to use their AI system
+to do their exam for them,
+
+00:32:19.530 --> 00:32:21.270
+which you would never.
+
+00:32:21.270 --> 00:32:23.150
+One does that.
+
+00:32:23.150 --> 00:32:29.150
+OK, so here's an example
+semi-inspired by a real world
+
+00:32:29.150 --> 00:32:30.110
+use case.
+
+00:32:30.110 --> 00:32:33.650
+So I might say I want to make
+a beet salad with cheese.
+
+00:32:33.650 --> 00:32:36.510
+What herbs would work well
+and what wouldn't work well?
+
+00:32:36.510 --> 00:32:39.170
+OK, so this is a very
+open-ended question.
+
+00:32:39.170 --> 00:32:42.810
+And then you get some
+response, which is, again,
+
+00:32:42.810 --> 00:32:45.350
+an open-ended response.
+
+00:32:45.350 --> 00:32:48.710
+And then the question is, how
+do you evaluate this thing?
+
+00:32:48.710 --> 00:32:51.370
+You can't just check
+exact match with equality.
+
+00:32:51.370 --> 00:32:54.310
+There's no ground truth even.
+
+00:32:54.310 --> 00:32:56.670
+So there's a few ideas here.
+
+00:32:56.670 --> 00:32:58.390
+We can go through them.
+
+00:32:58.390 --> 00:33:04.840
+So one of the ideas was
+pioneered by this Chatbot Arena.
+
+00:33:04.840 --> 00:33:09.640
+And the idea is, well,
+you ask humans, OK.
+
+00:33:09.640 --> 00:33:13.400
+But the way they ask humans,
+I think is a clever idea.
+
+00:33:13.400 --> 00:33:18.000
+So they basically had
+this set of this website
+
+00:33:18.000 --> 00:33:23.680
+where any random person from
+the internet can go in and chat.
+
+00:33:23.680 --> 00:33:27.080
+And then instead of
+a normal as assistant
+
+00:33:27.080 --> 00:33:29.440
+in getting one
+response, you actually
+
+00:33:29.440 --> 00:33:33.680
+get two responses from
+two different models
+
+00:33:33.680 --> 00:33:38.120
+which are anonymized, and then
+they rate which one is better.
+
+00:33:38.120 --> 00:33:41.000
+So for example, you
+put in this response,
+
+00:33:41.000 --> 00:33:45.760
+you get these two, assistant A,
+assistant B. And then you ask,
+
+00:33:45.760 --> 00:33:49.920
+A is better, both are good,
+both are bad, B is better?
+
+00:33:49.920 --> 00:33:53.840
+So using this
+process, you can get
+
+00:33:53.840 --> 00:33:58.930
+a bunch of pairwise comparison
+data of model A, model B, which
+
+00:33:58.930 --> 00:34:00.330
+one is better?
+
+00:34:00.330 --> 00:34:03.730
+And then you can use this
+to compute ELO rankings
+
+00:34:03.730 --> 00:34:04.930
+based on this.
+
+00:34:04.930 --> 00:34:07.890
+So I don't know how many of
+you are familiar with this
+
+00:34:07.890 --> 00:34:11.690
+but just get everyone
+on the same page.
+
+00:34:11.690 --> 00:34:17.489
+In these ELO rankings, you
+define your rating model
+
+00:34:17.489 --> 00:34:20.610
+as a probability of a
+particular model being
+
+00:34:20.610 --> 00:34:27.090
+another [INAUDIBLE] model
+as some function of the ELO
+
+00:34:27.090 --> 00:34:34.889
+scores of model B and model A.
+So the larger model ELO score
+
+00:34:34.889 --> 00:34:37.590
+of A is the higher
+the probability.
+
+00:34:37.590 --> 00:34:39.290
+So it's a smooth mapping.
+
+00:34:39.290 --> 00:34:42.909
+And then you fit this
+model with the parameters,
+
+00:34:42.909 --> 00:34:44.850
+which are the ELO
+ratings to maximize
+
+00:34:44.850 --> 00:34:48.350
+the probability of the
+pairwise comparisons, OK.
+
+00:34:48.350 --> 00:34:49.929
+And then as a
+result, you basically
+
+00:34:49.929 --> 00:34:55.949
+get a rating for
+each of your models.
+
+00:34:55.949 --> 00:34:59.510
+OK, so this is what Chatbot
+Arena nowadays known
+
+00:34:59.510 --> 00:35:02.230
+as Arena AI did.
+
+00:35:02.230 --> 00:35:06.750
+And you can get
+this nice ranking.
+
+00:35:06.750 --> 00:35:10.950
+I guess Claude Opus is
+doing pretty well here
+
+00:35:10.950 --> 00:35:14.710
+but some other models
+are on the list as well.
+
+00:35:14.710 --> 00:35:15.950
+OK.
+
+00:35:15.950 --> 00:35:20.010
+So there's a few things that
+are nice about this setup.
+
+00:35:20.010 --> 00:35:24.310
+One is that you have
+real-world prompts.
+
+00:35:24.310 --> 00:35:27.148
+So the idea is that anyone
+can come to the site,
+
+00:35:27.148 --> 00:35:29.190
+and the incentive for
+someone to come to the site
+
+00:35:29.190 --> 00:35:32.430
+is that they get free
+access to a language model.
+
+00:35:32.430 --> 00:35:35.310
+And so there's this
+implicit assumption
+
+00:35:35.310 --> 00:35:39.330
+that they're actually trying to
+use it to do something useful.
+
+00:35:39.330 --> 00:35:47.630
+And therefore you get
+a real-world prompt.
+
+00:35:47.630 --> 00:35:52.110
+But one thing you should keep in
+mind is, who are these people?
+
+00:35:52.110 --> 00:35:54.240
+Random person on
+the internet is--
+
+00:35:54.240 --> 00:35:56.860
+I don't know what
+that distribution.
+
+00:35:56.860 --> 00:35:59.120
+Random person on the internet
+who comes to La Marina.
+
+00:35:59.120 --> 00:36:01.460
+I don't know what that
+distribution looks like.
+
+00:36:01.460 --> 00:36:03.900
+I think in their paper,
+they have some demographics,
+
+00:36:03.900 --> 00:36:07.320
+but demographics don't
+tell the whole story.
+
+00:36:07.320 --> 00:36:09.560
+You could worry about
+different biases coming
+
+00:36:09.560 --> 00:36:12.820
+from the different models.
+
+00:36:12.820 --> 00:36:13.860
+Maybe spammers.
+
+00:36:13.860 --> 00:36:19.520
+People are trying to game, who
+maybe even submitted a model
+
+00:36:19.520 --> 00:36:24.040
+and they want their
+model to look good.
+
+00:36:24.040 --> 00:36:25.460
+You just don't know.
+
+00:36:25.460 --> 00:36:29.080
+It's a little bit
+of a Wild West.
+
+00:36:29.080 --> 00:36:32.760
+There's another issue which
+is that the binary preference,
+
+00:36:32.760 --> 00:36:35.880
+which is better, A or B
+is very nice and simple
+
+00:36:35.880 --> 00:36:41.160
+and feeds into this rating,
+but does conflate style
+
+00:36:41.160 --> 00:36:43.160
+and correctness.
+
+00:36:43.160 --> 00:36:45.100
+So ELO ratings for chess
+makes a lot of sense,
+
+00:36:45.100 --> 00:36:47.360
+because the only thing that
+matters is, did you win?
+
+00:36:47.360 --> 00:36:54.810
+But which one is better
+is much less clear cut.
+
+00:36:54.810 --> 00:37:00.310
+And there's questions of
+the human is the judge here.
+
+00:37:00.310 --> 00:37:02.050
+The person who
+puts in the prompt
+
+00:37:02.050 --> 00:37:03.990
+is answering the question.
+
+00:37:03.990 --> 00:37:06.230
+And this is good
+because in some level,
+
+00:37:06.230 --> 00:37:10.810
+because the person
+has some intent
+
+00:37:10.810 --> 00:37:15.330
+and they can declare whether
+their intent was met.
+
+00:37:15.330 --> 00:37:16.938
+To some extent,
+except for they're
+
+00:37:16.938 --> 00:37:18.730
+presumably asking the
+question because they
+
+00:37:18.730 --> 00:37:19.670
+don't know the answer.
+
+00:37:19.670 --> 00:37:22.010
+So if I give you
+two answers, how
+
+00:37:22.010 --> 00:37:25.090
+are they to judge
+which one is correct?
+
+00:37:25.090 --> 00:37:27.630
+And then there's also the
+problem of sycophancy,
+
+00:37:27.630 --> 00:37:31.210
+where maybe more
+pleasing answers
+
+00:37:31.210 --> 00:37:34.570
+are going to be
+upweighted highly compared
+
+00:37:34.570 --> 00:37:37.770
+to correct but honest answers.
+
+00:37:37.770 --> 00:37:42.810
+So there's a lot of
+potential issues here.
+
+00:37:42.810 --> 00:37:45.370
+But the nice thing
+about this method, which
+
+00:37:45.370 --> 00:37:47.690
+is that you don't
+need to feed the same
+
+00:37:47.690 --> 00:37:50.755
+prompts to all the models,
+and this is the beauty of ELO.
+
+00:37:50.755 --> 00:37:52.130
+In chess, you
+don't have to play.
+
+00:37:52.130 --> 00:37:54.430
+Everyone plays everyone else.
+
+00:37:54.430 --> 00:37:57.050
+It can just be some
+sparse sample of that.
+
+00:37:57.050 --> 00:37:59.230
+And you can still
+derive rankings as long
+
+00:37:59.230 --> 00:38:02.270
+as the graph is connected.
+
+00:38:02.270 --> 00:38:04.550
+And this is important
+because human is rating
+
+00:38:04.550 --> 00:38:06.950
+and you can't expect a
+human to rate all the models
+
+00:38:06.950 --> 00:38:10.310
+or even more than two models.
+
+00:38:10.310 --> 00:38:12.430
+And the nice thing
+as well is that
+
+00:38:12.430 --> 00:38:14.450
+as new prompts and
+new models come in,
+
+00:38:14.450 --> 00:38:21.030
+there's a natural story for
+making this updating over time.
+
+00:38:21.030 --> 00:38:26.790
+So let me talk about
+a different approach.
+
+00:38:26.790 --> 00:38:30.710
+So this is AlpacaEval from 2023.
+
+00:38:30.710 --> 00:38:37.270
+There were some instructions
+derived from various sources.
+
+00:38:37.270 --> 00:38:44.130
+And the metric here is the win
+rate against a baseline model.
+
+00:38:44.130 --> 00:38:47.030
+So you have a model,
+AlpacaEval says,
+
+00:38:47.030 --> 00:38:49.160
+I'm going to generate
+it for a prompt,
+
+00:38:49.160 --> 00:38:52.240
+generate using let's
+say baseline model GPT-4
+
+00:38:52.240 --> 00:38:57.640
+preview at that time and then
+judge using GPT preview, which
+
+00:38:57.640 --> 00:38:59.000
+one is better?
+
+00:38:59.000 --> 00:39:03.960
+So immediately, this raises
+a question of potential bias.
+
+00:39:03.960 --> 00:39:06.920
+But let's put that
+aside for now.
+
+00:39:06.920 --> 00:39:09.160
+So this is basically
+an instantiation
+
+00:39:09.160 --> 00:39:12.920
+of LLM as a judge, which
+is very popular these days
+
+00:39:12.920 --> 00:39:16.200
+for evaluating language models.
+
+00:39:16.200 --> 00:39:18.120
+And you can mitigate
+this bias by having
+
+00:39:18.120 --> 00:39:21.720
+multiple judges and ensembling
+and so on and so forth.
+
+00:39:21.720 --> 00:39:24.040
+So one problem with
+initial AlpacaEval
+
+00:39:24.040 --> 00:39:29.040
+is that LLM judges
+favor long responses.
+
+00:39:29.040 --> 00:39:31.400
+And this led to a bunch
+of leaderboard gaming
+
+00:39:31.400 --> 00:39:34.800
+where a bunch of models that
+were fine tuned were submitted
+
+00:39:34.800 --> 00:39:38.520
+and they got really
+high LLM AlpacaEval
+
+00:39:38.520 --> 00:39:41.300
+performance just because
+the responses were longer.
+
+00:39:41.300 --> 00:39:45.560
+So this got fixed in a
+subsequent paper where
+
+00:39:45.560 --> 00:39:51.490
+the use a very simple regression
+method to de-bias the metric.
+
+00:39:51.490 --> 00:39:57.370
+OK, but this raises a more
+general question here,
+
+00:39:57.370 --> 00:40:00.610
+which is not necessarily
+specific to AlpacaEval which is,
+
+00:40:00.610 --> 00:40:02.890
+how do you evaluate a metric?
+
+00:40:02.890 --> 00:40:06.630
+So we've been talking
+about evaluation of models.
+
+00:40:06.630 --> 00:40:09.390
+And if I have a metric, how
+you can evaluate a model.
+
+00:40:09.390 --> 00:40:11.450
+But if I'm coming
+up with a metric,
+
+00:40:11.450 --> 00:40:14.370
+how do this metric is any good?
+
+00:40:14.370 --> 00:40:17.030
+So this is a hard problem.
+
+00:40:17.030 --> 00:40:20.890
+And there's no answer here.
+
+00:40:20.890 --> 00:40:24.730
+One thing you can do is
+more of a sanity check
+
+00:40:24.730 --> 00:40:27.210
+is you can look at
+correlation with other metrics
+
+00:40:27.210 --> 00:40:33.810
+with the idea that higher isn't
+necessarily better in all cases
+
+00:40:33.810 --> 00:40:36.190
+unless you are trying to
+mimic this other metric.
+
+00:40:36.190 --> 00:40:41.610
+So AlpacaEval correlation
+with Chatbot Arena
+
+00:40:41.610 --> 00:40:46.260
+is 0.98 which is quite high.
+
+00:40:46.260 --> 00:40:50.820
+So which suggests
+that you could--
+
+00:40:50.820 --> 00:40:56.800
+let's say you wanted to
+evaluate on a Chatbot Arena,
+
+00:40:56.800 --> 00:40:59.620
+but you're too shy
+to put your model
+
+00:40:59.620 --> 00:41:01.880
+or you don't want to wait
+for humans or whatever,
+
+00:41:01.880 --> 00:41:07.980
+you can use AlpacaEval
+to evaluate instead.
+
+00:41:07.980 --> 00:41:09.520
+Now, this correlation,
+of course,
+
+00:41:09.520 --> 00:41:13.700
+is with respect to a
+certain set of models.
+
+00:41:13.700 --> 00:41:17.220
+And so this might
+not hold for models
+
+00:41:17.220 --> 00:41:22.860
+that let's say are stronger
+than GPT-4 preview.
+
+00:41:22.860 --> 00:41:25.620
+So at this point, this
+leaderboard I don't think
+
+00:41:25.620 --> 00:41:27.940
+is really--
+
+00:41:27.940 --> 00:41:31.220
+hasn't been maintained
+in over a year but this
+
+00:41:31.220 --> 00:41:34.940
+is what it looked
+like at that time.
+
+00:41:34.940 --> 00:41:39.240
+So there's another
+benchmark I'll talk about,
+
+00:41:39.240 --> 00:41:45.640
+which is WildBench and this one
+was sourced a bunch of examples
+
+00:41:45.640 --> 00:41:48.700
+from human-chatbot
+conversations.
+
+00:41:48.700 --> 00:41:53.400
+So like Chatbot Arena, they
+also put up a free service
+
+00:41:53.400 --> 00:41:54.960
+where people could
+chat with this bot
+
+00:41:54.960 --> 00:42:00.040
+and they collected the queries.
+
+00:42:00.040 --> 00:42:09.400
+And then like AlpacaEval,
+they used LLM as a judge
+
+00:42:09.400 --> 00:42:14.480
+to evaluate the model.
+
+00:42:14.480 --> 00:42:17.760
+The main innovation
+here is the use
+
+00:42:17.760 --> 00:42:21.600
+of a checklist,
+which is generated
+
+00:42:21.600 --> 00:42:26.680
+and specific to a
+particular prompt or task.
+
+00:42:26.680 --> 00:42:28.880
+And the idea here
+is that if you just
+
+00:42:28.880 --> 00:42:34.760
+ask a language model to judge
+whether this response is good
+
+00:42:34.760 --> 00:42:35.880
+or not.
+
+00:42:35.880 --> 00:42:39.400
+This is in some sense a
+very ill-defined task.
+
+00:42:39.400 --> 00:42:41.970
+I don't know what depends
+on what you care about.
+
+00:42:41.970 --> 00:42:44.850
+And so the idea here is that
+by having a checklist or some
+
+00:42:44.850 --> 00:42:50.250
+of rubric, this greatly scopes
+and makes the task evaluation
+
+00:42:50.250 --> 00:42:53.530
+task more well-defined.
+
+00:42:53.530 --> 00:42:57.250
+So they did this, also,
+they showed correlation
+
+00:42:57.250 --> 00:43:00.410
+with Chatbot Arena
+which admittedly
+
+00:43:00.410 --> 00:43:04.290
+is a little bit circular because
+then you can ask why, well,
+
+00:43:04.290 --> 00:43:06.850
+is Chatbot Arena really
+the ground truth?
+
+00:43:06.850 --> 00:43:11.410
+But at least we're all in
+the same boat together.
+
+00:43:11.410 --> 00:43:16.050
+OK, so to conclude this
+section, how do you
+
+00:43:16.050 --> 00:43:20.570
+evaluate open-ended responses?
+
+00:43:20.570 --> 00:43:24.730
+There's no clear solution
+here but there's some ideas.
+
+00:43:24.730 --> 00:43:31.930
+Pairwise comparisons between a
+reference and a model response
+
+00:43:31.930 --> 00:43:35.370
+is generally a good
+idea because especially
+
+00:43:35.370 --> 00:43:37.370
+for very similar
+responses, you can
+
+00:43:37.370 --> 00:43:38.888
+give directional information.
+
+00:43:38.888 --> 00:43:40.680
+Well, this one's slightly
+better than this.
+
+00:43:40.680 --> 00:43:43.900
+But in terms of absolute ranking
+like is this a 7 out of 10
+
+00:43:43.900 --> 00:43:45.160
+or a 8 out of 10?
+
+00:43:45.160 --> 00:43:48.980
+That tends to be a
+lot less high signal.
+
+00:43:48.980 --> 00:43:51.300
+One should always
+be aware of biases
+
+00:43:51.300 --> 00:43:55.580
+both in terms of
+humans or LLM judges.
+
+00:43:55.580 --> 00:43:58.860
+They have different biases,
+but nonetheless that's
+
+00:43:58.860 --> 00:44:03.180
+something important
+to pay attention to.
+
+00:44:03.180 --> 00:44:05.780
+Perhaps the only thing
+you might be able to do
+
+00:44:05.780 --> 00:44:10.380
+is you evaluate over
+multiple judges, humans,
+
+00:44:10.380 --> 00:44:13.180
+and judges of all
+everything is saying
+
+00:44:13.180 --> 00:44:15.020
+your model is better than--
+
+00:44:15.020 --> 00:44:17.220
+maybe your model is better.
+
+00:44:17.220 --> 00:44:21.300
+And finally, the
+evaluation problem here
+
+00:44:21.300 --> 00:44:23.300
+of open-ended response.
+
+00:44:23.300 --> 00:44:26.700
+I would emphasize is
+not really well-defined.
+
+00:44:26.700 --> 00:44:29.460
+And so increasingly,
+I think it's
+
+00:44:29.460 --> 00:44:34.980
+important to define rubrics
+or checklists to improve
+
+00:44:34.980 --> 00:44:40.640
+the reliability or
+well-definedness
+
+00:44:40.640 --> 00:44:42.460
+of an actual evaluation.
+
+00:44:42.460 --> 00:44:44.980
+And this is true regardless
+of a human and a judge.
+
+00:44:44.980 --> 00:44:46.680
+So anyone who's
+done crowdsourcing
+
+00:44:46.680 --> 00:44:49.440
+knows that if you just
+ask a human to rate
+
+00:44:49.440 --> 00:44:51.700
+something without
+giving some of rubric,
+
+00:44:51.700 --> 00:44:55.340
+you're probably going to get
+very nonsensical results.
+
+00:44:58.400 --> 00:45:04.800
+OK, so let's move on
+to the agentic world.
+
+00:45:04.800 --> 00:45:06.480
+So you can think
+about what we've
+
+00:45:06.480 --> 00:45:11.520
+been doing so far is evaluate
+what language models say,
+
+00:45:11.520 --> 00:45:12.380
+and that's chat.
+
+00:45:12.380 --> 00:45:17.200
+And now, we're going to evaluate
+what LLMs do, which is agents.
+
+00:45:17.200 --> 00:45:24.240
+And so for anyone who's
+following AI hype,
+
+00:45:24.240 --> 00:45:26.340
+agents are everywhere.
+
+00:45:26.340 --> 00:45:30.440
+And these are--
+definitely, I think
+
+00:45:30.440 --> 00:45:34.960
+going to transform the way that
+we think about language models.
+
+00:45:34.960 --> 00:45:37.290
+So Agent is basically
+a language model
+
+00:45:37.290 --> 00:45:41.050
+plus some scaffold, which
+is a logic for deciding
+
+00:45:41.050 --> 00:45:45.650
+how the language model
+is going to be called
+
+00:45:45.650 --> 00:45:51.970
+and what tools it can has access
+to and so on and so forth.
+
+00:45:51.970 --> 00:45:56.130
+So there's a few benchmarks
+I want to just point out
+
+00:45:56.130 --> 00:45:57.890
+that are authentic.
+
+00:45:57.890 --> 00:46:01.870
+So one is very popular.
+
+00:46:01.870 --> 00:46:03.350
+It's just called SWE-bench.
+
+00:46:06.050 --> 00:46:07.970
+Basically, the task
+is you're given
+
+00:46:07.970 --> 00:46:12.090
+a code base and a description
+of a GitHub issue, submit a PR.
+
+00:46:12.090 --> 00:46:18.530
+And the way you evaluate a PR is
+whether it passes the unit test.
+
+00:46:18.530 --> 00:46:22.770
+So these tests are designed so
+that before you submit a PR,
+
+00:46:22.770 --> 00:46:24.710
+certain unit tests don't pass.
+
+00:46:24.710 --> 00:46:26.230
+And then your goal is to fix it.
+
+00:46:26.230 --> 00:46:29.410
+So certain unit tests pass and
+you don't break anything else.
+
+00:46:29.410 --> 00:46:34.000
+So here's an example
+of some instructions.
+
+00:46:34.000 --> 00:46:36.260
+Here's the issue.
+
+00:46:36.260 --> 00:46:39.880
+And then some code that is
+provided in the context.
+
+00:46:39.880 --> 00:46:43.220
+And then your goal is
+to generate a patch.
+
+00:46:43.220 --> 00:46:46.820
+And given a patch
+you are evaluated on
+
+00:46:46.820 --> 00:46:48.980
+whether you pass or not.
+
+00:46:48.980 --> 00:46:51.580
+So the good thing about
+this is that the evaluation
+
+00:46:51.580 --> 00:46:54.100
+is very straightforward.
+
+00:46:54.100 --> 00:47:00.620
+And let's see how we're
+doing on SWE-bench.
+
+00:47:00.620 --> 00:47:03.420
+Actually, this is going to
+be SWE-bench Verified which
+
+00:47:03.420 --> 00:47:08.500
+later I'll show you, tell
+you why this happened.
+
+00:47:08.500 --> 00:47:12.820
+So SWE-bench in--
+this was only I
+
+00:47:12.820 --> 00:47:22.860
+guess 2024 was still around
+16% and now it's up to 93.
+
+00:47:22.860 --> 00:47:24.040
+Good job Mythos.
+
+00:47:31.280 --> 00:47:36.620
+So this is a very canonical
+generic benchmark,
+
+00:47:36.620 --> 00:47:39.520
+as a lot of the
+attention on agents
+
+00:47:39.520 --> 00:47:42.420
+has been invested
+in coding abilities.
+
+00:47:42.420 --> 00:47:45.920
+So SWE-bench really
+pioneered this way
+
+00:47:45.920 --> 00:47:48.760
+of thinking about how to
+assess an agent's ability
+
+00:47:48.760 --> 00:47:53.800
+to write and code in a
+realistic environment.
+
+00:47:53.800 --> 00:47:58.240
+So here's another project
+called Terminal-Bench.
+
+00:47:58.240 --> 00:48:01.880
+And here the idea is
+that this is going
+
+00:48:01.880 --> 00:48:03.540
+to be more general purpose.
+
+00:48:03.540 --> 00:48:06.880
+And we're going to basically
+have the environment be
+
+00:48:06.880 --> 00:48:08.600
+a computer terminal.
+
+00:48:08.600 --> 00:48:11.640
+And we're going to
+define a bunch of tasks
+
+00:48:11.640 --> 00:48:13.640
+that can be done in
+a computer terminal
+
+00:48:13.640 --> 00:48:16.612
+by typing in a
+bunch of commands.
+
+00:48:16.612 --> 00:48:18.320
+And the nice thing
+about this environment
+
+00:48:18.320 --> 00:48:23.000
+is a very simple and universal.
+
+00:48:23.000 --> 00:48:30.970
+And these tasks were
+crowdsourced from 93 people
+
+00:48:30.970 --> 00:48:35.210
+from across the world.
+
+00:48:35.210 --> 00:48:40.930
+89 of these tasks are
+constitute Terminal-Bench 2.0.
+
+00:48:40.930 --> 00:48:47.170
+These tasks generally
+take ranging from one hour
+
+00:48:47.170 --> 00:48:49.330
+to over a week, depending
+on whether you're
+
+00:48:49.330 --> 00:48:52.250
+an expert or a junior.
+
+00:48:52.250 --> 00:48:53.930
+And then, here's
+what the leaderboard
+
+00:48:53.930 --> 00:48:57.810
+looks like as of today.
+
+00:48:57.810 --> 00:49:01.370
+So top models are
+the frontier models.
+
+00:49:01.370 --> 00:49:07.650
+One thing that's interesting is
+that the agent is also important
+
+00:49:07.650 --> 00:49:13.370
+here because you can have
+two agents but the same model
+
+00:49:13.370 --> 00:49:17.690
+and they have
+different accuracies.
+
+00:49:17.690 --> 00:49:23.150
+So another benchmark I'll
+talk about is Cybersecurity.
+
+00:49:23.150 --> 00:49:27.370
+So this is 40 Capture
+The Flag tasks.
+
+00:49:27.370 --> 00:49:30.420
+And the setting here
+is that you have
+
+00:49:30.420 --> 00:49:35.860
+an agent that is
+given an environment
+
+00:49:35.860 --> 00:49:41.220
+and it can run various commands
+like look at the source code.
+
+00:49:41.220 --> 00:49:47.960
+It can access the web server.
+
+00:49:47.960 --> 00:49:50.380
+And the goal is to essentially
+hack into this server
+
+00:49:50.380 --> 00:49:53.220
+to extract some flag, which
+is a unique string that
+
+00:49:53.220 --> 00:49:56.020
+proves that you've
+hacked into the server.
+
+00:49:56.020 --> 00:49:59.940
+So these are competitions,
+cybersecurity exercises that
+
+00:49:59.940 --> 00:50:02.060
+are done by humans normally.
+
+00:50:02.060 --> 00:50:11.580
+And this is an example
+of what the agent
+
+00:50:11.580 --> 00:50:13.880
+scaffold looks like here.
+
+00:50:13.880 --> 00:50:17.060
+This is a very simplistic
+version where basically you
+
+00:50:17.060 --> 00:50:19.580
+have one continuous memory.
+
+00:50:19.580 --> 00:50:25.180
+You produce some action, you
+get environment feedback,
+
+00:50:25.180 --> 00:50:27.970
+and then you put the
+results into this buffer
+
+00:50:27.970 --> 00:50:29.550
+and this is concatenated.
+
+00:50:29.550 --> 00:50:33.590
+As I'll show you
+later, this history
+
+00:50:33.590 --> 00:50:35.090
+obviously grows quite a bit.
+
+00:50:35.090 --> 00:50:41.710
+And you'll need to have better
+ways of managing context.
+
+00:50:41.710 --> 00:50:46.190
+So this is what the leaderboard
+looks like when it came out.
+
+00:50:46.190 --> 00:50:50.390
+The best models were
+around 10% or so.
+
+00:50:50.390 --> 00:50:57.270
+And over time now it's
+completely solved actually.
+
+00:50:57.270 --> 00:50:59.670
+So that's CyBench.
+
+00:50:59.670 --> 00:51:01.470
+There's another
+class of problems
+
+00:51:01.470 --> 00:51:06.070
+which are MLE engineering.
+
+00:51:06.070 --> 00:51:11.910
+So this benchmark has a
+bunch of Kaggle competitions
+
+00:51:11.910 --> 00:51:14.550
+which involve processing
+data, training models,
+
+00:51:14.550 --> 00:51:16.110
+and so on and so forth.
+
+00:51:16.110 --> 00:51:20.770
+And the agent can look at the
+data set, read the description,
+
+00:51:20.770 --> 00:51:26.610
+write code, train models, and
+you eventually submit something
+
+00:51:26.610 --> 00:51:28.690
+and you get a grade.
+
+00:51:28.690 --> 00:51:32.690
+So this is what the leaderboard
+looks like right now.
+
+00:51:32.690 --> 00:51:37.010
+And again, you can see that it's
+really the same usual suspects
+
+00:51:37.010 --> 00:51:39.210
+on the LLM side.
+
+00:51:39.210 --> 00:51:41.050
+But there's quite
+a bit of variation
+
+00:51:41.050 --> 00:51:45.530
+in terms of the different
+agent scaffolds.
+
+00:51:45.530 --> 00:51:47.690
+So one thing to note
+about, I'll point out
+
+00:51:47.690 --> 00:51:53.330
+about agent scaffolds is
+that they matter a lot.
+
+00:51:53.330 --> 00:51:58.570
+So when I said I talk about
+language model evaluation,
+
+00:51:58.570 --> 00:52:02.010
+this is a broader than
+language model evaluation.
+
+00:52:02.010 --> 00:52:07.690
+And the reason is that unlike
+what I mentioned before
+
+00:52:07.690 --> 00:52:11.370
+with this earliest CyBench
+agent scaffold, now
+
+00:52:11.370 --> 00:52:14.170
+you have to be a lot more
+sophisticated to solve
+
+00:52:14.170 --> 00:52:16.770
+really complicated tasks.
+
+00:52:16.770 --> 00:52:20.890
+One thing that people realize
+is that explicit planning
+
+00:52:20.890 --> 00:52:21.950
+is helpful.
+
+00:52:21.950 --> 00:52:23.940
+You can't just stream
+of consciousness,
+
+00:52:23.940 --> 00:52:24.960
+chain of thought this.
+
+00:52:24.960 --> 00:52:27.340
+And then you build
+up this context
+
+00:52:27.340 --> 00:52:31.220
+and the agent can easily
+lose track of where it is.
+
+00:52:31.220 --> 00:52:35.580
+So instead of keep a to-do
+list, get it checked off.
+
+00:52:35.580 --> 00:52:40.700
+Hierarchical delegation, agents
+should call other sub-agents
+
+00:52:40.700 --> 00:52:42.160
+with some clean context.
+
+00:52:42.160 --> 00:52:46.260
+And that agent does some stuff
+and returns only the result.
+
+00:52:46.260 --> 00:52:50.640
+The master agent doesn't need
+to see all the gory details,
+
+00:52:50.640 --> 00:52:55.900
+and this can help encapsulate,
+provide some encapsulation.
+
+00:52:55.900 --> 00:52:59.420
+Memory, people have been
+experimenting around
+
+00:52:59.420 --> 00:53:01.560
+with explicitly reading
+and writing files,
+
+00:53:01.560 --> 00:53:03.400
+especially as the context grows.
+
+00:53:03.400 --> 00:53:08.580
+You can't just store it
+in your context window.
+
+00:53:08.580 --> 00:53:13.660
+And then finally, there is more
+context engineering in the style
+
+00:53:13.660 --> 00:53:16.260
+of managing the process.
+
+00:53:16.260 --> 00:53:18.580
+When should you
+delegate to sub-agents?
+
+00:53:18.580 --> 00:53:23.470
+When to try this strategy
+versus this other strategy, what
+
+00:53:23.470 --> 00:53:25.090
+to write persistent memory.
+
+00:53:25.090 --> 00:53:30.710
+And these things are
+generally optimized
+
+00:53:30.710 --> 00:53:36.470
+for the particular
+language model.
+
+00:53:36.470 --> 00:53:40.670
+So agents are exciting because
+they enhance the capability
+
+00:53:40.670 --> 00:53:42.490
+surface of language models.
+
+00:53:42.490 --> 00:53:44.130
+Scaffolds are very important.
+
+00:53:44.130 --> 00:53:47.470
+So really, when we talk
+about evaluating agents,
+
+00:53:47.470 --> 00:53:49.950
+it's evaluating both
+the language model
+
+00:53:49.950 --> 00:53:52.250
+and the agent scaffold.
+
+00:53:56.150 --> 00:53:58.910
+Now, we're going to
+switch gears a little bit
+
+00:53:58.910 --> 00:54:03.790
+and talk about this other very
+different style of benchmarks.
+
+00:54:03.790 --> 00:54:08.390
+I call them pure reasoning
+for lack of a better term.
+
+00:54:08.390 --> 00:54:11.590
+And the motivation is that
+all the tasks so far require
+
+00:54:11.590 --> 00:54:14.630
+some linguistic and
+world knowledge.
+
+00:54:14.630 --> 00:54:17.070
+And so the question
+is, can we just
+
+00:54:17.070 --> 00:54:21.450
+isolate reasoning or
+pure fluid intelligence
+
+00:54:21.450 --> 00:54:24.330
+from a knowledge
+and knowing facts?
+
+00:54:24.330 --> 00:54:26.730
+And you could argue
+that this gives you
+
+00:54:26.730 --> 00:54:31.410
+a form of more
+pure intelligence.
+
+00:54:31.410 --> 00:54:36.330
+So there was this
+project, ARC-AGI,
+
+00:54:36.330 --> 00:54:43.170
+which started back in 2019,
+where the goal was exactly this.
+
+00:54:43.170 --> 00:54:48.990
+So the task was meant to
+be 100% solvable by humans,
+
+00:54:48.990 --> 00:54:50.490
+but challenging for AIs.
+
+00:54:50.490 --> 00:54:55.050
+And every task is a special
+snowflake or that's the intent.
+
+00:54:55.050 --> 00:54:57.170
+And so memorizing
+a bunch of facts
+
+00:54:57.170 --> 00:55:00.890
+or solving previous
+problems shouldn't really
+
+00:55:00.890 --> 00:55:02.970
+help you that much.
+
+00:55:02.970 --> 00:55:06.110
+So if you guys are
+remembering your LLM history,
+
+00:55:06.110 --> 00:55:09.310
+2019 was pre-LLM.
+
+00:55:09.310 --> 00:55:11.890
+I mean this was GPT-2 era.
+
+00:55:11.890 --> 00:55:15.140
+So this was prescient
+in that regard.
+
+00:55:15.140 --> 00:55:17.640
+So here's an example of the
+first iteration of that problem.
+
+00:55:17.640 --> 00:55:20.020
+You're given these
+pictures and you're
+
+00:55:20.020 --> 00:55:22.700
+trying to guess what comes next.
+
+00:55:22.700 --> 00:55:27.080
+And if you take 10 seconds, you
+can probably solve this problem.
+
+00:55:30.220 --> 00:55:33.980
+So you probably guess it's
+to just fill in the yellow
+
+00:55:33.980 --> 00:55:36.540
+to form the rectangle.
+
+00:55:36.540 --> 00:55:41.980
+So then last year, there
+was an updated version
+
+00:55:41.980 --> 00:55:45.860
+of this task, which was
+a bit more complicated.
+
+00:55:45.860 --> 00:55:47.360
+And you can take a look at this.
+
+00:55:51.220 --> 00:55:54.640
+So here's the trajectory.
+
+00:55:54.640 --> 00:55:58.180
+So when ARC-AGI-1 came out--
+
+00:56:01.020 --> 00:56:03.340
+I think this is actually 0.
+
+00:56:03.340 --> 00:56:06.240
+So basically models
+didn't do anything.
+
+00:56:06.240 --> 00:56:08.100
+So there's GPT-3--
+pre-trained model didn't
+
+00:56:08.100 --> 00:56:10.580
+move the needle at all, right.
+
+00:56:10.580 --> 00:56:14.100
+And this was exactly as
+the creators had intended.
+
+00:56:14.100 --> 00:56:17.990
+Pre-trained models
+just learn what
+
+00:56:17.990 --> 00:56:19.910
+the facts are on the
+internet and maybe learn
+
+00:56:19.910 --> 00:56:21.090
+linguistic patterns.
+
+00:56:21.090 --> 00:56:24.570
+But none of that is
+actually helpful directly,
+
+00:56:24.570 --> 00:56:28.670
+at least for these
+ARC-AGI tasks.
+
+00:56:28.670 --> 00:56:33.070
+And then something
+happened in 2024.
+
+00:56:33.070 --> 00:56:36.610
+And this is when OpenAI
+released their o1 and o3 models.
+
+00:56:36.610 --> 00:56:40.390
+Then things started taking
+off pretty abruptly.
+
+00:56:40.390 --> 00:56:46.430
+And now, ARC-AGI-1
+is basically solved.
+
+00:56:46.430 --> 00:56:52.990
+And even around 2025
+when ARC-AGI-2 came out,
+
+00:56:52.990 --> 00:56:55.970
+this has also-- it's
+not quite solved,
+
+00:56:55.970 --> 00:57:01.550
+but it looks like it's on
+its way to being solved.
+
+00:57:01.550 --> 00:57:08.670
+So it was really the reasoning
+capabilities that unlocked this.
+
+00:57:08.670 --> 00:57:14.120
+And now one could wonder
+whether all the knowledge
+
+00:57:14.120 --> 00:57:19.780
+of actual pre-training was
+necessary for this task.
+
+00:57:19.780 --> 00:57:21.800
+And certainly,
+without pre-training
+
+00:57:21.800 --> 00:57:24.180
+we wouldn't have this
+explosion of reasoning models.
+
+00:57:24.180 --> 00:57:27.180
+So arguably it was
+still important,
+
+00:57:27.180 --> 00:57:30.200
+but not maybe directly
+visible for much
+
+00:57:30.200 --> 00:57:32.800
+of the history of ARC-AGI.
+
+00:57:32.800 --> 00:57:36.100
+So now, just last month,
+ARC-AGI-3 comes out.
+
+00:57:36.100 --> 00:57:37.720
+So you see this
+familiar pattern.
+
+00:57:37.720 --> 00:57:39.860
+Our creators look at
+this and it's like, oh,
+
+00:57:39.860 --> 00:57:41.960
+time for a new benchmark.
+
+00:57:41.960 --> 00:57:45.880
+So this is now an
+interactive environment
+
+00:57:45.880 --> 00:57:49.140
+where you can go online
+and you can play this game.
+
+00:57:49.140 --> 00:57:50.180
+So again, no language.
+
+00:57:50.180 --> 00:57:53.440
+You're just trying to figure
+out, based on patterns.
+
+00:57:53.440 --> 00:57:55.320
+It's kind of fun.
+
+00:57:55.320 --> 00:57:57.760
+And now the scores
+are extremely low.
+
+00:57:57.760 --> 00:58:00.960
+So next year when
+I teach this class,
+
+00:58:00.960 --> 00:58:03.380
+I'm sure I'll have
+to update this slide.
+
+00:58:03.380 --> 00:58:05.400
+But we'll see.
+
+00:58:05.400 --> 00:58:10.720
+So I think this ARC-AGI
+line is a really interesting
+
+00:58:10.720 --> 00:58:12.500
+to think about.
+
+00:58:12.500 --> 00:58:16.380
+The goal is to disentangle
+reasoning from knowledge.
+
+00:58:16.380 --> 00:58:18.080
+This is really hard to do.
+
+00:58:18.080 --> 00:58:20.197
+And it's not--
+
+00:58:20.197 --> 00:58:22.280
+I think this is probably
+the best attempt at this.
+
+00:58:22.280 --> 00:58:27.820
+It's not clear whether you can
+really fully decouple things.
+
+00:58:27.820 --> 00:58:32.000
+And certainly, if people really
+cared about this benchmark,
+
+00:58:32.000 --> 00:58:34.120
+I think people probably could--
+
+00:58:34.120 --> 00:58:36.660
+people can benchmark I
+think probably anything.
+
+00:58:36.660 --> 00:58:38.760
+So you could design
+questions like,
+
+00:58:38.760 --> 00:58:41.780
+are these-- these still
+come from some prior
+
+00:58:41.780 --> 00:58:48.300
+and not sure there's anything as
+quote unquote pure as reasoning.
+
+00:58:48.300 --> 00:58:50.320
+This is also constrained
+to human reasoning.
+
+00:58:50.320 --> 00:58:53.460
+The explicit goal is to
+be 100% human solvable
+
+00:58:53.460 --> 00:58:55.780
+within some reasonable time.
+
+00:58:55.780 --> 00:58:59.680
+So this doesn't really extend
+to superhuman reasoning,
+
+00:58:59.680 --> 00:59:02.220
+for example [INAUDIBLE]
+winning more gold medals
+
+00:59:02.220 --> 00:59:05.820
+or solving open math problems,
+which arguably are still
+
+00:59:05.820 --> 00:59:07.860
+very useful and important.
+
+00:59:07.860 --> 00:59:11.590
+But clearly this exposes some
+gaps in the current models.
+
+00:59:11.590 --> 00:59:15.310
+So there is work to do if
+you think about the goal
+
+00:59:15.310 --> 00:59:18.810
+as basically being able
+to solve all the tasks.
+
+00:59:22.990 --> 00:59:26.690
+So this ARC-AGI-3 especially
+looks quite graphic.
+
+00:59:26.690 --> 00:59:32.870
+So is there some multimodal
+content involved or encoding
+
+00:59:32.870 --> 00:59:36.410
+or as a textual
+representation as well?
+
+00:59:36.410 --> 00:59:41.350
+Yeah so the question is
+this looks very graphical.
+
+00:59:41.350 --> 00:59:44.230
+And so what is the input
+to a language model?
+
+00:59:44.230 --> 00:59:45.710
+So this is essentially--
+
+00:59:45.710 --> 00:59:46.950
+I don't know what the--
+
+00:59:46.950 --> 00:59:48.930
+I think it's 64 by 64.
+
+00:59:48.930 --> 00:59:51.590
+So you can provide
+this image, or you
+
+00:59:51.590 --> 00:59:58.390
+can provide it in Ascii Art or
+some of textual representation.
+
+00:59:58.390 --> 01:00:01.750
+Either way, there is
+a spatial element here
+
+01:00:01.750 --> 01:00:05.830
+that the model has to reason
+about, which is really not
+
+01:00:05.830 --> 01:00:07.570
+English or natural language.
+
+01:00:12.920 --> 01:00:15.800
+So let's talk about
+shift gears and talk
+
+01:00:15.800 --> 01:00:18.280
+about another
+class of benchmarks
+
+01:00:18.280 --> 01:00:21.040
+which is related to safety.
+
+01:00:21.040 --> 01:00:23.640
+So people have been
+talking about safety
+
+01:00:23.640 --> 01:00:25.960
+in language models for a while.
+
+01:00:25.960 --> 01:00:29.520
+And if you think about
+other areas such as cars,
+
+01:00:29.520 --> 01:00:32.280
+it's pretty clear what
+safety means here.
+
+01:00:32.280 --> 01:00:37.340
+These ratings for
+safety ratings for cars,
+
+01:00:37.340 --> 01:00:40.440
+which involve testing
+based on smashing cars
+
+01:00:40.440 --> 01:00:43.040
+into a wall with an
+airbag and seeing
+
+01:00:43.040 --> 01:00:49.520
+how well it does and protects
+the dummies in the car.
+
+01:00:49.520 --> 01:00:53.440
+And this is with decades of
+lobbying and figuring out
+
+01:00:53.440 --> 01:00:55.800
+what safety means for vehicles.
+
+01:00:55.800 --> 01:00:57.760
+So what does it mean for AI?
+
+01:00:57.760 --> 01:01:01.523
+So I would say that there
+is not a great answer here,
+
+01:01:01.523 --> 01:01:03.440
+but I'll give you some
+examples of what people
+
+01:01:03.440 --> 01:01:05.080
+have been thinking about.
+
+01:01:05.080 --> 01:01:08.760
+So there's this benchmark
+called Harm-Bench.
+
+01:01:08.760 --> 01:01:14.140
+And this is really about
+prompting a model with things
+
+01:01:14.140 --> 01:01:20.060
+that are meant to be harmful
+and expecting the model
+
+01:01:20.060 --> 01:01:22.940
+to essentially refuse.
+
+01:01:22.940 --> 01:01:25.400
+So this is one type of safety.
+
+01:01:25.400 --> 01:01:28.780
+And I think probably
+the dominant thing
+
+01:01:28.780 --> 01:01:30.740
+when people think
+about safety is
+
+01:01:30.740 --> 01:01:34.020
+that I want to prevent bad
+actors from doing things
+
+01:01:34.020 --> 01:01:35.860
+with language models,
+but it turns out
+
+01:01:35.860 --> 01:01:38.080
+that's not the only
+thing that matters.
+
+01:01:38.080 --> 01:01:39.860
+So there's this other
+work, AIR-Bench,
+
+01:01:39.860 --> 01:01:44.460
+which tries to think
+about safety holistically
+
+01:01:44.460 --> 01:01:49.940
+by looking at all the regulatory
+frameworks in the EU, China,
+
+01:01:49.940 --> 01:01:55.140
+and the US company
+policies and builds
+
+01:01:55.140 --> 01:02:00.980
+a taxonomy of all the different
+things that could go wrong.
+
+01:02:00.980 --> 01:02:03.220
+And then using
+this, constructing
+
+01:02:03.220 --> 01:02:08.470
+a particular set of
+prompts and evaluating
+
+01:02:08.470 --> 01:02:12.030
+and so on and so forth.
+
+01:02:12.030 --> 01:02:15.730
+But one problem with
+safety is, jailbreaking,
+
+01:02:15.730 --> 01:02:18.470
+which is its own
+sub problem, which
+
+01:02:18.470 --> 01:02:20.990
+is that language models
+are generally trained
+
+01:02:20.990 --> 01:02:23.790
+to refuse harmful instructions.
+
+01:02:23.790 --> 01:02:28.590
+But as we know you can get
+around this if you're clever.
+
+01:02:28.590 --> 01:02:30.910
+And so there's some
+early work that
+
+01:02:30.910 --> 01:02:37.630
+uses automatic ways to optimize
+for prompts to bypass safety
+
+01:02:37.630 --> 01:02:43.230
+using GCG, which is
+basically this coordinate
+
+01:02:43.230 --> 01:02:45.350
+wise optimization algorithm.
+
+01:02:45.350 --> 01:02:49.990
+And remarkably,
+optimizing on open models
+
+01:02:49.990 --> 01:02:51.690
+allows us to transfer to models.
+
+01:02:51.690 --> 01:02:55.490
+So I hope this doesn't these
+attacks don't work anymore.
+
+01:02:55.490 --> 01:02:59.510
+But at the time, you can
+generate some basically
+
+01:02:59.510 --> 01:03:05.180
+gibberish and step by step
+plan to destroy humanity
+
+01:03:05.180 --> 01:03:10.240
+and OpenAI's model will comply.
+
+01:03:10.240 --> 01:03:11.860
+Obviously, you
+could argue, well,
+
+01:03:11.860 --> 01:03:16.960
+is this actually harmful
+plan to destroy humanity?
+
+01:03:16.960 --> 01:03:19.840
+At least it did not-- the
+expected behavior is that it
+
+01:03:19.840 --> 01:03:22.240
+should probably refuse that.
+
+01:03:22.240 --> 01:03:28.680
+So this raises a bigger problem
+which is, what is safety?
+
+01:03:28.680 --> 01:03:30.720
+And one thing that
+makes this tricky
+
+01:03:30.720 --> 01:03:35.240
+is that many aspects of
+safety are very contextual.
+
+01:03:35.240 --> 01:03:39.940
+So it involves politics,
+law, social norms.
+
+01:03:39.940 --> 01:03:43.120
+This varies across
+different countries.
+
+01:03:43.120 --> 01:03:45.580
+And then also, if you
+think about safety,
+
+01:03:45.580 --> 01:03:48.680
+you have to think about
+what are the risks.
+
+01:03:48.680 --> 01:03:53.480
+And the risks are actually
+quite varied as well
+
+01:03:53.480 --> 01:03:55.820
+and demand probably
+different attention.
+
+01:03:55.820 --> 01:03:58.520
+So hallucinations is
+a risk, especially
+
+01:03:58.520 --> 01:04:03.180
+let's say a medical or
+legal or financial settings.
+
+01:04:03.180 --> 01:04:06.720
+But this is also correlated
+with just capabilities.
+
+01:04:06.720 --> 01:04:09.340
+If you make a model
+more accurate,
+
+01:04:09.340 --> 01:04:12.060
+it's correlated with not
+who is seeing as much.
+
+01:04:12.060 --> 01:04:15.220
+Sycophancy is a problem.
+
+01:04:15.220 --> 01:04:16.920
+Abetting crimes is a problem.
+
+01:04:16.920 --> 01:04:23.500
+But this might be counter
+to capabilities, inequality.
+
+01:04:23.500 --> 01:04:29.140
+Losing critical thinking might
+be a risk as well that correlate
+
+01:04:29.140 --> 01:04:30.040
+with capability.
+
+01:04:30.040 --> 01:04:35.060
+So if you think about the
+societal impact of language
+
+01:04:35.060 --> 01:04:39.180
+models on the world
+and think about safety
+
+01:04:39.180 --> 01:04:42.680
+as ensuring that AI
+goes well for people,
+
+01:04:42.680 --> 01:04:46.580
+this is actually a
+much more complex topic
+
+01:04:46.580 --> 01:04:48.800
+than I'll have
+time to talk about.
+
+01:04:48.800 --> 01:04:53.240
+And finally, there is a dual
+use aspect of language models.
+
+01:04:53.240 --> 01:04:56.860
+So the cybersecurity agents can
+be used to hack into a system
+
+01:04:56.860 --> 01:05:00.630
+or to do penetration testing and
+make systems more secure, which
+
+01:05:00.630 --> 01:05:04.630
+makes talking about whether
+these are safety risks
+
+01:05:04.630 --> 01:05:09.750
+or actually beneficial
+a double-edged sword.
+
+01:05:09.750 --> 01:05:14.990
+OK, so let's move on now
+to talk about some broader
+
+01:05:14.990 --> 01:05:17.610
+considerations of evaluation.
+
+01:05:17.610 --> 01:05:23.790
+So one thing that I think is an
+important aspect of evaluation
+
+01:05:23.790 --> 01:05:27.390
+is realism or
+ecological validity.
+
+01:05:27.390 --> 01:05:30.390
+How well does evaluation
+capture real-world use?
+
+01:05:30.390 --> 01:05:37.230
+So in particular exams are very
+far away from real-world use.
+
+01:05:37.230 --> 01:05:40.430
+Chatbot Arena are
+from real people
+
+01:05:40.430 --> 01:05:44.390
+but one could wonder
+whether this distribution is
+
+01:05:44.390 --> 01:05:48.510
+the right distribution of
+people or use cases or not.
+
+01:05:48.510 --> 01:05:51.030
+There's a few
+benchmarks I'll mention
+
+01:05:51.030 --> 01:05:55.170
+that try to get at
+ecological validity,
+
+01:05:55.170 --> 01:05:58.140
+and in particular at
+the use case level,
+
+01:05:58.140 --> 01:06:00.400
+at least not the
+individual query level.
+
+01:06:00.400 --> 01:06:05.640
+So OpenAI created
+benchmark called GDPVal.
+
+01:06:05.640 --> 01:06:08.640
+They looked at all
+the top nine sectors
+
+01:06:08.640 --> 01:06:13.080
+according to US GDP, 44
+different occupations,
+
+01:06:13.080 --> 01:06:17.080
+got a bunch of professionals
+to create tasks.
+
+01:06:17.080 --> 01:06:20.920
+These are professionals with
+about 14 years of experience.
+
+01:06:20.920 --> 01:06:25.840
+And you can see people who
+are nurses who work concierge,
+
+01:06:25.840 --> 01:06:28.960
+real estate agents,
+film and video editors
+
+01:06:28.960 --> 01:06:30.600
+and so on and so forth.
+
+01:06:30.600 --> 01:06:35.360
+And they created
+a bunch of tasks.
+
+01:06:35.360 --> 01:06:37.520
+Here's another example.
+
+01:06:37.520 --> 01:06:42.100
+In the medical domain
+where up until this point,
+
+01:06:42.100 --> 01:06:45.640
+a lot of medical benchmarks were
+based on standardized exams.
+
+01:06:45.640 --> 01:06:47.620
+And in fact,
+actually for humans,
+
+01:06:47.620 --> 01:06:50.180
+this is also what happens.
+
+01:06:50.180 --> 01:06:51.800
+You take these
+standardized exams
+
+01:06:51.800 --> 01:06:56.242
+and you graduate from med school
+and then you go operate on.
+
+01:06:56.242 --> 01:06:57.950
+Well, actually, there's
+a longer process.
+
+01:06:57.950 --> 01:06:59.790
+You don't operate on
+patients directly.
+
+01:07:03.810 --> 01:07:06.470
+But the point is that
+for a language model,
+
+01:07:06.470 --> 01:07:09.290
+you should also not
+just pass medical exams
+
+01:07:09.290 --> 01:07:11.830
+and deploy them directly.
+
+01:07:11.830 --> 01:07:18.490
+So this was a project
+where 121 tasks were
+
+01:07:18.490 --> 01:07:21.610
+sourced from 29 clinicians.
+
+01:07:21.610 --> 01:07:25.410
+And this was meant to
+represent the type of things
+
+01:07:25.410 --> 01:07:28.450
+that clinicians would actually
+ask to a language model, which
+
+01:07:28.450 --> 01:07:31.490
+are quite different
+than the multiple choice
+
+01:07:31.490 --> 01:07:34.410
+type of exam questions.
+
+01:07:34.410 --> 01:07:39.870
+Here's another project
+which gets at real data.
+
+01:07:39.870 --> 01:07:43.010
+So if you ask, who
+actually has the data
+
+01:07:43.010 --> 01:07:44.230
+on what people are doing?
+
+01:07:44.230 --> 01:07:46.810
+Well, it's the model developers.
+
+01:07:46.810 --> 01:07:48.970
+And so this project
+is interesting
+
+01:07:48.970 --> 01:07:55.750
+because it uses language models
+themselves to analyze real data.
+
+01:07:55.750 --> 01:07:58.490
+So in particular,
+you do to privacy.
+
+01:07:58.490 --> 01:08:02.370
+You can't literally go
+and look at people's data,
+
+01:08:02.370 --> 01:08:04.990
+but you can have language
+models look at the data
+
+01:08:04.990 --> 01:08:08.030
+and analyze and summarize
+general patterns.
+
+01:08:08.030 --> 01:08:10.750
+So then the language
+models could tell you
+
+01:08:10.750 --> 01:08:13.990
+about what are the
+types of people--
+
+01:08:13.990 --> 01:08:17.450
+what are the types of things
+that people use Claude for?
+
+01:08:20.470 --> 01:08:24.350
+And sometimes
+realism and privacy
+
+01:08:24.350 --> 01:08:27.109
+are at odds with each
+other because ideally you
+
+01:08:27.109 --> 01:08:31.609
+would want actually a sample
+from the actual query stream.
+
+01:08:31.609 --> 01:08:33.990
+And that would be very
+valuable to assess
+
+01:08:33.990 --> 01:08:36.350
+how well a model is working
+and understand deeply
+
+01:08:36.350 --> 01:08:37.510
+what the errors are.
+
+01:08:37.510 --> 01:08:43.830
+But then that runs into
+privacy considerations.
+
+01:08:43.830 --> 01:08:46.670
+OK, so another
+consideration, which
+
+01:08:46.670 --> 01:08:51.899
+is another type of validity
+is just in general,
+
+01:08:51.899 --> 01:08:55.880
+how do that the evaluations
+are scientifically valid?
+
+01:08:55.880 --> 01:08:59.920
+And this was brought up fairly
+early, train-test overlap
+
+01:08:59.920 --> 01:09:01.680
+or contamination.
+
+01:09:01.680 --> 01:09:04.319
+So in a machine
+learning 101, you
+
+01:09:04.319 --> 01:09:08.960
+learn don't train on
+your test set hopefully.
+
+01:09:08.960 --> 01:09:11.279
+And before foundation
+models this
+
+01:09:11.279 --> 01:09:15.060
+was actually pretty clear right.
+
+01:09:15.060 --> 01:09:19.080
+So with ImageNet and
+SQuAD and many benchmarks
+
+01:09:19.080 --> 01:09:21.560
+sorry, data sets, there
+was always a train split
+
+01:09:21.560 --> 01:09:24.380
+and a test split and everyone
+played the same game.
+
+01:09:24.380 --> 01:09:28.680
+You train on your training data,
+you test on your test data.
+
+01:09:28.680 --> 01:09:30.160
+Life was simple.
+
+01:09:30.160 --> 01:09:32.240
+And now, you have
+these models that
+
+01:09:32.240 --> 01:09:34.300
+are trained on the internet.
+
+01:09:34.300 --> 01:09:36.880
+And much more than that.
+
+01:09:36.880 --> 01:09:39.700
+And furthermore, you
+don't what's in the data.
+
+01:09:39.700 --> 01:09:44.520
+So this makes evaluation
+quite different I think.
+
+01:09:44.520 --> 01:09:46.960
+So what can you do in this?
+
+01:09:46.960 --> 01:09:50.810
+So first thing you
+can do is you can
+
+01:09:50.810 --> 01:09:56.970
+try to infer whether a model
+has actually seen the test data.
+
+01:09:56.970 --> 01:10:03.410
+So this is a neat idea
+from Tatsu's group
+
+01:10:03.410 --> 01:10:07.890
+where you leverage the
+fact that the order
+
+01:10:07.890 --> 01:10:11.650
+in which the questions
+in the benchmark occurs
+
+01:10:11.650 --> 01:10:14.130
+should be random.
+
+01:10:14.130 --> 01:10:19.210
+But if the model prefers
+some particular order that's
+
+01:10:19.210 --> 01:10:22.010
+consistent with the
+benchmark, that is probably--
+
+01:10:22.010 --> 01:10:26.970
+it's just trained
+on that benchmark.
+
+01:10:26.970 --> 01:10:35.770
+Another route is that you can
+encourage people to report
+
+01:10:35.770 --> 01:10:38.370
+actual train-test overlap.
+
+01:10:38.370 --> 01:10:41.090
+So this has to do with norms.
+
+01:10:41.090 --> 01:10:44.790
+I think in general, especially
+maybe less in machine learning,
+
+01:10:44.790 --> 01:10:47.550
+but more in
+statistics you always
+
+01:10:47.550 --> 01:10:50.070
+report confidence intervals.
+
+01:10:50.070 --> 01:10:51.010
+You have an estimate.
+
+01:10:51.010 --> 01:10:53.890
+And I always want to know,
+how reliable is that estimate?
+
+01:10:53.890 --> 01:10:55.630
+This is just standard practice.
+
+01:10:55.630 --> 01:10:59.190
+And so the idea of
+this position paper
+
+01:10:59.190 --> 01:11:02.010
+is that you should
+model providers.
+
+01:11:02.010 --> 01:11:06.030
+If you're going to
+claim some GPQA score,
+
+01:11:06.030 --> 01:11:09.870
+you should always provide
+some justification
+
+01:11:09.870 --> 01:11:13.490
+that you didn't train
+on the test set.
+
+01:11:16.750 --> 01:11:19.970
+So another route is that
+where you can just give up.
+
+01:11:19.970 --> 01:11:23.863
+It's like OK, all these
+evaluations there--
+
+01:11:23.863 --> 01:11:26.030
+let's just assume that
+people trained on them, let's
+
+01:11:26.030 --> 01:11:28.990
+assume the worst case.
+
+01:11:28.990 --> 01:11:31.270
+So the thing that
+we have on our side
+
+01:11:31.270 --> 01:11:33.570
+is that you can always
+define fresh evals.
+
+01:11:33.570 --> 01:11:38.070
+So there's a bunch of ideas,
+LiveCodeBench, UncheeatableEval,
+
+01:11:38.070 --> 01:11:40.910
+which basically scrape
+new web pages or archive
+
+01:11:40.910 --> 01:11:46.520
+papers or GitHub and defines
+evaluations populations that
+
+01:11:46.520 --> 01:11:50.760
+are past the cutoff date
+of the language models.
+
+01:11:50.760 --> 01:11:54.840
+So this seems pretty
+robust and good.
+
+01:11:54.840 --> 01:11:57.360
+But one thing to keep in
+mind is that time stamps
+
+01:11:57.360 --> 01:12:00.880
+aren't always safe
+either, because I might
+
+01:12:00.880 --> 01:12:05.220
+post with code for example.
+
+01:12:05.220 --> 01:12:08.280
+I might put something on
+GitHub which is actually
+
+01:12:08.280 --> 01:12:11.320
+derived from some other repo.
+
+01:12:11.320 --> 01:12:14.180
+And so how do that's
+actually generally fresh?
+
+01:12:17.360 --> 01:12:21.140
+Route 4 is to use
+private evaluations.
+
+01:12:21.140 --> 01:12:23.860
+So companies' model
+developers do this right.
+
+01:12:23.860 --> 01:12:26.520
+So if you're Google or OpenAI
+you have your internal code
+
+01:12:26.520 --> 01:12:29.340
+base, which you assume
+is not on the internet,
+
+01:12:29.340 --> 01:12:34.840
+and you obviously wouldn't
+train on this data,
+
+01:12:34.840 --> 01:12:37.000
+so you can use it
+for evaluation.
+
+01:12:37.000 --> 01:12:40.400
+So this generally
+is pretty reliable.
+
+01:12:40.400 --> 01:12:44.610
+And if you're not a company, you
+can use your personal writings.
+
+01:12:44.610 --> 01:12:47.410
+I have a bunch of
+rejected papers from when
+
+01:12:47.410 --> 01:12:49.950
+I was in grad school that
+I never put on online,
+
+01:12:49.950 --> 01:12:52.490
+so I can use those.
+
+01:12:52.490 --> 01:12:56.590
+And this type of
+evaluation, I think,
+
+01:12:56.590 --> 01:13:00.130
+is very favorable
+for perplexity evals,
+
+01:13:00.130 --> 01:13:01.770
+because all you
+need in perplexity
+
+01:13:01.770 --> 01:13:04.970
+is just you need a
+good data set and you
+
+01:13:04.970 --> 01:13:09.130
+can evaluate log probabilities.
+
+01:13:09.130 --> 01:13:16.970
+So another concern that I'll
+mention is data set quality.
+
+01:13:16.970 --> 01:13:19.650
+So remember I showed
+the leaderboard
+
+01:13:19.650 --> 01:13:22.610
+for SWE-Bench Verified.
+
+01:13:22.610 --> 01:13:26.010
+This is because,
+well, SWE-Bench had
+
+01:13:26.010 --> 01:13:30.970
+a bunch of problems of
+tasks, unit tests that
+
+01:13:30.970 --> 01:13:36.770
+weren't quite rigorous enough
+and other things that got fixed.
+
+01:13:36.770 --> 01:13:44.150
+And there are many other
+benchmarks that have gone
+
+01:13:44.150 --> 01:13:49.070
+through this process
+like GSM8K or MMLU,
+
+01:13:49.070 --> 01:13:54.670
+where people have gone and done
+a more careful audit and realize
+
+01:13:54.670 --> 01:13:59.230
+that, wait a minute, this
+question actually doesn't--
+
+01:13:59.230 --> 01:14:02.510
+something's broken
+around this question.
+
+01:14:02.510 --> 01:14:04.090
+So like this one.
+
+01:14:04.090 --> 01:14:07.410
+There's no curve
+given in this text
+
+01:14:07.410 --> 01:14:09.210
+so you can't answer
+this question.
+
+01:14:12.190 --> 01:14:14.310
+Does the baby have socks on?
+
+01:14:14.310 --> 01:14:16.230
+No, there's no way to tell.
+
+01:14:16.230 --> 01:14:21.623
+And there's also this paper
+that showed that there's
+
+01:14:21.623 --> 01:14:23.790
+a lot of problems with the
+agentic benchmarks, which
+
+01:14:23.790 --> 01:14:26.790
+arguably are even harder to
+assess because it's not just
+
+01:14:26.790 --> 01:14:30.190
+you can look at the question
+and the possible answers
+
+01:14:30.190 --> 01:14:34.110
+and you can look at it but
+there's a whole environment.
+
+01:14:34.110 --> 01:14:39.190
+And there are cases
+where with coding you can
+
+01:14:39.190 --> 01:14:43.340
+it's great to have test cases
+that either pass or not passed.
+
+01:14:43.340 --> 01:14:46.560
+But as we all test
+cases can be incomplete.
+
+01:14:46.560 --> 01:14:48.120
+So you might pass
+all the test cases
+
+01:14:48.120 --> 01:14:50.960
+but still not have
+a working solution.
+
+01:14:50.960 --> 01:14:53.520
+There's another case of
+this TorchBench benchmark
+
+01:14:53.520 --> 01:14:57.780
+where they show that if an agent
+just outputs the empty response,
+
+01:14:57.780 --> 01:15:00.280
+they can get a 38%.
+
+01:15:00.280 --> 01:15:03.600
+So there are some trivialities
+with these benchmarks
+
+01:15:03.600 --> 01:15:07.095
+that you want have to be
+very careful to avoid.
+
+01:15:07.095 --> 01:15:08.720
+One thing I'll call
+out is that there's
+
+01:15:08.720 --> 01:15:12.880
+this tool called
+Docent that uses
+
+01:15:12.880 --> 01:15:17.480
+language models to inspect
+agent traces to detect problems.
+
+01:15:17.480 --> 01:15:19.600
+So this is a
+qualitative response
+
+01:15:19.600 --> 01:15:23.800
+to our very quantitative
+heavy way of benchmarking.
+
+01:15:23.800 --> 01:15:25.960
+And I would always
+recommend that whenever
+
+01:15:25.960 --> 01:15:29.200
+you do a benchmark,
+either develop a benchmark
+
+01:15:29.200 --> 01:15:33.680
+or run a model on the
+benchmark that you always
+
+01:15:33.680 --> 01:15:36.855
+look at the output and try
+to audit it to make sure
+
+01:15:36.855 --> 01:15:38.730
+that you actually think
+you're measuring what
+
+01:15:38.730 --> 01:15:41.650
+you think you're measuring.
+
+01:15:41.650 --> 01:15:45.670
+OK, so maybe getting a
+bit more philosophical.
+
+01:15:45.670 --> 01:15:47.610
+So what's the point
+of evaluation?
+
+01:15:47.610 --> 01:15:48.110
+OK.
+
+01:15:48.110 --> 01:15:51.650
+So I've talked a lot about
+different types of evaluation.
+
+01:15:51.650 --> 01:15:55.670
+And really, there's no one
+evaluation to rule them all.
+
+01:15:55.670 --> 01:15:58.290
+And I think it's-- when you're
+thinking about evaluation,
+
+01:15:58.290 --> 01:16:01.830
+you have to be very clear
+about what the purpose is.
+
+01:16:01.830 --> 01:16:05.410
+And I think often this is
+not really stated clearly.
+
+01:16:05.410 --> 01:16:08.590
+So for example, you
+could be a user,
+
+01:16:08.590 --> 01:16:11.110
+or a company that's trying
+to make a purchase decision.
+
+01:16:11.110 --> 01:16:14.850
+Are you going to go with A or
+B for a particular use case?
+
+01:16:14.850 --> 01:16:17.010
+Or you're just a
+researcher and you
+
+01:16:17.010 --> 01:16:19.730
+have this intuitive
+notion of intelligence
+
+01:16:19.730 --> 01:16:22.330
+and you want to
+measure it somehow.
+
+01:16:22.330 --> 01:16:25.210
+Or you want to understand the
+benefits and harms for business
+
+01:16:25.210 --> 01:16:26.650
+or policy reasons.
+
+01:16:26.650 --> 01:16:28.890
+Or you're a developer and
+you want to get feedback
+
+01:16:28.890 --> 01:16:30.930
+to improve the model.
+
+01:16:30.930 --> 01:16:33.050
+So each of these
+goals will lead you
+
+01:16:33.050 --> 01:16:38.300
+to potentially different
+benchmarks or some combination
+
+01:16:38.300 --> 01:16:41.060
+of evaluation strategies.
+
+01:16:41.060 --> 01:16:43.560
+And finally, one
+thing to address,
+
+01:16:43.560 --> 01:16:45.380
+which I hinted at
+briefly, is that
+
+01:16:45.380 --> 01:16:47.080
+what are we even evaluating?
+
+01:16:47.080 --> 01:16:51.820
+So before foundation models,
+researchers evaluated methods
+
+01:16:51.820 --> 01:16:53.960
+because we have these
+trained test splits.
+
+01:16:53.960 --> 01:16:57.780
+And the only thing that was
+varying is the actual algorithm.
+
+01:16:57.780 --> 01:17:01.020
+And today, we're mostly
+evaluating models and systems
+
+01:17:01.020 --> 01:17:03.300
+where anything goes.
+
+01:17:03.300 --> 01:17:04.800
+There are some exceptions.
+
+01:17:04.800 --> 01:17:08.180
+So the NanoGPT speedrun
+is deliberately
+
+01:17:08.180 --> 01:17:12.300
+a way to evaluate an algorithm,
+in particular, how well fast you
+
+01:17:12.300 --> 01:17:14.000
+can train a model.
+
+01:17:14.000 --> 01:17:17.820
+But most of language
+model evaluation
+
+01:17:17.820 --> 01:17:22.180
+is about evaluating the actual
+end model, which is useful
+
+01:17:22.180 --> 01:17:25.100
+because that is the thing that
+is actually going to get shipped
+
+01:17:25.100 --> 01:17:26.680
+and people are going to use.
+
+01:17:26.680 --> 01:17:29.740
+But I think the punchline
+is that you should always
+
+01:17:29.740 --> 01:17:37.480
+be very deliberate about
+declaring what your goals are.
+
+01:17:37.480 --> 01:17:40.700
+OK, so there's no
+one true evaluation.
+
+01:17:40.700 --> 01:17:44.480
+Choose what you're
+trying to measure.
+
+01:17:44.480 --> 01:17:48.680
+And we talked about a bunch
+of different benchmarks
+
+01:17:48.680 --> 01:17:53.560
+starting with perplexity, exam
+based, chat, agentic, reasoning,
+
+01:17:53.560 --> 01:17:55.440
+and safety.
+
+01:17:55.440 --> 01:18:00.080
+They vary in terms of
+difficulty, realism,
+
+01:18:00.080 --> 01:18:01.280
+how valid they are.
+
+01:18:01.280 --> 01:18:02.580
+And there's often trade offs.
+
+01:18:02.580 --> 01:18:07.600
+It's hard to have really real
+and difficult and ecologically
+
+01:18:07.600 --> 01:18:08.140
+valid.
+
+01:18:08.140 --> 01:18:10.060
+And no trade tests
+contamination.
+
+01:18:10.060 --> 01:18:13.300
+So often you have to compromise
+on one of these factors,
+
+01:18:13.300 --> 01:18:15.080
+and depending on
+your goals, you will
+
+01:18:15.080 --> 01:18:19.200
+have to choose which one you're
+willing to compromise on.
+
+01:18:19.200 --> 01:18:22.300
+So that is the end
+of this lecture.
+
+01:18:22.300 --> 01:18:23.760
+So next week, we're
+going to start
+
+01:18:23.760 --> 01:18:26.520
+talking about training data.
+
+01:18:26.520 --> 01:18:27.660
+OK, see you next time.
+
+01:18:27.660 --> 01:18:30.710
+[AUDIO LOGO]
+

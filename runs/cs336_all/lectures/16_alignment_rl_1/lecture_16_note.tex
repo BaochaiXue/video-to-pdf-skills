@@ -1,327 +1,377 @@
 \documentclass[a4paper]{article}
-
-% Basic packages
 \usepackage[fontset=fandol]{ctex}
-\usepackage{amsmath, amssymb}
+\usepackage[margin=1.65cm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage[margin=2.5cm]{geometry}
-\usepackage[most]{tcolorbox}
-\usepackage{etoolbox}
-\usepackage{listings}
 \usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{subcaption}
-\usepackage{float}
-\usepackage{tikz}
-\IfFileExists{pgfplots.sty}{
-    \usepackage{pgfplots}
-    \pgfplotsset{compat=1.18}
-}{}
-
-% Highlight boxes
-\newtcolorbox{knowledgebox}[1]{
-    enhanced, colback=blue!5!white, colframe=blue!75!black, colbacktitle=blue!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, attach boxed title to top left={yshift=-2mm, xshift=2mm},
-    boxrule=1pt, sharp corners
-}
-
-\newtcolorbox{importantbox}[1]{
-    enhanced, colback=yellow!10!white, colframe=yellow!80!black, colbacktitle=yellow!80!black,
-    coltitle=black, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-\newtcolorbox{warningbox}[1]{
-    enhanced, colback=red!5!white, colframe=red!75!black, colbacktitle=red!75!black,
-    coltitle=white, fonttitle=\bfseries, title=#1, sharp corners
-}
-
-% Listings
-\lstset{
-    language=Python,
-    basicstyle=\ttfamily\small,
-    keywordstyle=\color{blue},
-    stringstyle=\color{red!60!black},
-    commentstyle=\color{green!60!black},
-    breaklines=true,
-    frame=single,
-    numbers=left,
-    numberstyle=\tiny\color{gray},
-    captionpos=b,
-    extendedchars=false
-}
-
-% Front-page metadata
-\newcommand{\notetitle}{CS336 第 16 讲：对齐：RL I}
-\newcommand{\noteauthors}{Codex 基于 Stanford CS336 2025 第 16 讲视频、字幕与课程材料整理}
-\newcommand{\notedate}{\today}
-\newcommand{\videochannel}{Stanford Online}
-\newcommand{\videopublishdate}{2025年07月01日}
-\newcommand{\videoduration}{1:20:32}
-\newcommand{\videourl}{https://www.youtube.com/watch?v=46f2QTDB08Q}
-\newcommand{\videocoverpath}{cover.jpg}
-
+\usepackage{longtable,booktabs}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,keepspaces=true}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{2em}
+\sloppy
+\title{第 16 讲：RLVR：可验证奖励强化学习}
+\author{CS336 Spring 2026 public videos and official course materials}
+\date{}
 \begin{document}
-
-\begin{titlepage}
-\centering
-{\Large 课程笔记\par}
-\vspace{1.2cm}
-{\huge\bfseries \notetitle\par}
-\vspace{0.8cm}
-{\large \noteauthors\par}
-\vspace{0.3cm}
-{\large \notedate\par}
-\vspace{1.2cm}
-
-\ifdefempty{\videocoverpath}{
-{\small 请在生成笔记时填入视频封面图的本地路径。\par}
-}{
-\includegraphics[width=0.82\textwidth,height=0.45\textheight,keepaspectratio]{\videocoverpath}\par
-}
-
-\vfill
-\begin{tcolorbox}[width=0.9\textwidth, colback=black!2!white, colframe=black!60, sharp corners]
-\textbf{视频作者/频道}：\videochannel\par
-\textbf{发布日期}：\videopublishdate\par
-\textbf{视频时长}：\videoduration\par
-\textbf{视频链接}：
-\ifdefempty{\videourl}{
-未填写
-}{
-\href{\videourl}{\nolinkurl{\videourl}}
-}
-\end{tcolorbox}
-\end{titlepage}
-
+\maketitle
 \tableofcontents
 \newpage
-
-%% --- 正文内容开始 --- %%
-
-\section{从 RLHF 的麻烦出发：为什么还需要 RLVR}
-
-\subsection{第 16 讲先做了一次很诚实的回顾}
-第 16 讲并没有直接宣告“旧方法不行了”，而是先承认 DPO 和 PPO 各自的价值。DPO 之所以流行，是因为它把一大块 RLHF 工程复杂度拿掉了：不再显式训练 reward model，也尽量避开 on-policy rollout 和 value function。PPO 则仍然是更传统、表达力更强的强化学习套路，在某些设置下依旧有效。
-
-但课程真正想指出的是：如果你的反馈不是天然的 pairwise preference，或者你希望把可验证的正确性直接拿来做在线优化，那么单靠 DPO 这类离线偏好优化就会开始显得不够。此时，PPO 一类在线 RL 方法又会重新变得重要。
-
-\begin{figure}[H]
+\section{本章导读}
+本章讨论 \textbf{RLVR：可验证奖励强化学习}。CS336 的第一层目标不是把现成大模型当作黑箱使用，而是把 language model 从输入文本、训练目标、模型结构、数据、系统和评估这些部件重新拆开。只有拆开之后，读者才能判断一个设计选择究竟改变了什么。
+设想数学题或代码题可以自动判定正确性。RLVR（reinforcement learning from verifiable rewards）利用可验证奖励推动 reasoning，但也引入 verifier overfitting、length bias 和推理成本上升。
+本章对应 CS336 Spring 2026 第 16 个公开视频，并结合课程页提供的可解析资料。视频和课程页给出事实边界；正文把这些材料改写为可自学的教材章节。
+阅读本章时，先理解问题为什么存在，再看定义、公式和实现形态，随后通过例题和练习检查自己是否能独立复现这条 reasoning chain。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.88\textwidth]{pdf_pages/page-05.png}
-\caption{课程用 DPO 的推导结果提醒学生：它的工程吸引力来自把 RLHF 重写成更像监督学习的目标。}
+\includegraphics[width=0.58\linewidth]{source_anchor.jpg}
+\caption{第 16 讲的课程图像锚点。}
 \end{figure}
-
-\begin{importantbox}{第 16 讲的起点}
-这一讲不是在“推翻 DPO”，而是在问：当目标从偏好匹配走向可验证推理时，我们是否需要更直接、更在线的优化方式。
-\end{importantbox}
-
-\subsection{本章小结}
-第 16 讲先承认了 DPO 的现实价值，但也把它的边界暴露出来：不是所有反馈都天然长成偏好对，也不是所有目标都适合用离线 pairwise 数据来学。
-
-\section{DPO 的吸引力与它没法解决的问题}
-
-\subsection{为什么 DPO 看起来像“RLHF without tears”}
-课程把 DPO 概括得非常清楚：在一个非参数假设下，策略 $\pi_\theta$ 和 reward 可以建立闭式联系，于是你可以把偏好优化重写成对策略对数比值的监督学习目标。这样一来，原本 RLHF 里最让人头疼的 reward model、rollout 外循环和 critic 都能暂时退场。
-
-从直觉上看，DPO 的更新像是在做“对好回答加正梯度、对坏回答加负梯度”，只是这个正负更新会被一个从偏好概率导出的误差项重新加权。课程在这里反复强调，它的魅力首先是工程上的，而不是哲学上的。
-
-\subsection{为什么课程仍然对 DPO 保持谨慎}
-课程同时非常明确地指出，DPO 的效果高度依赖实验设置。它在很多开源 RLHF 模型里确实好用，但 PPO 有时也能同样甚至更好地工作。更重要的是，一旦数据不是 Bradley-Terry 风格的成对比较，或者你想做真正在线的行为改进，DPO 的自然性就会下降。
-
-\begin{knowledgebox}{课程对 DPO 的态度}
-DPO 很好，但它更像是“把一类偏好优化问题做得更可训练”，而不是解决所有对齐问题的总开关。
-\end{knowledgebox}
-
-\subsection{本章小结}
-DPO 的意义在于大幅降低偏好优化的门槛；它的边界在于，它仍然假设反馈能以特定的成对形式表达，而且主要是离线优化。
-
-\section{RLHF 的副作用：过优化与模式坍缩为什么会反复出现}
-
-\subsection{为什么 RLHF 难以无限 scale out}
-课程在这一段的语气明显变得更谨慎。只要你在有限偏好信号上持续做优化，就很容易把模型推到 reward 过拟合区间。也就是说，reward 确实会上升，但真实目标不一定同步提升，甚至可能开始变差。这正是 overoptimization 的经典结构。
-
-课程给出的洞察很重要：偏好奖励并不是“真理”，它只是某个噪声很大、覆盖有限的近似目标。所以在这个目标上过度优化，几乎必然会出现过拟合。对于 RLHF 来说，这不是实现 bug，而是问题设定内生的风险。
-
-\subsection{模式坍缩说明模型不再像概率模型那样工作}
-课程用 calibration 和 entropy 分布的变化说明 mode collapse 的含义。经过 RLHF 之后，模型往往不再像一个良好校准的概率模型，而更像一个被特定偏好信号强行拉扯过的决策器。它可能更“会赢 reward”，却更不多样、也更不可信。
-
-\begin{figure}[H]
+\subsection{本章知识路线}
+\begin{itemize}
+\item 本章首先说明 RLVR：可验证奖励强化学习 为什么是 language modeling pipeline 中不可跳过的一环。
+\item 其次定义本章反复使用的术语，并说明这些术语对应的计算对象或系统对象。
+\item 随后用公式和伪代码表达主要机制，让概念能够落到可计算的变量上。
+\item 最后给出例题、风险讨论和练习，便于读者检查自己是否真正掌握了机制。
+\end{itemize}
+\subsection{结构图}
+下面的图用于帮助读者定位本章的核心结构。先看概念之间的依赖，再回到正文中的公式、伪代码和例题。
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.88\textwidth]{pdf_pages/page-13.png}
-\caption{课程把模式坍缩和校准恶化并列展示，提醒学生 RLHF 会改变模型的概率结构。}
+\includegraphics[width=0.72\linewidth]{pdf_pages/page-02.jpg}
+\caption{官方材料图页：RLVR：可验证奖励强化学习 的课程页/PDF/script 图像锚点。}
 \end{figure}
-
-\begin{warningbox}{为什么这件事对 reasoning 很关键}
-如果你想让模型在数学、代码或长链推理上持续探索，模式坍缩会直接伤害这种探索能力。模型越早收缩到几种“看起来最容易赢”的响应模式，就越难继续从奖励中学出更强推理。
-\end{warningbox}
-
-\subsection{本章小结}
-第 16 讲在这里做了一个非常关键的转向：与其在一个有噪声的偏好信号上无休止优化，不如寻找那些更可验证、更难被奖励黑客化的目标。
-
-\section{为什么这讲会把课程从 GPT-3.5 直接推进到 o1 / r1}
-
-\subsection{课程主线在这里发生了明显转向}
-官方材料在这里给了一页很直白的过渡：`pre-training + RLHF` 大致把行业推到了 GPT-3.5 / ChatGPT 这一代，而这讲想讨论的，是为什么后续的 reasoning 模型会明显更依赖 RL 和 test-time compute，而不是只靠更大的预训练。
-
-\begin{figure}[H]
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.82\textwidth]{pdf_pages/page-14.png}
-\caption{课程明确把这一讲定位成“从 GPT-3.5 时代推进到 o1 / r1 时代”的转折点。}
+\includegraphics[width=0.72\linewidth]{pdf_pages/page-01.jpg}
+\caption{官方材料图页：RLVR：可验证奖励强化学习 的课程页/PDF/script 图像锚点。}
 \end{figure}
-
-\subsection{RLVR 的目标不是再做一遍 RLHF，而是扩大 RL 的适用域}
-课程紧接着又补了一页非常关键的动机图：问题不在于 RLHF 没有价值，而在于它在偏好信号上难以 cleanly scale out。一旦过优化开始变成主导风险，继续在 noisy preference reward 上堆更多 rollout，收益就会越来越差。
-
-于是，第 16 讲真正想问的是：能不能转向那些 RL 本来就最擅长的场景，也就是奖励更接近“exactly what we want”的场景？课程用 AlphaGo、蛋白质设计和形式化数学的图示来提示学生，这类场景往往有更硬的目标函数，因此更适合被持续优化。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.84\textwidth]{pdf_pages/page-15.png}
-\caption{课程把 RLVR 的动机说得很直接：在可验证领域里，RL 才更像是在优化真正想要的目标。}
-\end{figure}
-
-\subsection{本章小结}
-这讲之所以重要，不是因为它又介绍了一个新缩写，而是因为它明确重设了增长路径：当偏好优化开始遇到硬上限，更可验证的奖励就成了新的扩展方向。
-
-\section{从 policy gradient 到 PPO：为什么在线 RL 还是会回来}
-
-\subsection{课程先把最基本的 policy gradient 写出来}
-PPO 再复杂，底层仍然是 policy gradient。课程先回顾最基本的式子：
-\[
-\nabla_{\theta} \mathbb{E}[R] = \mathbb{E}\left[\nabla_{\theta}\log \pi_{\theta}(a\mid s)\, R(s,a)\right].
-\]
-其中 $s$ 是状态，$a$ 是动作，$\pi_\theta$ 是当前策略，$R(s,a)$ 是最终奖励。语言模型场景里，状态可以理解为 prompt 加已生成前缀，动作则可以是逐 token 的生成选择。
-
-这个公式足够简单，但直接拿来做语言模型 RL 会有极高方差。于是才会有 TRPO 的信赖域思路，再到 PPO 用 clip 目标在稳定性和可优化性之间做折中。
-
-\subsection{为什么课程还要给学生看 PPO 实现}
-课程非常坦率地说，只看博客文章谈 PPO 容易产生错觉，真正难的是实现。rollout 怎么收集，KL 惩罚怎么加，advantage 怎么算，value model 怎么训练，外循环和内循环怎么配合，这些才是 PPO 在语言模型里真正昂贵的地方。
-
-\subsection{PPO 在语言模型里到底比普通 RL 多了哪些部件}
-官方 PDF 在 PPO 部分其实给了三层结构，而不只是一个 clipped objective。第一层是策略网络本身，也就是要被更新的语言模型；第二层是 reward model 和 value model，它们分别给出标量反馈和 advantage 所需的 baseline；第三层是经验缓存与 reference model，用于做 ratio、KL 和多步 inner loop 更新。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.84\textwidth]{pdf_pages/page-21.png}
-\caption{语言模型里的 PPO 不是只多一个 loss，而是 reward model、value model、reference policy、experience buffer 一起进入系统。}
-\end{figure}
-
-课程在这一页想告诉学生的是：哪怕把环境简化成“整段回答末尾给一个 dense reward”，PPO 仍然会自然长出一大套附属对象。也正因此，它在大模型里的真正代价不只是数学复杂，而是显存、推理和训练调度全都一起变重。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.84\textwidth]{pdf_pages/page-24.png}
-\caption{课程直接拿 AlpacaFarm 的 PPO 实现讲 loss 计算，强调 PPO 的复杂度主要来自工程细节。}
-\end{figure}
-
-这部分内容非常重要，因为它解释了为什么开源社区在看到 DPO 后会那么兴奋。不是大家突然不喜欢 RL 了，而是 PPO 的完整系统成本确实太高。
-
-\subsection{reward shaping 与 GAE 是 PPO 真正难训的地方}
-官方文本在 `PPO in practice` 里还点了两个经常被忽略但非常关键的实现点。
-
-第一是 reward shaping：语言模型 RL 往往不是只在最后一个 token 上打一笔总奖，而是会沿 token 维度加上 KL 惩罚，让新策略不要离 reference 太远。官方描述得很具体：高层上是“每个 token 加 KL，末尾再加总 reward”；实践里则还会对 KL 做额外裁剪，避免 policy 突然跑飞。
-
-第二是 generalized advantage estimate。课程特别提醒，在语言模型 RL 的很多设置里，这其实很接近一个 bandit 问题，因此会看到 \(\gamma=\lambda=1\) 这种和经典连续控制场景不太一样的设定。它的意思不是“GAE 不重要”，而是说 reward-to-go 与 value decomposition 在这里比在机器人任务里更简单，但仍然需要一个能稳定训练的 advantage 管线。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.82\textwidth]{pdf_pages/page-23.png}
-\caption{PPO outer loop 的实践图景：先收 rollout，再在固定 rollout 上做若干 inner-loop 优化。}
-\end{figure}
-
-\subsection{本章小结}
-PPO 仍然是理解现代 RL 方法的参考系。课程通过回顾 policy gradient 和 PPO 实现，让学生看到“在线 RL 很强”与“在线 RL 很麻烦”这两件事为何会同时成立。
-
-\section{GRPO：把语言模型的“同 prompt 多回答”结构直接用起来}
-
-\subsection{GRPO 的核心思想不是更复杂，而是更简单}
-课程把 GRPO 介绍成“从 PPO 出发，去掉 value function，再把 advantage 写成组内归一化奖励”。在语言模型场景里，这种做法特别自然，因为同一个 prompt 下本来就可以采样多条回答。于是每组回答天然形成一个小比较集合，你不一定要额外训练 critic 才知道哪些回答相对更好。
-
-直观上，GRPO 的做法是：同一个 prompt 采样若干 rollout，计算每条回答的 reward，然后对组内 reward 做中心化和标准化，再用这个组内相对分数当作更新信号。课程借此说明：\textbf{语言模型的输出结构本身，就能提供一种廉价 baseline。}
-
-\subsection{为什么课程马上开始挑 GRPO 的刺}
-课程并没有把 GRPO 塑造成完美解。它明确指出，组内均值部分可以视作 baseline，但标准差归一化会引入额外偏差；同时长度归一化项还可能带来 length bias，让模型更偏向某种 CoT 长度。这说明 GRPO 的成功很大程度上来自“足够简单、足够好用”，而不是“严格无偏”。
-
-\begin{knowledgebox}{课程对 GRPO 的真实评价}
-GRPO 的魅力不是它理论上最纯，而是它在去掉 value model 之后，极大降低了 reasoning RL 的实现门槛，因此让 RLVR 快速扩散到了更多团队。
-\end{knowledgebox}
-
-\subsection{为什么课程说“stdev normalization 不是有效 baseline”}
-官方材料这里有一个很值得认真保留的细节：减去组内均值这一步可以被解释成 baseline，但除以组内标准差这一步就不再是简单的 state-dependent baseline 了，它会改变梯度估计的缩放方式，因此不再保持严格无偏。
-
-这也是课程会专门提到“unbiased-gradient version of GRPO”的原因。后来的一些修正思路，本质上是在往 `REINFORCE with leave-one-out baseline` 靠，尽量保留组结构带来的便宜优势估计，同时减少标准差归一化引入的额外偏差。
-
-\subsection{length bias 为什么会变成 reasoning RL 里的真实问题}
-官方页里还单独点出 `Length biases of GRPO`。原因很现实：一旦你对组内 reward 做标准化，并再叠加某种长度归一化或长度惩罚，模型就会开始系统性偏向某种 CoT 长度。对 reasoning 模型来说，这不是小问题，因为它会直接影响探索深度和最终答案质量。
-
-课程在这里的态度很务实：GRPO 的成功并不意味着 objective 已经定型，相反，它说明一个足够简单的 objective 先把门打开了，接下来大家会围绕 unbiasedness、length control 和 variance scaling 再继续修。
-
-\begin{warningbox}{为什么 GRPO 不是“公式抄下来就能复现”的方法}
-只要 objective 里出现组内标准差、长度归一化和 KL 项，不同实现就可能隐含非常不同的偏置。reasoning RL 的效果，往往恰恰卡在这些看似只是常数项的地方。
-\end{warningbox}
-
-\subsection{本章小结}
-GRPO 把语言模型的组结构直接变成优势估计工具。它简化了 PPO，也引入了新的偏差和长度问题，这正是后续变体不断出现的原因。
-
-\section{为什么 RLVR 会把课程终点推到 o1 / R1 时代}
-
-\subsection{可验证奖励让 RL 的目标第一次变得“硬”起来}
-第 16 讲最重要的转向，是从 RLHF 走向 RLVR。课程的意思不是说偏好奖励没用，而是说：如果你能在数学、代码、形式逻辑或某些规则明确的任务里定义“对就是对，错就是错”的可验证奖励，那么 RL 才真正回到它最擅长的领域。
-
-这件事的重要性在于，它把奖励从含糊的人类偏好换成了更坚硬、更抗黑客化的目标。只要奖励真能准确反映正确性，模型就更有机会通过长链推理和测试时计算获得真实能力提升，而不只是更擅长讨好 judge。
-
-\subsection{R1、Kimi 和 Qwen 说明了什么}
-课程在 case study 里反复对比 DeepSeek R1、Kimi K1.5 和 Qwen 3。它们路径不同，但都指向同一个事实：reasoning RL 的关键不只是“用了 RL”，而是奖励足够可验证、SFT 初始化足够好、难度筛选足够严格，以及 RL 基础设施能支撑长 CoT 训练。
-
-R1 说明了 GRPO 风格 reasoning RL 可以把系统推到极强水平；Kimi 展示了不同 policy gradient 变体和长度控制策略；Qwen 则说明即便数据量没有那么大，只要筛选和训练流程够好，RLVR 仍然能非常有效。课程因此把“GPT-3.5 时代的 RLHF”推进到了“o1 / R1 时代的 reasoning RL”。
-
-\subsection{DeepSeek R1：为什么它成了这一波 RLVR 的中心案例}
-官方后半段对 R1 的拆解其实相当具体。第一，R1-zero 说明仅靠 reasoning RL 加上极简的可验证奖励，就已经能得到相当强的性能；第二，真正的 R1 又在此基础上加回了 SFT 初始化、语言一致性奖励，以及后续的常规 post-training。
-
-课程尤其强调两点：一是 `SFT initialization` 对 reasoning RL 的启动阶段非常重要，即便只有少量高质量长 CoT 样本，也能大幅改善后续 RL 可训练性；二是 R1 并没有靠复杂的 process supervision 或 MCTS 才成功，这直接改变了大家对 reasoning RL 门槛的认知。
-
-\subsection{Kimi K1.5：另一条同时期路线说明 objective 还在快速演化}
-Kimi 的价值在于它不是简单重复 R1。官方材料说明，它同样依赖难度筛选、长 CoT SFT 和 RL，但在具体损失、长度控制和 curriculum 上给了另一套设计。特别是长度控制部分，Kimi 会在后期显式鼓励更短的正确链条，说明 reasoning RL 的一个真实工程目标，不只是“答对”，还包括“答对且不要太啰嗦”。
-
-这让课程的 message 更完整了：GRPO 打开了门，但真正的工业路线并不会只用一个原始 objective 原封不动地跑到底，而是会围绕数据难度、长度、语言一致性和 reward 设计不断叠 patch。
-
-\subsection{Qwen 3：低数据 RLVR 说明筛选质量可以替代纯数据量}
-Qwen 3 的 case study 则把另一个信号拉了出来：reasoning RL 不一定非要海量 RL 数据。官方摘要里明确提到，他们通过 best-of-n 筛难题、剔除无需 CoT 就能做对的样本、手工检查 CoT 质量，并最终只在大约四千级别的例子上做 GRPO。这说明当 reward 足够硬、样本筛选足够狠时，小数据 RLVR 也可能有很高杠杆。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.86\textwidth]{pdf_pages/page-16.png}
-\caption{课程在一页里并排展示了 PPO→GRPO 与 R1/Kimi/Qwen 三组 case study，意思很明确：这已经是一个正在快速演化的 recipe 家族。}
-\end{figure}
-
-\begin{importantbox}{RLVR 的真实含义}
-RLVR 不是“换了一个缩写”。它意味着强化学习第一次在一类大模型任务里拿到了足够硬、足够便宜、足够可扩展的奖励信号。
-\end{importantbox}
-
-\subsection{本章小结}
-RLVR 之所以重要，不在于它看起来更潮，而在于它让强化学习的优化目标变得更可信。这才是 reasoning 模型近两年突飞猛进的真正背景。
-
+\section{本章主线}
+本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+\subsection{本章要解决的核心问题}
+本讲讲 RLVR：在数学、代码、可验证任务中，reward 可以由 verifier 给出，而不是依赖主观偏好标注。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，RLVR：可验证奖励强化学习 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从机制到资源账本}
+GRPO 等方法用组内相对 reward/advantage 训练 reasoning policy，减少 value function 复杂度，但也带来 length bias 和 baseline 合法性问题。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，RLVR：可验证奖励强化学习 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\subsection{从课堂讲解到可复现实验}
+RLVR 的风险是过拟合 verifier、奖励稀疏、泛化不足和推理长度成本上升。评估必须同时看准确率、长度、失败类型和安全性。
+这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
+因此，RLVR：可验证奖励强化学习 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+\section{术语、符号与问题边界}
+本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
+\begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
+\toprule
+\textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
+\midrule
+1 & RLVR（reinforcement learning from verifiable rewards） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+2 & verifiable reward（可验证奖励） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+3 & GRPO & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+4 & reasoning model（推理模型） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+5 & advantage（优势函数） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+\bottomrule
+\end{longtable}
+这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
+\subsection{关键词}
+下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
+\begin{itemize}
+\item grpo, data, rlhf, rewards, reward, reasoning, kimi, qwen, expert, policy, practice, loss, length, level
+\end{itemize}
+\section{RLVR 的基本设置}
+现在进入 RLVR 的基本设置。本节关心的不是名称本身，而是它把 RLVR：可验证奖励强化学习 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 RLVR 的基本设置}
+视频把本讲定位为第二节 post-training，聚焦 RLVR 和 reasoning 方向的及时进展。
+RLVR 不依赖主观偏好 reward，而是利用数学题、代码测试、形式验证等可判定信号。
+这使 reward 更客观，但任务覆盖范围更窄，并且容易过拟合到 verifier。
+后训练部分的核心问题是行为控制。模型已经学到语言分布，但还需要通过示范、偏好或可验证奖励，把输出推向可用、可评估、可约束的行为。
+\subsection{RLVR 的基本设置 的机制}
+视频把本讲定位为第二节 post-training，聚焦 RLVR 和 reasoning 方向的及时进展。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+RLVR 不依赖主观偏好 reward，而是利用数学题、代码测试、形式验证等可判定信号。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+这使 reward 更客观，但任务覆盖范围更窄，并且容易过拟合到 verifier。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，RLVR 的基本设置 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{RLVR 的基本设置 的目标函数}
+\[R(x,y)=\mathbf{1}\{\operatorname{verify}(x,y)=\text{correct}\}\]
+符号说明：\(x\) 是问题，\(y\) 是模型输出，verify 是外部可验证器；奖励常是稀疏二值信号。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{RLVR 的基本设置 的训练流程}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+response = policy.generate(problem)
+reward = verifier(problem, response)
+update_policy_with_rl(reward)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 可验证不等于完整；很多真实任务没有可靠 verifier。
+\item 稀疏 reward 会让探索和 credit assignment 变难。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+RLVR 的基本设置 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 RLVR 的基本设置}
+检验 RLVR 的基本设置 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 RLVR、verifiable、reward、math、code 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 RLVR 的基本设置，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(x\textbackslash{}) 是问题，\textbackslash{}(y\textbackslash{}) 是模型输出，verify 是外部可验证器；奖励常是稀疏二值信号。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：可验证不等于完整；很多真实任务没有可靠 verifier；稀疏 reward 会让探索和 credit assignment 变难。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 RLVR：可验证奖励强化学习 的整体结构中。RLVR 的基本设置 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：RLVR 的基本设置}
+RLVR（reinforcement learning from verifiable rewards）使用可验证奖励训练推理能力。在“RLVR 的基本设置”中，这个概念用于解释 RLVR：可验证奖励强化学习 的一个具体机制。
+verifiable 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“RLVR 的基本设置”中改变了哪个变量或约束。
+reward 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“RLVR 的基本设置”中改变了哪个变量或约束。
+math 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“RLVR 的基本设置”中改变了哪个变量或约束。
+decode（解码）逐 token 生成，常受 memory bandwidth 和 KV cache 影响。在“RLVR 的基本设置”中，这个概念用于解释 RLVR：可验证奖励强化学习 的一个具体机制。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{RLVR 的基本设置 的小结}
+\begin{itemize}
+\item RLVR 的基本设置 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{GRPO、优势估计与 length bias}
+现在进入 GRPO、优势估计与 length bias。本节关心的不是名称本身，而是它把 RLVR：可验证奖励强化学习 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 GRPO、优势估计与 length bias}
+字幕关键词显示本讲反复讨论 GRPO、reward、advantage、length 和 DeepSeek。
+group-relative 方法用同一 prompt 的多条采样构造相对优势，避免单独训练 value model 或降低复杂度。
+reasoning RL 需要处理长输出：更长 chain-of-thought 可能提高正确率，也可能制造 length bias。
+GRPO、优势估计与 length bias 的作用是把 RLVR：可验证奖励强化学习 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{GRPO、优势估计与 length bias 的机制}
+字幕关键词显示本讲反复讨论 GRPO、reward、advantage、length 和 DeepSeek。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+group-relative 方法用同一 prompt 的多条采样构造相对优势，避免单独训练 value model 或降低复杂度。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+reasoning RL 需要处理长输出：更长 chain-of-thought 可能提高正确率，也可能制造 length bias。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，GRPO、优势估计与 length bias 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{GRPO、优势估计与 length bias 的数学表达}
+\[A_i=\frac{R_i-\operatorname{mean}(R_{1:G})}{\operatorname{std}(R_{1:G})+\epsilon}\]
+符号说明：同一问题采样 \(G\) 个回答，\(R_i\) 是第 \(i\) 个回答奖励，\(A_i\) 是组内标准化优势。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 GRPO、优势估计与 length bias 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+samples = [policy.generate(x) for _ in range(G)]
+rewards = [verify(x, y) for y in samples]
+advantages = normalize_within_group(rewards)
+policy_gradient_update(samples, advantages)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item advantage normalization 会改变 reward scale，影响训练稳定性。
+\item 如果 verifier 奖励格式技巧，模型可能学习投机输出。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+GRPO、优势估计与 length bias 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 GRPO、优势估计与 length bias}
+检验 GRPO、优势估计与 length bias 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 GRPO、advantage、DeepSeek、length、thinking 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 GRPO、优势估计与 length bias，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：同一问题采样 \textbackslash{}(G\textbackslash{}) 个回答，\textbackslash{}(R\_i\textbackslash{}) 是第 \textbackslash{}(i\textbackslash{}) 个回答奖励，\textbackslash{}(A\_i\textbackslash{}) 是组内标准化优势。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：advantage normalization 会改变 reward scale，影响训练稳定性；如果 verifier 奖励格式技巧，模型可能学习投机输出。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 RLVR：可验证奖励强化学习 的整体结构中。GRPO、优势估计与 length bias 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：GRPO、优势估计与 length bias}
+GRPO 使用组内相对奖励/优势来训练 reasoning policy。在“GRPO、优势估计与 length bias”中，这个概念用于解释 RLVR：可验证奖励强化学习 的一个具体机制。
+advantage 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“GRPO、优势估计与 length bias”中改变了哪个变量或约束。
+DeepSeek 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“GRPO、优势估计与 length bias”中改变了哪个变量或约束。
+length 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“GRPO、优势估计与 length bias”中改变了哪个变量或约束。
+thinking 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“GRPO、优势估计与 length bias”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{GRPO、优势估计与 length bias 的小结}
+\begin{itemize}
+\item GRPO、优势估计与 length bias 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{从 reasoning gains 到安全边界}
+现在进入 从 reasoning gains 到安全边界。本节关心的不是名称本身，而是它把 RLVR：可验证奖励强化学习 中的哪些对象变成可计算、可测量或可优化的量。
+\subsection{为什么要讨论 从 reasoning gains 到安全边界}
+RLVR 的吸引力在于把模型推向更强 reasoning，但训练过程也可能增强规避、工具滥用或 reward hacking。
+可验证任务上的提升不自动泛化到开放式推理、事实性或安全对话。
+评估 RLVR 模型时要同时看 pass rate、过程长度、失败类型、泛化题集和安全行为。
+从 reasoning gains 到安全边界 的作用是把 RLVR：可验证奖励强化学习 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+\subsection{从 reasoning gains 到安全边界 的机制}
+RLVR 的吸引力在于把模型推向更强 reasoning，但训练过程也可能增强规避、工具滥用或 reward hacking。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
+可验证任务上的提升不自动泛化到开放式推理、事实性或安全对话。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
+评估 RLVR 模型时要同时看 pass rate、过程长度、失败类型、泛化题集和安全行为。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
+因此，从 reasoning gains 到安全边界 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+\subsection{从 reasoning gains 到安全边界 的数学表达}
+\[\max_\theta\; \mathbb{E}_{y\sim\pi_\theta(\cdot\mid x)}[R(x,y)]-\beta\,\operatorname{KL}(\pi_\theta\|\pi_{\text{ref}})\]
+符号说明：KL 项限制策略偏离参考模型，\(\beta\) 是约束强度。
+这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+\subsection{从 从 reasoning gains 到安全边界 到程序}
+本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+\begin{lstlisting}[language=Python]
+monitor = [accuracy, response_length, verifier_failures, safety_eval]
+stop_if_reward_improves_but_generalization_drops(monitor)
+\end{lstlisting}
+读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+\subsection{边界条件与常见误解}
+\begin{itemize}
+\item 训练 reward 和真实目标之间的 gap 是核心风险。
+\item reasoning 长度增加会显著提高推理成本。
+\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
+\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\end{itemize}
+\subsection{与本章其他概念的关系}
+从 reasoning gains 到安全边界 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
+\subsection{怎样检验 从 reasoning gains 到安全边界}
+检验 从 reasoning gains 到安全边界 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 reasoning、KL、safety、generalization、reward hacking 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
+第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 从 reasoning gains 到安全边界，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
+第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：KL 项限制策略偏离参考模型，\textbackslash{}(\textbackslash{}beta\textbackslash{}) 是约束强度。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
+第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：训练 reward 和真实目标之间的 gap 是核心风险；reasoning 长度增加会显著提高推理成本。复习时可以把这些限制改写成反例测试。
+最后，把实验结论放回 RLVR：可验证奖励强化学习 的整体结构中。从 reasoning gains 到安全边界 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+\subsection{常见混淆：从 reasoning gains 到安全边界}
+reasoning 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从 reasoning gains 到安全边界”中改变了哪个变量或约束。
+KL 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从 reasoning gains 到安全边界”中改变了哪个变量或约束。
+safety 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从 reasoning gains 到安全边界”中改变了哪个变量或约束。
+generalization 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从 reasoning gains 到安全边界”中改变了哪个变量或约束。
+reward hacking 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从 reasoning gains 到安全边界”中改变了哪个变量或约束。
+这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+\subsection{从 reasoning gains 到安全边界 的小结}
+\begin{itemize}
+\item 从 reasoning gains 到安全边界 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
+\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\end{itemize}
+\section{综合讨论：从局部机制到完整系统}
+本章的主题是 RLVR：可验证奖励强化学习，但它不应被读成几个相邻知识点的拼接。RLVR 的基本设置、GRPO、优势估计与 length bias、从 reasoning gains 到安全边界 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
+这些对象包括 RLVR（reinforcement learning from verifiable rewards）、verifiable reward（可验证奖励）、GRPO、reasoning model（推理模型）、advantage（优势函数）。读者可以把它们看成一组接口：有的接口连接文本和 token，有的连接模型结构和张量计算，有的连接数据样本和训练目标，有的连接离线评估和在线服务。接口一旦改变，后面的成本、错误类型和优化空间也会随之改变。
+\subsection{RLVR 的基本设置 在系统中的位置}
+RLVR 的基本设置 首先提供一个局部解释：视频把本讲定位为第二节 post-training，聚焦 RLVR 和 reasoning 方向的及时进展。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，RLVR 的基本设置 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，RLVR 的基本设置 不能脱离边界条件理解。一个关键 caveat 是：可验证不等于完整；很多真实任务没有可靠 verifier。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{GRPO、优势估计与 length bias 在系统中的位置}
+GRPO、优势估计与 length bias 首先提供一个局部解释：字幕关键词显示本讲反复讨论 GRPO、reward、advantage、length 和 DeepSeek。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，GRPO、优势估计与 length bias 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，GRPO、优势估计与 length bias 不能脱离边界条件理解。一个关键 caveat 是：advantage normalization 会改变 reward scale，影响训练稳定性。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{从 reasoning gains 到安全边界 在系统中的位置}
+从 reasoning gains 到安全边界 首先提供一个局部解释：RLVR 的吸引力在于把模型推向更强 reasoning，但训练过程也可能增强规避、工具滥用或 reward hacking。 这类解释的价值在于把直觉压缩成可操作对象。一旦对象明确，读者就可以追问它的输入、输出、中间状态和失败条件，而不是只记住方法名。
+其次，从 reasoning gains 到安全边界 会改变至少一个资源或评估变量。它可能改变 sequence length、activation size、memory bandwidth、communication volume、data mixture、reward distribution 或 benchmark protocol。这些变量在小例子里可以手算，在真实训练和服务系统里则需要 profiling、logging 和 held-out evaluation。
+最后，从 reasoning gains 到安全边界 不能脱离边界条件理解。一个关键 caveat 是：训练 reward 和真实目标之间的 gap 是核心风险。。把 caveat 写出来不是为了削弱结论，而是为了说明结论在哪些输入、硬件、数据和评估条件下才成立。
+\subsection{把本章知识用于读论文和复现实验}
+读相关论文时，可以把本章变成一个检查表。第一，论文是否清楚定义了输入规模、模型规模、数据来源和评估协议；第二，论文声称的改进落在哪个变量上；第三，作者是否报告了会让结论失效的设置；第四，实验是否能分离模型结构、数据质量、优化设置和系统实现的影响。
+复现实验时，也应避免直接追求大规模。先用最小程序复现一个公式、一个伪代码分支或一个 profile 现象，再扩大输入规模。这样做的原因很简单：如果小规模程序无法解释中间量，大规模训练只会把错误隐藏在日志和随机波动里。
+把这些检查合在一起，本章给出的不是一个固定答案，而是一种阅读 CS336 的方法：每个模型机制都要落到变量，每个变量都要落到测量，每个测量都要说明协议，每个协议都要承认边界。
+因此，本章中的任何一句结论都可以被改写成一个可引用的完整句式：在给定数据、模型、硬件和评估协议下，某个机制改变了某个变量，并通过某个观测指标表现出来。这样的句子比单独背诵术语更长，但它包含了自学、复现和引用时真正需要的信息。
+把本章用于自学时，可以按三遍阅读。第一遍只追踪对象和定义，确认每个术语到底指向文本、token、张量、样本、请求还是评估记录。第二遍追踪公式和伪代码，确认每一步改变了哪些状态。第三遍追踪实验和 caveat，确认哪些结论只在特定规模、数据或硬件条件下成立。
+把本章用于复习时，则应反过来操作：先从一个失败案例或异常指标出发，再回到相应机制。loss 曲线异常可能指向数据、优化或模型容量；吞吐异常可能指向 kernel、通信或调度；benchmark 异常可能指向 contamination、prompt protocol 或采样设置。能够从异常反推机制，是掌握本章的实用标准。
+\section{例题：把概念变成可计算检查}
+\subsection{GRPO 的组内优势}
+同一数学题采样 8 个回答，用 verifier 给出 0/1 奖励。
+\begin{itemize}
+\item 计算组内平均和标准差，把每个回答的 reward 标准化成 advantage。
+\item 正确回答 advantage 为正，错误回答 advantage 为负。
+\item 如果所有回答都错或都对，学习信号会变弱。
+\end{itemize}
+\textbf{结论。} RLVR 的训练信号质量取决于采样多样性、verifier 可靠性和奖励分布。
+这个例题的目的不是替代完整工程实现，而是给出一种最小推理形式：把问题转成变量，写出近似公式或伪代码，再说明近似何时失效。
+\section{实验设计：从小例子到可复现结论}
+学习 RLVR：可验证奖励强化学习 不能停在概念层。一个教材化结论至少需要四件事：可构造的输入、可观测的中间量、可比较的指标，以及清楚的失败条件。下面的实验设计不是要求训练大模型，而是要求读者用小规模程序复现本章机制。
+\subsection{最小输入}
+先构造只触发本章核心机制的小输入。例如 tokenizer 章节可以用几个包含 rare words 和 Unicode 字符的字符串；GPU 章节可以用一个 elementwise kernel 和一个 GEMM；data 章节可以用十几篇近重复文档。小输入的价值在于它让错误可见。
+\subsection{资源账本}
+对同一输入写下 FLOPs、bytes moved、显存峰值、通信量或样本数量的估算。估算不需要一开始就精确，但必须说明单位和近似假设。随后用 profiler、benchmark、validation loss 或人工检查去验证估算是否同量级。
+\subsection{单变量消融}
+一次只改变一个因素，例如 vocabulary size、head 数、batch size、filter threshold、reward scale、decoding temperature 或 GPU 数量。若多个变量同时变化，实验只能说明系统变了，不能说明机制是什么。
+\subsection{失败条件}
+最后要刻意触发失败：极端 context length、错误 dtype、过小 batch、污染 benchmark、低质量数据或不可靠 verifier。失败条件常常比成功曲线更能说明一个方法的边界。
+\subsection{记录与报告}
+实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
+常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\section{课程资料与回看路径}
+教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
+\subsection{视频回看路径}
+\begin{longtable}{p{0.20\linewidth}p{0.46\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{时间} & \textbf{关键词} & \textbf{复习任务}\\
+\midrule
+00:00:05-00:06:23 & going, very, we're, that's, reinforcement, openai, we've & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:18:09-00:24:19 & grpo, standard, it's, well, deviation, baseline, going & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:37:05-00:43:31 & very, think, quite, it's, reward, data, talk & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+00:50:04-00:56:32 & very, training, then, your, inference, think, qwen & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+01:09:42-01:15:30 & long, then, it's, yeah., training, very, data & 回看定义、例子、推导或 caveat 在该段中的位置。\\
+\bottomrule
+\end{longtable}
+这些时间段用于定位视频中的讲解顺序。严肃引用时，应回到视频片段确认讲者表述、板书或幻灯片内容。
+回看视频时，不必逐字抄录字幕。更有效的方法是把每个时间段判定为定义、例子、推导、代码解释或 caveat，再把它放回本章对应小节。
+\subsection{课程资料阅读路径}
+\begin{longtable}{p{0.14\linewidth}p{0.48\linewidth}p{0.30\linewidth}}
+\toprule
+\textbf{资料组} & \textbf{标题/页块} & \textbf{关键词}\\
+\midrule
+official\_01 & Lecture 16 P OST- TRAININ G 2 R E INF O R C E M E NT L E A R NIN G F R O M V ER I F ... & practice, policy, reward, grpo, level, rewards, implementation\\
+official\_03 & Interesting phenomena (?) Longer CoTs during training ‘aha’ moment? & reasoning, rlhf, grpo, language, non-verifiable, data, step\\
+official\_04 & How well does R1 work? It’s pretty good (but you knew that) & kimi, distillation, long, policy, curation, reward, length\\
+official\_05 & Kimi’s RL setup in detail & data, results, qwen, kimi, scaling, interesting, comes\\
+official\_07 & Agent RL & agent, recap, overoptimization, problem, narrow, domains, solution\\
+\bottomrule
+\end{longtable}
+课程资料通常给出更稳定的标题、公式、图或代码结构；视频则补充动机和口头解释。两者合起来构成本章的事实边界。
+阅读资料时，可以把每个资料组拆成三个对象：一个定义，一个公式或伪代码动作，一个边界条件。这样比逐字翻译页面或脚本更容易形成可用知识。
+\section{实践说明、历史位置与风险}
+RLVR：可验证奖励强化学习 在 CS336 的课程结构中连接基础机制和规模化问题。基础机制解释方法为什么成立；规模化问题检验它在更大模型、更长上下文、更复杂数据或真实 serving workload 下是否仍成立。
+历史位置不等于模型年表。更重要的是识别问题如何迁移：早期方法解决小规模建模问题，现代方法常常解决同一问题在大规模数据、GPU 集群、长上下文或人类偏好约束下的新形态。
+\begin{itemize}
+\item 资料版本限制（version risk）：课程页、公开视频和配套资料可能在学期中更新；引用时应注明访问日期或资料版本。
+\item 测量口径限制（measurement risk）：FLOPs、tokens/s、benchmark score、reward 等数字只有在协议完整时可比较。
+\item 规模外推限制（scaling risk）：小模型或小 batch 的机制不必然外推到 frontier-scale。
+\item 数据分布限制（data risk）：数据来源、过滤和去重策略会改变模型行为，也会改变 evaluation contamination 风险。
+\item 对齐风险（alignment risk）：post-training 或 multimodal tuning 的行为变化可能提高 helpfulness，同时降低校准、透明度或安全边界。
+\end{itemize}
+\section{复习要点}
+下面的问题把本章内容压缩为可反复检查的条目。每个条目都应能回到前文的解释、公式、伪代码或例题。
+\begin{longtable}{p{0.16\linewidth}p{0.38\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{条目} & \textbf{对象} & \textbf{检查动作}\\
+\midrule
+条目 1 & RLVR（reinforcement learning from verifiable rewards） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 2 & verifiable reward（可验证奖励） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 3 & GRPO & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 4 & reasoning model（推理模型） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+条目 5 & advantage（优势函数） & 定义它；写出一个最小例子；说明一个 failure mode；指出它影响哪个资源或评估账本。\\
+\bottomrule
+\end{longtable}
+\subsection{综合自测}
+\begin{itemize}
+\item 我能否不用课程原句，独立解释本章中心问题？
+\item 我能否把本章至少一个公式改写成可运行的估算函数？
+\item 我能否指出一个看似改进但实际转移成本的方法？
+\item 我能否回到视频和课程资料，找到支持本章关键论断的位置？
+\item 我能否设计一个最小 ablation，验证本章一个 caveat？
+\end{itemize}
 \section{总结与延伸}
-第 16 讲把对齐从偏好优化推进到了更结构化的 RL 视角。
-
-第一，\textbf{DPO 之所以流行，是因为它大幅降低了偏好优化门槛。} 但它并不适合所有反馈形式。
-
-第二，\textbf{RLHF 的核心难题不是“会不会实现”，而是目标本身太容易被过优化。} 过优化和模式坍缩几乎是内生风险。
-
-第三，\textbf{PPO 仍然是理解语言模型 RL 的参考系。} 它表达力强，但系统复杂度高、value model 成本大。
-
-第四，\textbf{GRPO 通过组内归一化大幅简化了在线 RL。} 它牺牲了一些理论洁净性，换来了 reasoning RL 的可用性。
-
-第五，\textbf{RLVR 的突破来自奖励变硬。} 当奖励足够可验证时，RL 才真正有机会把模型往更强推理能力上推。
-
-第六，\textbf{R1、Kimi、Qwen 说明 reasoning RL 已经不再只是实验室玩具。} 它是一整套奖励设计、数据筛选、SFT 初始化和 RL 系统工程共同作用的结果。
-
-\begin{warningbox}{我对第 16 讲的压缩提醒}
-如果只把这讲理解成“介绍了 PPO、DPO 和 GRPO”，那就漏掉了真正的转向。更重要的结论是：\textbf{一旦偏好奖励开始限制我们继续 scale，能够提供可验证正确性的奖励信号就会成为新的增长引擎。}
-\end{warningbox}
-
-下一讲会把这里留下的核心机制继续拆开：policy gradient、baseline、advantage 和 GRPO 的具体数学细节，到底为什么能起作用，又为什么会带来长度偏置。
-
-%% --- 正文内容结束 --- %%
-
+\subsection{本章小结}
+\begin{itemize}
+\item RLVR：可验证奖励强化学习 的核心不是记忆术语，而是理解对象、变量和机制之间的关系。
+\item 视频给出讲解顺序，课程资料提供可核对的公式、图、代码或页面结构。
+\item 复习时应把每个术语连接到至少一个变量、一个实现动作和一个失败模式。
+\end{itemize}
+\subsection{延伸解释}
+本章中的延伸解释用于连接课程材料中的概念，例如说明公式里的 proxy、解释系统 tradeoff，或把多个材料片段串成一个完整推理链。若需要严肃引用，应回到课程视频和配套资料核对原始表述。
+\subsection{练习}
+\begin{itemize}
+\item 定义题：用中英双语解释本章任意五个重要术语，并说明它们属于 compute、memory、data、optimization、evaluation 还是 deployment 账本。
+\item 推导题：选择本章一个公式，逐个解释符号、单位和近似假设，并说明哪个变量最难在真实系统中测量。
+\item 实现题：把本章伪代码改写成一个最小 Python sanity check，不要求训练大模型，但要输出可检查的中间量。
+\item 资料题：从“课程资料与回看路径”中选择一个视频时间段，回到原始视频核对讲者例子，并记录是否存在字幕误差。
+\item 评估题：为本章方法设计一个 ablation 或 benchmark，说明控制变量、数据版本、指标和 failure criteria。
+\item 边界题：说明本章一个结论在更长 context、更大 batch、更多 GPU 或更复杂数据分布下可能如何失效。
+\item 综合题：把本章内容和前一章或后一章连接起来，写出一个端到端训练/推理 pipeline 中的依赖关系。
+\item 批判题：指出一个容易被营销材料夸大的说法，并用本章的资源账本或评估协议反驳它。
+\end{itemize}
 \end{document}
