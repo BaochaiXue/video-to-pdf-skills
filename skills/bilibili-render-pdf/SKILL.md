@@ -127,11 +127,14 @@ yt-dlp --cookies-from-browser chrome "<URL>"
 
 ## Bilibili-Specific Non-Teaching Content
 
+Build the note from the shared teaching sources and also preserve short high-signal original dialogue segments when exact wording adds teaching value, presence, humor, or intuition.
+
 Skip content that does not contribute to the actual lesson, such as:
 
 - greetings
 - small talk
 - 一键三连、关注投币、评论区互动引导
+- routine back-and-forth that does not add information, tension, humor, intuition, or teaching value
 - sponsorship
 - routine closing pleasantries
 
@@ -142,6 +145,7 @@ Do not use danmaku as a teaching content source.
 In addition to the shared delivery list:
 
 - include the ASR-generated `SRT` or normalized timestamped segments if speech-to-text was used
+- follow the shared writing, figure, visualization, checklist, and delivery requirements in `../references/`
 
 ## Asset
 

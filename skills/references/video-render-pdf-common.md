@@ -178,12 +178,14 @@ Build the note from all of the following when available:
 - cover image and metadata
 - diagrams, formulas, tables, plots, and architecture slides
 - subtitle explanations, examples, and verbal emphasis
+- short high-signal original dialogue segments in interview, panel, podcast, or conversation videos, when exact wording adds presence, humor, intuition, or unusually compact information
 - code shown or described in the lecture
 
 Skip only content that does not contribute to the lesson:
 
 - greetings
 - small talk
+- routine back-and-forth that does not add information, tension, humor, intuition, or teaching value
 - sponsorship
 - routine channel logistics
 - routine sign-off language
@@ -224,8 +226,12 @@ Keep substantive closing remarks when they contain synthesis, limitations, trade
    - wrap code in `lstlisting`
    - include a descriptive `caption`
 
-10. Use `importantbox`, `knowledgebox`, and `warningbox` deliberately.
+10. Use `importantbox`, `knowledgebox`, `warningbox`, and `dialoguebox` deliberately.
     They may reinforce detailed explanation, but must not replace detailed explanation.
+    Use `dialoguebox` only for conversation-heavy videos when a brief original dialogue segment is high-information, vivid, funny, or especially intuitive.
+    Preserve speaker labels and a concrete timestamp or interval, keep snippets short, and follow the box with prose explaining why the dialogue matters.
+    Do not use `dialoguebox` for greetings, filler, long transcript dumps, or dialogue that is clearer as ordinary summarized exposition.
+    Figures must stay outside `importantbox`, `knowledgebox`, `warningbox`, and `dialoguebox`.
 
 11. End every major section with `\subsection{本章小结}`.
     Add `\subsection{拓展阅读}` when warranted.

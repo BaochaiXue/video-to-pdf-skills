@@ -93,6 +93,17 @@ In addition to the shared workflow, this skill must:
 - If the workload is large and the user did not explicitly ask for parallel agent work, recommend phrasing the request with wording such as `请 spawn 多个 subagents 并行执行`.
 - If the lecture is longer than 20 minutes, has more than 300 subtitle spans, or enters `course mode`, segmentation is mandatory even without subagents; fall back to serial segment processing instead of one monolithic pass.
 
+## Teaching Signal Inventory
+
+Build the note from all high-signal teaching sources when available:
+
+- video title and chapter structure
+- the video's original cover image and key metadata
+- on-screen diagrams, formulas, tables, plots, and architecture slides
+- subtitle explanations, examples, and verbal emphasis
+- short high-signal original dialogue segments in interview, panel, podcast, or conversation videos, when exact wording adds presence, humor, intuition, or unusually compact information
+- code snippets shown or described in the talk
+
 ## Harness Expectations
 
 - The planner must emit `lecture_plan.json` before any prose writing starts.
@@ -107,11 +118,16 @@ Skip content that does not contribute to the actual lesson, such as:
 
 - greetings
 - channel housekeeping
+- small talk
+- routine back-and-forth that does not add information, tension, humor, intuition, or teaching value
 - sponsorship
 - routine subscribe or like reminders
 - closing pleasantries
 
-Keep closing discussion when it carries actual teaching value.
+Keep the speaker's closing discussion when it carries actual teaching value, such as synthesis, limitations, future work, tradeoffs, advice, or open questions.
+
+For shared writing rules, figure handling, visualization, final checklist, and delivery requirements, follow the shared references listed in `Read First`.
+Those references include the high-recall frame selection policy, figure time provenance rules, and `dialoguebox` usage constraints.
 
 ## Asset
 

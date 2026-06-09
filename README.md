@@ -173,11 +173,6 @@ cp -R skills/bilibili-render-pdf ~/.codex/skills/
 
 此外，运行 skill 的 coding agent 必须具备一定的读图能力，否则很难选择关键帧，很难做到图文align（即至少是一个还不错的 vlm model，ps. MiniMax 2.7 只是一个纯文本模型）。
 
-## 适用场景
-
-- 技术课程笔记整理
-- YouTube / Bilibili 教学视频转 LaTeX 讲义
-- 需要封面图、关键帧和总结章节的高质量课程文档生成
 
 ## Subagents 的触发
 
@@ -192,6 +187,10 @@ $youtube-render-pdf https://www.youtube.com/watch?v=vXb2QYOUzl4 请 spawn 多个
   - 1 个 consistency agent：检查重复定义、前后术语不一致、章节衔接断裂
 ```
 
+## tips
+
+- 强烈建议在 codex 基于这个 skill 给出第一版结果之后，增加一个follow up question：`spwan 一个独立的reviewer agent，基于原始字幕文件，check 是否有重要、细节及有趣等一切有意的信息的漏召回，仅反馈，不修改，不断交互，直至reviewer agent 觉得 tex 信息已完备。`
+  - 以缓解 ai extraction/summary 的共性问题，就是召回不足；
 
 ## License
 
