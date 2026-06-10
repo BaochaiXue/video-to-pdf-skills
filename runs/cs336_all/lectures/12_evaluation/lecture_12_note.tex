@@ -70,44 +70,44 @@ benchmark 不是一个数字，而是一套 prompt、scoring rule、aggregation�
 \toprule
 \textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
 \midrule
-1 & evaluation（评估） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-2 & perplexity（困惑度） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-3 & benchmark & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-4 & contamination（污染） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-5 & calibration（校准） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-6 & human evaluation（人工评估） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+1 & evaluation（评估） & 说明它测量的对象、协议依赖和可能的 contamination 或 prompt 敏感性。\\
+2 & perplexity（困惑度） & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
+3 & benchmark & 说明它测量的对象、协议依赖和可能的 contamination 或 prompt 敏感性。\\
+4 & contamination（污染） & 说明它如何改变训练样本或 token 分布，并给出一个会改变结论的数据边界条件。\\
+5 & calibration（校准） & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
+6 & human evaluation（人工评估） & 说明它测量的对象、协议依赖和可能的 contamination 或 prompt 敏感性。\\
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
 \subsection{关键词}
 下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
 \begin{itemize}
-\item perplexity, evaluation, language, tasks, function, people, data, prompts, benchmarks, need, e.g., response, evaluating, agent
+\item perplexity, evaluation, language, tasks, people, data, prompts, benchmarks, need, e.g., response, evaluating, agent, reasoning
 \end{itemize}
 \section{评估在 LM 生命周期中的位置}
-现在进入 评估在 LM 生命周期中的位置。本节关心的不是名称本身，而是它把 Evaluation 方法论 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 评估在 LM 生命周期中的位置。它把 Evaluation 方法论 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 评估在 LM 生命周期中的位置}
 视频指出课程至此已覆盖 architecture、optimizer、training loop、systems、scaling 和 inference，剩下的关键是如何判断模型好坏。
 评估连接训练目标、数据选择、模型比较和部署决策。
 好的评估应区分 intrinsic loss、task benchmark、用户偏好、安全性和系统指标。
 评估在 LM 生命周期中的位置 的作用是把 Evaluation 方法论 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
 \subsection{评估在 LM 生命周期中的位置 的机制}
-视频指出课程至此已覆盖 architecture、optimizer、training loop、systems、scaling 和 inference，剩下的关键是如何判断模型好坏。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-评估连接训练目标、数据选择、模型比较和部署决策。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-好的评估应区分 intrinsic loss、task benchmark、用户偏好、安全性和系统指标。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，评估在 LM 生命周期中的位置 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+视频指出课程至此已覆盖 architecture、optimizer、training loop、systems、scaling 和 inference，剩下的关键是如何判断模型好坏。 这句话把讨论落在模型规模、token 数和训练预算上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+评估连接训练目标、数据选择、模型比较和部署决策。 因而同一个方法在不同规模下可能改变不同的变量，尤其是参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。比较方法时，必须同时给出问题规模和实验条件。
+好的评估应区分 intrinsic loss、task benchmark、用户偏好、安全性和系统指标。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，评估在 LM 生命周期中的位置 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{评估在 LM 生命周期中的位置 的数学表达}
 \[\operatorname{PPL}=\exp\left(-\frac{1}{T}\sum_{t=1}^{T}\log p_\theta(x_t\mid x_{<t})\right)\]
 符号说明：PPL 是 token-level cross entropy 的指数形式；越低通常表示语言建模越好。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式给出 评估在 LM 生命周期中的位置 的缩放假设。它把参数量、训练 token 数和 compute budget 放到同一张账本中，重点是判断小实验能否可靠外推到大训练。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{从 评估在 LM 生命周期中的位置 到程序}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 评估在 LM 生命周期中的位置 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
 evaluate_checkpoints = [loss, perplexity, benchmark_suite, safety_suite]
 compare_with_confidence_intervals(evaluate_checkpoints)
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 评估在 LM 生命周期中的位置 改变了哪些状态，以及这些状态如何对应到 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item perplexity 不直接等于 instruction-following 能力。
@@ -118,51 +118,49 @@ compare_with_confidence_intervals(evaluate_checkpoints)
 \subsection{与本章其他概念的关系}
 评估在 LM 生命周期中的位置 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 \subsection{怎样检验 评估在 LM 生命周期中的位置}
-检验 评估在 LM 生命周期中的位置 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 evaluation、perplexity、loss、benchmark、checkpoint 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 评估在 LM 生命周期中的位置，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：PPL 是 token-level cross entropy 的指数形式；越低通常表示语言建模越好。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：perplexity 不直接等于 instruction-following 能力；不同 tokenizer 下的 perplexity 不可直接比较。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 Evaluation 方法论 的整体结构中。评估在 LM 生命周期中的位置 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 评估在 LM 生命周期中的位置 时，先把抽象说法落到模型规模、token 数和训练预算上。与 evaluation、perplexity、loss、benchmark、checkpoint 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：PPL 是 token-level cross entropy 的指数形式；越低通常表示语言建模越好。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：perplexity 不直接等于 instruction-following 能力；不同 tokenizer 下的 perplexity 不可直接比较。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 Evaluation 方法论 的整体结构中。评估在 LM 生命周期中的位置 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：评估在 LM 生命周期中的位置}
-evaluation（评估）把 loss、benchmark、人类偏好和部署指标区分开。在“评估在 LM 生命周期中的位置”中，这个概念用于解释 Evaluation 方法论 的一个具体机制。
-perplexity 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“评估在 LM 生命周期中的位置”中改变了哪个变量或约束。
-loss 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“评估在 LM 生命周期中的位置”中改变了哪个变量或约束。
-benchmark 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“评估在 LM 生命周期中的位置”中改变了哪个变量或约束。
-checkpoint 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“评估在 LM 生命周期中的位置”中改变了哪个变量或约束。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 evaluation、perplexity、loss、benchmark、checkpoint。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，evaluation（评估）把 loss、benchmark、人类偏好和部署指标区分开。
+区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 评估在 LM 生命周期中的位置 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{评估在 LM 生命周期中的位置 的小结}
 \begin{itemize}
-\item 评估在 LM 生命周期中的位置 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 评估在 LM 生命周期中的位置 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{Benchmark 设计与污染}
-现在进入 Benchmark 设计与污染。本节关心的不是名称本身，而是它把 Evaluation 方法论 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 Benchmark 设计与污染。它把 Evaluation 方法论 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 Benchmark 设计与污染}
 benchmark 要明确定义任务、数据、prompt、few-shot examples、scoring rule 和 aggregation。
 contamination 是评估大模型时的核心风险：测试集可能进入 pretraining 或 post-training 数据。
 评估应记录 exact prompt、decoding parameters、model checkpoint 和版本，保证可复现。
 Benchmark 设计与污染 的作用是把 Evaluation 方法论 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
 \subsection{Benchmark 设计与污染 的机制}
-benchmark 要明确定义任务、数据、prompt、few-shot examples、scoring rule 和 aggregation。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-contamination 是评估大模型时的核心风险：测试集可能进入 pretraining 或 post-training 数据。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-评估应记录 exact prompt、decoding parameters、model checkpoint 和版本，保证可复现。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，Benchmark 设计与污染 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+benchmark 要明确定义任务、数据、prompt、few-shot examples、scoring rule 和 aggregation。 这句话把讨论落在样本、来源和分布状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+contamination 是评估大模型时的核心风险：测试集可能进入 pretraining 或 post-training 数据。 因而同一个方法在不同规模下可能改变不同的变量，尤其是样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。比较方法时，必须同时给出问题规模和实验条件。
+评估应记录 exact prompt、decoding parameters、model checkpoint 和版本，保证可复现。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，Benchmark 设计与污染 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{Benchmark 设计与污染 的数学表达}
 \[\hat s=\frac{1}{n}\sum_{i=1}^{n}\mathbf{1}\{f_\theta(q_i)=a_i\}\]
 符号说明：\(\hat s\) 是平均准确率；\(q_i,a_i\) 是第 \(i\) 个样本的问题和答案。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式刻画 Benchmark 设计与污染 对数据分布的影响。读者应关心哪些变量来自采集过程，哪些变量来自过滤或混合策略，哪些变量只能通过抽样审计估计。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{从 Benchmark 设计与污染 到程序}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 Benchmark 设计与污染 写成程序时，要明确每一步怎样改写样本集合。下面的伪代码强调输入、过滤、统计和输出之间的关系。
 \begin{lstlisting}[language=Python]
 for item in benchmark:
     prompt = render_prompt(template, item)
     pred = model.generate(prompt, decoding)
     score += grader(pred, item.answer)
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 Benchmark 设计与污染 改变了哪些状态，以及这些状态如何对应到 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 自动 grader 可能奖励格式匹配而非真实能力。
@@ -173,50 +171,47 @@ for item in benchmark:
 \subsection{与本章其他概念的关系}
 Benchmark 设计与污染 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 \subsection{怎样检验 Benchmark 设计与污染}
-检验 Benchmark 设计与污染 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 benchmark、prompt、grader、contamination、reproducible 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Benchmark 设计与污染，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(\textbackslash{}hat s\textbackslash{}) 是平均准确率；\textbackslash{}(q\_i,a\_i\textbackslash{}) 是第 \textbackslash{}(i\textbackslash{}) 个样本的问题和答案。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：自动 grader 可能奖励格式匹配而非真实能力；测试集泄漏会让 score 失去泛化意义。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 Evaluation 方法论 的整体结构中。Benchmark 设计与污染 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 Benchmark 设计与污染 时，先把抽象说法落到样本、来源和分布状态上。与 benchmark、prompt、grader、contamination、reproducible 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(\textbackslash{}hat s\textbackslash{}) 是平均准确率；\textbackslash{}(q\_i,a\_i\textbackslash{}) 是第 \textbackslash{}(i\textbackslash{}) 个样本的问题和答案。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：自动 grader 可能奖励格式匹配而非真实能力；测试集泄漏会让 score 失去泛化意义。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 Evaluation 方法论 的整体结构中。Benchmark 设计与污染 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：Benchmark 设计与污染}
-benchmark 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark 设计与污染”中改变了哪个变量或约束。
-prompt 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark 设计与污染”中改变了哪个变量或约束。
-grader 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark 设计与污染”中改变了哪个变量或约束。
-contamination 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark 设计与污染”中改变了哪个变量或约束。
-reproducible 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Benchmark 设计与污染”中改变了哪个变量或约束。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 benchmark、prompt、grader、contamination、reproducible。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+区分这些词时，可以先问它们是否改变 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 Benchmark 设计与污染 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{Benchmark 设计与污染 的小结}
 \begin{itemize}
-\item Benchmark 设计与污染 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 Benchmark 设计与污染 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{从离线评估到 deployment 指标}
-现在进入 从离线评估到 deployment 指标。本节关心的不是名称本身，而是它把 Evaluation 方法论 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 从离线评估到 deployment 指标。它把 Evaluation 方法论 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 从离线评估到 deployment 指标}
 真实模型上线需要结合 latency、cost、toxicity、helpfulness、truthfulness、robustness 和 refusal behavior。
 人工评估和 pairwise preference 能捕捉开放式输出质量，但成本高、方差大、标准易漂移。
 课程后续 post-training 会把 evaluation 与 reward modeling/RL 联系起来。
 从离线评估到 deployment 指标 的作用是把 Evaluation 方法论 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
 \subsection{从离线评估到 deployment 指标 的机制}
-真实模型上线需要结合 latency、cost、toxicity、helpfulness、truthfulness、robustness 和 refusal behavior。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-人工评估和 pairwise preference 能捕捉开放式输出质量，但成本高、方差大、标准易漂移。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-课程后续 post-training 会把 evaluation 与 reward modeling/RL 联系起来。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，从离线评估到 deployment 指标 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+真实模型上线需要结合 latency、cost、toxicity、helpfulness、truthfulness、robustness 和 refusal behavior。 这句话把讨论落在硬件和系统状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+人工评估和 pairwise preference 能捕捉开放式输出质量，但成本高、方差大、标准易漂移。 因而同一个方法在不同规模下可能改变不同的变量，尤其是吞吐、延迟、显存峰值、通信量和 kernel 利用率。比较方法时，必须同时给出问题规模和实验条件。
+课程后续 post-training 会把 evaluation 与 reward modeling/RL 联系起来。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，从离线评估到 deployment 指标 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{从离线评估到 deployment 指标 的数学表达}
 \[\Pr(A\succ B)=\sigma(r_\phi(x,y_A)-r_\phi(x,y_B))\]
 符号说明：preference model 用 reward 差预测人类更偏好哪个回答；\(\sigma\) 是 sigmoid。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式应被读成 从离线评估到 deployment 指标 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{从 从离线评估到 deployment 指标 到程序}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 从离线评估到 deployment 指标 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。
 \begin{lstlisting}[language=Python]
 collect_pairwise_preferences(outputs)
 fit_reward_model(preferences)
 validate_against_heldout_human_judgments()
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 从离线评估到 deployment 指标 改变了哪些状态，以及这些状态如何对应到 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 人工偏好不是绝对真理，会受标注指南和人群影响。
@@ -227,24 +222,22 @@ validate_against_heldout_human_judgments()
 \subsection{与本章其他概念的关系}
 从离线评估到 deployment 指标 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 \subsection{怎样检验 从离线评估到 deployment 指标}
-检验 从离线评估到 deployment 指标 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 human evaluation、preference、reward、deployment、safety 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 从离线评估到 deployment 指标，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：preference model 用 reward 差预测人类更偏好哪个回答；\textbackslash{}(\textbackslash{}sigma\textbackslash{}) 是 sigmoid。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：人工偏好不是绝对真理，会受标注指南和人群影响；reward model 可能被优化过程 exploited。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 Evaluation 方法论 的整体结构中。从离线评估到 deployment 指标 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 从离线评估到 deployment 指标 时，先把抽象说法落到硬件和系统状态上。与 human evaluation、preference、reward、deployment、safety 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 吞吐、延迟、显存峰值、通信量和 kernel 利用率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：preference model 用 reward 差预测人类更偏好哪个回答；\textbackslash{}(\textbackslash{}sigma\textbackslash{}) 是 sigmoid。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：人工偏好不是绝对真理，会受标注指南和人群影响；reward model 可能被优化过程 exploited。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 Evaluation 方法论 的整体结构中。从离线评估到 deployment 指标 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：从离线评估到 deployment 指标}
-evaluation（评估）把 loss、benchmark、人类偏好和部署指标区分开。在“从离线评估到 deployment 指标”中，这个概念用于解释 Evaluation 方法论 的一个具体机制。
-preference 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从离线评估到 deployment 指标”中改变了哪个变量或约束。
-reward 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从离线评估到 deployment 指标”中改变了哪个变量或约束。
-deployment 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从离线评估到 deployment 指标”中改变了哪个变量或约束。
-safety 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从离线评估到 deployment 指标”中改变了哪个变量或约束。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 human evaluation、preference、reward、deployment、safety。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，evaluation（评估）把 loss、benchmark、人类偏好和部署指标区分开。
+区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 从离线评估到 deployment 指标 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{从离线评估到 deployment 指标 的小结}
 \begin{itemize}
-\item 从离线评估到 deployment 指标 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 从离线评估到 deployment 指标 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 Evaluation 方法论，但它不应被读成几个相邻知识点的拼接。评估在 LM 生命周期中的位置、Benchmark 设计与污染、从离线评估到 deployment 指标 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -291,6 +284,11 @@ Benchmark 设计与污染 首先提供一个局部解释：benchmark 要明确�
 \subsection{记录与报告}
 实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
 常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\subsection{从小实验到大结论}
+小实验的作用不是替代课程中的完整训练或系统实现，而是建立一条可检查的推理链。先在小输入上确认变量方向，再在中等规模上确认数量级，最后才讨论是否能外推到更大模型、更多 token 或更复杂 workload。缺少中间层级时，大结论通常只是在复述直觉。
+因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
+还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
+若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}

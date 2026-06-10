@@ -70,39 +70,39 @@ ThunderKittens、megakernel、SSM/recurrence 等讨论说明 serving 不是模�
 \toprule
 \textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
 \midrule
-1 & serving system（服务系统） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-2 & inference engine（推理引擎） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-3 & GPU kernel & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-4 & ThunderKittens & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-5 & decode loop（解码循环） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-6 & state-space model (SSM) & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+1 & serving system（服务系统） & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
+2 & inference engine（推理引擎） & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
+3 & GPU kernel & 把它放入资源账本：单位是什么，随输入规模怎样变化，最容易被哪类 benchmark 误读。\\
+4 & ThunderKittens & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
+5 & decode loop（解码循环） & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
+6 & state-space model (SSM) & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
 \subsection{关键词}
 下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
 \begin{itemize}
-\item official, slide, executable, script, linked, public, playlist, item, spring, page.
+\item executable, linked, public, playlist, item, spring, page.
 \end{itemize}
 \section{从训练到 serving 的另一侧}
-现在进入 从训练到 serving 的另一侧。本节关心的不是名称本身，而是它把 Guest Lecture: Dan Fu 与推理引擎研究 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 从训练到 serving 的另一侧。它把 Guest Lecture: Dan Fu 与推理引擎研究 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 从训练到 serving 的另一侧}
 Dan Fu guest lecture 的视频开场说明：课程大多讲如何训练模型，本讲从拥有模型后的另一侧看 inference 和 serving。
 推理引擎把抽象的模型计算图映射到具体 GPU kernels、调度器、cache 管理和生产流量。
 字幕中反复出现 inference、GPU、kernel、decode、cache、request 等词，显示核心主题是 serving stack。
 从训练到 serving 的另一侧 的作用是把 Guest Lecture: Dan Fu 与推理引擎研究 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
 \subsection{从训练到 serving 的另一侧 的机制}
-Dan Fu guest lecture 的视频开场说明：课程大多讲如何训练模型，本讲从拥有模型后的另一侧看 inference 和 serving。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-推理引擎把抽象的模型计算图映射到具体 GPU kernels、调度器、cache 管理和生产流量。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-字幕中反复出现 inference、GPU、kernel、decode、cache、request 等词，显示核心主题是 serving stack。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，从训练到 serving 的另一侧 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+Dan Fu guest lecture 的视频开场说明：课程大多讲如何训练模型，本讲从拥有模型后的另一侧看 inference 和 serving。 这句话把讨论落在硬件和系统状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+推理引擎把抽象的模型计算图映射到具体 GPU kernels、调度器、cache 管理和生产流量。 因而同一个方法在不同规模下可能改变不同的变量，尤其是吞吐、延迟、显存峰值、通信量和 kernel 利用率。比较方法时，必须同时给出问题规模和实验条件。
+字幕中反复出现 inference、GPU、kernel、decode、cache、request 等词，显示核心主题是 serving stack。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，从训练到 serving 的另一侧 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{从训练到 serving 的另一侧 的数学表达}
 \[\text{user latency}=t_{\text{queue}}+t_{\text{prefill}}+t_{\text{decode}}+t_{\text{postprocess}}\]
 符号说明：用户感知延迟由排队、预填充、逐 token 解码和后处理组成；每一项都可能成为瓶颈。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式应被读成 从训练到 serving 的另一侧 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{从训练到 serving 的另一侧 在系统中的实现}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 从训练到 serving 的另一侧 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。
 \begin{lstlisting}[language=Python]
 request = receive_prompt()
 kv = prefill(request.prompt)
@@ -110,7 +110,7 @@ for step in decode_loop:
     token, kv = engine.decode(kv)
     stream_to_user(token)
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 从训练到 serving 的另一侧 改变了哪些状态，以及这些状态如何对应到 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 小规模能工作的 serving code 到大规模流量下会暴露罕见 bug。
@@ -122,51 +122,49 @@ for step in decode_loop:
 从训练到 serving 的另一侧 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 从训练到 serving 的另一侧}
-检验 从训练到 serving 的另一侧 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 inference、serving、kernel、decode、request 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 从训练到 serving 的另一侧，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：用户感知延迟由排队、预填充、逐 token 解码和后处理组成；每一项都可能成为瓶颈。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：小规模能工作的 serving code 到大规模流量下会暴露罕见 bug；生产 workload 的输入/输出长度分布和教学 benchmark 差异很大。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 Guest Lecture: Dan Fu 与推理引擎研究 的整体结构中。从训练到 serving 的另一侧 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 从训练到 serving 的另一侧 时，先把抽象说法落到硬件和系统状态上。与 inference、serving、kernel、decode、request 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 吞吐、延迟、显存峰值、通信量和 kernel 利用率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：用户感知延迟由排队、预填充、逐 token 解码和后处理组成；每一项都可能成为瓶颈。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：小规模能工作的 serving code 到大规模流量下会暴露罕见 bug；生产 workload 的输入/输出长度分布和教学 benchmark 差异很大。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 Guest Lecture: Dan Fu 与推理引擎研究 的整体结构中。从训练到 serving 的另一侧 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：从训练到 serving 的另一侧}
-inference（推理）是已训练模型服务请求并生成 token 的过程。在“从训练到 serving 的另一侧”中，这个概念用于解释 Guest Lecture: Dan Fu 与推理引擎研究 的一个具体机制。
-serving system（服务系统）把模型计算图变成可承载真实流量的推理引擎。在“从训练到 serving 的另一侧”中，这个概念用于解释 Guest Lecture: Dan Fu 与推理引擎研究 的一个具体机制。
-kernel（内核）是高层 tensor 操作落到 GPU 的执行单元。在“从训练到 serving 的另一侧”中，这个概念用于解释 Guest Lecture: Dan Fu 与推理引擎研究 的一个具体机制。
-decode（解码）逐 token 生成，常受 memory bandwidth 和 KV cache 影响。在“从训练到 serving 的另一侧”中，这个概念用于解释 Guest Lecture: Dan Fu 与推理引擎研究 的一个具体机制。
-request 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“从训练到 serving 的另一侧”中改变了哪个变量或约束。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 inference、serving、kernel、decode、request。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，inference（推理）是已训练模型服务请求并生成 token 的过程；serving system（服务系统）把模型计算图变成可承载真实流量的推理引擎。
+区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 从训练到 serving 的另一侧 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{从训练到 serving 的另一侧 的小结}
 \begin{itemize}
-\item 从训练到 serving 的另一侧 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 从训练到 serving 的另一侧 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{GPU kernels 与 full-stack innovation}
-现在进入 GPU kernels 与 full-stack innovation。本节关心的不是名称本身，而是它把 Guest Lecture: Dan Fu 与推理引擎研究 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 GPU kernels 与 full-stack innovation。它把 Guest Lecture: Dan Fu 与推理引擎研究 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 GPU kernels 与 full-stack innovation}
 讲者强调理解 inference engines 和 GPU kernels 可以开启 full-stack innovation。
 ThunderKittens 被作为更低层 kernel-writing library 的例子，用于获得更细粒度控制和高带宽利用。
 Megakernel、fusion、cache-aware scheduling 等方向说明算法和系统可以共同设计。
 系统部分的核心问题是把数学计算映射到硬件。一个算法的复杂度公式只能给出方向；真正的速度还取决于内存层级、通信拓扑、kernel shape 和调度方式。
 \subsection{GPU kernels 与 full-stack innovation 的机制}
-讲者强调理解 inference engines 和 GPU kernels 可以开启 full-stack innovation。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-ThunderKittens 被作为更低层 kernel-writing library 的例子，用于获得更细粒度控制和高带宽利用。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-Megakernel、fusion、cache-aware scheduling 等方向说明算法和系统可以共同设计。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，GPU kernels 与 full-stack innovation 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+讲者强调理解 inference engines 和 GPU kernels 可以开启 full-stack innovation。 这句话把讨论落在硬件和系统状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+ThunderKittens 被作为更低层 kernel-writing library 的例子，用于获得更细粒度控制和高带宽利用。 因而同一个方法在不同规模下可能改变不同的变量，尤其是吞吐、延迟、显存峰值、通信量和 kernel 利用率。比较方法时，必须同时给出问题规模和实验条件。
+Megakernel、fusion、cache-aware scheduling 等方向说明算法和系统可以共同设计。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，GPU kernels 与 full-stack innovation 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{GPU kernels 与 full-stack innovation 的资源账本}
 \[\text{bandwidth utilization}=\frac{\text{bytes served per second}}{\text{peak memory bandwidth}}\]
 符号说明：decode 阶段常 memory-bandwidth bound，因此带宽利用率直接影响 tokens/s。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式应被读成 GPU kernels 与 full-stack innovation 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{GPU kernels 与 full-stack innovation 在系统中的实现}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 GPU kernels 与 full-stack innovation 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。
 \begin{lstlisting}[language=Python]
 load_model_tiles()
 load_kv_cache_tiles()
 run_fused_decode_kernel()
 write_next_token_logits()
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 GPU kernels 与 full-stack innovation 改变了哪些状态，以及这些状态如何对应到 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 更低层抽象换来性能，也带来更高 correctness/debug 成本。
@@ -178,51 +176,49 @@ write_next_token_logits()
 GPU kernels 与 full-stack innovation 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 GPU kernels 与 full-stack innovation}
-检验 GPU kernels 与 full-stack innovation 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 ThunderKittens、megakernel、bandwidth、fusion、GPU 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 GPU kernels 与 full-stack innovation，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：decode 阶段常 memory-bandwidth bound，因此带宽利用率直接影响 tokens/s。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：更低层抽象换来性能，也带来更高 correctness/debug 成本；kernel 微小错误在大规模 serving 中可能以极低概率触发，但影响严重。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 Guest Lecture: Dan Fu 与推理引擎研究 的整体结构中。GPU kernels 与 full-stack innovation 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 GPU kernels 与 full-stack innovation 时，先把抽象说法落到硬件和系统状态上。与 ThunderKittens、megakernel、bandwidth、fusion、GPU 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 吞吐、延迟、显存峰值、通信量和 kernel 利用率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：decode 阶段常 memory-bandwidth bound，因此带宽利用率直接影响 tokens/s。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：更低层抽象换来性能，也带来更高 correctness/debug 成本；kernel 微小错误在大规模 serving 中可能以极低概率触发，但影响严重。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 Guest Lecture: Dan Fu 与推理引擎研究 的整体结构中。GPU kernels 与 full-stack innovation 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：GPU kernels 与 full-stack innovation}
-ThunderKittens 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“GPU kernels 与 full-stack innovation”中改变了哪个变量或约束。
-kernel（内核）是高层 tensor 操作落到 GPU 的执行单元。在“GPU kernels 与 full-stack innovation”中，这个概念用于解释 Guest Lecture: Dan Fu 与推理引擎研究 的一个具体机制。
-bandwidth 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“GPU kernels 与 full-stack innovation”中改变了哪个变量或约束。
-fusion 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“GPU kernels 与 full-stack innovation”中改变了哪个变量或约束。
-GPU 是 CS336 systems 部分的主要硬件对象。在“GPU kernels 与 full-stack innovation”中，这个概念用于解释 Guest Lecture: Dan Fu 与推理引擎研究 的一个具体机制。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 ThunderKittens、megakernel、bandwidth、fusion、GPU。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，kernel（内核）是高层 tensor 操作落到 GPU 的执行单元；GPU 是 CS336 systems 部分的主要硬件对象。
+区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 GPU kernels 与 full-stack innovation 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{GPU kernels 与 full-stack innovation 的小结}
 \begin{itemize}
-\item GPU kernels 与 full-stack innovation 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 GPU kernels 与 full-stack innovation 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{SSM/recurrence 与 inference 研究问题}
-现在进入 SSM/recurrence 与 inference 研究问题。本节关心的不是名称本身，而是它把 Guest Lecture: Dan Fu 与推理引擎研究 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 SSM/recurrence 与 inference 研究问题。它把 Guest Lecture: Dan Fu 与推理引擎研究 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 SSM/recurrence 与 inference 研究问题}
 字幕中出现 state space、SSM、recurrence 和 scaling laws，说明 guest lecture 还讨论了模型结构如何影响 serving。
 recurrent/SSM 风格模型有潜力改变长上下文和 decode 的状态管理方式。
 但新的结构要同时满足训练稳定性、质量、硬件效率和部署复杂度。
 推理阶段的关键区别在于请求是在线到达的，输出又是逐 token 生成的。训练时可以用大 batch 摊薄成本；服务时还要同时考虑首 token 延迟、吞吐、显存占用和长尾请求。
 \subsection{SSM/recurrence 与 inference 研究问题 的机制}
-字幕中出现 state space、SSM、recurrence 和 scaling laws，说明 guest lecture 还讨论了模型结构如何影响 serving。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-recurrent/SSM 风格模型有潜力改变长上下文和 decode 的状态管理方式。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-但新的结构要同时满足训练稳定性、质量、硬件效率和部署复杂度。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，SSM/recurrence 与 inference 研究问题 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+字幕中出现 state space、SSM、recurrence 和 scaling laws，说明 guest lecture 还讨论了模型结构如何影响 serving。 这句话把讨论落在模型规模、token 数和训练预算上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+recurrent/SSM 风格模型有潜力改变长上下文和 decode 的状态管理方式。 因而同一个方法在不同规模下可能改变不同的变量，尤其是参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。比较方法时，必须同时给出问题规模和实验条件。
+但新的结构要同时满足训练稳定性、质量、硬件效率和部署复杂度。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，SSM/recurrence 与 inference 研究问题 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{SSM/recurrence 与 inference 研究问题 的资源账本}
 \[h_t=A h_{t-1}+B x_t,\qquad y_t=C h_t\]
 符号说明：这是 SSM/递推模型的简化形式；\(h_t\) 是状态，\(x_t\) 是输入，\(y_t\) 是输出。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式给出 SSM/recurrence 与 inference 研究问题 的缩放假设。它把参数量、训练 token 数和 compute budget 放到同一张账本中，重点是判断小实验能否可靠外推到大训练。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{SSM/recurrence 与 inference 研究问题 在系统中的实现}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 SSM/recurrence 与 inference 研究问题 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
 state = init_state()
 for token in sequence:
     state = recurrent_update(state, token)
     logits = readout(state)
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 SSM/recurrence 与 inference 研究问题 改变了哪些状态，以及这些状态如何对应到 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 递推结构的训练并行性和长程记忆质量需要实证验证。
@@ -234,24 +230,22 @@ for token in sequence:
 SSM/recurrence 与 inference 研究问题 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 SSM/recurrence 与 inference 研究问题}
-检验 SSM/recurrence 与 inference 研究问题 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 SSM、recurrence、state、long context、decode 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 SSM/recurrence 与 inference 研究问题，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：这是 SSM/递推模型的简化形式；\textbackslash{}(h\_t\textbackslash{}) 是状态，\textbackslash{}(x\_t\textbackslash{}) 是输入，\textbackslash{}(y\_t\textbackslash{}) 是输出。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：递推结构的训练并行性和长程记忆质量需要实证验证；serving 系统收益只有在端到端 workload 中测量才可信。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 Guest Lecture: Dan Fu 与推理引擎研究 的整体结构中。SSM/recurrence 与 inference 研究问题 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 SSM/recurrence 与 inference 研究问题 时，先把抽象说法落到模型规模、token 数和训练预算上。与 SSM、recurrence、state、long context、decode 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：这是 SSM/递推模型的简化形式；\textbackslash{}(h\_t\textbackslash{}) 是状态，\textbackslash{}(x\_t\textbackslash{}) 是输入，\textbackslash{}(y\_t\textbackslash{}) 是输出。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：递推结构的训练并行性和长程记忆质量需要实证验证；serving 系统收益只有在端到端 workload 中测量才可信。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 Guest Lecture: Dan Fu 与推理引擎研究 的整体结构中。SSM/recurrence 与 inference 研究问题 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：SSM/recurrence 与 inference 研究问题}
-SSM 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“SSM/recurrence 与 inference 研究问题”中改变了哪个变量或约束。
-recurrence 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“SSM/recurrence 与 inference 研究问题”中改变了哪个变量或约束。
-state 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“SSM/recurrence 与 inference 研究问题”中改变了哪个变量或约束。
-long context 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“SSM/recurrence 与 inference 研究问题”中改变了哪个变量或约束。
-decode（解码）逐 token 生成，常受 memory bandwidth 和 KV cache 影响。在“SSM/recurrence 与 inference 研究问题”中，这个概念用于解释 Guest Lecture: Dan Fu 与推理引擎研究 的一个具体机制。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 SSM、recurrence、state、long context、decode。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，decode（解码）逐 token 生成，常受 memory bandwidth 和 KV cache 影响。
+区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 SSM/recurrence 与 inference 研究问题 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{SSM/recurrence 与 inference 研究问题 的小结}
 \begin{itemize}
-\item SSM/recurrence 与 inference 研究问题 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 SSM/recurrence 与 inference 研究问题 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 Guest Lecture: Dan Fu 与推理引擎研究，但它不应被读成几个相邻知识点的拼接。从训练到 serving 的另一侧、GPU kernels 与 full-stack innovation、SSM/recurrence 与 inference 研究问题 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -298,6 +292,11 @@ SSM/recurrence 与 inference 研究问题 首先提供一个局部解释：字�
 \subsection{记录与报告}
 实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
 常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\subsection{从小实验到大结论}
+小实验的作用不是替代课程中的完整训练或系统实现，而是建立一条可检查的推理链。先在小输入上确认变量方向，再在中等规模上确认数量级，最后才讨论是否能外推到更大模型、更多 token 或更复杂 workload。缺少中间层级时，大结论通常只是在复述直觉。
+因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
+还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
+若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}

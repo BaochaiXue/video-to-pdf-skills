@@ -36,6 +36,7 @@ STOPWORDS = set(
     about after again also because been before being between course could does doing each from have here into just know
     lecture like model models more much other really should some that their them there these they thing things this those
     through today want were what when where which while will with would you're actually basically okay right let's
+    official reading marker markers given using function functions python notebook slide slides script scripts example examples
     """.split()
 )
 
@@ -613,7 +614,7 @@ def render_terms(lines: list[str], profile: Any, official: list[dict[str, Any]])
     )
     term_rows = []
     for idx, term in enumerate(profile.terms, start=1):
-        term_rows.append([str(idx), term, "需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。"])
+        term_rows.append([str(idx), term, term_requirement(term)])
     lines.extend(render_longtable(term_rows, ["0.08", "0.42", "0.42"], ["#", "术语", "阅读要求"]))
     lines.append(
         "这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。"
@@ -627,6 +628,21 @@ def render_terms(lines: list[str], profile: Any, official: list[dict[str, Any]])
         lines.extend(render_itemize([", ".join(keywords)]))
 
 
+def term_requirement(term: str) -> str:
+    normalized = term.lower()
+    if any(token in normalized for token in ["flops", "compute", "memory", "bandwidth", "latency", "throughput", "gpu", "kernel"]):
+        return "把它放入资源账本：单位是什么，随输入规模怎样变化，最容易被哪类 benchmark 误读。"
+    if any(token in normalized for token in ["data", "dedup", "filter", "mixture", "contamination", "token"]):
+        return "说明它如何改变训练样本或 token 分布，并给出一个会改变结论的数据边界条件。"
+    if any(token in normalized for token in ["reward", "rl", "sft", "dpo", "alignment", "preference"]):
+        return "说明它约束的是模型行为、优化目标还是评估协议，并指出一个奖励或偏好失真的例子。"
+    if any(token in normalized for token in ["attention", "transformer", "moe", "norm", "rope", "activation"]):
+        return "说明它在计算图中的位置、输入输出形状，以及改变它会影响的训练或推理成本。"
+    if any(token in normalized for token in ["evaluation", "benchmark", "metric", "loss"]):
+        return "说明它测量的对象、协议依赖和可能的 contamination 或 prompt 敏感性。"
+    return "给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。"
+
+
 def term_or_keyword_explanation(keyword: str, section_title: str, profile_title: str) -> str:
     normalized = keyword.lower()
     display = "数据清单（manifest）" if normalized == "manifest" else keyword
@@ -634,8 +650,8 @@ def term_or_keyword_explanation(keyword: str, section_title: str, profile_title:
         if needle in normalized or normalized in needle:
             return desc + f"。在“{section_title}”中，这个概念用于解释 {profile_title} 的一个具体机制。"
     return (
-        f"{display} 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，"
-        f"并说明它在“{section_title}”中改变了哪个变量或约束。"
+        f"{display} 要和“{section_title}”中的具体变量相连：它可能是输入、状态、指标或约束。"
+        "判断这个词是否真正被理解，关键看它在哪里被计算、记录、优化或评估。"
     )
 
 
@@ -710,8 +726,94 @@ def section_transition(section: Any, profile: Any) -> str:
     )
 
 
+def section_domain(section: Any) -> str:
+    title = clean_text(section.title)
+    if title.startswith("为什么") or "课程目标" in title:
+        return "general"
+    text = " ".join([section.title, *section.keywords, *section.concepts]).lower()
+    if any(token in text for token in ["scaling", "isoflop", "isoflops", "compute-optimal", "chinchilla", "forecast", "extrapolat"]):
+        return "scaling"
+    if any(token in text for token in ["gpu", "kernel", "parallel", "fsdp", "xla", "triton", "serving", "inference", "cache", "latency"]):
+        return "system"
+    if any(token in text for token in ["data", "filter", "dedup", "mixture", "crawl", "contamination", "dataset"]):
+        return "data"
+    if any(token in text for token in ["reward", "rl", "dpo", "sft", "alignment", "preference", "verifier"]):
+        return "alignment"
+    if any(token in text for token in ["evaluation", "benchmark", "metric", "loss", "score"]):
+        return "evaluation"
+    if any(token in text for token in ["attention", "token", "transformer", "moe", "norm", "rope", "architecture"]):
+        return "model"
+    return "general"
+
+
+def domain_noun(domain: str) -> str:
+    return {
+        "system": "硬件和系统状态",
+        "data": "样本、来源和分布状态",
+        "alignment": "行为、奖励和偏好状态",
+        "evaluation": "评估样本、答案解析和评分状态",
+        "scaling": "模型规模、token 数和训练预算",
+        "model": "张量、token 和计算图状态",
+        "general": "模型、数据或实验状态",
+    }[domain]
+
+
+def domain_variables(domain: str) -> str:
+    return {
+        "system": "吞吐、延迟、显存峰值、通信量和 kernel 利用率",
+        "data": "样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险",
+        "alignment": "reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率",
+        "evaluation": "prompt 模板、采样参数、答案解析规则、置信区间和污染检查",
+        "scaling": "参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系",
+        "model": "sequence length、hidden size、head 数、activation size 和训练稳定性",
+        "general": "输入规模、资源使用、指标变化和失败模式",
+    }[domain]
+
+
+def formula_commentary(section: Any) -> str:
+    domain = section_domain(section)
+    title = clean_text(section.title)
+    if domain == "system":
+        return f"这个关系式应被读成 {title} 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。"
+    if domain == "data":
+        return f"这个关系式刻画 {title} 对数据分布的影响。读者应关心哪些变量来自采集过程，哪些变量来自过滤或混合策略，哪些变量只能通过抽样审计估计。"
+    if domain == "alignment":
+        return f"这个关系式说明 {title} 如何把行为偏好写入优化目标。关键不是符号复杂度，而是 reward、reference policy、采样分布和约束强度如何共同决定更新方向。"
+    if domain == "evaluation":
+        return f"这个关系式给出 {title} 的测量框架。分数只有在 prompt、答案解析、采样和数据版本固定时才具有可比较性。"
+    if domain == "scaling":
+        return f"这个关系式给出 {title} 的缩放假设。它把参数量、训练 token 数和 compute budget 放到同一张账本中，重点是判断小实验能否可靠外推到大训练。"
+    if domain == "model":
+        return f"这个关系式把 {title} 放回模型计算图。它帮助读者追踪 token、张量形状和参数规模如何进入训练或推理成本。"
+    return f"这个关系式给出 {title} 的最小数学结构。读者应检查变量单位、取值范围和可观测性；如果某个量只能间接估计，就必须说明 proxy。"
+
+
+def pseudocode_intro(section: Any) -> str:
+    domain = section_domain(section)
+    title = clean_text(section.title)
+    if domain == "system":
+        return f"把 {title} 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。"
+    if domain == "data":
+        return f"把 {title} 写成程序时，要明确每一步怎样改写样本集合。下面的伪代码强调输入、过滤、统计和输出之间的关系。"
+    if domain == "alignment":
+        return f"把 {title} 写成训练流程时，要区分采样、打分、构造 loss 和更新参数。下面的伪代码保留这些边界。"
+    if domain == "evaluation":
+        return f"把 {title} 写成评估流程时，要先固定协议，再运行模型，最后解析答案和汇总分数。下面的伪代码强调这个顺序。"
+    return f"把 {title} 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。"
+
+
+def pseudocode_reading_note(section: Any) -> str:
+    domain = section_domain(section)
+    title = clean_text(section.title)
+    variables = domain_variables(domain)
+    return f"这段伪代码的读法，是找出 {title} 改变了哪些状态，以及这些状态如何对应到 {variables}。如果某个状态没有被记录，后续实验就很难解释异常结果。"
+
+
 def mechanism_paragraphs_for(section: Any, profile: Any) -> list[str]:
     concepts = [textbook_prose(c) for c in section.concepts if textbook_prose(c)]
+    domain = section_domain(section)
+    noun = domain_noun(domain)
+    variables = domain_variables(domain)
     if "历史" in section.title:
         return [
             "Shannon 和 n-gram 代表了最早的概率视角：语言可以被看成一个序列预测问题。这个视角把“理解语言”降解为估计条件概率，虽然表达能力有限，但它给出了可训练、可评估的目标。",
@@ -722,20 +824,20 @@ def mechanism_paragraphs_for(section: Any, profile: Any) -> list[str]:
     if concepts:
         paragraphs.append(
             concepts[0]
-            + " 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。"
+            + f" 这句话把讨论落在{noun}上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。"
         )
     if len(concepts) >= 2:
         paragraphs.append(
             concepts[1]
-            + " 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。"
+            + f" 因而同一个方法在不同规模下可能改变不同的变量，尤其是{variables}。比较方法时，必须同时给出问题规模和实验条件。"
         )
     if len(concepts) >= 3:
         paragraphs.append(
             concepts[2]
-            + " 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。"
+            + " 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。"
         )
     paragraphs.append(
-        f"因此，{section.title} 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。"
+        f"因此，{section.title} 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。"
     )
     return paragraphs
 
@@ -766,17 +868,42 @@ def render_source_driven_expansion(lines: list[str], section: Any, profile: Any)
     keywords = list(section.keywords)[:6]
     if not keywords:
         keywords = [section.title]
+    domain = section_domain(section)
+    variables = domain_variables(domain)
+    keyword_text = "、".join(clean_text(keyword) for keyword in keywords)
+    known_descriptions: list[str] = []
     for keyword in keywords:
-        lines.append(latex_escape(term_or_keyword_explanation(keyword, section.title, profile.title_cn)))
+        normalized = keyword.lower()
+        for needle, desc in source_reader.TERM_CN.items():
+            if needle in normalized or normalized in needle:
+                known_descriptions.append(desc)
+                break
+        if len(known_descriptions) >= 2:
+            break
     lines.append(
-        "这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。"
+        latex_escape(
+            f"本节容易混淆的关键词包括 {keyword_text}。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。"
+        )
+    )
+    if known_descriptions:
+        lines.append(latex_escape("其中，" + "；".join(strip_sentence_end(desc) for desc in known_descriptions) + "。"))
+    lines.append(
+        latex_escape(
+            f"区分这些词时，可以先问它们是否改变 {variables}。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。"
+        )
+    )
+    lines.append(
+        latex_escape(
+            f"因此，复习 {section.title} 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。"
+        )
     )
 
     lines.append(f"\\subsection{{{latex_escape(section.title)} 的小结}}")
+    variables = domain_variables(section_domain(section))
     propositions = [
-        f"{section.title} 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。",
-        "如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。",
-        "公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。",
+        f"讨论 {section.title} 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 {variables}。",
+        "如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。",
+        "公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。",
     ]
     lines.extend(render_itemize(propositions))
 
@@ -784,47 +911,45 @@ def render_source_driven_expansion(lines: list[str], section: Any, profile: Any)
 def render_section_verification(lines: list[str], section: Any, profile: Any) -> None:
     title = clean_text(section.title)
     verification_subject = "这一课程目标" if title.startswith("为什么") else title
+    domain = section_domain(section)
     keywords = [clean_text(k) for k in section.keywords[:5] if clean_text(k)]
     caveats = [strip_sentence_end(textbook_prose(c)) for c in section.caveats[:3] if textbook_prose(c)]
     keyword_text = "、".join(keywords) if keywords else title
     caveat_text = "；".join(caveats) if caveats else "输入规模、数据分布、硬件条件和评估口径都会改变结论"
     formula_explain = textbook_prose(section.formula_explain)
+    variables = domain_variables(domain)
+    noun = domain_noun(domain)
 
     lines.append(f"\\subsection{{怎样检验 {latex_escape(verification_subject)}}}")
     lines.append(
         latex_escape(
-            f"检验 {verification_subject} 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 {keyword_text} 有关的张量、样本、请求、奖励、通信操作或评估记录。"
-            "如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。"
+            f"检验 {verification_subject} 时，先把抽象说法落到{noun}上。与 {keyword_text} 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。"
         )
     )
     lines.append(
         latex_escape(
-            "第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。"
-            f"对于 {verification_subject}，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。"
+            f"一个合适的小实验应当保留本节机制，同时让 {variables} 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。"
         )
     )
     lines.append(
         latex_escape(
-            "第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。"
-            f"{formula_explain} 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。"
+            f"随后把公式说明转成可记录的数量关系。{formula_explain} 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。"
         )
     )
     lines.append(
         latex_escape(
-            "第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。"
-            "如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。"
+            "对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。"
+            "多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。"
         )
     )
     lines.append(
         latex_escape(
-            "第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。"
-            f"本节至少要记住这些限制：{caveat_text}。复习时可以把这些限制改写成反例测试。"
+            f"最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：{caveat_text}。复习时可以把这些限制改写成反例测试。"
         )
     )
     lines.append(
         latex_escape(
-            f"最后，把实验结论放回 {profile.title_cn} 的整体结构中。{title} 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。"
-            "能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。"
+            f"实验结论还要放回 {profile.title_cn} 的整体结构中。{title} 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。"
         )
     )
 
@@ -878,7 +1003,7 @@ def render_concept_block(
     lines.append(f"\\section{{{latex_escape(section.title)}}}")
     intro_subject = f"本节讨论 {section.title}" if clean_text(section.title).startswith("为什么") else f"现在进入 {section.title}"
     lines.append(
-        f"{latex_escape(intro_subject)}。本节关心的不是名称本身，而是它把 {latex_escape(profile.title_cn)} 中的哪些对象变成可计算、可测量或可优化的量。"
+        f"{latex_escape(intro_subject)}。它把 {latex_escape(profile.title_cn)} 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。"
     )
     lines.append(f"\\subsection{{{latex_escape(problem_heading(section))}}}")
     for concept in section.concepts:
@@ -893,21 +1018,17 @@ def render_concept_block(
     formula = sanitize_formula(section.formula)
     lines.append(formula)
     lines.append(sanitize_formula(section.formula_explain))
-    lines.append(
-        "这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。"
-    )
+    lines.append(latex_escape(formula_commentary(section)))
     lines.append(
         "例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。"
     )
 
     lines.append(f"\\subsection{{{latex_escape(implementation_heading(section))}}}")
-    lines.append("本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。")
+    lines.append(latex_escape(pseudocode_intro(section)))
     lines.append(r"\begin{lstlisting}[language=Python]")
     lines.append(section.algorithm or "pass")
     lines.append(r"\end{lstlisting}")
-    lines.append(
-        "读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。"
-    )
+    lines.append(latex_escape(pseudocode_reading_note(section)))
 
     lines.append(r"\subsection{边界条件与常见误解}")
     caveats = list(section.caveats)
@@ -966,6 +1087,19 @@ def render_experiment_design(lines: list[str], profile: Any) -> None:
     )
     lines.append(
         "常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。"
+    )
+    lines.append(r"\subsection{从小实验到大结论}")
+    lines.append(
+        "小实验的作用不是替代课程中的完整训练或系统实现，而是建立一条可检查的推理链。先在小输入上确认变量方向，再在中等规模上确认数量级，最后才讨论是否能外推到更大模型、更多 token 或更复杂 workload。缺少中间层级时，大结论通常只是在复述直觉。"
+    )
+    lines.append(
+        "因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。"
+    )
+    lines.append(
+        "还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。"
+    )
+    lines.append(
+        "若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。"
     )
 
 

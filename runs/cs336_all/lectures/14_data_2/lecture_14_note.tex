@@ -70,46 +70,46 @@ data mixture 和 synthetic data 需要评估闭环。提高某类数据比例可
 \toprule
 \textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
 \midrule
-1 & filtering（过滤） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-2 & deduplication（去重） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-3 & MinHash & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-4 & Jaccard similarity & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-5 & data mixing（数据混合） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-6 & synthetic data（合成数据） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+1 & filtering（过滤） & 说明它如何改变训练样本或 token 分布，并给出一个会改变结论的数据边界条件。\\
+2 & deduplication（去重） & 说明它如何改变训练样本或 token 分布，并给出一个会改变结论的数据边界条件。\\
+3 & MinHash & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
+4 & Jaccard similarity & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
+5 & data mixing（数据混合） & 说明它如何改变训练样本或 token 分布，并给出一个会改变结论的数据边界条件。\\
+6 & synthetic data（合成数据） & 说明它如何改变训练样本或 token 分布，并给出一个会改变结论的数据边界条件。\\
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
 \subsection{关键词}
 下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
 \begin{itemize}
-\item data, filtering, function, hash, quality, e.g., train, scale, first, sources, tasks, github, small, item
+\item data, filtering, hash, quality, e.g., train, scale, first, sources, tasks, github, small, item, language
 \end{itemize}
 \section{Filtering 的目标与方法}
-现在进入 Filtering 的目标与方法。本节关心的不是名称本身，而是它把 数据过滤、去重、混合与合成数据 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 Filtering 的目标与方法。它把 数据过滤、去重、混合与合成数据 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 Filtering 的目标与方法}
 视频开场回顾上一讲：互联网由 live services 构成，数据需要 dump/crawl 和 processing。
 过滤把原始 crawl 转成可训练数据，常见维度包括语言、长度、质量、毒性、PII、格式、重复模板和 classifier score。
 过滤器可以是规则、统计模型、分类器或 model-based judge；关键是衡量过滤对最终模型的影响。
 数据部分的核心问题是分布控制。采集、过滤、去重和混合并不会只改变文件大小，它们会改变模型看到的语言、知识、偏差和 benchmark contamination 风险。
 \subsection{Filtering 的目标与方法 的机制}
-视频开场回顾上一讲：互联网由 live services 构成，数据需要 dump/crawl 和 processing。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-过滤把原始 crawl 转成可训练数据，常见维度包括语言、长度、质量、毒性、PII、格式、重复模板和 classifier score。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-过滤器可以是规则、统计模型、分类器或 model-based judge；关键是衡量过滤对最终模型的影响。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，Filtering 的目标与方法 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+视频开场回顾上一讲：互联网由 live services 构成，数据需要 dump/crawl 和 processing。 这句话把讨论落在样本、来源和分布状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+过滤把原始 crawl 转成可训练数据，常见维度包括语言、长度、质量、毒性、PII、格式、重复模板和 classifier score。 因而同一个方法在不同规模下可能改变不同的变量，尤其是样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。比较方法时，必须同时给出问题规模和实验条件。
+过滤器可以是规则、统计模型、分类器或 model-based judge；关键是衡量过滤对最终模型的影响。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，Filtering 的目标与方法 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{Filtering 的目标与方法 的数据分布视角}
 \[\mathcal{D}_{\text{filtered}}=\{x\in\mathcal{D}: q(x)\ge \tau\}\]
 符号说明：\(q(x)\) 是质量函数，\(\tau\) 是阈值；阈值越高，质量可能升高但覆盖面下降。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式刻画 Filtering 的目标与方法 对数据分布的影响。读者应关心哪些变量来自采集过程，哪些变量来自过滤或混合策略，哪些变量只能通过抽样审计估计。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{Filtering 的目标与方法 在数据管线中的实现}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 Filtering 的目标与方法 写成程序时，要明确每一步怎样改写样本集合。下面的伪代码强调输入、过滤、统计和输出之间的关系。
 \begin{lstlisting}[language=Python]
 for doc in raw_docs:
     score = quality_model(doc)
     if score >= threshold and not unsafe(doc):
         keep(doc)
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 Filtering 的目标与方法 改变了哪些状态，以及这些状态如何对应到 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 过强过滤会删除长尾语言、非标准文本或弱势群体表达。
@@ -121,50 +121,47 @@ for doc in raw_docs:
 Filtering 的目标与方法 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 Filtering 的目标与方法}
-检验 Filtering 的目标与方法 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 filtering、quality、classifier、threshold、PII 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Filtering 的目标与方法，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(q(x)\textbackslash{}) 是质量函数，\textbackslash{}( au\textbackslash{}) 是阈值；阈值越高，质量可能升高但覆盖面下降。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：过强过滤会删除长尾语言、非标准文本或弱势群体表达；过滤器自身可能被训练数据偏差污染。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 数据过滤、去重、混合与合成数据 的整体结构中。Filtering 的目标与方法 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 Filtering 的目标与方法 时，先把抽象说法落到样本、来源和分布状态上。与 filtering、quality、classifier、threshold、PII 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(q(x)\textbackslash{}) 是质量函数，\textbackslash{}( au\textbackslash{}) 是阈值；阈值越高，质量可能升高但覆盖面下降。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：过强过滤会删除长尾语言、非标准文本或弱势群体表达；过滤器自身可能被训练数据偏差污染。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 数据过滤、去重、混合与合成数据 的整体结构中。Filtering 的目标与方法 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：Filtering 的目标与方法}
-filtering 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
-quality 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
-classifier 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
-threshold 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
-PII 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Filtering 的目标与方法”中改变了哪个变量或约束。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 filtering、quality、classifier、threshold、PII。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+区分这些词时，可以先问它们是否改变 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 Filtering 的目标与方法 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{Filtering 的目标与方法 的小结}
 \begin{itemize}
-\item Filtering 的目标与方法 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 Filtering 的目标与方法 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{Deduplication 与 MinHash}
-现在进入 Deduplication 与 MinHash。本节关心的不是名称本身，而是它把 数据过滤、去重、混合与合成数据 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 Deduplication 与 MinHash。它把 数据过滤、去重、混合与合成数据 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 Deduplication 与 MinHash}
 去重减少 memorization、污染和无效 token；视频关键词显示本讲重点包括 hash、Jaccard 和 deduplication。
 exact dedup 处理完全重复，near dedup 处理模板相似或轻微改写文本。
 MinHash 用随机哈希近似 Jaccard similarity，使大规模 near-duplicate 检索可行。
 数据部分的核心问题是分布控制。采集、过滤、去重和混合并不会只改变文件大小，它们会改变模型看到的语言、知识、偏差和 benchmark contamination 风险。
 \subsection{Deduplication 与 MinHash 的机制}
-去重减少 memorization、污染和无效 token；视频关键词显示本讲重点包括 hash、Jaccard 和 deduplication。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-exact dedup 处理完全重复，near dedup 处理模板相似或轻微改写文本。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-MinHash 用随机哈希近似 Jaccard similarity，使大规模 near-duplicate 检索可行。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，Deduplication 与 MinHash 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+去重减少 memorization、污染和无效 token；视频关键词显示本讲重点包括 hash、Jaccard 和 deduplication。 这句话把讨论落在样本、来源和分布状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+exact dedup 处理完全重复，near dedup 处理模板相似或轻微改写文本。 因而同一个方法在不同规模下可能改变不同的变量，尤其是样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。比较方法时，必须同时给出问题规模和实验条件。
+MinHash 用随机哈希近似 Jaccard similarity，使大规模 near-duplicate 检索可行。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，Deduplication 与 MinHash 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{Deduplication 与 MinHash 的数据分布视角}
 \[J(A,B)=\frac{|A\cap B|}{|A\cup B|},\qquad \Pr[h_{\min}(A)=h_{\min}(B)]=J(A,B)\]
 符号说明：\(A,B\) 是文档的 shingle 集合；MinHash 碰撞概率等于 Jaccard 相似度。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式刻画 Deduplication 与 MinHash 对数据分布的影响。读者应关心哪些变量来自采集过程，哪些变量来自过滤或混合策略，哪些变量只能通过抽样审计估计。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{Deduplication 与 MinHash 在数据管线中的实现}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 Deduplication 与 MinHash 写成程序时，要明确每一步怎样改写样本集合。下面的伪代码强调输入、过滤、统计和输出之间的关系。
 \begin{lstlisting}[language=Python]
 shingles = make_ngrams(document)
 signature = [min_hash(shingles, seed) for seed in seeds]
 bucket_by_bands(signature)
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 Deduplication 与 MinHash 改变了哪些状态，以及这些状态如何对应到 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 去重粒度会影响效果：document-level、paragraph-level、line-level 的 tradeoff 不同。
@@ -176,51 +173,49 @@ bucket_by_bands(signature)
 Deduplication 与 MinHash 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 Deduplication 与 MinHash}
-检验 Deduplication 与 MinHash 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 deduplication、MinHash、Jaccard、shingle、hash 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Deduplication 与 MinHash，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(A,B\textbackslash{}) 是文档的 shingle 集合；MinHash 碰撞概率等于 Jaccard 相似度。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：去重粒度会影响效果：document-level、paragraph-level、line-level 的 tradeoff 不同；near dedup 太激进会删除合法引用、模板化代码或多语言平行文本。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 数据过滤、去重、混合与合成数据 的整体结构中。Deduplication 与 MinHash 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 Deduplication 与 MinHash 时，先把抽象说法落到样本、来源和分布状态上。与 deduplication、MinHash、Jaccard、shingle、hash 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(A,B\textbackslash{}) 是文档的 shingle 集合；MinHash 碰撞概率等于 Jaccard 相似度。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：去重粒度会影响效果：document-level、paragraph-level、line-level 的 tradeoff 不同；near dedup 太激进会删除合法引用、模板化代码或多语言平行文本。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 数据过滤、去重、混合与合成数据 的整体结构中。Deduplication 与 MinHash 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：Deduplication 与 MinHash}
-deduplication（去重）降低重复、污染和 memorization 风险。在“Deduplication 与 MinHash”中，这个概念用于解释 数据过滤、去重、混合与合成数据 的一个具体机制。
-MinHash 用哈希签名近似 Jaccard similarity 以做大规模近重复检测。在“Deduplication 与 MinHash”中，这个概念用于解释 数据过滤、去重、混合与合成数据 的一个具体机制。
-Jaccard 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Deduplication 与 MinHash”中改变了哪个变量或约束。
-shingle 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Deduplication 与 MinHash”中改变了哪个变量或约束。
-MinHash 用哈希签名近似 Jaccard similarity 以做大规模近重复检测。在“Deduplication 与 MinHash”中，这个概念用于解释 数据过滤、去重、混合与合成数据 的一个具体机制。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 deduplication、MinHash、Jaccard、shingle、hash。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，deduplication（去重）降低重复、污染和 memorization 风险；MinHash 用哈希签名近似 Jaccard similarity 以做大规模近重复检测。
+区分这些词时，可以先问它们是否改变 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 Deduplication 与 MinHash 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{Deduplication 与 MinHash 的小结}
 \begin{itemize}
-\item Deduplication 与 MinHash 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 Deduplication 与 MinHash 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{Mixture 与 synthetic data}
-现在进入 Mixture 与 synthetic data。本节关心的不是名称本身，而是它把 数据过滤、去重、混合与合成数据 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 Mixture 与 synthetic data。它把 数据过滤、去重、混合与合成数据 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 Mixture 与 synthetic data}
 数据混合决定不同来源在训练中的采样概率；它影响能力分布和安全行为。
 合成数据可以补齐稀缺任务、改善 instruction following 或 reasoning，但会引入模型偏差和退化风险。
 课程把 mixing、filtering、dedup 和 synthetic data 放在同一讲，说明数据 pipeline 是一个联合优化问题。
 数据部分的核心问题是分布控制。采集、过滤、去重和混合并不会只改变文件大小，它们会改变模型看到的语言、知识、偏差和 benchmark contamination 风险。
 \subsection{Mixture 与 synthetic data 的机制}
-数据混合决定不同来源在训练中的采样概率；它影响能力分布和安全行为。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-合成数据可以补齐稀缺任务、改善 instruction following 或 reasoning，但会引入模型偏差和退化风险。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-课程把 mixing、filtering、dedup 和 synthetic data 放在同一讲，说明数据 pipeline 是一个联合优化问题。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，Mixture 与 synthetic data 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+数据混合决定不同来源在训练中的采样概率；它影响能力分布和安全行为。 这句话把讨论落在样本、来源和分布状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+合成数据可以补齐稀缺任务、改善 instruction following 或 reasoning，但会引入模型偏差和退化风险。 因而同一个方法在不同规模下可能改变不同的变量，尤其是样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。比较方法时，必须同时给出问题规模和实验条件。
+课程把 mixing、filtering、dedup 和 synthetic data 放在同一讲，说明数据 pipeline 是一个联合优化问题。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，Mixture 与 synthetic data 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{Mixture 与 synthetic data 的数据分布视角}
 \[p(x)=\sum_k w_k p_k(x),\qquad \sum_k w_k=1\]
 符号说明：\(p_k\) 是第 \(k\) 个数据源分布，\(w_k\) 是采样权重；权重改变等价于改变训练目标分布。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式刻画 Mixture 与 synthetic data 对数据分布的影响。读者应关心哪些变量来自采集过程，哪些变量来自过滤或混合策略，哪些变量只能通过抽样审计估计。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{Mixture 与 synthetic data 在数据管线中的实现}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 Mixture 与 synthetic data 写成程序时，要明确每一步怎样改写样本集合。下面的伪代码强调输入、过滤、统计和输出之间的关系。
 \begin{lstlisting}[language=Python]
 while training:
     source = sample_source(weights)
     batch = sample_batch(source)
     train_on(batch)
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 Mixture 与 synthetic data 改变了哪些状态，以及这些状态如何对应到 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item synthetic data 需要质量控制，否则会放大 teacher model 的错误。
@@ -232,24 +227,22 @@ while training:
 Mixture 与 synthetic data 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 Mixture 与 synthetic data}
-检验 Mixture 与 synthetic data 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 mixing、synthetic data、weights、sampling、ablation 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Mixture 与 synthetic data，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(p\_k\textbackslash{}) 是第 \textbackslash{}(k\textbackslash{}) 个数据源分布，\textbackslash{}(w\_k\textbackslash{}) 是采样权重；权重改变等价于改变训练目标分布。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：synthetic data 需要质量控制，否则会放大 teacher model 的错误；混合权重最好通过 ablation、scaling 和 downstream eval 联合确定。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 数据过滤、去重、混合与合成数据 的整体结构中。Mixture 与 synthetic data 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 Mixture 与 synthetic data 时，先把抽象说法落到样本、来源和分布状态上。与 mixing、synthetic data、weights、sampling、ablation 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(p\_k\textbackslash{}) 是第 \textbackslash{}(k\textbackslash{}) 个数据源分布，\textbackslash{}(w\_k\textbackslash{}) 是采样权重；权重改变等价于改变训练目标分布。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：synthetic data 需要质量控制，否则会放大 teacher model 的错误；混合权重最好通过 ablation、scaling 和 downstream eval 联合确定。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 数据过滤、去重、混合与合成数据 的整体结构中。Mixture 与 synthetic data 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：Mixture 与 synthetic data}
-mixing 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Mixture 与 synthetic data”中改变了哪个变量或约束。
-data（数据）是模型能力、偏差和法律风险的主要来源。在“Mixture 与 synthetic data”中，这个概念用于解释 数据过滤、去重、混合与合成数据 的一个具体机制。
-weights 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Mixture 与 synthetic data”中改变了哪个变量或约束。
-sampling 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Mixture 与 synthetic data”中改变了哪个变量或约束。
-ablation 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Mixture 与 synthetic data”中改变了哪个变量或约束。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 mixing、synthetic data、weights、sampling、ablation。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，data（数据）是模型能力、偏差和法律风险的主要来源。
+区分这些词时，可以先问它们是否改变 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 Mixture 与 synthetic data 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{Mixture 与 synthetic data 的小结}
 \begin{itemize}
-\item Mixture 与 synthetic data 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 Mixture 与 synthetic data 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 数据过滤、去重、混合与合成数据，但它不应被读成几个相邻知识点的拼接。Filtering 的目标与方法、Deduplication 与 MinHash、Mixture 与 synthetic data 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -296,6 +289,11 @@ Mixture 与 synthetic data 首先提供一个局部解释：数据混合决定�
 \subsection{记录与报告}
 实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
 常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\subsection{从小实验到大结论}
+小实验的作用不是替代课程中的完整训练或系统实现，而是建立一条可检查的推理链。先在小输入上确认变量方向，再在中等规模上确认数量级，最后才讨论是否能外推到更大模型、更多 token 或更复杂 workload。缺少中间层级时，大结论通常只是在复述直觉。
+因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
+还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
+若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}

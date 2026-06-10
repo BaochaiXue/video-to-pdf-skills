@@ -70,12 +70,12 @@ MoE 的核心不是简单堆更多参数，而是 router、expert capacity、loa
 \toprule
 \textbf{\#} & \textbf{术语} & \textbf{阅读要求}\\
 \midrule
-1 & attention alternatives（注意力替代机制） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-2 & Grouped-Query Attention (GQA) & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-3 & Multi-Query Attention (MQA) & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-4 & linear attention（线性注意力） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-5 & Mixture of Experts (MoE) & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
-6 & routing（路由） & 需要能说明它指向的对象、参与的公式或代码位置，以及一个典型失败情形。\\
+1 & attention alternatives（注意力替代机制） & 说明它在计算图中的位置、输入输出形状，以及改变它会影响的训练或推理成本。\\
+2 & Grouped-Query Attention (GQA) & 说明它在计算图中的位置、输入输出形状，以及改变它会影响的训练或推理成本。\\
+3 & Multi-Query Attention (MQA) & 说明它在计算图中的位置、输入输出形状，以及改变它会影响的训练或推理成本。\\
+4 & linear attention（线性注意力） & 说明它在计算图中的位置、输入输出形状，以及改变它会影响的训练或推理成本。\\
+5 & Mixture of Experts (MoE) & 说明它如何改变训练样本或 token 分布，并给出一个会改变结论的数据边界条件。\\
+6 & routing（路由） & 给出定义、一个最小例子、一个关联公式或代码位置，以及一个典型失败情形。\\
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
@@ -85,31 +85,31 @@ MoE 的核心不是简单堆更多参数，而是 router、expert capacity、loa
 \item moes, deepseek, attention, routing, experts, linear, qwen, balancing, training, fedus, token, work, shared, active
 \end{itemize}
 \section{为什么要替代标准 attention}
-本节讨论 为什么要替代标准 attention。本节关心的不是名称本身，而是它把 Attention alternatives 与 Mixture of Experts 中的哪些对象变成可计算、可测量或可优化的量。
+本节讨论 为什么要替代标准 attention。它把 Attention alternatives 与 Mixture of Experts 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{课程目标与问题边界}
 视频把本讲定位为更高级的 architecture ideas：上一讲讨论主流 Transformer，本讲讨论 attention 的成本和替代机制。
 标准 attention 的 \textbackslash{}(O(T\textasciicircum{}2)\textbackslash{}) 交互在长上下文、prefill、训练显存和推理 KV cache 中都昂贵。
 GQA/MQA 减少 key/value head 数量，目标是在质量下降可控的情况下降低推理带宽和 cache 占用。
 为什么要替代标准 attention 的作用是把 Attention alternatives 与 Mixture of Experts 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
 \subsection{为什么要替代标准 attention 的机制}
-视频把本讲定位为更高级的 architecture ideas：上一讲讨论主流 Transformer，本讲讨论 attention 的成本和替代机制。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-标准 attention 的 \textbackslash{}(O(T\textasciicircum{}2)\textbackslash{}) 交互在长上下文、prefill、训练显存和推理 KV cache 中都昂贵。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-GQA/MQA 减少 key/value head 数量，目标是在质量下降可控的情况下降低推理带宽和 cache 占用。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，为什么要替代标准 attention 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+视频把本讲定位为更高级的 architecture ideas：上一讲讨论主流 Transformer，本讲讨论 attention 的成本和替代机制。 这句话把讨论落在模型、数据或实验状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+标准 attention 的 \textbackslash{}(O(T\textasciicircum{}2)\textbackslash{}) 交互在长上下文、prefill、训练显存和推理 KV cache 中都昂贵。 因而同一个方法在不同规模下可能改变不同的变量，尤其是输入规模、资源使用、指标变化和失败模式。比较方法时，必须同时给出问题规模和实验条件。
+GQA/MQA 减少 key/value head 数量，目标是在质量下降可控的情况下降低推理带宽和 cache 占用。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，为什么要替代标准 attention 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{资源、效率与效果的关系}
 \[\text{KV cache bytes}\approx 2\cdot L\cdot T\cdot H_{kv}\cdot d_{\text{head}}\cdot b\]
 符号说明：\(L\) 是层数，\(T\) 是上下文长度，\(H_{kv}\) 是 KV heads，\(d_{\text{head}}\) 是 head 维度，\(b\) 是每元素字节数。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式给出 为什么要替代标准 attention 的最小数学结构。读者应检查变量单位、取值范围和可观测性；如果某个量只能间接估计，就必须说明 proxy。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{把课程目标写成检查流程}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 为什么要替代标准 attention 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
 if kv_cache_is_bottleneck:
     share_key_value_heads_with_gqa()
 else:
     preserve_full_multi_head_attention()
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 为什么要替代标准 attention 改变了哪些状态，以及这些状态如何对应到 输入规模、资源使用、指标变化和失败模式。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item KV head 共享降低内存，但可能损失表示能力。
@@ -121,51 +121,49 @@ else:
 为什么要替代标准 attention 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 这一课程目标}
-检验 这一课程目标 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 attention、GQA、MQA、KV cache、long context 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 这一课程目标，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(L\textbackslash{}) 是层数，\textbackslash{}(T\textbackslash{}) 是上下文长度，\textbackslash{}(H\_\{kv\}\textbackslash{}) 是 KV heads，\textbackslash{}(d\_\{ ext\{head\}\}\textbackslash{}) 是 head 维度，\textbackslash{}(b\textbackslash{}) 是每元素字节数。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：KV head 共享降低内存，但可能损失表示能力；attention 替代方法要同时看训练吞吐、推理延迟和模型质量。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 Attention alternatives 与 Mixture of Experts 的整体结构中。为什么要替代标准 attention 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 这一课程目标 时，先把抽象说法落到模型、数据或实验状态上。与 attention、GQA、MQA、KV cache、long context 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 输入规模、资源使用、指标变化和失败模式 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(L\textbackslash{}) 是层数，\textbackslash{}(T\textbackslash{}) 是上下文长度，\textbackslash{}(H\_\{kv\}\textbackslash{}) 是 KV heads，\textbackslash{}(d\_\{ ext\{head\}\}\textbackslash{}) 是 head 维度，\textbackslash{}(b\textbackslash{}) 是每元素字节数。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：KV head 共享降低内存，但可能损失表示能力；attention 替代方法要同时看训练吞吐、推理延迟和模型质量。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 Attention alternatives 与 Mixture of Experts 的整体结构中。为什么要替代标准 attention 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：为什么要替代标准 attention}
-attention（注意力）提供 token 间交互，但长上下文下成本很高。在“为什么要替代标准 attention”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
-GQA 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么要替代标准 attention”中改变了哪个变量或约束。
-MQA 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么要替代标准 attention”中改变了哪个变量或约束。
-KV cache 缓存 key/value，避免重复计算历史上下文。在“为什么要替代标准 attention”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
-long context 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“为什么要替代标准 attention”中改变了哪个变量或约束。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 attention、GQA、MQA、KV cache、long context。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，attention（注意力）提供 token 间交互，但长上下文下成本很高；KV cache 缓存 key/value，避免重复计算历史上下文。
+区分这些词时，可以先问它们是否改变 输入规模、资源使用、指标变化和失败模式。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 为什么要替代标准 attention 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{为什么要替代标准 attention 的小结}
 \begin{itemize}
-\item 为什么要替代标准 attention 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 为什么要替代标准 attention 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 输入规模、资源使用、指标变化和失败模式。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{Linear attention、state-space 与 recurrence}
-现在进入 Linear attention、state-space 与 recurrence。本节关心的不是名称本身，而是它把 Attention alternatives 与 Mixture of Experts 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 Linear attention、state-space 与 recurrence。它把 Attention alternatives 与 Mixture of Experts 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 Linear attention、state-space 与 recurrence}
 课程 slides 把 linear attention、Mamba/SSM 等归入 attention alternatives 的讨论范围。
 核心思想是把全量 pairwise interaction 改写成可递推或可分解的状态更新，从而降低长序列成本。
 这些方法的关键问题不是复杂度公式本身，而是能否保持语言建模所需的选择性记忆和训练稳定性。
 Linear attention、state-space 与 recurrence 的作用是把 Attention alternatives 与 Mixture of Experts 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
 \subsection{Linear attention、state-space 与 recurrence 的机制}
-课程 slides 把 linear attention、Mamba/SSM 等归入 attention alternatives 的讨论范围。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-核心思想是把全量 pairwise interaction 改写成可递推或可分解的状态更新，从而降低长序列成本。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-这些方法的关键问题不是复杂度公式本身，而是能否保持语言建模所需的选择性记忆和训练稳定性。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，Linear attention、state-space 与 recurrence 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+课程 slides 把 linear attention、Mamba/SSM 等归入 attention alternatives 的讨论范围。 这句话把讨论落在张量、token 和计算图状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+核心思想是把全量 pairwise interaction 改写成可递推或可分解的状态更新，从而降低长序列成本。 因而同一个方法在不同规模下可能改变不同的变量，尤其是sequence length、hidden size、head 数、activation size 和训练稳定性。比较方法时，必须同时给出问题规模和实验条件。
+这些方法的关键问题不是复杂度公式本身，而是能否保持语言建模所需的选择性记忆和训练稳定性。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，Linear attention、state-space 与 recurrence 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{Linear attention、state-space 与 recurrence 的形式化表示}
 \[\operatorname{Attn}(Q,K,V)\approx \phi(Q)\left(\phi(K)^\top V\right)\]
 符号说明：\(\phi(\cdot)\) 是 feature map；近似把 \(T\times T\) attention matrix 的构造改成可结合的矩阵乘积。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式把 Linear attention、state-space 与 recurrence 放回模型计算图。它帮助读者追踪 token、张量形状和参数规模如何进入训练或推理成本。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{从 Linear attention、state-space 与 recurrence 到程序}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 Linear attention、state-space 与 recurrence 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
 state = zeros()
 for token in sequence:
     state = update(state, token)
     output = readout(state, token)
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 Linear attention、state-space 与 recurrence 改变了哪些状态，以及这些状态如何对应到 sequence length、hidden size、head 数、activation size 和训练稳定性。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 线性复杂度不自动意味着实际更快；kernel、memory access 和 hardware utilization 仍然决定吞吐。
@@ -177,44 +175,42 @@ for token in sequence:
 Linear attention、state-space 与 recurrence 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 Linear attention、state-space 与 recurrence}
-检验 Linear attention、state-space 与 recurrence 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 linear attention、Mamba、SSM、recurrence、feature map 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 Linear attention、state-space 与 recurrence，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(\textbackslash{}phi(\textbackslash{}cdot)\textbackslash{}) 是 feature map；近似把 \textbackslash{}(T imes T\textbackslash{}) attention matrix 的构造改成可结合的矩阵乘积。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：线性复杂度不自动意味着实际更快；kernel、memory access 和 hardware utilization 仍然决定吞吐；递推结构可能更难并行训练，也可能需要特殊初始化或 normalization。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 Attention alternatives 与 Mixture of Experts 的整体结构中。Linear attention、state-space 与 recurrence 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 Linear attention、state-space 与 recurrence 时，先把抽象说法落到张量、token 和计算图状态上。与 linear attention、Mamba、SSM、recurrence、feature map 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 sequence length、hidden size、head 数、activation size 和训练稳定性 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(\textbackslash{}phi(\textbackslash{}cdot)\textbackslash{}) 是 feature map；近似把 \textbackslash{}(T imes T\textbackslash{}) attention matrix 的构造改成可结合的矩阵乘积。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：线性复杂度不自动意味着实际更快；kernel、memory access 和 hardware utilization 仍然决定吞吐；递推结构可能更难并行训练，也可能需要特殊初始化或 normalization。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 Attention alternatives 与 Mixture of Experts 的整体结构中。Linear attention、state-space 与 recurrence 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：Linear attention、state-space 与 recurrence}
-attention（注意力）提供 token 间交互，但长上下文下成本很高。在“Linear attention、state-space 与 recurrence”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
-Mamba 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Linear attention、state-space 与 recurrence”中改变了哪个变量或约束。
-SSM 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Linear attention、state-space 与 recurrence”中改变了哪个变量或约束。
-recurrence 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Linear attention、state-space 与 recurrence”中改变了哪个变量或约束。
-feature map 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“Linear attention、state-space 与 recurrence”中改变了哪个变量或约束。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 linear attention、Mamba、SSM、recurrence、feature map。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，attention（注意力）提供 token 间交互，但长上下文下成本很高。
+区分这些词时，可以先问它们是否改变 sequence length、hidden size、head 数、activation size 和训练稳定性。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 Linear attention、state-space 与 recurrence 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{Linear attention、state-space 与 recurrence 的小结}
 \begin{itemize}
-\item Linear attention、state-space 与 recurrence 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 Linear attention、state-space 与 recurrence 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 sequence length、hidden size、head 数、activation size 和训练稳定性。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{MoE 的稀疏计算与路由}
-现在进入 MoE 的稀疏计算与路由。本节关心的不是名称本身，而是它把 Attention alternatives 与 Mixture of Experts 中的哪些对象变成可计算、可测量或可优化的量。
+现在进入 MoE 的稀疏计算与路由。它把 Attention alternatives 与 Mixture of Experts 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
 \subsection{为什么要讨论 MoE 的稀疏计算与路由}
 MoE 让每个 token 只激活少数 experts，从而在参数量很大时保持每 token compute 相对较低。
 routing 决定 token 到 expert 的分配；负载均衡、capacity factor、communication 和 expert parallelism 是核心系统问题。
 MoE 的收益来自参数容量和计算稀疏性的分离，但训练稳定性和 serving 成本会变复杂。
 MoE 的稀疏计算与路由 的作用是把 Attention alternatives 与 Mixture of Experts 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
 \subsection{MoE 的稀疏计算与路由 的机制}
-MoE 让每个 token 只激活少数 experts，从而在参数量很大时保持每 token compute 相对较低。 这给出本节的对象和边界。读者需要把其中的名词对应到张量、数据记录、训练状态或系统状态，而不是停留在缩写层面。
-routing 决定 token 到 expert 的分配；负载均衡、capacity factor、communication 和 expert parallelism 是核心系统问题。 因而同一个方法在小规模示例、单机实验和集群训练中的意义并不相同。比较方法时，问题规模、硬件条件、数据分布和评估口径必须同时给出。
-MoE 的收益来自参数容量和计算稀疏性的分离，但训练稳定性和 serving 成本会变复杂。 这使本节具有可检验性：如果一个结论不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，它就还只是直觉。
-因此，MoE 的稀疏计算与路由 应当被理解为一组可以实现和测试的假设。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+MoE 让每个 token 只激活少数 experts，从而在参数量很大时保持每 token compute 相对较低。 这句话把讨论落在硬件和系统状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+routing 决定 token 到 expert 的分配；负载均衡、capacity factor、communication 和 expert parallelism 是核心系统问题。 因而同一个方法在不同规模下可能改变不同的变量，尤其是吞吐、延迟、显存峰值、通信量和 kernel 利用率。比较方法时，必须同时给出问题规模和实验条件。
+MoE 的收益来自参数容量和计算稀疏性的分离，但训练稳定性和 serving 成本会变复杂。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
+因此，MoE 的稀疏计算与路由 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
 \subsection{MoE 的稀疏计算与路由 的形式化表示}
 \[y=\sum_{e\in \operatorname{TopK}(r(x))} g_e(x)\,E_e(x)\]
 符号说明：\(r(x)\) 是 router，\(E_e\) 是第 \(e\) 个 expert，\(g_e\) 是 routing weight，TopK 表示只选少数 experts。
-这个关系式给出了本节最小的数学骨架。读者应检查每个变量的单位、取值范围和可观测性；如果某个量只能间接估计，后续实验就必须说明 proxy 是什么。
+这个关系式应被读成 MoE 的稀疏计算与路由 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。
 例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
 \subsection{从 MoE 的稀疏计算与路由 到程序}
-本节机制可以写成下面的伪代码。它保留课程材料中的计算顺序和状态变化，但省略了工程代码中的错误处理、并行细节和框架样板。
+把 MoE 的稀疏计算与路由 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。
 \begin{lstlisting}[language=Python]
 scores = router(hidden)
 experts = topk(scores, k=2)
@@ -222,7 +218,7 @@ for expert in experts:
     dispatch_tokens(expert)
 combine_weighted_outputs()
 \end{lstlisting}
-读这段伪代码时，重点不是语法，而是状态如何变化：输入是什么，中间变量是什么，主要计算或数据移动发生在哪里，哪些边界条件会破坏结果。
+这段伪代码的读法，是找出 MoE 的稀疏计算与路由 改变了哪些状态，以及这些状态如何对应到 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果某个状态没有被记录，后续实验就很难解释异常结果。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item MoE 参数量大不等于每 token FLOPs 大；报告模型大小时要区分 total parameters 和 active parameters。
@@ -234,24 +230,22 @@ combine_weighted_outputs()
 MoE 的稀疏计算与路由 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 MoE 的稀疏计算与路由}
-检验 MoE 的稀疏计算与路由 的第一步是确定测量对象。这里的测量对象通常不是一个抽象名词，而是与 MoE、expert、router、TopK、capacity 有关的张量、样本、请求、奖励、通信操作或评估记录。如果对象没有被具体化，后面的实验就只能得到描述性观察，不能得到可复现结论。
-第二步是构造最小输入。最小输入应该足够小，使读者能手算或打印关键中间量；同时又要保留本节机制。对于 MoE 的稀疏计算与路由，最小输入不追求逼真规模，而追求暴露因果关系：改变一个变量时，哪些输出、成本或错误会随之改变。
-第三步是写出资源账本。账本可以是 FLOPs、bytes moved、显存峰值、通信量、token 数、样本数、reward 分布或 benchmark 分数。符号说明：\textbackslash{}(r(x)\textbackslash{}) 是 router，\textbackslash{}(E\_e\textbackslash{}) 是第 \textbackslash{}(e\textbackslash{}) 个 expert，\textbackslash{}(g\_e\textbackslash{}) 是 routing weight，TopK 表示只选少数 experts。 这类说明应被转化为单位明确的数量关系；如果数量只能间接观测，就必须说明使用了什么 proxy。
-第四步是设置对照。一个好对照只改变一个因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。如果多个因素同时改变，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-第五步是观察失败条件。教材中的成功路径往往最容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：MoE 参数量大不等于每 token FLOPs 大；报告模型大小时要区分 total parameters 和 active parameters；路由不均衡会导致部分 experts 过载，吞吐被最慢 shard 拖住。复习时可以把这些限制改写成反例测试。
-最后，把实验结论放回 Attention alternatives 与 Mixture of Experts 的整体结构中。MoE 的稀疏计算与路由 不是孤立技巧：它会影响训练目标、数据选择、系统成本或评估解释中的至少一项。能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
+检验 MoE 的稀疏计算与路由 时，先把抽象说法落到硬件和系统状态上。与 MoE、expert、router、TopK、capacity 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 吞吐、延迟、显存峰值、通信量和 kernel 利用率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(r(x)\textbackslash{}) 是 router，\textbackslash{}(E\_e\textbackslash{}) 是第 \textbackslash{}(e\textbackslash{}) 个 expert，\textbackslash{}(g\_e\textbackslash{}) 是 routing weight，TopK 表示只选少数 experts。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
+对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
+最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：MoE 参数量大不等于每 token FLOPs 大；报告模型大小时要区分 total parameters 和 active parameters；路由不均衡会导致部分 experts 过载，吞吐被最慢 shard 拖住。复习时可以把这些限制改写成反例测试。
+实验结论还要放回 Attention alternatives 与 Mixture of Experts 的整体结构中。MoE 的稀疏计算与路由 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
 \subsection{常见混淆：MoE 的稀疏计算与路由}
-Mixture of Experts (MoE) 用稀疏激活扩展参数容量。在“MoE 的稀疏计算与路由”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
-expert（专家）是 MoE 中由 router 选择的子网络。在“MoE 的稀疏计算与路由”中，这个概念用于解释 Attention alternatives 与 Mixture of Experts 的一个具体机制。
-router 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“MoE 的稀疏计算与路由”中改变了哪个变量或约束。
-TopK 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“MoE 的稀疏计算与路由”中改变了哪个变量或约束。
-capacity 在本节中应被看作一个技术对象，而不是一个孤立名词。需要判断它指向模型、数据、系统还是评估，并说明它在“MoE 的稀疏计算与路由”中改变了哪个变量或约束。
-这些概念的共同点是：只有进入公式、代码或评估协议之后才有明确含义。单独背诵名称不会帮助判断一个训练 run、推理系统或数据 pipeline 是否正确。
+本节容易混淆的关键词包括 MoE、expert、router、TopK、capacity。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+其中，Mixture of Experts (MoE) 用稀疏激活扩展参数容量；expert（专家）是 MoE 中由 router 选择的子网络。
+区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
+因此，复习 MoE 的稀疏计算与路由 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
 \subsection{MoE 的稀疏计算与路由 的小结}
 \begin{itemize}
-\item MoE 的稀疏计算与路由 的任何性能结论都必须同时报告问题规模和评估口径，否则不可比较。
-\item 如果一个方法声称降低主要成本，它通常会把成本转移到另一个变量，例如显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；真实系统仍需要 profiler、ablation 和 held-out evaluation。
+\item 讨论 MoE 的稀疏计算与路由 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
+\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 Attention alternatives 与 Mixture of Experts，但它不应被读成几个相邻知识点的拼接。为什么要替代标准 attention、Linear attention、state-space 与 recurrence、MoE 的稀疏计算与路由 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -298,6 +292,11 @@ MoE 的稀疏计算与路由 首先提供一个局部解释：MoE 让每个 toke
 \subsection{记录与报告}
 实验记录应能让另一个读者复现同一结论。最少要写清楚输入构造、代码版本、随机种子、硬件、batch shape、数据版本、评价指标和异常处理方式。报告结论时不要只写“更快”或“更好”，而要说明快在哪里、好在哪个指标上，以及是否牺牲了内存、稳定性、数据质量或可解释性。
 常见报告错误是把局部现象写成普遍规律。例如一次小模型实验里的 loss 改善，不等于更大模型或不同数据分布上也会改善；一次 kernel benchmark 的吞吐提升，不等于端到端 serving latency 一定降低。教材中的实验报告应始终把结论限定在可复现条件内。
+\subsection{从小实验到大结论}
+小实验的作用不是替代课程中的完整训练或系统实现，而是建立一条可检查的推理链。先在小输入上确认变量方向，再在中等规模上确认数量级，最后才讨论是否能外推到更大模型、更多 token 或更复杂 workload。缺少中间层级时，大结论通常只是在复述直觉。
+因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
+还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
+若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}
