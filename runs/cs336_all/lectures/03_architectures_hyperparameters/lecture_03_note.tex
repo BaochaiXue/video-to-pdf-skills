@@ -51,19 +51,16 @@
 \caption{官方材料图页：现代 Transformer architecture 与 hyperparameters 的课程页/PDF/script 图像锚点。}
 \end{figure}
 \section{本章主线}
-本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+现代 Transformer architecture 与 hyperparameters 的主线是从一个可观察的问题出发，逐步引出表示、目标、实现和实验。读者应把每个机制放回 language modeling pipeline 的位置。
 \subsection{本章要解决的核心问题}
 本讲从现代 decoder-only Transformer 的共同骨架出发，比较 LLaMA-like 架构里的 pre-norm、RMSNorm、RoPE、SwiGLU、bias removal、QK norm 等设计。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，现代 Transformer architecture 与 hyperparameters 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+读完这一段后，应能用一两句话说明 现代 Transformer architecture 与 hyperparameters 要解决的瓶颈，并指出这个瓶颈发生在数据、模型、优化、系统还是评估层。
 \subsection{从机制到资源账本}
 架构选择不能脱离 scale。小模型 ablation 中看似微弱的差异，在大模型训练中可能表现为稳定性、吞吐、长上下文或超参数敏感性的差异。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，现代 Transformer architecture 与 hyperparameters 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+随后把机制写成账本：输入规模是什么，主要状态是什么，成本或质量指标怎样随变量改变。这个账本让后面的公式不再只是符号。
 \subsection{从课堂讲解到可复现实验}
 hyperparameter 的有效读法是把每个选择对应到 failure mode：学习率过大导致发散，batch 太小导致噪声过大，context 太长带来 attention 和 KV cache 成本，width/depth 比例影响计算形状。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，现代 Transformer architecture 与 hyperparameters 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+最后把课堂讲解转成可复现实验：固定协议，改变一个变量，记录中间量，并解释结果为何支持或反驳原来的机制判断。
 \section{术语、符号与问题边界}
 本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
 \begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
@@ -79,28 +76,27 @@ hyperparameter 的有效读法是把每个选择对应到 failure mode：学习�
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
-\subsection{关键词}
-下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
-\begin{itemize}
-\item attention, gemma, most, embeddings, position, many, notable, transformer, palm, rmsnorm, norm, layernorm, rope, qwen
-\end{itemize}
+\subsection{术语之间的关系}
+在本章中，Transformer architecture（Transformer 架构） 给出问题入口，pre-norm（前归一化） 描述主要机制，RMSNorm 则把机制连接到可测量的结果。读教材时应当沿着这个链条追问：输入是什么，中间状态怎样改变，输出指标为什么随之变化。
+课程材料还会反复出现 attention、gemma、most、embeddings、position、many 等词。它们不是一组同义标签，而是提示本章的不同层次：有的指对象，有的指操作，有的指约束或指标。
+因此，术语表不是背诵清单，而是后文阅读的索引。遇到一个术语时，先定位它属于 representation、optimization、systems、data 还是 evaluation，再判断它改变哪一项账本。
 \section{Decoder-only Transformer 的骨架}
-现在进入 Decoder-only Transformer 的骨架。它把 现代 Transformer architecture 与 hyperparameters 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 Decoder-only Transformer 的骨架。这一节把模型结构还原成表示、参数、activation 和训练动态之间的关系，而不是停留在结构名称。
 \subsection{为什么要讨论 Decoder-only Transformer 的骨架}
 视频把 architecture 讲成现代论文中大量细节的集合，而不是单一的 Transformer block 图。
 decoder-only LM 的主干通常是 token embedding、若干层 causal self-attention 和 MLP、norm、residual connection、LM head。
 课程材料强调许多看似小的选择会影响 scale：normalization placement、activation、position encoding、head layout、optimizer schedule。
 推理阶段的关键区别在于请求是在线到达的，输出又是逐 token 生成的。训练时可以用大 batch 摊薄成本；服务时还要同时考虑首 token 延迟、吞吐、显存占用和长尾请求。
 \subsection{Decoder-only Transformer 的骨架 的机制}
-视频把 architecture 讲成现代论文中大量细节的集合，而不是单一的 Transformer block 图。 这句话把讨论落在张量、token 和计算图状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+视频把 architecture 讲成现代论文中大量细节的集合，而不是单一的 Transformer block 图。 在 Decoder-only Transformer 的骨架 中，核心对象是张量、token 和计算图状态：模型机制必须同时说明表示形态、张量形状和计算代价。
 decoder-only LM 的主干通常是 token embedding、若干层 causal self-attention 和 MLP、norm、residual connection、LM head。 因而同一个方法在不同规模下可能改变不同的变量，尤其是sequence length、hidden size、head 数、activation size 和训练稳定性。比较方法时，必须同时给出问题规模和实验条件。
-课程材料强调许多看似小的选择会影响 scale：normalization placement、activation、position encoding、head layout、optimizer schedule。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，Decoder-only Transformer 的骨架 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+课程材料强调许多看似小的选择会影响 scale：normalization placement、activation、position encoding、head layout、optimizer schedule。 可检验性来自形状推导、训练稳定性曲线和结构消融；只画 block diagram 不能说明机制已经成立。
+因此，Decoder-only Transformer 的骨架 的学习目标是建立一条计算图解释：读者应能从输入 token 追到 activation、loss 和更新，而不是只记住结构名称。
 \subsection{Decoder-only Transformer 的骨架 的形式化表示}
 \[\operatorname{Attn}(Q,K,V)=\operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}+M\right)V\]
 符号说明：\(Q,K,V\) 是 query/key/value；\(d_k\) 是 head dimension；\(M\) 是 causal mask，用于禁止看见未来 token。
 这个关系式把 Decoder-only Transformer 的骨架 放回模型计算图。它帮助读者追踪 token、张量形状和参数规模如何进入训练或推理成本。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在模型结构实验中，loss、梯度范数、activation memory 和 ablation delta 都是 proxy。它们帮助定位机制，但不能单独证明某个结构在所有规模上更优。
 \subsection{从 Decoder-only Transformer 的骨架 到程序}
 把 Decoder-only Transformer 的骨架 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
@@ -110,51 +106,51 @@ for block in transformer_blocks:
     x = x + mlp(norm(x))
 logits = lm_head(norm(x))
 \end{lstlisting}
-这段伪代码的读法，是找出 Decoder-only Transformer 的骨架 改变了哪些状态，以及这些状态如何对应到 sequence length、hidden size、head 数、activation size 和训练稳定性。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段实现时，重点追踪 token、activation 和参数如何穿过计算图。sequence length、hidden size、head 数、activation size 和训练稳定性 不是附加统计，而是解释训练稳定性和推理成本的必要坐标。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 公开 slides 总结的是主流设计，不代表所有 frontier models 的真实 recipe。
 \item architecture comparison 必须控制参数量、训练 tokens、数据和 optimizer，否则容易把 scaling 效应误判为结构效应。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 结构消融常与训练 recipe 耦合；一个 block 在小模型上有效，不代表在长上下文或不同数据分布下仍有效。
+\item 张量形状和数值稳定性是模型机制的一部分，忽略它们会把实现问题误读成算法问题。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-Decoder-only Transformer 的骨架 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+Decoder-only Transformer 的骨架 连接本章的表示选择和训练行为：定义给出张量对象，公式描述计算关系，伪代码说明实现路径，例题检验形状、稳定性和成本之间的权衡。
 \subsection{怎样检验 Decoder-only Transformer 的骨架}
 检验 Decoder-only Transformer 的骨架 时，先把抽象说法落到张量、token 和计算图状态上。与 architecture、Transformer、attention、MLP、residual 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 sequence length、hidden size、head 数、activation size 和训练稳定性 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(Q,K,V\textbackslash{}) 是 query/key/value；\textbackslash{}(d\_k\textbackslash{}) 是 head dimension；\textbackslash{}(M\textbackslash{}) 是 causal mask，用于禁止看见未来 token。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：公开 slides 总结的是主流设计，不代表所有 frontier models 的真实 recipe；architecture comparison 必须控制参数量、训练 tokens、数据和 optimizer，否则容易把 scaling 效应误判为结构效应。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 现代 Transformer architecture 与 hyperparameters 的整体结构中。Decoder-only Transformer 的骨架 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：Decoder-only Transformer 的骨架}
-本节容易混淆的关键词包括 architecture、Transformer、attention、MLP、residual。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+模型消融通常一次只改变 normalization、activation、position encoding、head layout 或学习率 schedule。若结构和训练 recipe 同时改变，结果只能作为候选经验。
+最后检查失败条件。工程判断往往在反例中变清楚：公开 slides 总结的是主流设计，不代表所有 frontier models 的真实 recipe；architecture comparison 必须控制参数量、训练 tokens、数据和 optimizer，否则容易把 scaling 效应误判为结构效应。复习时可以把这些限制改写成反例测试，观察它们怎样改变 sequence length、hidden size、head 数、activation size 和训练稳定性。
+把实验结论放回 现代 Transformer architecture 与 hyperparameters 时，要说明 Decoder-only Transformer 的骨架 改变的是表示、计算图、梯度路径还是 activation memory。能追踪这些对象，才说明读者真正理解模型机制。
+\subsection{概念辨析：Decoder-only Transformer 的骨架}
+architecture、Transformer、attention、MLP、residual 常一起出现在模型结构讨论中，但它们分别指表示、算子、参数或状态。读者应先把它们放回计算图。
 其中，Transformer 是现代 LM 的基本计算骨架；attention（注意力）提供 token 间交互，但长上下文下成本很高。
-区分这些词时，可以先问它们是否改变 sequence length、hidden size、head 数、activation size 和训练稳定性。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 Decoder-only Transformer 的骨架 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 sequence length、hidden size、head 数、activation size 和训练稳定性。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 Decoder-only Transformer 的骨架 复习时，可以写一个最小 forward pass：标出每个张量形状、状态更新和可能的数值问题。
 \subsection{Decoder-only Transformer 的骨架 的小结}
 \begin{itemize}
 \item 讨论 Decoder-only Transformer 的骨架 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 sequence length、hidden size、head 数、activation size 和训练稳定性。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称结构更优，要说明它改变的是表达能力、梯度路径、activation memory、KV cache 还是训练稳定性。
+\item 模型机制需要通过形状推导、训练曲线和消融实验共同验证，不能只依赖 block diagram。
 \end{itemize}
 \section{Normalization、activation 与 position encoding}
-现在进入 Normalization、activation 与 position encoding。它把 现代 Transformer architecture 与 hyperparameters 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 Normalization、activation 与 position encoding。这一节把模型结构还原成表示、参数、activation 和训练动态之间的关系，而不是停留在结构名称。
 \subsection{为什么要讨论 Normalization、activation 与 position encoding}
 现代 LLM 常用 RMSNorm 或类似变体以降低开销并改善稳定性。
 RoPE 把位置信息编码进 query/key 的旋转关系，支持相对位置信息并常见于长上下文模型。
 SwiGLU/GeGLU 等 gated MLP 变体体现了课程第一讲的 caveat：有些设计先来自实验，再由经验固化。
-Normalization、activation 与 position encoding 的作用是把 现代 Transformer architecture 与 hyperparameters 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+Normalization、activation 与 position encoding 把 现代 Transformer architecture 与 hyperparameters 连接到计算图。接下来要看的不是结构名称，而是 token、activation、参数和梯度如何流动。
 \subsection{Normalization、activation 与 position encoding 的机制}
-现代 LLM 常用 RMSNorm 或类似变体以降低开销并改善稳定性。 这句话把讨论落在张量、token 和计算图状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+现代 LLM 常用 RMSNorm 或类似变体以降低开销并改善稳定性。 在 Normalization、activation 与 position encoding 中，核心对象是张量、token 和计算图状态：模型机制必须同时说明表示形态、张量形状和计算代价。
 RoPE 把位置信息编码进 query/key 的旋转关系，支持相对位置信息并常见于长上下文模型。 因而同一个方法在不同规模下可能改变不同的变量，尤其是sequence length、hidden size、head 数、activation size 和训练稳定性。比较方法时，必须同时给出问题规模和实验条件。
-SwiGLU/GeGLU 等 gated MLP 变体体现了课程第一讲的 caveat：有些设计先来自实验，再由经验固化。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，Normalization、activation 与 position encoding 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+SwiGLU/GeGLU 等 gated MLP 变体体现了课程第一讲的 caveat：有些设计先来自实验，再由经验固化。 可检验性来自形状推导、训练稳定性曲线和结构消融；只画 block diagram 不能说明机制已经成立。
+因此，Normalization、activation 与 position encoding 的学习目标是建立一条计算图解释：读者应能从输入 token 追到 activation、loss 和更新，而不是只记住结构名称。
 \subsection{Normalization、activation 与 position encoding 的数学表达}
 \[\operatorname{RMSNorm}(x)=g\odot \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^{d}x_i^2+\epsilon}}\]
 符号说明：\(x\) 是 hidden vector，\(g\) 是可学习缩放，\(d\) 是 hidden dimension，\(\epsilon\) 防止除零。
 这个关系式把 Normalization、activation 与 position encoding 放回模型计算图。它帮助读者追踪 token、张量形状和参数规模如何进入训练或推理成本。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在模型结构实验中，loss、梯度范数、activation memory 和 ablation delta 都是 proxy。它们帮助定位机制，但不能单独证明某个结构在所有规模上更优。
 \subsection{从 Normalization、activation 与 position encoding 到程序}
 把 Normalization、activation 与 position encoding 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
@@ -162,85 +158,85 @@ def rms_norm(x, weight, eps=1e-6):
     scale = rsqrt(mean(x * x, dim=-1, keepdim=True) + eps)
     return weight * x * scale
 \end{lstlisting}
-这段伪代码的读法，是找出 Normalization、activation 与 position encoding 改变了哪些状态，以及这些状态如何对应到 sequence length、hidden size、head 数、activation size 和训练稳定性。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段实现时，重点追踪 token、activation 和参数如何穿过计算图。sequence length、hidden size、head 数、activation size 和训练稳定性 不是附加统计，而是解释训练稳定性和推理成本的必要坐标。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 归一化改善优化，但也可能改变表示尺度和 residual stream 的解释方式。
 \item 长上下文 extrapolation 不能只靠位置编码，还受训练数据、attention implementation 和评估分布影响。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 结构消融常与训练 recipe 耦合；一个 block 在小模型上有效，不代表在长上下文或不同数据分布下仍有效。
+\item 张量形状和数值稳定性是模型机制的一部分，忽略它们会把实现问题误读成算法问题。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-Normalization、activation 与 position encoding 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+Normalization、activation 与 position encoding 连接本章的表示选择和训练行为：定义给出张量对象，公式描述计算关系，伪代码说明实现路径，例题检验形状、稳定性和成本之间的权衡。
 \subsection{怎样检验 Normalization、activation 与 position encoding}
 检验 Normalization、activation 与 position encoding 时，先把抽象说法落到张量、token 和计算图状态上。与 RMSNorm、RoPE、SwiGLU、pre-norm、position 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 sequence length、hidden size、head 数、activation size 和训练稳定性 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(x\textbackslash{}) 是 hidden vector，\textbackslash{}(g\textbackslash{}) 是可学习缩放，\textbackslash{}(d\textbackslash{}) 是 hidden dimension，\textbackslash{}(\textbackslash{}epsilon\textbackslash{}) 防止除零。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：归一化改善优化，但也可能改变表示尺度和 residual stream 的解释方式；长上下文 extrapolation 不能只靠位置编码，还受训练数据、attention implementation 和评估分布影响。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 现代 Transformer architecture 与 hyperparameters 的整体结构中。Normalization、activation 与 position encoding 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：Normalization、activation 与 position encoding}
-本节容易混淆的关键词包括 RMSNorm、RoPE、SwiGLU、pre-norm、position。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+模型消融通常一次只改变 normalization、activation、position encoding、head layout 或学习率 schedule。若结构和训练 recipe 同时改变，结果只能作为候选经验。
+最后检查失败条件。工程判断往往在反例中变清楚：归一化改善优化，但也可能改变表示尺度和 residual stream 的解释方式；长上下文 extrapolation 不能只靠位置编码，还受训练数据、attention implementation 和评估分布影响。复习时可以把这些限制改写成反例测试，观察它们怎样改变 sequence length、hidden size、head 数、activation size 和训练稳定性。
+把实验结论放回 现代 Transformer architecture 与 hyperparameters 时，要说明 Normalization、activation 与 position encoding 改变的是表示、计算图、梯度路径还是 activation memory。能追踪这些对象，才说明读者真正理解模型机制。
+\subsection{概念辨析：Normalization、activation 与 position encoding}
+RMSNorm、RoPE、SwiGLU、pre-norm、position 常一起出现在模型结构讨论中，但它们分别指表示、算子、参数或状态。读者应先把它们放回计算图。
 其中，normalization（归一化）影响优化稳定性和 residual path；RoPE（rotary positional embedding）把位置信息编码进 query/key 的旋转关系。
-区分这些词时，可以先问它们是否改变 sequence length、hidden size、head 数、activation size 和训练稳定性。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 Normalization、activation 与 position encoding 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 sequence length、hidden size、head 数、activation size 和训练稳定性。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 Normalization、activation 与 position encoding 复习时，可以写一个最小 forward pass：标出每个张量形状、状态更新和可能的数值问题。
 \subsection{Normalization、activation 与 position encoding 的小结}
 \begin{itemize}
 \item 讨论 Normalization、activation 与 position encoding 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 sequence length、hidden size、head 数、activation size 和训练稳定性。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称结构更优，要说明它改变的是表达能力、梯度路径、activation memory、KV cache 还是训练稳定性。
+\item 模型机制需要通过形状推导、训练曲线和消融实验共同验证，不能只依赖 block diagram。
 \end{itemize}
 \section{Hyperparameter 的规模化视角}
-现在进入 Hyperparameter 的规模化视角。它把 现代 Transformer architecture 与 hyperparameters 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 Hyperparameter 的规模化视角。这一节把算法放到硬件和运行时中考察：同一个数学表达式在不同 batch、shape、GPU 拓扑和 kernel 实现下会得到不同的成本账本。
 \subsection{为什么要讨论 Hyperparameter 的规模化视角}
 lecture 3 的核心态度是：不要把 hyperparameters 当成小模型实验后的装饰参数，它们决定大规模训练的稳定性和资源效率。
 batch size、learning rate、warmup、decay、weight decay、dropout、context length 和 width/depth ratio 都进入 compute-budget 约束。
 本书需要把每个超参数和其 failure mode 绑定：divergence、undertraining、overfitting、memory blow-up、communication bottleneck。
-Hyperparameter 的规模化视角 的作用是把 现代 Transformer architecture 与 hyperparameters 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+Hyperparameter 的规模化视角 把 现代 Transformer architecture 与 hyperparameters 放进资源账本。接下来要看的不是单个 API，而是张量形状、内存层级、通信和调度怎样共同决定成本。
 \subsection{Hyperparameter 的规模化视角 的机制}
-lecture 3 的核心态度是：不要把 hyperparameters 当成小模型实验后的装饰参数，它们决定大规模训练的稳定性和资源效率。 这句话把讨论落在模型、数据或实验状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
-batch size、learning rate、warmup、decay、weight decay、dropout、context length 和 width/depth ratio 都进入 compute-budget 约束。 因而同一个方法在不同规模下可能改变不同的变量，尤其是输入规模、资源使用、指标变化和失败模式。比较方法时，必须同时给出问题规模和实验条件。
-本书需要把每个超参数和其 failure mode 绑定：divergence、undertraining、overfitting、memory blow-up、communication bottleneck。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，Hyperparameter 的规模化视角 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+lecture 3 的核心态度是：不要把 hyperparameters 当成小模型实验后的装饰参数，它们决定大规模训练的稳定性和资源效率。 在 Hyperparameter 的规模化视角 中，核心对象是硬件和系统状态：同一算法会因为 memory hierarchy、通信拓扑或 kernel shape 不同而表现出完全不同的速度。
+batch size、learning rate、warmup、decay、weight decay、dropout、context length 和 width/depth ratio 都进入 compute-budget 约束。 因而同一个方法在不同规模下可能改变不同的变量，尤其是吞吐、延迟、显存峰值、通信量和 kernel 利用率。比较方法时，必须同时给出问题规模和实验条件。
+本书需要把每个超参数和其 failure mode 绑定：divergence、undertraining、overfitting、memory blow-up、communication bottleneck。 可检验性来自 profile trace、roofline 估算和端到端延迟分解；如果这些证据互相矛盾，就要先解释 measurement setup。
+因此，Hyperparameter 的规模化视角 的学习目标是建立一张成本地图：读者应能指出瓶颈在计算、内存、通信还是调度，并能设计一个小 benchmark 去验证。
 \subsection{Hyperparameter 的规模化视角 的数学表达}
 \[\theta_{t+1}=\theta_t-\eta_t\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon}-\eta_t\lambda\theta_t\]
 符号说明：这是 AdamW 风格更新；\(\eta_t\) 是学习率，\(\hat m_t,\hat v_t\) 是矩估计，\(\lambda\) 是 decoupled weight decay。
-这个关系式给出 Hyperparameter 的规模化视角 的最小数学结构。读者应检查变量单位、取值范围和可观测性；如果某个量只能间接估计，就必须说明 proxy。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+这个关系式应被读成 Hyperparameter 的规模化视角 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。
+在系统实验中，tokens/s、TTFT、显存峰值和 kernel time 都是 proxy。它们各自只观察一部分系统，因此报告时要同时写清 workload shape、warmup、同步方式和硬件型号。
 \subsection{从 Hyperparameter 的规模化视角 到程序}
-把 Hyperparameter 的规模化视角 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
+把 Hyperparameter 的规模化视角 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。
 \begin{lstlisting}[language=Python]
 for run in sweep:
     train_small_proxy(run)
     reject_if_unstable_or_inefficient(run)
     scale_only_after_resource_accounting(run)
 \end{lstlisting}
-这段伪代码的读法，是找出 Hyperparameter 的规模化视角 改变了哪些状态，以及这些状态如何对应到 输入规模、资源使用、指标变化和失败模式。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段实现时，重点看 Hyperparameter 的规模化视角 怎样移动张量、占用显存并触发通信。实验记录至少要包含 吞吐、延迟、显存峰值、通信量和 kernel 利用率，否则很难判断瓶颈来自算子、内存层级还是调度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 小规模最优超参数不一定可直接外推。
 \item hyperparameter search 的成本本身也是 scaling plan 的一部分。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 kernel benchmark 不一定预测端到端训练或 serving latency，因为调度、通信和请求形状会改变瓶颈。
+\item 硬件规格表和框架 profiler 都需要结合 workload 解释，不能把单个峰值数字当作机制证明。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-Hyperparameter 的规模化视角 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+Hyperparameter 的规模化视角 连接本章的数学机制和工程成本：术语表说明对象，公式估算资源，伪代码暴露状态变化，例题则让读者检查一次完整的成本推理。
 \subsection{怎样检验 Hyperparameter 的规模化视角}
-检验 Hyperparameter 的规模化视角 时，先把抽象说法落到模型、数据或实验状态上。与 hyperparameter、learning rate、AdamW、warmup、scale 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
-一个合适的小实验应当保留本节机制，同时让 输入规模、资源使用、指标变化和失败模式 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+检验 Hyperparameter 的规模化视角 时，先把抽象说法落到硬件和系统状态上。与 hyperparameter、learning rate、AdamW、warmup、scale 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 吞吐、延迟、显存峰值、通信量和 kernel 利用率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：这是 AdamW 风格更新；\textbackslash{}(\textbackslash{}eta\_t\textbackslash{}) 是学习率，\textbackslash{}(\textbackslash{}hat m\_t,\textbackslash{}hat v\_t\textbackslash{}) 是矩估计，\textbackslash{}(\textbackslash{}lambda\textbackslash{}) 是 decoupled weight decay。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：小规模最优超参数不一定可直接外推；hyperparameter search 的成本本身也是 scaling plan 的一部分。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 现代 Transformer architecture 与 hyperparameters 的整体结构中。Hyperparameter 的规模化视角 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：Hyperparameter 的规模化视角}
-本节容易混淆的关键词包括 hyperparameter、learning rate、AdamW、warmup、scale。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
-区分这些词时，可以先问它们是否改变 输入规模、资源使用、指标变化和失败模式。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 Hyperparameter 的规模化视角 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+系统消融通常一次只改变 batch shape、sequence length、GPU 数、kernel 实现或调度策略。若同时改变硬件和 workload，实验只能说明端到端表现不同，不能定位瓶颈。
+最后检查失败条件。工程判断往往在反例中变清楚：小规模最优超参数不一定可直接外推；hyperparameter search 的成本本身也是 scaling plan 的一部分。复习时可以把这些限制改写成反例测试，观察它们怎样改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+把实验结论放回 现代 Transformer architecture 与 hyperparameters 时，要说明 Hyperparameter 的规模化视角 改变的是训练吞吐、推理延迟、显存峰值还是通信开销。能做出这种归因，才说明读者已经从接口使用进入系统解释。
+\subsection{概念辨析：Hyperparameter 的规模化视角}
+hyperparameter、learning rate、AdamW、warmup、scale 常一起出现在系统讲解中，但它们分别指硬件对象、程序操作、瓶颈来源或测量指标。读者应先定位每个词在执行路径中的位置。
+区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 Hyperparameter 的规模化视角 复习时，可以写一个小 benchmark：固定输入形状，改变一个系统变量，记录 profile trace 和端到端时间。
 \subsection{Hyperparameter 的规模化视角 的小结}
 \begin{itemize}
-\item 讨论 Hyperparameter 的规模化视角 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 输入规模、资源使用、指标变化和失败模式。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 讨论 Hyperparameter 的规模化视角 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+\item 如果方法声称更快，要区分计算减少、内存访问减少、通信隐藏和调度改善；这些机制不能用一个 tokens/s 数字互相替代。
+\item profile trace、roofline 估算和端到端 benchmark 应互相校验，单独一个指标不足以解释系统瓶颈。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 现代 Transformer architecture 与 hyperparameters，但它不应被读成几个相邻知识点的拼接。Decoder-only Transformer 的骨架、Normalization、activation 与 position encoding、Hyperparameter 的规模化视角 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -292,6 +288,11 @@ Hyperparameter 的规模化视角 首先提供一个局部解释：lecture 3 的
 因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
 还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
 若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
+\subsection{把本章重新读成一条证据链}
+完成小实验之后，可以把 现代 Transformer architecture 与 hyperparameters 重新读成一条证据链：先用“Decoder-only Transformer 的骨架”确定问题入口，再用“Normalization、activation 与 position encoding”解释主要机制，最后用“Hyperparameter 的规模化视角”检查边界或外推条件。这种读法比按页背诵更接近教材训练，因为它要求每个结论都能说明前提、变量和证据。
+本章反复使用的术语包括 Transformer architecture（Transformer 架构）、pre-norm（前归一化）、RMSNorm、RoPE（rotary positional embedding）、SwiGLU、hyperparameter（超参数）。复习时不要只写定义，而要为每个术语补上一句操作性说明：它在课程代码、公式、数据记录或评估协议中对应什么对象；如果这个对象被删除、替换或缩放，哪一个观测量会变化。
+最后，用一个反例结束复习。反例可以是资源估算不准、数据污染、reward 失真、benchmark 解析失败、长上下文显存爆炸或 scaling 外推失效。能解释反例的章节，才真正具备自学和引用价值；不能解释反例的章节，只是把课程材料换了一种排版。
+引用本章结论时，还应保留来源边界：哪些说法直接来自视频、课程页、slides 或代码，哪些是为了串联教材叙述而加入的解释性推导。这个边界不会削弱结论，反而让读者知道何处可以复核，何处需要在自己的实验中重新验证。如果后续课程材料更新，也可以沿着同一证据链替换来源，而不必重写整章结构。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}

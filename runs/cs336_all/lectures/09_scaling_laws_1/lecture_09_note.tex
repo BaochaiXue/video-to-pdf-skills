@@ -51,19 +51,16 @@
 \caption{官方材料图页：Scaling laws 基础 的课程页/PDF/script 图像锚点。}
 \end{figure}
 \section{本章主线}
-本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+Scaling laws 基础 的主线是从小规模实验走向大规模决策。读者需要同时追踪参数量、token 数、compute budget、loss 和 benchmark 之间的关系。
 \subsection{本章要解决的核心问题}
 本讲介绍 scaling laws 的基础动机：用小规模实验预测大规模训练，而不是在昂贵大模型上盲目调参。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Scaling laws 基础 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+读完这一段后，应能用一两句话说明 Scaling laws 基础 要解决的瓶颈，并指出这个瓶颈发生在数据、模型、优化、系统还是评估层。
 \subsection{从机制到资源账本}
 核心问题是固定 compute budget 时如何选择参数量 N 和训练 token 数 D。Chinchilla 式分析把模型大小、数据量和 loss 连接到一个可决策的曲面。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Scaling laws 基础 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+随后把机制写成账本：输入规模是什么，主要状态是什么，成本或质量指标怎样随变量改变。这个账本让后面的公式不再只是符号。
 \subsection{从课堂讲解到可复现实验}
 scaling law 是经验预测工具，不是自然定律。数据分布变化、优化失败、architecture 改动和评估污染都会让外推失效。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Scaling laws 基础 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+最后把课堂讲解转成可复现实验：固定协议，改变一个变量，记录中间量，并解释结果为何支持或反驳原来的机制判断。
 \section{术语、符号与问题边界}
 本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
 \begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
@@ -78,28 +75,27 @@ scaling law 是经验预测工具，不是自然定律。数据分布变化、�
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
-\subsection{关键词}
-下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
-\begin{itemize}
-\item scaling, data, laws, size, batch, performance, param, dataset, small, tokens, over, learning, compute, train
-\end{itemize}
+\subsection{术语之间的关系}
+在本章中，scaling law（缩放律） 给出问题入口，loss（损失） 描述主要机制，compute-optimal（计算最优） 则把机制连接到可测量的结果。读教材时应当沿着这个链条追问：输入是什么，中间状态怎样改变，输出指标为什么随之变化。
+课程材料还会反复出现 scaling、data、laws、size、batch、performance 等词。它们不是一组同义标签，而是提示本章的不同层次：有的指对象，有的指操作，有的指约束或指标。
+因此，术语表不是背诵清单，而是后文阅读的索引。遇到一个术语时，先定位它属于 representation、optimization、systems、data 还是 evaluation，再判断它改变哪一项账本。
 \section{为什么 scaling laws 有用}
-本节讨论 为什么 scaling laws 有用。它把 Scaling laws 基础 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+本节讨论 为什么 scaling laws 有用。它先限定 Scaling laws 基础 要回答的基本问题：哪些现象需要解释，哪些变量可以测量，哪些结论必须回到 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 中检验。
 \subsection{课程目标与问题边界}
 视频把本讲称为离开 systems 后回到 deep learning 的 scaling law 基础。
 scaling law 让大规模训练从盲目试错变成可预测实验：用小 runs 估计大 run 的 loss。
 真正的用途是决策：给定 compute/data budget，应选多大模型、多少 tokens、什么训练长度。
-为什么 scaling laws 有用 的作用是把 Scaling laws 基础 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+为什么 scaling laws 有用 把 Scaling laws 基础 连接到大规模决策。接下来要看的不是曲线是否平滑，而是实验点、预算变量和外推假设是否一致。
 \subsection{为什么 scaling laws 有用 的机制}
-视频把本讲称为离开 systems 后回到 deep learning 的 scaling law 基础。 这句话把讨论落在模型、数据或实验状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
-scaling law 让大规模训练从盲目试错变成可预测实验：用小 runs 估计大 run 的 loss。 因而同一个方法在不同规模下可能改变不同的变量，尤其是输入规模、资源使用、指标变化和失败模式。比较方法时，必须同时给出问题规模和实验条件。
-真正的用途是决策：给定 compute/data budget，应选多大模型、多少 tokens、什么训练长度。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，为什么 scaling laws 有用 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+视频把本讲称为离开 systems 后回到 deep learning 的 scaling law 基础。 在 为什么 scaling laws 有用 中，核心对象是模型规模、token 数和训练预算：小实验只有在预算、数据和优化条件清楚时，才可能支持大规模外推。
+scaling law 让大规模训练从盲目试错变成可预测实验：用小 runs 估计大 run 的 loss。 因而同一个方法在不同规模下可能改变不同的变量，尤其是参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。比较方法时，必须同时给出问题规模和实验条件。
+真正的用途是决策：给定 compute/data budget，应选多大模型、多少 tokens、什么训练长度。 可检验性来自多个实验点、残差分析和外推误差估计；单条曲线若没有不确定性，就不能支撑大规模决策。
+因此，为什么 scaling laws 有用 的学习目标是建立一套外推判断：读者应能说明小实验为何能或不能指导 Scaling laws 基础 中的大训练配置。
 \subsection{资源、效率与效果的关系}
 \[L(N,D)=L_\infty + A N^{-\alpha}+B D^{-\beta}\]
 符号说明：\(L\) 是 validation loss，\(N\) 是参数量，\(D\) 是训练 tokens，\(\alpha,\beta\) 控制随规模下降的速度。
-这个关系式给出 为什么 scaling laws 有用 的最小数学结构。读者应检查变量单位、取值范围和可观测性；如果某个量只能间接估计，就必须说明 proxy。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+这个关系式给出 为什么 scaling laws 有用 的缩放假设。它把参数量、训练 token 数和 compute budget 放到同一张账本中，重点是判断小实验能否可靠外推到大训练。
+在 scaling 实验中，validation loss、benchmark transfer 和训练吞吐都只是不同侧面的 proxy。外推时要说明哪个 proxy 被拟合，哪个 proxy 只是辅助诊断。
 \subsection{把课程目标写成检查流程}
 把 为什么 scaling laws 有用 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
@@ -107,51 +103,51 @@ fit_loss_surface(small_runs)
 for budget in budgets:
     choose_N_D_that_minimizes_predicted_loss(budget)
 \end{lstlisting}
-这段伪代码的读法，是找出 为什么 scaling laws 有用 改变了哪些状态，以及这些状态如何对应到 输入规模、资源使用、指标变化和失败模式。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段流程时，重点看小规模实验怎样产生可外推曲线。参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 需要在每个实验点上同时记录，缺少其中一项都会改变 scaling 解释。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 缩放律是经验模型，不是自然定律。
 \item 分布变化、优化失败、数据质量变化会破坏外推。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 scaling 曲线不一定覆盖大训练的优化不稳定、数据瓶颈和系统瓶颈。
+\item compute-optimal 结论依赖目标指标；以 loss 最优并不自动意味着 benchmark、latency 或成本最优。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-为什么 scaling laws 有用 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+为什么 scaling laws 有用 连接本章的小实验和大规模决策：术语表标出预算变量，公式给出外推结构，伪代码组织实验点，例题检查 compute-optimal 判断是否稳健。
 \subsection{怎样检验 这一课程目标}
-检验 这一课程目标 时，先把抽象说法落到模型、数据或实验状态上。与 scaling laws、loss、parameters、tokens、predict 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
-一个合适的小实验应当保留本节机制，同时让 输入规模、资源使用、指标变化和失败模式 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+检验 这一课程目标 时，先把抽象说法落到模型规模、token 数和训练预算上。与 scaling laws、loss、parameters、tokens、predict 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(L\textbackslash{}) 是 validation loss，\textbackslash{}(N\textbackslash{}) 是参数量，\textbackslash{}(D\textbackslash{}) 是训练 tokens，\textbackslash{}( lpha,\textbackslash{}beta\textbackslash{}) 控制随规模下降的速度。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：缩放律是经验模型，不是自然定律；分布变化、优化失败、数据质量变化会破坏外推。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Scaling laws 基础 的整体结构中。为什么 scaling laws 有用 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：为什么 scaling laws 有用}
-本节容易混淆的关键词包括 scaling laws、loss、parameters、tokens、predict。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+scaling 消融通常一次只改变参数量、token 数、数据 pipeline 或优化 schedule。若多个轴同时移动，曲线拟合会混合不同机制。
+最后检查失败条件。工程判断往往在反例中变清楚：缩放律是经验模型，不是自然定律；分布变化、优化失败、数据质量变化会破坏外推。复习时可以把这些限制改写成反例测试，观察它们怎样改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
+把实验结论放回 Scaling laws 基础 时，要说明 为什么 scaling laws 有用 改变的是预算轴、拟合曲线、外推误差还是目标指标。能拆开这些因素，才说明读者真正理解 scaling。
+\subsection{概念辨析：为什么 scaling laws 有用}
+scaling laws、loss、parameters、tokens、predict 常一起出现在 scaling 讨论中，但它们分别指预算轴、拟合对象、外推假设或风险来源。读者应先确定曲线中的自变量和因变量。
 其中，scaling laws（缩放律）用小实验预测大模型 loss 或能力趋势。
-区分这些词时，可以先问它们是否改变 输入规模、资源使用、指标变化和失败模式。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 为什么 scaling laws 有用 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 为什么 scaling laws 有用 复习时，可以画三到五个小实验点：记录参数量、token 数、预算和 loss，再检查外推是否合理。
 \subsection{为什么 scaling laws 有用 的小结}
 \begin{itemize}
-\item 讨论 为什么 scaling laws 有用 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 输入规模、资源使用、指标变化和失败模式。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 讨论 为什么 scaling laws 有用 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
+\item 如果方法声称可以外推，要说明实验点覆盖范围、拟合形式和数据管线是否一致；曲线本身不是自然定律。
+\item scaling 结论需要把 loss、benchmark 和成本之间的转换关系说清楚，否则 compute-optimal 只是一条局部经验曲线。
 \end{itemize}
 \section{IsoFLOPs 与 compute-optimal tradeoff}
-现在进入 IsoFLOPs 与 compute-optimal tradeoff。它把 Scaling laws 基础 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 IsoFLOPs 与 compute-optimal tradeoff。这一节把模型大小、训练 token、compute budget 和 loss 放在同一坐标系里，讨论何时可以从小实验推断大训练。
 \subsection{为什么要讨论 IsoFLOPs 与 compute-optimal tradeoff}
 IsoFLOP curve 固定训练 compute，在不同 \textbackslash{}(N,D\textbackslash{}) 组合中找最小 loss。
 Chinchilla 结论推动了对 undertrained large models 的反思：大模型不一定优于更小但训练更充分的模型。
 课程强调这种分析应服务于资源配置，而不是把某条论文曲线当作永恒配方。
-IsoFLOPs 与 compute-optimal tradeoff 的作用是把 Scaling laws 基础 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+IsoFLOPs 与 compute-optimal tradeoff 把 Scaling laws 基础 连接到大规模决策。接下来要看的不是曲线是否平滑，而是实验点、预算变量和外推假设是否一致。
 \subsection{IsoFLOPs 与 compute-optimal tradeoff 的机制}
-IsoFLOP curve 固定训练 compute，在不同 \textbackslash{}(N,D\textbackslash{}) 组合中找最小 loss。 这句话把讨论落在模型规模、token 数和训练预算上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+IsoFLOP curve 固定训练 compute，在不同 \textbackslash{}(N,D\textbackslash{}) 组合中找最小 loss。 在 IsoFLOPs 与 compute-optimal tradeoff 中，核心对象是模型规模、token 数和训练预算：小实验只有在预算、数据和优化条件清楚时，才可能支持大规模外推。
 Chinchilla 结论推动了对 undertrained large models 的反思：大模型不一定优于更小但训练更充分的模型。 因而同一个方法在不同规模下可能改变不同的变量，尤其是参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。比较方法时，必须同时给出问题规模和实验条件。
-课程强调这种分析应服务于资源配置，而不是把某条论文曲线当作永恒配方。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，IsoFLOPs 与 compute-optimal tradeoff 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+课程强调这种分析应服务于资源配置，而不是把某条论文曲线当作永恒配方。 可检验性来自多个实验点、残差分析和外推误差估计；单条曲线若没有不确定性，就不能支撑大规模决策。
+因此，IsoFLOPs 与 compute-optimal tradeoff 的学习目标是建立一套外推判断：读者应能说明小实验为何能或不能指导 Scaling laws 基础 中的大训练配置。
 \subsection{IsoFLOPs 与 compute-optimal tradeoff 的数学表达}
 \[C\approx 6ND,\qquad (N^\star,D^\star)=\arg\min_{6ND=C}L(N,D)\]
 符号说明：\(C\) 是总训练 FLOPs；\(N^\star,D^\star\) 是固定 compute 下预测最优的参数量和 token 数。
 这个关系式给出 IsoFLOPs 与 compute-optimal tradeoff 的缩放假设。它把参数量、训练 token 数和 compute budget 放到同一张账本中，重点是判断小实验能否可靠外推到大训练。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在 scaling 实验中，validation loss、benchmark transfer 和训练吞吐都只是不同侧面的 proxy。外推时要说明哪个 proxy 被拟合，哪个 proxy 只是辅助诊断。
 \subsection{从 IsoFLOPs 与 compute-optimal tradeoff 到程序}
 把 IsoFLOPs 与 compute-optimal tradeoff 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
@@ -160,51 +156,51 @@ for N in candidate_model_sizes:
     loss = scaling_law(N, D)
 select_min_loss_configuration()
 \end{lstlisting}
-这段伪代码的读法，是找出 IsoFLOPs 与 compute-optimal tradeoff 改变了哪些状态，以及这些状态如何对应到 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段流程时，重点看小规模实验怎样产生可外推曲线。参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 需要在每个实验点上同时记录，缺少其中一项都会改变 scaling 解释。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 公式里的 6ND 是近似；architecture 和 sequence length 会改变常数。
 \item compute-optimal 不等于 latency-optimal 或 serving-cost-optimal。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 scaling 曲线不一定覆盖大训练的优化不稳定、数据瓶颈和系统瓶颈。
+\item compute-optimal 结论依赖目标指标；以 loss 最优并不自动意味着 benchmark、latency 或成本最优。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-IsoFLOPs 与 compute-optimal tradeoff 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+IsoFLOPs 与 compute-optimal tradeoff 连接本章的小实验和大规模决策：术语表标出预算变量，公式给出外推结构，伪代码组织实验点，例题检查 compute-optimal 判断是否稳健。
 \subsection{怎样检验 IsoFLOPs 与 compute-optimal tradeoff}
 检验 IsoFLOPs 与 compute-optimal tradeoff 时，先把抽象说法落到模型规模、token 数和训练预算上。与 IsoFLOPs、compute-optimal、Chinchilla、6ND、budget 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(C\textbackslash{}) 是总训练 FLOPs；\textbackslash{}(N\textasciicircum{}\textbackslash{}star,D\textasciicircum{}\textbackslash{}star\textbackslash{}) 是固定 compute 下预测最优的参数量和 token 数。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：公式里的 6ND 是近似；architecture 和 sequence length 会改变常数；compute-optimal 不等于 latency-optimal 或 serving-cost-optimal。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Scaling laws 基础 的整体结构中。IsoFLOPs 与 compute-optimal tradeoff 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：IsoFLOPs 与 compute-optimal tradeoff}
-本节容易混淆的关键词包括 IsoFLOPs、compute-optimal、Chinchilla、6ND、budget。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+scaling 消融通常一次只改变参数量、token 数、数据 pipeline 或优化 schedule。若多个轴同时移动，曲线拟合会混合不同机制。
+最后检查失败条件。工程判断往往在反例中变清楚：公式里的 6ND 是近似；architecture 和 sequence length 会改变常数；compute-optimal 不等于 latency-optimal 或 serving-cost-optimal。复习时可以把这些限制改写成反例测试，观察它们怎样改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
+把实验结论放回 Scaling laws 基础 时，要说明 IsoFLOPs 与 compute-optimal tradeoff 改变的是预算轴、拟合曲线、外推误差还是目标指标。能拆开这些因素，才说明读者真正理解 scaling。
+\subsection{概念辨析：IsoFLOPs 与 compute-optimal tradeoff}
+IsoFLOPs、compute-optimal、Chinchilla、6ND、budget 常一起出现在 scaling 讨论中，但它们分别指预算轴、拟合对象、外推假设或风险来源。读者应先确定曲线中的自变量和因变量。
 其中，FLOPs（floating-point operations）是训练和推理成本账本的核心单位；Chinchilla 风格分析把参数量、token 数和 compute budget 联系起来。
-区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 IsoFLOPs 与 compute-optimal tradeoff 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 IsoFLOPs 与 compute-optimal tradeoff 复习时，可以画三到五个小实验点：记录参数量、token 数、预算和 loss，再检查外推是否合理。
 \subsection{IsoFLOPs 与 compute-optimal tradeoff 的小结}
 \begin{itemize}
 \item 讨论 IsoFLOPs 与 compute-optimal tradeoff 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称可以外推，要说明实验点覆盖范围、拟合形式和数据管线是否一致；曲线本身不是自然定律。
+\item scaling 结论需要把 loss、benchmark 和成本之间的转换关系说清楚，否则 compute-optimal 只是一条局部经验曲线。
 \end{itemize}
 \section{从小实验到大训练的风险控制}
-现在进入 从小实验到大训练的风险控制。它把 Scaling laws 基础 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 从小实验到大训练的风险控制。这一节把模型大小、训练 token、compute budget 和 loss 放在同一坐标系里，讨论何时可以从小实验推断大训练。
 \subsection{为什么要讨论 从小实验到大训练的风险控制}
 scaling law 实验要覆盖足够的模型大小、数据量和训练长度，否则拟合不稳定。
 validation loss 的测量要保持数据分布一致，并避免污染和重复。
 当预测大 run 时，置信区间、残差分析和 sanity checks 比单个点预测更重要。
-从小实验到大训练的风险控制 的作用是把 Scaling laws 基础 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+从小实验到大训练的风险控制 把 Scaling laws 基础 连接到大规模决策。接下来要看的不是曲线是否平滑，而是实验点、预算变量和外推假设是否一致。
 \subsection{从小实验到大训练的风险控制 的机制}
-scaling law 实验要覆盖足够的模型大小、数据量和训练长度，否则拟合不稳定。 这句话把讨论落在模型规模、token 数和训练预算上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+scaling law 实验要覆盖足够的模型大小、数据量和训练长度，否则拟合不稳定。 在 从小实验到大训练的风险控制 中，核心对象是模型规模、token 数和训练预算：小实验只有在预算、数据和优化条件清楚时，才可能支持大规模外推。
 validation loss 的测量要保持数据分布一致，并避免污染和重复。 因而同一个方法在不同规模下可能改变不同的变量，尤其是参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。比较方法时，必须同时给出问题规模和实验条件。
-当预测大 run 时，置信区间、残差分析和 sanity checks 比单个点预测更重要。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，从小实验到大训练的风险控制 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+当预测大 run 时，置信区间、残差分析和 sanity checks 比单个点预测更重要。 可检验性来自多个实验点、残差分析和外推误差估计；单条曲线若没有不确定性，就不能支撑大规模决策。
+因此，从小实验到大训练的风险控制 的学习目标是建立一套外推判断：读者应能说明小实验为何能或不能指导 Scaling laws 基础 中的大训练配置。
 \subsection{从小实验到大训练的风险控制 的数学表达}
 \[\hat L_{\text{large}}\pm z\sigma_{\text{residual}}\]
 符号说明：\(\hat L_{\text{large}}\) 是预测 loss，\(\sigma_{\text{residual}}\) 是小实验拟合残差的尺度。
 这个关系式给出 从小实验到大训练的风险控制 的缩放假设。它把参数量、训练 token 数和 compute budget 放到同一张账本中，重点是判断小实验能否可靠外推到大训练。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在 scaling 实验中，validation loss、benchmark transfer 和训练吞吐都只是不同侧面的 proxy。外推时要说明哪个 proxy 被拟合，哪个 proxy 只是辅助诊断。
 \subsection{从 从小实验到大训练的风险控制 到程序}
 把 从小实验到大训练的风险控制 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
@@ -212,32 +208,32 @@ runs = launch_grid(model_sizes, token_counts)
 fit = robust_fit(runs)
 plot_residuals_and_refuse_bad_extrapolation(fit)
 \end{lstlisting}
-这段伪代码的读法，是找出 从小实验到大训练的风险控制 改变了哪些状态，以及这些状态如何对应到 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段流程时，重点看小规模实验怎样产生可外推曲线。参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 需要在每个实验点上同时记录，缺少其中一项都会改变 scaling 解释。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 过度外推会把小模型 regime 的现象误用于大模型。
 \item 数据 pipeline 改变后，旧 scaling law 需要重新校准。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 scaling 曲线不一定覆盖大训练的优化不稳定、数据瓶颈和系统瓶颈。
+\item compute-optimal 结论依赖目标指标；以 loss 最优并不自动意味着 benchmark、latency 或成本最优。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-从小实验到大训练的风险控制 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+从小实验到大训练的风险控制 连接本章的小实验和大规模决策：术语表标出预算变量，公式给出外推结构，伪代码组织实验点，例题检查 compute-optimal 判断是否稳健。
 \subsection{怎样检验 从小实验到大训练的风险控制}
 检验 从小实验到大训练的风险控制 时，先把抽象说法落到模型规模、token 数和训练预算上。与 extrapolation、residual、validation、grid、forecast 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(\textbackslash{}hat L\_\{ ext\{large\}\}\textbackslash{}) 是预测 loss，\textbackslash{}(\textbackslash{}sigma\_\{ ext\{residual\}\}\textbackslash{}) 是小实验拟合残差的尺度。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：过度外推会把小模型 regime 的现象误用于大模型；数据 pipeline 改变后，旧 scaling law 需要重新校准。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Scaling laws 基础 的整体结构中。从小实验到大训练的风险控制 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：从小实验到大训练的风险控制}
-本节容易混淆的关键词包括 extrapolation、residual、validation、grid、forecast。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
-区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 从小实验到大训练的风险控制 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+scaling 消融通常一次只改变参数量、token 数、数据 pipeline 或优化 schedule。若多个轴同时移动，曲线拟合会混合不同机制。
+最后检查失败条件。工程判断往往在反例中变清楚：过度外推会把小模型 regime 的现象误用于大模型；数据 pipeline 改变后，旧 scaling law 需要重新校准。复习时可以把这些限制改写成反例测试，观察它们怎样改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
+把实验结论放回 Scaling laws 基础 时，要说明 从小实验到大训练的风险控制 改变的是预算轴、拟合曲线、外推误差还是目标指标。能拆开这些因素，才说明读者真正理解 scaling。
+\subsection{概念辨析：从小实验到大训练的风险控制}
+extrapolation、residual、validation、grid、forecast 常一起出现在 scaling 讨论中，但它们分别指预算轴、拟合对象、外推假设或风险来源。读者应先确定曲线中的自变量和因变量。
+区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 从小实验到大训练的风险控制 复习时，可以画三到五个小实验点：记录参数量、token 数、预算和 loss，再检查外推是否合理。
 \subsection{从小实验到大训练的风险控制 的小结}
 \begin{itemize}
 \item 讨论 从小实验到大训练的风险控制 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称可以外推，要说明实验点覆盖范围、拟合形式和数据管线是否一致；曲线本身不是自然定律。
+\item scaling 结论需要把 loss、benchmark 和成本之间的转换关系说清楚，否则 compute-optimal 只是一条局部经验曲线。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 Scaling laws 基础，但它不应被读成几个相邻知识点的拼接。为什么 scaling laws 有用、IsoFLOPs 与 compute-optimal tradeoff、从小实验到大训练的风险控制 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -289,6 +285,11 @@ IsoFLOPs 与 compute-optimal tradeoff 首先提供一个局部解释：IsoFLOP c
 因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
 还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
 若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
+\subsection{把本章重新读成一条证据链}
+完成小实验之后，可以把 Scaling laws 基础 重新读成一条证据链：先用“为什么 scaling laws 有用”确定问题入口，再用“IsoFLOPs 与 compute-optimal tradeoff”解释主要机制，最后用“从小实验到大训练的风险控制”检查边界或外推条件。这种读法比按页背诵更接近教材训练，因为它要求每个结论都能说明前提、变量和证据。
+本章反复使用的术语包括 scaling law（缩放律）、loss（损失）、compute-optimal（计算最优）、Chinchilla、IsoFLOP curve（等 FLOPs 曲线）。复习时不要只写定义，而要为每个术语补上一句操作性说明：它在课程代码、公式、数据记录或评估协议中对应什么对象；如果这个对象被删除、替换或缩放，哪一个观测量会变化。
+最后，用一个反例结束复习。反例可以是资源估算不准、数据污染、reward 失真、benchmark 解析失败、长上下文显存爆炸或 scaling 外推失效。能解释反例的章节，才真正具备自学和引用价值；不能解释反例的章节，只是把课程材料换了一种排版。
+引用本章结论时，还应保留来源边界：哪些说法直接来自视频、课程页、slides 或代码，哪些是为了串联教材叙述而加入的解释性推导。这个边界不会削弱结论，反而让读者知道何处可以复核，何处需要在自己的实验中重新验证。如果后续课程材料更新，也可以沿着同一证据链替换来源，而不必重写整章结构。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}

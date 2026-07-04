@@ -51,19 +51,16 @@
 \caption{官方材料图页：Mid/Post-training：SFT 与 RLHF 的课程页/PDF/script 图像锚点。}
 \end{figure}
 \section{本章主线}
-本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+Mid/Post-training：SFT 与 RLHF 的主线是解释 base model 之后的行为塑形。课程关心的不是单个 post-training 名词，而是示范、偏好、奖励和评估怎样共同约束输出。
 \subsection{本章要解决的核心问题}
 本讲从 pretraining 转向 mid/post-training。SFT 用示范回答塑造 instruction-following，RLHF 用偏好数据进一步控制输出。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Mid/Post-training：SFT 与 RLHF 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+读完这一段后，应能用一两句话说明 Mid/Post-training：SFT 与 RLHF 要解决的瓶颈，并指出这个瓶颈发生在数据、模型、优化、系统还是评估层。
 \subsection{从机制到资源账本}
 post-training 更 artisanal：数据稀缺、公开细节少、标注规范和 reward model 都会强烈影响模型行为。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Mid/Post-training：SFT 与 RLHF 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+随后把机制写成账本：输入规模是什么，主要状态是什么，成本或质量指标怎样随变量改变。这个账本让后面的公式不再只是符号。
 \subsection{从课堂讲解到可复现实验}
 DPO/PPO/RLHF 等方法的共同主题是让模型偏向更符合人类偏好的回答，同时用 KL 或 reference policy 控制偏离。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Mid/Post-training：SFT 与 RLHF 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+最后把课堂讲解转成可复现实验：固定协议，改变一个变量，记录中间量，并解释结果为何支持或反驳原来的机制判断。
 \section{术语、符号与问题边界}
 本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
 \begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
@@ -79,28 +76,27 @@ DPO/PPO/RLHF 等方法的共同主题是让模型偏向更符合人类偏好的�
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
-\subsection{关键词}
-下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
-\begin{itemize}
-\item data, rlhf, reward, many, instruction, safety, monopsony, market, feedback, approach, part, high, good, style
-\end{itemize}
+\subsection{术语之间的关系}
+在本章中，post-training（后训练） 给出问题入口，supervised fine-tuning (SFT) 描述主要机制，RLHF 则把机制连接到可测量的结果。读教材时应当沿着这个链条追问：输入是什么，中间状态怎样改变，输出指标为什么随之变化。
+课程材料还会反复出现 data、rlhf、reward、many、instruction、safety 等词。它们不是一组同义标签，而是提示本章的不同层次：有的指对象，有的指操作，有的指约束或指标。
+因此，术语表不是背诵清单，而是后文阅读的索引。遇到一个术语时，先定位它属于 representation、optimization、systems、data 还是 evaluation，再判断它改变哪一项账本。
 \section{从 pretraining 到 assistant 行为}
-现在进入 从 pretraining 到 assistant 行为。它把 Mid/Post-training：SFT 与 RLHF 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 从 pretraining 到 assistant 行为。这一节讨论 base model 之外的行为塑形：示范、偏好、reward 或 verifier 怎样把模型输出推向课程定义的目标行为。
 \subsection{为什么要讨论 从 pretraining 到 assistant 行为}
 视频开场说 post-training 比 pretraining 更 messy、更 artisanal；它把基础 LM 转成可交互助手。
 pretraining 学 next-token distribution，SFT 学示范回答格式和任务行为。
 mid-training/post-training 的核心是改变模型可见行为，而不是重新学习全部世界知识。
-从 pretraining 到 assistant 行为 的作用是把 Mid/Post-training：SFT 与 RLHF 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+从 pretraining 到 assistant 行为 把 Mid/Post-training：SFT 与 RLHF 连接到行为目标。接下来要看的不是 reward 名称，而是反馈信号、采样分布和约束项怎样改变模型更新。
 \subsection{从 pretraining 到 assistant 行为 的机制}
-视频开场说 post-training 比 pretraining 更 messy、更 artisanal；它把基础 LM 转成可交互助手。 这句话把讨论落在行为、奖励和偏好状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+视频开场说 post-training 比 pretraining 更 messy、更 artisanal；它把基础 LM 转成可交互助手。 在 从 pretraining 到 assistant 行为 中，核心对象是行为、奖励和偏好状态：后训练方法并不直接制造知识，而是通过目标和反馈改变模型选择输出的方式。
 pretraining 学 next-token distribution，SFT 学示范回答格式和任务行为。 因而同一个方法在不同规模下可能改变不同的变量，尤其是reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。比较方法时，必须同时给出问题规模和实验条件。
-mid-training/post-training 的核心是改变模型可见行为，而不是重新学习全部世界知识。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，从 pretraining 到 assistant 行为 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+mid-training/post-training 的核心是改变模型可见行为，而不是重新学习全部世界知识。 可检验性来自训练日志、reward 分布、KL/length 统计和行为评估；只看最终回答样例无法判断更新方向。
+因此，从 pretraining 到 assistant 行为 的学习目标是建立一条行为更新链：读者应能区分示范、偏好、奖励和约束分别给模型提供了什么信号。
 \subsection{从 pretraining 到 assistant 行为 的数学表达}
 \[\mathcal{L}_{\text{SFT}}(\theta)=-\sum_{(x,y)}\sum_t \log p_\theta(y_t\mid x,y_{<t})\]
 符号说明：\(x\) 是 instruction/context，\(y\) 是人工或高质量示范回答；SFT 仍是 token-level 监督学习。
 这个关系式说明 从 pretraining 到 assistant 行为 如何把行为偏好写入优化目标。关键不是符号复杂度，而是 reward、reference policy、采样分布和约束强度如何共同决定更新方向。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在后训练实验中，reward model score、verifier pass rate、回答长度和人工偏好都是 proxy。它们会被采样策略和格式约束影响，因此不能直接等同于真实有用性。
 \subsection{从 从 pretraining 到 assistant 行为 到程序}
 把 从 pretraining 到 assistant 行为 写成训练流程时，要区分采样、打分、构造 loss 和更新参数。下面的伪代码保留这些边界。
 \begin{lstlisting}[language=Python]
@@ -108,52 +104,52 @@ for instruction, response in sft_data:
     loss = cross_entropy(model(instruction, response), response_tokens)
     update(loss)
 \end{lstlisting}
-这段伪代码的读法，是找出 从 pretraining 到 assistant 行为 改变了哪些状态，以及这些状态如何对应到 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段训练流程时，重点区分采样、打分和参数更新。只有同时记录 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率，才能判断行为改善来自奖励信号、采样分布还是约束强度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item SFT 数据质量比数量更重要，坏示范会被直接模仿。
 \item SFT 可能降低 base model 的某些原始能力或校准。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 后训练指标可能被格式、长度或 verifier 偏差驱动，不能直接等同于真实能力提升。
+\item 偏好优化可能改善目标行为，也可能牺牲多样性、校准性或某些下游能力。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-从 pretraining 到 assistant 行为 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+从 pretraining 到 assistant 行为 连接本章的训练目标和输出行为：术语表区分示范、偏好与奖励，公式说明优化方向，伪代码展示采样和更新，例题检查行为约束的边界。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 从 pretraining 到 assistant 行为}
 检验 从 pretraining 到 assistant 行为 时，先把抽象说法落到行为、奖励和偏好状态上。与 post-training、SFT、instruction、assistant、demonstration 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(x\textbackslash{}) 是 instruction/context，\textbackslash{}(y\textbackslash{}) 是人工或高质量示范回答；SFT 仍是 token-level 监督学习。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：SFT 数据质量比数量更重要，坏示范会被直接模仿；SFT 可能降低 base model 的某些原始能力或校准。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Mid/Post-training：SFT 与 RLHF 的整体结构中。从 pretraining 到 assistant 行为 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：从 pretraining 到 assistant 行为}
-本节容易混淆的关键词包括 post-training、SFT、instruction、assistant、demonstration。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+后训练消融通常一次只改变示范数据、reward scale、KL 约束、采样温度或 verifier。若训练目标和解码策略同时变化，行为差异就很难归因。
+最后检查失败条件。工程判断往往在反例中变清楚：SFT 数据质量比数量更重要，坏示范会被直接模仿；SFT 可能降低 base model 的某些原始能力或校准。复习时可以把这些限制改写成反例测试，观察它们怎样改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
+把实验结论放回 Mid/Post-training：SFT 与 RLHF 时，要说明 从 pretraining 到 assistant 行为 改变的是目标函数、采样分布、反馈质量还是行为约束。能区分这些来源，才说明读者真正理解后训练。
+\subsection{概念辨析：从 pretraining 到 assistant 行为}
+post-training、SFT、instruction、assistant、demonstration 常一起出现在后训练讨论中，但它们分别指数据、反馈、目标函数或行为指标。读者应先判断每个词给优化过程提供什么信号。
 其中，supervised fine-tuning (SFT) 用示范回答塑造 assistant 行为。
-区分这些词时，可以先问它们是否改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 从 pretraining 到 assistant 行为 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 从 pretraining 到 assistant 行为 复习时，可以构造几条 prompt-response：明确奖励或偏好规则，观察同一模型在更新前后的行为差异。
 \subsection{从 pretraining 到 assistant 行为 的小结}
 \begin{itemize}
 \item 讨论 从 pretraining 到 assistant 行为 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称行为更好，要说明示范、偏好、reward 或 verifier 哪一项提供了信号，并检查 reward hacking、length bias 和能力退化。
+\item 后训练结论需要把训练目标、采样策略和评估协议分开报告，否则无法判断改进来自哪里。
 \end{itemize}
 \section{Reward modeling 与 RLHF}
-现在进入 Reward modeling 与 RLHF。它把 Mid/Post-training：SFT 与 RLHF 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 Reward modeling 与 RLHF。这一节讨论 base model 之外的行为塑形：示范、偏好、reward 或 verifier 怎样把模型输出推向课程定义的目标行为。
 \subsection{为什么要讨论 Reward modeling 与 RLHF}
 RLHF 用人类偏好训练 reward model，再用 RL 优化策略模型。
 pairwise preference 更容易标注开放式回答质量，但 reward model 只是偏好的近似。
 PPO 等 RL 方法需要 KL penalty，防止模型远离 reference policy 而产生 reward hacking。
 后训练部分的核心问题是行为控制。模型已经学到语言分布，但还需要通过示范、偏好或可验证奖励，把输出推向可用、可评估、可约束的行为。
 \subsection{Reward modeling 与 RLHF 的机制}
-RLHF 用人类偏好训练 reward model，再用 RL 优化策略模型。 这句话把讨论落在行为、奖励和偏好状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+RLHF 用人类偏好训练 reward model，再用 RL 优化策略模型。 在 Reward modeling 与 RLHF 中，核心对象是行为、奖励和偏好状态：后训练方法并不直接制造知识，而是通过目标和反馈改变模型选择输出的方式。
 pairwise preference 更容易标注开放式回答质量，但 reward model 只是偏好的近似。 因而同一个方法在不同规模下可能改变不同的变量，尤其是reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。比较方法时，必须同时给出问题规模和实验条件。
-PPO 等 RL 方法需要 KL penalty，防止模型远离 reference policy 而产生 reward hacking。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，Reward modeling 与 RLHF 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+PPO 等 RL 方法需要 KL penalty，防止模型远离 reference policy 而产生 reward hacking。 可检验性来自训练日志、reward 分布、KL/length 统计和行为评估；只看最终回答样例无法判断更新方向。
+因此，Reward modeling 与 RLHF 的学习目标是建立一条行为更新链：读者应能区分示范、偏好、奖励和约束分别给模型提供了什么信号。
 \subsection{Reward modeling 与 RLHF 的目标函数}
 \[\mathcal{L}_{\text{RM}}=-\log\sigma(r_\phi(x,y^+)-r_\phi(x,y^-))\]
 符号说明：\(y^+\) 是偏好回答，\(y^-\) 是较差回答，\(r_\phi\) 是 reward model。
 这个关系式说明 Reward modeling 与 RLHF 如何把行为偏好写入优化目标。关键不是符号复杂度，而是 reward、reference policy、采样分布和约束强度如何共同决定更新方向。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在后训练实验中，reward model score、verifier pass rate、回答长度和人工偏好都是 proxy。它们会被采样策略和格式约束影响，因此不能直接等同于真实有用性。
 \subsection{Reward modeling 与 RLHF 的训练流程}
 把 Reward modeling 与 RLHF 写成训练流程时，要区分采样、打分、构造 loss 和更新参数。下面的伪代码保留这些边界。
 \begin{lstlisting}[language=Python]
@@ -162,52 +158,52 @@ kl = kl_divergence(policy, reference)
 objective = reward - beta * kl
 policy.update(objective)
 \end{lstlisting}
-这段伪代码的读法，是找出 Reward modeling 与 RLHF 改变了哪些状态，以及这些状态如何对应到 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段训练流程时，重点区分采样、打分和参数更新。只有同时记录 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率，才能判断行为改善来自奖励信号、采样分布还是约束强度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item reward model 会被策略优化 exploited。
 \item 偏好数据反映标注规范和人群，不是客观真理。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 后训练指标可能被格式、长度或 verifier 偏差驱动，不能直接等同于真实能力提升。
+\item 偏好优化可能改善目标行为，也可能牺牲多样性、校准性或某些下游能力。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-Reward modeling 与 RLHF 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+Reward modeling 与 RLHF 连接本章的训练目标和输出行为：术语表区分示范、偏好与奖励，公式说明优化方向，伪代码展示采样和更新，例题检查行为约束的边界。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 Reward modeling 与 RLHF}
 检验 Reward modeling 与 RLHF 时，先把抽象说法落到行为、奖励和偏好状态上。与 RLHF、reward model、preference、PPO、KL 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(y\textasciicircum{}+\textbackslash{}) 是偏好回答，\textbackslash{}(y\textasciicircum{}-\textbackslash{}) 是较差回答，\textbackslash{}(r\_\textbackslash{}phi\textbackslash{}) 是 reward model。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：reward model 会被策略优化 exploited；偏好数据反映标注规范和人群，不是客观真理。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Mid/Post-training：SFT 与 RLHF 的整体结构中。Reward modeling 与 RLHF 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：Reward modeling 与 RLHF}
-本节容易混淆的关键词包括 RLHF、reward model、preference、PPO、KL。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+后训练消融通常一次只改变示范数据、reward scale、KL 约束、采样温度或 verifier。若训练目标和解码策略同时变化，行为差异就很难归因。
+最后检查失败条件。工程判断往往在反例中变清楚：reward model 会被策略优化 exploited；偏好数据反映标注规范和人群，不是客观真理。复习时可以把这些限制改写成反例测试，观察它们怎样改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
+把实验结论放回 Mid/Post-training：SFT 与 RLHF 时，要说明 Reward modeling 与 RLHF 改变的是目标函数、采样分布、反馈质量还是行为约束。能区分这些来源，才说明读者真正理解后训练。
+\subsection{概念辨析：Reward modeling 与 RLHF}
+RLHF、reward model、preference、PPO、KL 常一起出现在后训练讨论中，但它们分别指数据、反馈、目标函数或行为指标。读者应先判断每个词给优化过程提供什么信号。
 其中，RLHF 用人类偏好 reward 优化模型行为。
-区分这些词时，可以先问它们是否改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 Reward modeling 与 RLHF 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 Reward modeling 与 RLHF 复习时，可以构造几条 prompt-response：明确奖励或偏好规则，观察同一模型在更新前后的行为差异。
 \subsection{Reward modeling 与 RLHF 的小结}
 \begin{itemize}
 \item 讨论 Reward modeling 与 RLHF 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称行为更好，要说明示范、偏好、reward 或 verifier 哪一项提供了信号，并检查 reward hacking、length bias 和能力退化。
+\item 后训练结论需要把训练目标、采样策略和评估协议分开报告，否则无法判断改进来自哪里。
 \end{itemize}
 \section{DPO 与直接偏好优化}
-现在进入 DPO 与直接偏好优化。它把 Mid/Post-training：SFT 与 RLHF 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 DPO 与直接偏好优化。这一节讨论 base model 之外的行为塑形：示范、偏好、reward 或 verifier 怎样把模型输出推向课程定义的目标行为。
 \subsection{为什么要讨论 DPO 与直接偏好优化}
 DPO 类方法把偏好优化写成监督式目标，避免显式训练 RL loop。
 它依然依赖偏好数据和 reference policy，只是把 reward 隐式化。
 post-training 方法选择应看数据类型、稳定性、compute、目标行为和安全约束。
 后训练部分的核心问题是行为控制。模型已经学到语言分布，但还需要通过示范、偏好或可验证奖励，把输出推向可用、可评估、可约束的行为。
 \subsection{DPO 与直接偏好优化 的机制}
-DPO 类方法把偏好优化写成监督式目标，避免显式训练 RL loop。 这句话把讨论落在行为、奖励和偏好状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+DPO 类方法把偏好优化写成监督式目标，避免显式训练 RL loop。 在 DPO 与直接偏好优化 中，核心对象是行为、奖励和偏好状态：后训练方法并不直接制造知识，而是通过目标和反馈改变模型选择输出的方式。
 它依然依赖偏好数据和 reference policy，只是把 reward 隐式化。 因而同一个方法在不同规模下可能改变不同的变量，尤其是reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。比较方法时，必须同时给出问题规模和实验条件。
-post-training 方法选择应看数据类型、稳定性、compute、目标行为和安全约束。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，DPO 与直接偏好优化 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+post-training 方法选择应看数据类型、稳定性、compute、目标行为和安全约束。 可检验性来自训练日志、reward 分布、KL/length 统计和行为评估；只看最终回答样例无法判断更新方向。
+因此，DPO 与直接偏好优化 的学习目标是建立一条行为更新链：读者应能区分示范、偏好、奖励和约束分别给模型提供了什么信号。
 \subsection{DPO 与直接偏好优化 的目标函数}
 \[\mathcal{L}_{\text{DPO}}=-\log\sigma\left(\beta\log\frac{\pi_\theta(y^+\mid x)}{\pi_{\text{ref}}(y^+\mid x)}-\beta\log\frac{\pi_\theta(y^-\mid x)}{\pi_{\text{ref}}(y^-\mid x)}\right)\]
 符号说明：\(\pi_\theta\) 是待训练策略，\(\pi_{\text{ref}}\) 是参考模型，\(\beta\) 控制偏离参考模型的强度。
 这个关系式说明 DPO 与直接偏好优化 如何把行为偏好写入优化目标。关键不是符号复杂度，而是 reward、reference policy、采样分布和约束强度如何共同决定更新方向。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在后训练实验中，reward model score、verifier pass rate、回答长度和人工偏好都是 proxy。它们会被采样策略和格式约束影响，因此不能直接等同于真实有用性。
 \subsection{DPO 与直接偏好优化 的训练流程}
 把 DPO 与直接偏好优化 写成训练流程时，要区分采样、打分、构造 loss 和更新参数。下面的伪代码保留这些边界。
 \begin{lstlisting}[language=Python]
@@ -215,34 +211,34 @@ chosen_logp = policy.logprob(prompt, chosen)
 rejected_logp = policy.logprob(prompt, rejected)
 loss = dpo_loss(chosen_logp, rejected_logp, reference_logps)
 \end{lstlisting}
-这段伪代码的读法，是找出 DPO 与直接偏好优化 改变了哪些状态，以及这些状态如何对应到 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段训练流程时，重点区分采样、打分和参数更新。只有同时记录 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率，才能判断行为改善来自奖励信号、采样分布还是约束强度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item DPO 不是万能替代 RL；它受偏好数据覆盖范围限制。
 \item post-training 改善 helpfulness 可能牺牲 calibration 或 diversity。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 后训练指标可能被格式、长度或 verifier 偏差驱动，不能直接等同于真实能力提升。
+\item 偏好优化可能改善目标行为，也可能牺牲多样性、校准性或某些下游能力。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-DPO 与直接偏好优化 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+DPO 与直接偏好优化 连接本章的训练目标和输出行为：术语表区分示范、偏好与奖励，公式说明优化方向，伪代码展示采样和更新，例题检查行为约束的边界。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 DPO 与直接偏好优化}
 检验 DPO 与直接偏好优化 时，先把抽象说法落到行为、奖励和偏好状态上。与 DPO、preference optimization、reference、beta、alignment 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(\textbackslash{}pi\_ heta\textbackslash{}) 是待训练策略，\textbackslash{}(\textbackslash{}pi\_\{ ext\{ref\}\}\textbackslash{}) 是参考模型，\textbackslash{}(\textbackslash{}beta\textbackslash{}) 控制偏离参考模型的强度。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：DPO 不是万能替代 RL；它受偏好数据覆盖范围限制；post-training 改善 helpfulness 可能牺牲 calibration 或 diversity。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Mid/Post-training：SFT 与 RLHF 的整体结构中。DPO 与直接偏好优化 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：DPO 与直接偏好优化}
-本节容易混淆的关键词包括 DPO、preference optimization、reference、beta、alignment。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+后训练消融通常一次只改变示范数据、reward scale、KL 约束、采样温度或 verifier。若训练目标和解码策略同时变化，行为差异就很难归因。
+最后检查失败条件。工程判断往往在反例中变清楚：DPO 不是万能替代 RL；它受偏好数据覆盖范围限制；post-training 改善 helpfulness 可能牺牲 calibration 或 diversity。复习时可以把这些限制改写成反例测试，观察它们怎样改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
+把实验结论放回 Mid/Post-training：SFT 与 RLHF 时，要说明 DPO 与直接偏好优化 改变的是目标函数、采样分布、反馈质量还是行为约束。能区分这些来源，才说明读者真正理解后训练。
+\subsection{概念辨析：DPO 与直接偏好优化}
+DPO、preference optimization、reference、beta、alignment 常一起出现在后训练讨论中，但它们分别指数据、反馈、目标函数或行为指标。读者应先判断每个词给优化过程提供什么信号。
 其中，DPO 把偏好优化写成直接监督式目标。
-区分这些词时，可以先问它们是否改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 DPO 与直接偏好优化 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 DPO 与直接偏好优化 复习时，可以构造几条 prompt-response：明确奖励或偏好规则，观察同一模型在更新前后的行为差异。
 \subsection{DPO 与直接偏好优化 的小结}
 \begin{itemize}
 \item 讨论 DPO 与直接偏好优化 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称行为更好，要说明示范、偏好、reward 或 verifier 哪一项提供了信号，并检查 reward hacking、length bias 和能力退化。
+\item 后训练结论需要把训练目标、采样策略和评估协议分开报告，否则无法判断改进来自哪里。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 Mid/Post-training：SFT 与 RLHF，但它不应被读成几个相邻知识点的拼接。从 pretraining 到 assistant 行为、Reward modeling 与 RLHF、DPO 与直接偏好优化 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -294,6 +290,11 @@ DPO 与直接偏好优化 首先提供一个局部解释：DPO 类方法把偏�
 因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
 还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
 若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
+\subsection{把本章重新读成一条证据链}
+完成小实验之后，可以把 Mid/Post-training：SFT 与 RLHF 重新读成一条证据链：先用“从 pretraining 到 assistant 行为”确定问题入口，再用“Reward modeling 与 RLHF”解释主要机制，最后用“DPO 与直接偏好优化”检查边界或外推条件。这种读法比按页背诵更接近教材训练，因为它要求每个结论都能说明前提、变量和证据。
+本章反复使用的术语包括 post-training（后训练）、supervised fine-tuning (SFT)、RLHF、reward model（奖励模型）、DPO、PPO。复习时不要只写定义，而要为每个术语补上一句操作性说明：它在课程代码、公式、数据记录或评估协议中对应什么对象；如果这个对象被删除、替换或缩放，哪一个观测量会变化。
+最后，用一个反例结束复习。反例可以是资源估算不准、数据污染、reward 失真、benchmark 解析失败、长上下文显存爆炸或 scaling 外推失效。能解释反例的章节，才真正具备自学和引用价值；不能解释反例的章节，只是把课程材料换了一种排版。
+引用本章结论时，还应保留来源边界：哪些说法直接来自视频、课程页、slides 或代码，哪些是为了串联教材叙述而加入的解释性推导。这个边界不会削弱结论，反而让读者知道何处可以复核，何处需要在自己的实验中重新验证。如果后续课程材料更新，也可以沿着同一证据链替换来源，而不必重写整章结构。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}

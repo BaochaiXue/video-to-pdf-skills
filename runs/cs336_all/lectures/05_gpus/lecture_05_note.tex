@@ -51,19 +51,16 @@
 \caption{官方材料图页：GPU/TPU 硬件模型 的课程页/PDF/script 图像锚点。}
 \end{figure}
 \section{本章主线}
-本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+GPU/TPU 硬件模型 的主线是把 language model 的抽象计算放回真实机器：哪些张量要移动，哪些状态要保存，哪些瓶颈会在训练或服务时显现。
 \subsection{本章要解决的核心问题}
 本讲把 GPU/TPU 从黑箱变成可推理的硬件层级：SM、warp、thread block、register、shared memory、L2、HBM、tensor core 都会影响语言模型训练吞吐。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，GPU/TPU 硬件模型 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+读完这一段后，应能用一两句话说明 GPU/TPU 硬件模型 要解决的瓶颈，并指出这个瓶颈发生在数据、模型、优化、系统还是评估层。
 \subsection{从机制到资源账本}
 GPU 和 CPU 的差异在于吞吐优先而非单线程延迟优先。大规模矩阵乘法可以吃满 tensor cores，但不规则访存、分支、bank conflict 和低 occupancy 会显著拖慢。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，GPU/TPU 硬件模型 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+随后把机制写成账本：输入规模是什么，主要状态是什么，成本或质量指标怎样随变量改变。这个账本让后面的公式不再只是符号。
 \subsection{从课堂讲解到可复现实验}
 理解硬件的目标是解释算法为什么快或慢。FlashAttention 之类方法之所以重要，是因为它把 attention 的数学等价变换和 HBM traffic 的减少结合起来。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，GPU/TPU 硬件模型 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+最后把课堂讲解转成可复现实验：固定协议，改变一个变量，记录中间量，并解释结果为何支持或反驳原来的机制判断。
 \section{术语、符号与问题边界}
 本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
 \begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
@@ -79,28 +76,27 @@ GPU 和 CPU 的差异在于吞吐优先而非单线程延迟优先。大规模�
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
-\subsection{关键词}
-下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
-\begin{itemize}
-\item memory, gpus, https, matrix, compute, tiling, fast, scaling, threads, part, many, faster, shared, global
-\end{itemize}
+\subsection{术语之间的关系}
+在本章中，GPU（图形处理器） 给出问题入口，TPU（张量处理器） 描述主要机制，SM（streaming multiprocessor） 则把机制连接到可测量的结果。读教材时应当沿着这个链条追问：输入是什么，中间状态怎样改变，输出指标为什么随之变化。
+课程材料还会反复出现 memory、gpus、https、matrix、compute、tiling 等词。它们不是一组同义标签，而是提示本章的不同层次：有的指对象，有的指操作，有的指约束或指标。
+因此，术语表不是背诵清单，而是后文阅读的索引。遇到一个术语时，先定位它属于 representation、optimization、systems、data 还是 evaluation，再判断它改变哪一项账本。
 \section{硬件层级：从 HBM 到 registers}
-现在进入 硬件层级：从 HBM 到 registers。它把 GPU/TPU 硬件模型 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 硬件层级：从 HBM 到 registers。这一节把算法放到硬件和运行时中考察：同一个数学表达式在不同 batch、shape、GPU 拓扑和 kernel 实现下会得到不同的成本账本。
 \subsection{为什么要讨论 硬件层级：从 HBM 到 registers}
 视频宣布进入 systems portion，目标是理解 GPU、parallelization 和 inference，而不是把硬件当黑箱。
 GPU performance 取决于 HBM、L2、shared memory/L1、registers、SM、warps 和 tensor cores 的层级关系。
 语言模型训练中最常见的瓶颈是计算峰值、内存带宽、通信带宽和 kernel launch/调度开销。
-硬件层级：从 HBM 到 registers 的作用是把 GPU/TPU 硬件模型 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+硬件层级：从 HBM 到 registers 把 GPU/TPU 硬件模型 放进资源账本。接下来要看的不是单个 API，而是张量形状、内存层级、通信和调度怎样共同决定成本。
 \subsection{硬件层级：从 HBM 到 registers 的机制}
-视频宣布进入 systems portion，目标是理解 GPU、parallelization 和 inference，而不是把硬件当黑箱。 这句话把讨论落在硬件和系统状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+视频宣布进入 systems portion，目标是理解 GPU、parallelization 和 inference，而不是把硬件当黑箱。 在 硬件层级：从 HBM 到 registers 中，核心对象是硬件和系统状态：同一算法会因为 memory hierarchy、通信拓扑或 kernel shape 不同而表现出完全不同的速度。
 GPU performance 取决于 HBM、L2、shared memory/L1、registers、SM、warps 和 tensor cores 的层级关系。 因而同一个方法在不同规模下可能改变不同的变量，尤其是吞吐、延迟、显存峰值、通信量和 kernel 利用率。比较方法时，必须同时给出问题规模和实验条件。
-语言模型训练中最常见的瓶颈是计算峰值、内存带宽、通信带宽和 kernel launch/调度开销。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，硬件层级：从 HBM 到 registers 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+语言模型训练中最常见的瓶颈是计算峰值、内存带宽、通信带宽和 kernel launch/调度开销。 可检验性来自 profile trace、roofline 估算和端到端延迟分解；如果这些证据互相矛盾，就要先解释 measurement setup。
+因此，硬件层级：从 HBM 到 registers 的学习目标是建立一张成本地图：读者应能指出瓶颈在计算、内存、通信还是调度，并能设计一个小 benchmark 去验证。
 \subsection{硬件层级：从 HBM 到 registers 的数学表达}
 \[t_{\text{op}}\ge \max\left(\frac{\text{FLOPs}}{P_{\max}},\frac{\text{bytes}}{B_{\max}}\right)\]
 符号说明：\(P_{\max}\) 是硬件峰值算力，\(B_{\max}\) 是可持续内存带宽；实际时间至少受二者较慢者限制。
 这个关系式应被读成 硬件层级：从 HBM 到 registers 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在系统实验中，tokens/s、TTFT、显存峰值和 kernel time 都是 proxy。它们各自只观察一部分系统，因此报告时要同时写清 workload shape、warmup、同步方式和硬件型号。
 \subsection{从 硬件层级：从 HBM 到 registers 到程序}
 把 硬件层级：从 HBM 到 registers 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。
 \begin{lstlisting}[language=Python]
@@ -109,136 +105,136 @@ if operation_is_matmul:
 elif operation_is_elementwise:
     reduce_hbm_round_trips()
 \end{lstlisting}
-这段伪代码的读法，是找出 硬件层级：从 HBM 到 registers 改变了哪些状态，以及这些状态如何对应到 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段实现时，重点看 硬件层级：从 HBM 到 registers 怎样移动张量、占用显存并触发通信。实验记录至少要包含 吞吐、延迟、显存峰值、通信量和 kernel 利用率，否则很难判断瓶颈来自算子、内存层级还是调度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 硬件规格表给的是上限，不是可直接达到的性能。
 \item TPU 与 GPU 编程模型不同，但同样要关注矩阵单元、片上内存和通信拓扑。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 kernel benchmark 不一定预测端到端训练或 serving latency，因为调度、通信和请求形状会改变瓶颈。
+\item 硬件规格表和框架 profiler 都需要结合 workload 解释，不能把单个峰值数字当作机制证明。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-硬件层级：从 HBM 到 registers 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+硬件层级：从 HBM 到 registers 连接本章的数学机制和工程成本：术语表说明对象，公式估算资源，伪代码暴露状态变化，例题则让读者检查一次完整的成本推理。
 \subsection{怎样检验 硬件层级：从 HBM 到 registers}
 检验 硬件层级：从 HBM 到 registers 时，先把抽象说法落到硬件和系统状态上。与 GPU、TPU、HBM、SM、tensor core 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 吞吐、延迟、显存峰值、通信量和 kernel 利用率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(P\_\{\textbackslash{}max\}\textbackslash{}) 是硬件峰值算力，\textbackslash{}(B\_\{\textbackslash{}max\}\textbackslash{}) 是可持续内存带宽；实际时间至少受二者较慢者限制。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：硬件规格表给的是上限，不是可直接达到的性能；TPU 与 GPU 编程模型不同，但同样要关注矩阵单元、片上内存和通信拓扑。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 GPU/TPU 硬件模型 的整体结构中。硬件层级：从 HBM 到 registers 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：硬件层级：从 HBM 到 registers}
-本节容易混淆的关键词包括 GPU、TPU、HBM、SM、tensor core。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+系统消融通常一次只改变 batch shape、sequence length、GPU 数、kernel 实现或调度策略。若同时改变硬件和 workload，实验只能说明端到端表现不同，不能定位瓶颈。
+最后检查失败条件。工程判断往往在反例中变清楚：硬件规格表给的是上限，不是可直接达到的性能；TPU 与 GPU 编程模型不同，但同样要关注矩阵单元、片上内存和通信拓扑。复习时可以把这些限制改写成反例测试，观察它们怎样改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+把实验结论放回 GPU/TPU 硬件模型 时，要说明 硬件层级：从 HBM 到 registers 改变的是训练吞吐、推理延迟、显存峰值还是通信开销。能做出这种归因，才说明读者已经从接口使用进入系统解释。
+\subsection{概念辨析：硬件层级：从 HBM 到 registers}
+GPU、TPU、HBM、SM、tensor core 常一起出现在系统讲解中，但它们分别指硬件对象、程序操作、瓶颈来源或测量指标。读者应先定位每个词在执行路径中的位置。
 其中，GPU 是 CS336 systems 部分的主要硬件对象；HBM（high-bandwidth memory）常是推理和非融合算子的瓶颈。
-区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 硬件层级：从 HBM 到 registers 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 硬件层级：从 HBM 到 registers 复习时，可以写一个小 benchmark：固定输入形状，改变一个系统变量，记录 profile trace 和端到端时间。
 \subsection{硬件层级：从 HBM 到 registers 的小结}
 \begin{itemize}
 \item 讨论 硬件层级：从 HBM 到 registers 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称更快，要区分计算减少、内存访问减少、通信隐藏和调度改善；这些机制不能用一个 tokens/s 数字互相替代。
+\item profile trace、roofline 估算和端到端 benchmark 应互相校验，单独一个指标不足以解释系统瓶颈。
 \end{itemize}
 \section{Warp、thread block 与 occupancy}
-现在进入 Warp、thread block 与 occupancy。它把 GPU/TPU 硬件模型 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 Warp、thread block 与 occupancy。这一节把算法放到硬件和运行时中考察：同一个数学表达式在不同 batch、shape、GPU 拓扑和 kernel 实现下会得到不同的成本账本。
 \subsection{为什么要讨论 Warp、thread block 与 occupancy}
 CUDA 编程模型通过 thread、warp、thread block、grid 抽象硬件并行性。
 occupancy 不是越高越好；如果单线程更多寄存器带来更少 HBM 访问，低 occupancy 也可能更快。
 bank conflict、memory coalescing 和 wave quantization 是从硬件细节到 kernel 性能的典型桥梁。
-Warp、thread block 与 occupancy 的作用是把 GPU/TPU 硬件模型 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+Warp、thread block 与 occupancy 把 GPU/TPU 硬件模型 放进资源账本。接下来要看的不是单个 API，而是张量形状、内存层级、通信和调度怎样共同决定成本。
 \subsection{Warp、thread block 与 occupancy 的机制}
-CUDA 编程模型通过 thread、warp、thread block、grid 抽象硬件并行性。 这句话把讨论落在硬件和系统状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+CUDA 编程模型通过 thread、warp、thread block、grid 抽象硬件并行性。 在 Warp、thread block 与 occupancy 中，核心对象是硬件和系统状态：同一算法会因为 memory hierarchy、通信拓扑或 kernel shape 不同而表现出完全不同的速度。
 occupancy 不是越高越好；如果单线程更多寄存器带来更少 HBM 访问，低 occupancy 也可能更快。 因而同一个方法在不同规模下可能改变不同的变量，尤其是吞吐、延迟、显存峰值、通信量和 kernel 利用率。比较方法时，必须同时给出问题规模和实验条件。
-bank conflict、memory coalescing 和 wave quantization 是从硬件细节到 kernel 性能的典型桥梁。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，Warp、thread block 与 occupancy 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+bank conflict、memory coalescing 和 wave quantization 是从硬件细节到 kernel 性能的典型桥梁。 可检验性来自 profile trace、roofline 估算和端到端延迟分解；如果这些证据互相矛盾，就要先解释 measurement setup。
+因此，Warp、thread block 与 occupancy 的学习目标是建立一张成本地图：读者应能指出瓶颈在计算、内存、通信还是调度，并能设计一个小 benchmark 去验证。
 \subsection{Warp、thread block 与 occupancy 的数学表达}
 \[\text{occupancy}=\frac{\text{active warps per SM}}{\text{max warps per SM}}\]
 符号说明：active warps 受 registers、shared memory、threads per block 和硬件限制共同约束。
 这个关系式应被读成 Warp、thread block 与 occupancy 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在系统实验中，tokens/s、TTFT、显存峰值和 kernel time 都是 proxy。它们各自只观察一部分系统，因此报告时要同时写清 workload shape、warmup、同步方式和硬件型号。
 \subsection{从 Warp、thread block 与 occupancy 到程序}
 把 Warp、thread block 与 occupancy 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。
 \begin{lstlisting}[language=Python]
 blocks_per_sm = min(register_limit, shared_memory_limit, warp_limit)
 occupancy = active_warps(blocks_per_sm) / max_warps
 \end{lstlisting}
-这段伪代码的读法，是找出 Warp、thread block 与 occupancy 改变了哪些状态，以及这些状态如何对应到 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段实现时，重点看 Warp、thread block 与 occupancy 怎样移动张量、占用显存并触发通信。实验记录至少要包含 吞吐、延迟、显存峰值、通信量和 kernel 利用率，否则很难判断瓶颈来自算子、内存层级还是调度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 高 occupancy 无法弥补非合并访存或严重 bank conflicts。
 \item 小矩阵或小 batch 会受到 launch overhead 和 wave quantization 的影响。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 kernel benchmark 不一定预测端到端训练或 serving latency，因为调度、通信和请求形状会改变瓶颈。
+\item 硬件规格表和框架 profiler 都需要结合 workload 解释，不能把单个峰值数字当作机制证明。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-Warp、thread block 与 occupancy 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+Warp、thread block 与 occupancy 连接本章的数学机制和工程成本：术语表说明对象，公式估算资源，伪代码暴露状态变化，例题则让读者检查一次完整的成本推理。
 \subsection{怎样检验 Warp、thread block 与 occupancy}
 检验 Warp、thread block 与 occupancy 时，先把抽象说法落到硬件和系统状态上。与 warp、thread block、occupancy、bank conflict、coalescing 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 吞吐、延迟、显存峰值、通信量和 kernel 利用率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：active warps 受 registers、shared memory、threads per block 和硬件限制共同约束。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：高 occupancy 无法弥补非合并访存或严重 bank conflicts；小矩阵或小 batch 会受到 launch overhead 和 wave quantization 的影响。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 GPU/TPU 硬件模型 的整体结构中。Warp、thread block 与 occupancy 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：Warp、thread block 与 occupancy}
-本节容易混淆的关键词包括 warp、thread block、occupancy、bank conflict、coalescing。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
-区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 Warp、thread block 与 occupancy 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+系统消融通常一次只改变 batch shape、sequence length、GPU 数、kernel 实现或调度策略。若同时改变硬件和 workload，实验只能说明端到端表现不同，不能定位瓶颈。
+最后检查失败条件。工程判断往往在反例中变清楚：高 occupancy 无法弥补非合并访存或严重 bank conflicts；小矩阵或小 batch 会受到 launch overhead 和 wave quantization 的影响。复习时可以把这些限制改写成反例测试，观察它们怎样改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+把实验结论放回 GPU/TPU 硬件模型 时，要说明 Warp、thread block 与 occupancy 改变的是训练吞吐、推理延迟、显存峰值还是通信开销。能做出这种归因，才说明读者已经从接口使用进入系统解释。
+\subsection{概念辨析：Warp、thread block 与 occupancy}
+warp、thread block、occupancy、bank conflict、coalescing 常一起出现在系统讲解中，但它们分别指硬件对象、程序操作、瓶颈来源或测量指标。读者应先定位每个词在执行路径中的位置。
+区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 Warp、thread block 与 occupancy 复习时，可以写一个小 benchmark：固定输入形状，改变一个系统变量，记录 profile trace 和端到端时间。
 \subsection{Warp、thread block 与 occupancy 的小结}
 \begin{itemize}
 \item 讨论 Warp、thread block 与 occupancy 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称更快，要区分计算减少、内存访问减少、通信隐藏和调度改善；这些机制不能用一个 tokens/s 数字互相替代。
+\item profile trace、roofline 估算和端到端 benchmark 应互相校验，单独一个指标不足以解释系统瓶颈。
 \end{itemize}
 \section{用硬件模型解释 LM 工作负载}
-现在进入 用硬件模型解释 LM 工作负载。它把 GPU/TPU 硬件模型 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 用硬件模型解释 LM 工作负载。这一节把算法放到硬件和运行时中考察：同一个数学表达式在不同 batch、shape、GPU 拓扑和 kernel 实现下会得到不同的成本账本。
 \subsection{为什么要讨论 用硬件模型解释 LM 工作负载}
 Transformer 训练由大 GEMM、attention、normalization、softmax、optimizer step 和通信构成。
 大 GEMM 更容易吃满 tensor cores；softmax、LayerNorm、dropout、optimizer 等更容易 memory-bound。
 系统优化的目标是把 high-level PyTorch graph 映射成尽量少、尽量高效、尽量少搬数据的硬件操作。
-用硬件模型解释 LM 工作负载 的作用是把 GPU/TPU 硬件模型 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+用硬件模型解释 LM 工作负载 把 GPU/TPU 硬件模型 放进资源账本。接下来要看的不是单个 API，而是张量形状、内存层级、通信和调度怎样共同决定成本。
 \subsection{用硬件模型解释 LM 工作负载 的机制}
-Transformer 训练由大 GEMM、attention、normalization、softmax、optimizer step 和通信构成。 这句话把讨论落在张量、token 和计算图状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
-大 GEMM 更容易吃满 tensor cores；softmax、LayerNorm、dropout、optimizer 等更容易 memory-bound。 因而同一个方法在不同规模下可能改变不同的变量，尤其是sequence length、hidden size、head 数、activation size 和训练稳定性。比较方法时，必须同时给出问题规模和实验条件。
-系统优化的目标是把 high-level PyTorch graph 映射成尽量少、尽量高效、尽量少搬数据的硬件操作。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，用硬件模型解释 LM 工作负载 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+Transformer 训练由大 GEMM、attention、normalization、softmax、optimizer step 和通信构成。 在 用硬件模型解释 LM 工作负载 中，核心对象是硬件和系统状态：同一算法会因为 memory hierarchy、通信拓扑或 kernel shape 不同而表现出完全不同的速度。
+大 GEMM 更容易吃满 tensor cores；softmax、LayerNorm、dropout、optimizer 等更容易 memory-bound。 因而同一个方法在不同规模下可能改变不同的变量，尤其是吞吐、延迟、显存峰值、通信量和 kernel 利用率。比较方法时，必须同时给出问题规模和实验条件。
+系统优化的目标是把 high-level PyTorch graph 映射成尽量少、尽量高效、尽量少搬数据的硬件操作。 可检验性来自 profile trace、roofline 估算和端到端延迟分解；如果这些证据互相矛盾，就要先解释 measurement setup。
+因此，用硬件模型解释 LM 工作负载 的学习目标是建立一张成本地图：读者应能指出瓶颈在计算、内存、通信还是调度，并能设计一个小 benchmark 去验证。
 \subsection{用硬件模型解释 LM 工作负载 的数学表达}
 \[\text{tokens/s}=\frac{\text{batch}\times\text{sequence length}}{\text{step time}}\]
 符号说明：tokens/s 是训练吞吐的直接指标；step time 又由 compute、memory、communication 和 synchronization 构成。
-这个关系式把 用硬件模型解释 LM 工作负载 放回模型计算图。它帮助读者追踪 token、张量形状和参数规模如何进入训练或推理成本。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+这个关系式应被读成 用硬件模型解释 LM 工作负载 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。
+在系统实验中，tokens/s、TTFT、显存峰值和 kernel time 都是 proxy。它们各自只观察一部分系统，因此报告时要同时写清 workload shape、warmup、同步方式和硬件型号。
 \subsection{从 用硬件模型解释 LM 工作负载 到程序}
-把 用硬件模型解释 LM 工作负载 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
+把 用硬件模型解释 LM 工作负载 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。
 \begin{lstlisting}[language=Python]
 profile_step()
 for kernel in hot_kernels:
     classify_compute_or_memory_bound(kernel)
     optimize_layout_or_fusion(kernel)
 \end{lstlisting}
-这段伪代码的读法，是找出 用硬件模型解释 LM 工作负载 改变了哪些状态，以及这些状态如何对应到 sequence length、hidden size、head 数、activation size 和训练稳定性。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段实现时，重点看 用硬件模型解释 LM 工作负载 怎样移动张量、占用显存并触发通信。实验记录至少要包含 吞吐、延迟、显存峰值、通信量和 kernel 利用率，否则很难判断瓶颈来自算子、内存层级还是调度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item tokens/s 不能单独比较模型质量；更合理的是把 loss、tokens、FLOPs 和成本一起报告。
 \item benchmark 要包含 warmup 和同步，否则 GPU 异步执行会误导计时。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 kernel benchmark 不一定预测端到端训练或 serving latency，因为调度、通信和请求形状会改变瓶颈。
+\item 硬件规格表和框架 profiler 都需要结合 workload 解释，不能把单个峰值数字当作机制证明。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-用硬件模型解释 LM 工作负载 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+用硬件模型解释 LM 工作负载 连接本章的数学机制和工程成本：术语表说明对象，公式估算资源，伪代码暴露状态变化，例题则让读者检查一次完整的成本推理。
 \subsection{怎样检验 用硬件模型解释 LM 工作负载}
-检验 用硬件模型解释 LM 工作负载 时，先把抽象说法落到张量、token 和计算图状态上。与 GEMM、LayerNorm、softmax、optimizer、tokens/s 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
-一个合适的小实验应当保留本节机制，同时让 sequence length、hidden size、head 数、activation size 和训练稳定性 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+检验 用硬件模型解释 LM 工作负载 时，先把抽象说法落到硬件和系统状态上。与 GEMM、LayerNorm、softmax、optimizer、tokens/s 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 吞吐、延迟、显存峰值、通信量和 kernel 利用率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：tokens/s 是训练吞吐的直接指标；step time 又由 compute、memory、communication 和 synchronization 构成。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：tokens/s 不能单独比较模型质量；更合理的是把 loss、tokens、FLOPs 和成本一起报告；benchmark 要包含 warmup 和同步，否则 GPU 异步执行会误导计时。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 GPU/TPU 硬件模型 的整体结构中。用硬件模型解释 LM 工作负载 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：用硬件模型解释 LM 工作负载}
-本节容易混淆的关键词包括 GEMM、LayerNorm、softmax、optimizer、tokens/s。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+系统消融通常一次只改变 batch shape、sequence length、GPU 数、kernel 实现或调度策略。若同时改变硬件和 workload，实验只能说明端到端表现不同，不能定位瓶颈。
+最后检查失败条件。工程判断往往在反例中变清楚：tokens/s 不能单独比较模型质量；更合理的是把 loss、tokens、FLOPs 和成本一起报告；benchmark 要包含 warmup 和同步，否则 GPU 异步执行会误导计时。复习时可以把这些限制改写成反例测试，观察它们怎样改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+把实验结论放回 GPU/TPU 硬件模型 时，要说明 用硬件模型解释 LM 工作负载 改变的是训练吞吐、推理延迟、显存峰值还是通信开销。能做出这种归因，才说明读者已经从接口使用进入系统解释。
+\subsection{概念辨析：用硬件模型解释 LM 工作负载}
+GEMM、LayerNorm、softmax、optimizer、tokens/s 常一起出现在系统讲解中，但它们分别指硬件对象、程序操作、瓶颈来源或测量指标。读者应先定位每个词在执行路径中的位置。
 其中，normalization（归一化）影响优化稳定性和 residual path。
-区分这些词时，可以先问它们是否改变 sequence length、hidden size、head 数、activation size 和训练稳定性。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 用硬件模型解释 LM 工作负载 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 用硬件模型解释 LM 工作负载 复习时，可以写一个小 benchmark：固定输入形状，改变一个系统变量，记录 profile trace 和端到端时间。
 \subsection{用硬件模型解释 LM 工作负载 的小结}
 \begin{itemize}
-\item 讨论 用硬件模型解释 LM 工作负载 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 sequence length、hidden size、head 数、activation size 和训练稳定性。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 讨论 用硬件模型解释 LM 工作负载 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+\item 如果方法声称更快，要区分计算减少、内存访问减少、通信隐藏和调度改善；这些机制不能用一个 tokens/s 数字互相替代。
+\item profile trace、roofline 估算和端到端 benchmark 应互相校验，单独一个指标不足以解释系统瓶颈。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 GPU/TPU 硬件模型，但它不应被读成几个相邻知识点的拼接。硬件层级：从 HBM 到 registers、Warp、thread block 与 occupancy、用硬件模型解释 LM 工作负载 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -290,6 +286,11 @@ Warp、thread block 与 occupancy 首先提供一个局部解释：CUDA 编程�
 因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
 还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
 若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
+\subsection{把本章重新读成一条证据链}
+完成小实验之后，可以把 GPU/TPU 硬件模型 重新读成一条证据链：先用“硬件层级：从 HBM 到 registers”确定问题入口，再用“Warp、thread block 与 occupancy”解释主要机制，最后用“用硬件模型解释 LM 工作负载”检查边界或外推条件。这种读法比按页背诵更接近教材训练，因为它要求每个结论都能说明前提、变量和证据。
+本章反复使用的术语包括 GPU（图形处理器）、TPU（张量处理器）、SM（streaming multiprocessor）、HBM（high-bandwidth memory）、tensor core（张量核心）、occupancy（占用率）。复习时不要只写定义，而要为每个术语补上一句操作性说明：它在课程代码、公式、数据记录或评估协议中对应什么对象；如果这个对象被删除、替换或缩放，哪一个观测量会变化。
+最后，用一个反例结束复习。反例可以是资源估算不准、数据污染、reward 失真、benchmark 解析失败、长上下文显存爆炸或 scaling 外推失效。能解释反例的章节，才真正具备自学和引用价值；不能解释反例的章节，只是把课程材料换了一种排版。
+引用本章结论时，还应保留来源边界：哪些说法直接来自视频、课程页、slides 或代码，哪些是为了串联教材叙述而加入的解释性推导。这个边界不会削弱结论，反而让读者知道何处可以复核，何处需要在自己的实验中重新验证。如果后续课程材料更新，也可以沿着同一证据链替换来源，而不必重写整章结构。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}

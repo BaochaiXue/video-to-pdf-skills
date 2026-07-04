@@ -29,7 +29,8 @@ COURSE_TITLE = "Stanford CS336: Language Modeling from Scratch (Spring 2026)"
 COURSE_PAGE_URL = "https://cs336.stanford.edu/"
 PLAYLIST_URL = "https://www.youtube.com/playlist?list=PLoROMvodv4rMqXOcazWaTUHhq-yembLCV"
 SLP3_URL = "https://web.stanford.edu/~jurafsky/slp3/ed3book_jan26.pdf"
-REVISION = "slp3-style-textbook-v5-polished-prose"
+REVISION = "slp3-style-textbook-v6-narrative-polish"
+DELIVERABLE_BASENAME = "cs336 textbook"
 
 STOPWORDS = set(
     """
@@ -620,12 +621,27 @@ def render_terms(lines: list[str], profile: Any, official: list[dict[str, Any]])
         "这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。"
     )
     if official:
-        keywords = top_keywords(" ".join(clean_text(row.get("text", "")) for row in official), 14)
-        lines.append(r"\subsection{关键词}")
+        keywords = top_keywords(" ".join(clean_text(row.get("text", "")) for row in official), 8)
+        lines.append(r"\subsection{术语之间的关系}")
+        if len(profile.terms) >= 3:
+            first, second, third = profile.terms[:3]
+            lines.append(
+                latex_escape(
+                    f"在本章中，{first} 给出问题入口，{second} 描述主要机制，{third} 则把机制连接到可测量的结果。"
+                    "读教材时应当沿着这个链条追问：输入是什么，中间状态怎样改变，输出指标为什么随之变化。"
+                )
+            )
+        if keywords:
+            lines.append(
+                latex_escape(
+                    "课程材料还会反复出现 "
+                    + "、".join(keywords[:6])
+                    + " 等词。它们不是一组同义标签，而是提示本章的不同层次：有的指对象，有的指操作，有的指约束或指标。"
+                )
+            )
         lines.append(
-            "下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。"
+            "因此，术语表不是背诵清单，而是后文阅读的索引。遇到一个术语时，先定位它属于 representation、optimization、systems、data 还是 evaluation，再判断它改变哪一项账本。"
         )
-        lines.extend(render_itemize([", ".join(keywords)]))
 
 
 def term_requirement(term: str) -> str:
@@ -721,28 +737,73 @@ def section_transition(section: Any, profile: Any) -> str:
         return (
             "后训练部分的核心问题是行为控制。模型已经学到语言分布，但还需要通过示范、偏好或可验证奖励，把输出推向可用、可评估、可约束的行为。"
         )
-    return (
-        f"{title} 的作用是把 {profile.title_cn} 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。"
-    )
+    domain = section_domain(section)
+    if domain == "system":
+        return f"{title} 把 {profile.title_cn} 放进资源账本。接下来要看的不是单个 API，而是张量形状、内存层级、通信和调度怎样共同决定成本。"
+    if domain == "data":
+        return f"{title} 把 {profile.title_cn} 连接到训练分布。接下来要看的不是语料名称，而是样本来源、处理顺序和版本记录怎样改变模型可学习的证据。"
+    if domain == "alignment":
+        return f"{title} 把 {profile.title_cn} 连接到行为目标。接下来要看的不是 reward 名称，而是反馈信号、采样分布和约束项怎样改变模型更新。"
+    if domain == "evaluation":
+        return f"{title} 把 {profile.title_cn} 连接到测量协议。接下来要看的不是分数本身，而是题目、prompt、解析规则和误差分析怎样支撑这个分数。"
+    if domain == "scaling":
+        return f"{title} 把 {profile.title_cn} 连接到大规模决策。接下来要看的不是曲线是否平滑，而是实验点、预算变量和外推假设是否一致。"
+    if domain == "model":
+        return f"{title} 把 {profile.title_cn} 连接到计算图。接下来要看的不是结构名称，而是 token、activation、参数和梯度如何流动。"
+    return f"{title} 为 {profile.title_cn} 提供一个局部观察点。接下来要把定义、公式、实现和实验条件连成同一条解释链。"
 
 
 def section_domain(section: Any) -> str:
     title = clean_text(section.title)
-    if title.startswith("为什么") or "课程目标" in title:
+    if title.startswith("为什么要从零") or "课程目标" in title:
         return "general"
     text = " ".join([section.title, *section.keywords, *section.concepts]).lower()
+    header_text = " ".join([section.title, *section.keywords]).lower()
+    if any(
+        token in text
+        for token in [
+            "gpu",
+            "tpu",
+            "kernel",
+            "parallel",
+            "fsdp",
+            "zero",
+            "xla",
+            "triton",
+            "serving",
+            "inference",
+            "cache",
+            "latency",
+            "throughput",
+            "bandwidth",
+            "memory",
+            "mfu",
+            "roofline",
+            "arithmetic intensity",
+            "gemm",
+            "all-reduce",
+            "all-gather",
+            "显存",
+            "硬件",
+            "吞吐",
+            "通信",
+            "并行",
+            "算术强度",
+        ]
+    ):
+        return "system"
+    if any(token in header_text for token in ["dataset", "manifest", "provenance", "filter", "dedup", "mixture", "crawl", "数据", "去重", "过滤", "混合"]):
+        return "data"
     if any(token in text for token in ["scaling", "isoflop", "isoflops", "compute-optimal", "chinchilla", "forecast", "extrapolat"]):
         return "scaling"
-    if any(token in text for token in ["gpu", "kernel", "parallel", "fsdp", "xla", "triton", "serving", "inference", "cache", "latency"]):
-        return "system"
-    if any(token in text for token in ["data", "filter", "dedup", "mixture", "crawl", "contamination", "dataset"]):
-        return "data"
     if any(token in text for token in ["reward", "rl", "dpo", "sft", "alignment", "preference", "verifier"]):
         return "alignment"
     if any(token in text for token in ["evaluation", "benchmark", "metric", "loss", "score"]):
         return "evaluation"
-    if any(token in text for token in ["attention", "token", "transformer", "moe", "norm", "rope", "architecture"]):
+    if any(token in text for token in ["attention", "token", "transformer", "moe", "norm", "rope", "architecture", "tensor", "dtype", "activation", "optimizer", "张量"]):
         return "model"
+    if any(token in text for token in ["data", "filter", "dedup", "mixture", "crawl", "contamination", "dataset", "数据", "去重", "过滤", "混合"]):
+        return "data"
     return "general"
 
 
@@ -806,7 +867,286 @@ def pseudocode_reading_note(section: Any) -> str:
     domain = section_domain(section)
     title = clean_text(section.title)
     variables = domain_variables(domain)
-    return f"这段伪代码的读法，是找出 {title} 改变了哪些状态，以及这些状态如何对应到 {variables}。如果某个状态没有被记录，后续实验就很难解释异常结果。"
+    if domain == "system":
+        return f"阅读这段实现时，重点看 {title} 怎样移动张量、占用显存并触发通信。实验记录至少要包含 {variables}，否则很难判断瓶颈来自算子、内存层级还是调度。"
+    if domain == "data":
+        return f"阅读这段流程时，重点看 {title} 怎样改变样本集合。每个过滤、去重或混合步骤都应留下计数和抽样检查，使 {variables} 能够被复核。"
+    if domain == "alignment":
+        return f"阅读这段训练流程时，重点区分采样、打分和参数更新。只有同时记录 {variables}，才能判断行为改善来自奖励信号、采样分布还是约束强度。"
+    if domain == "evaluation":
+        return f"阅读这段评估流程时，重点检查协议是否在模型运行前固定。{variables} 决定分数能否比较，也决定错误分析能否复现。"
+    if domain == "scaling":
+        return f"阅读这段流程时，重点看小规模实验怎样产生可外推曲线。{variables} 需要在每个实验点上同时记录，缺少其中一项都会改变 scaling 解释。"
+    if domain == "model":
+        return f"阅读这段实现时，重点追踪 token、activation 和参数如何穿过计算图。{variables} 不是附加统计，而是解释训练稳定性和推理成本的必要坐标。"
+    return f"阅读这段程序时，先确定输入、状态和输出，再记录 {variables}。可复现实验依赖这些状态被明确保存，而不是依赖运行后的主观描述。"
+
+
+def mechanism_opening_sentence(section: Any, domain: str, noun: str) -> str:
+    title = clean_text(section.title)
+    if domain == "system":
+        return f"在 {title} 中，核心对象是{noun}：同一算法会因为 memory hierarchy、通信拓扑或 kernel shape 不同而表现出完全不同的速度。"
+    if domain == "data":
+        return f"在 {title} 中，核心对象是{noun}：数据管线每改变一次样本集合，模型实际学习的分布也随之改变。"
+    if domain == "alignment":
+        return f"在 {title} 中，核心对象是{noun}：后训练方法并不直接制造知识，而是通过目标和反馈改变模型选择输出的方式。"
+    if domain == "evaluation":
+        return f"在 {title} 中，核心对象是{noun}：分数只有在题目、提示、解析规则和采样协议都明确时才有解释力。"
+    if domain == "scaling":
+        return f"在 {title} 中，核心对象是{noun}：小实验只有在预算、数据和优化条件清楚时，才可能支持大规模外推。"
+    if domain == "model":
+        return f"在 {title} 中，核心对象是{noun}：模型机制必须同时说明表示形态、张量形状和计算代价。"
+    return f"在 {title} 中，核心对象是{noun}。本节把这些对象从口头描述转成可定义、可实现和可检查的机制。"
+
+
+def section_entry_paragraph(section: Any, profile: Any) -> str:
+    title = clean_text(section.title)
+    domain = section_domain(section)
+    variables = domain_variables(domain)
+    if title.startswith("为什么"):
+        return (
+            f"本节讨论 {section.title}。它先限定 {profile.title_cn} 要回答的基本问题："
+            f"哪些现象需要解释，哪些变量可以测量，哪些结论必须回到 {variables} 中检验。"
+        )
+    if domain == "system":
+        return f"现在进入 {section.title}。这一节把算法放到硬件和运行时中考察：同一个数学表达式在不同 batch、shape、GPU 拓扑和 kernel 实现下会得到不同的成本账本。"
+    if domain == "data":
+        return f"现在进入 {section.title}。这一节关心训练样本如何形成、被筛选并进入混合分布；它直接决定模型看到什么，也决定 evaluation 是否可能被污染。"
+    if domain == "alignment":
+        return f"现在进入 {section.title}。这一节讨论 base model 之外的行为塑形：示范、偏好、reward 或 verifier 怎样把模型输出推向课程定义的目标行为。"
+    if domain == "evaluation":
+        return f"现在进入 {section.title}。这一节把“模型好不好”拆成可执行的测量协议，避免把单个分数误读为能力本身。"
+    if domain == "scaling":
+        return f"现在进入 {section.title}。这一节把模型大小、训练 token、compute budget 和 loss 放在同一坐标系里，讨论何时可以从小实验推断大训练。"
+    if domain == "model":
+        return f"现在进入 {section.title}。这一节把模型结构还原成表示、参数、activation 和训练动态之间的关系，而不是停留在结构名称。"
+    return f"现在进入 {section.title}。这一节把 {profile.title_cn} 的一个局部问题转成可以定义、计算、实验和复核的对象。"
+
+
+def relation_paragraph(section: Any, profile: Any) -> str:
+    title = clean_text(section.title)
+    domain = section_domain(section)
+    if domain == "system":
+        return f"{title} 连接本章的数学机制和工程成本：术语表说明对象，公式估算资源，伪代码暴露状态变化，例题则让读者检查一次完整的成本推理。"
+    if domain == "data":
+        return f"{title} 连接本章的数据来源和模型行为：定义说明样本如何进入语料，公式刻画分布变化，伪代码展示处理顺序，例题检验数据决策怎样影响训练结论。"
+    if domain == "alignment":
+        return f"{title} 连接本章的训练目标和输出行为：术语表区分示范、偏好与奖励，公式说明优化方向，伪代码展示采样和更新，例题检查行为约束的边界。"
+    if domain == "evaluation":
+        return f"{title} 连接本章的能力声明和证据标准：定义限定测量对象，公式给出汇总方式，伪代码固定协议，例题展示分数如何被解释和误解释。"
+    if domain == "scaling":
+        return f"{title} 连接本章的小实验和大规模决策：术语表标出预算变量，公式给出外推结构，伪代码组织实验点，例题检查 compute-optimal 判断是否稳健。"
+    if domain == "model":
+        return f"{title} 连接本章的表示选择和训练行为：定义给出张量对象，公式描述计算关系，伪代码说明实现路径，例题检验形状、稳定性和成本之间的权衡。"
+    return f"{title} 在本章中承担桥梁作用：它把 {profile.title_cn} 的术语、公式、程序和例题连成一条可复核的推理链。"
+
+
+def section_summary_points(section: Any) -> list[str]:
+    title = clean_text(section.title)
+    domain = section_domain(section)
+    variables = domain_variables(domain)
+    common = f"讨论 {title} 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 {variables}。"
+    if domain == "system":
+        return [
+            common,
+            "如果方法声称更快，要区分计算减少、内存访问减少、通信隐藏和调度改善；这些机制不能用一个 tokens/s 数字互相替代。",
+            "profile trace、roofline 估算和端到端 benchmark 应互相校验，单独一个指标不足以解释系统瓶颈。",
+        ]
+    if domain == "data":
+        return [
+            common,
+            "如果方法声称数据更好，要说明过滤、去重、混合或合成步骤改变了哪一部分分布，并检查 benchmark contamination。",
+            "数据结论需要抽样审计和版本记录；没有 provenance 的语料变化不能支持可引用结论。",
+        ]
+    if domain == "alignment":
+        return [
+            common,
+            "如果方法声称行为更好，要说明示范、偏好、reward 或 verifier 哪一项提供了信号，并检查 reward hacking、length bias 和能力退化。",
+            "后训练结论需要把训练目标、采样策略和评估协议分开报告，否则无法判断改进来自哪里。",
+        ]
+    if domain == "evaluation":
+        return [
+            common,
+            "如果方法声称分数更高，要同时固定 prompt、decoding、答案解析、数据版本和置信区间；否则比较对象并不相同。",
+            "评估结论需要错误分析支撑，尤其要区分真实能力、格式适配和数据污染。",
+        ]
+    if domain == "scaling":
+        return [
+            common,
+            "如果方法声称可以外推，要说明实验点覆盖范围、拟合形式和数据管线是否一致；曲线本身不是自然定律。",
+            "scaling 结论需要把 loss、benchmark 和成本之间的转换关系说清楚，否则 compute-optimal 只是一条局部经验曲线。",
+        ]
+    if domain == "model":
+        return [
+            common,
+            "如果方法声称结构更优，要说明它改变的是表达能力、梯度路径、activation memory、KV cache 还是训练稳定性。",
+            "模型机制需要通过形状推导、训练曲线和消融实验共同验证，不能只依赖 block diagram。",
+        ]
+    return [
+        common,
+        "如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。",
+        "结论应同时能在公式、伪代码和至少一个可复现实验中找到对应证据。",
+    ]
+
+
+def evidence_sentence(section: Any) -> str:
+    domain = section_domain(section)
+    if domain == "system":
+        return "可检验性来自 profile trace、roofline 估算和端到端延迟分解；如果这些证据互相矛盾，就要先解释 measurement setup。"
+    if domain == "data":
+        return "可检验性来自 provenance 记录、过滤前后计数、抽样审计和 held-out contamination 检查；没有这些记录，数据结论无法复现。"
+    if domain == "alignment":
+        return "可检验性来自训练日志、reward 分布、KL/length 统计和行为评估；只看最终回答样例无法判断更新方向。"
+    if domain == "evaluation":
+        return "可检验性来自固定协议、置信区间、错误分类和污染排查；分数的含义取决于这些测量条件。"
+    if domain == "scaling":
+        return "可检验性来自多个实验点、残差分析和外推误差估计；单条曲线若没有不确定性，就不能支撑大规模决策。"
+    if domain == "model":
+        return "可检验性来自形状推导、训练稳定性曲线和结构消融；只画 block diagram 不能说明机制已经成立。"
+    return "可检验性来自清楚的变量、可复现的程序和能被反例挑战的结论。"
+
+
+def mechanism_closing_sentence(section: Any, profile: Any) -> str:
+    domain = section_domain(section)
+    title = clean_text(section.title)
+    if domain == "system":
+        return f"因此，{title} 的学习目标是建立一张成本地图：读者应能指出瓶颈在计算、内存、通信还是调度，并能设计一个小 benchmark 去验证。"
+    if domain == "data":
+        return f"因此，{title} 的学习目标是建立一条数据谱系：读者应能从原始来源追到训练 token，并说明每个处理步骤改变了什么分布。"
+    if domain == "alignment":
+        return f"因此，{title} 的学习目标是建立一条行为更新链：读者应能区分示范、偏好、奖励和约束分别给模型提供了什么信号。"
+    if domain == "evaluation":
+        return f"因此，{title} 的学习目标是建立一套证据规则：读者应能说明某个分数测量了什么、没有测量什么，以及哪些设置会改变结论。"
+    if domain == "scaling":
+        return f"因此，{title} 的学习目标是建立一套外推判断：读者应能说明小实验为何能或不能指导 {profile.title_cn} 中的大训练配置。"
+    if domain == "model":
+        return f"因此，{title} 的学习目标是建立一条计算图解释：读者应能从输入 token 追到 activation、loss 和更新，而不是只记住结构名称。"
+    return f"因此，{title} 的学习目标是把 {profile.title_cn} 中的局部机制讲到可以实现、测试和反驳的程度。"
+
+
+def proxy_paragraph(section: Any) -> str:
+    domain = section_domain(section)
+    if domain == "system":
+        return "在系统实验中，tokens/s、TTFT、显存峰值和 kernel time 都是 proxy。它们各自只观察一部分系统，因此报告时要同时写清 workload shape、warmup、同步方式和硬件型号。"
+    if domain == "data":
+        return "在数据实验中，去重率、过滤通过率、语言比例和抽样人工判读都是 proxy。它们不能单独代表数据质量，必须和来源记录、版本号以及污染检查一起解释。"
+    if domain == "alignment":
+        return "在后训练实验中，reward model score、verifier pass rate、回答长度和人工偏好都是 proxy。它们会被采样策略和格式约束影响，因此不能直接等同于真实有用性。"
+    if domain == "evaluation":
+        return "在评估实验中，accuracy、pass@k、win rate 和 rubric score 都是 proxy。只有题目版本、prompt、decoding 和解析规则固定时，分数才具有比较意义。"
+    if domain == "scaling":
+        return "在 scaling 实验中，validation loss、benchmark transfer 和训练吞吐都只是不同侧面的 proxy。外推时要说明哪个 proxy 被拟合，哪个 proxy 只是辅助诊断。"
+    if domain == "model":
+        return "在模型结构实验中，loss、梯度范数、activation memory 和 ablation delta 都是 proxy。它们帮助定位机制，但不能单独证明某个结构在所有规模上更优。"
+    return "任何 proxy 都只测量目标的一部分。使用它时要说明观测对象、协议边界和可能失真的方向。"
+
+
+def ablation_paragraph(section: Any) -> str:
+    domain = section_domain(section)
+    if domain == "system":
+        return "系统消融通常一次只改变 batch shape、sequence length、GPU 数、kernel 实现或调度策略。若同时改变硬件和 workload，实验只能说明端到端表现不同，不能定位瓶颈。"
+    if domain == "data":
+        return "数据消融通常一次只改变过滤阈值、去重策略、混合权重或数据版本。若同时更换 tokenizer、语料和评估集，就无法知道改进来自哪一步。"
+    if domain == "alignment":
+        return "后训练消融通常一次只改变示范数据、reward scale、KL 约束、采样温度或 verifier。若训练目标和解码策略同时变化，行为差异就很难归因。"
+    if domain == "evaluation":
+        return "评估消融通常一次只改变 prompt 模板、decoding 参数、答案解析或数据版本。若协议整体改变，分数差异不能被解释为模型能力差异。"
+    if domain == "scaling":
+        return "scaling 消融通常一次只改变参数量、token 数、数据 pipeline 或优化 schedule。若多个轴同时移动，曲线拟合会混合不同机制。"
+    if domain == "model":
+        return "模型消融通常一次只改变 normalization、activation、position encoding、head layout 或学习率 schedule。若结构和训练 recipe 同时改变，结果只能作为候选经验。"
+    return "对照实验一次只改变一个主要因素。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。"
+
+
+def default_caveats(section: Any) -> list[str]:
+    domain = section_domain(section)
+    if domain == "system":
+        return [
+            "小规模 kernel benchmark 不一定预测端到端训练或 serving latency，因为调度、通信和请求形状会改变瓶颈。",
+            "硬件规格表和框架 profiler 都需要结合 workload 解释，不能把单个峰值数字当作机制证明。",
+        ]
+    if domain == "data":
+        return [
+            "小样本抽样只能发现部分数据问题，不能证明语料整体无污染或无偏差。",
+            "数据版本、许可状态和处理脚本如果缺失，后续 evaluation 与 scaling 结论都会失去可复现基础。",
+        ]
+    if domain == "alignment":
+        return [
+            "后训练指标可能被格式、长度或 verifier 偏差驱动，不能直接等同于真实能力提升。",
+            "偏好优化可能改善目标行为，也可能牺牲多样性、校准性或某些下游能力。",
+        ]
+    if domain == "evaluation":
+        return [
+            "benchmark 分数会受 prompt、decoding、答案解析和数据版本影响，跨论文比较必须先核对协议。",
+            "单个平均分会掩盖错误类型；没有错误分析时，很难判断失败来自知识、推理、格式还是污染。",
+        ]
+    if domain == "scaling":
+        return [
+            "小规模 scaling 曲线不一定覆盖大训练的优化不稳定、数据瓶颈和系统瓶颈。",
+            "compute-optimal 结论依赖目标指标；以 loss 最优并不自动意味着 benchmark、latency 或成本最优。",
+        ]
+    if domain == "model":
+        return [
+            "结构消融常与训练 recipe 耦合；一个 block 在小模型上有效，不代表在长上下文或不同数据分布下仍有效。",
+            "张量形状和数值稳定性是模型机制的一部分，忽略它们会把实现问题误读成算法问题。",
+        ]
+    return [
+        "小实验中的局部结论不能自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。",
+        "benchmark 或 profile 的单个数字不能替代机制解释；必须记录实验设置、输入形状、版本和评估口径。",
+    ]
+
+
+def disambiguation_intro(section: Any, keyword_text: str) -> str:
+    domain = section_domain(section)
+    if domain == "system":
+        return f"{keyword_text} 常一起出现在系统讲解中，但它们分别指硬件对象、程序操作、瓶颈来源或测量指标。读者应先定位每个词在执行路径中的位置。"
+    if domain == "data":
+        return f"{keyword_text} 常一起出现在数据管线中，但它们分别指来源、处理动作、版本记录或风险标记。读者应先判断它们改变的是样本集合还是审计证据。"
+    if domain == "alignment":
+        return f"{keyword_text} 常一起出现在后训练讨论中，但它们分别指数据、反馈、目标函数或行为指标。读者应先判断每个词给优化过程提供什么信号。"
+    if domain == "evaluation":
+        return f"{keyword_text} 常一起出现在评估协议中，但它们分别指题目、模型输出、解析规则或汇总统计。读者应先确认分数由哪一步产生。"
+    if domain == "scaling":
+        return f"{keyword_text} 常一起出现在 scaling 讨论中，但它们分别指预算轴、拟合对象、外推假设或风险来源。读者应先确定曲线中的自变量和因变量。"
+    if domain == "model":
+        return f"{keyword_text} 常一起出现在模型结构讨论中，但它们分别指表示、算子、参数或状态。读者应先把它们放回计算图。"
+    return f"{keyword_text} 在课程材料中相邻出现时，不应被自动当成同义词。读者应先区分对象、操作、约束和指标。"
+
+
+def minimal_example_sentence(section: Any) -> str:
+    domain = section_domain(section)
+    title = clean_text(section.title)
+    if domain == "system":
+        return f"围绕 {title} 复习时，可以写一个小 benchmark：固定输入形状，改变一个系统变量，记录 profile trace 和端到端时间。"
+    if domain == "data":
+        return f"围绕 {title} 复习时，可以构造一小批文档：保留来源和版本，运行一个处理步骤，再比较样本计数和抽样质量。"
+    if domain == "alignment":
+        return f"围绕 {title} 复习时，可以构造几条 prompt-response：明确奖励或偏好规则，观察同一模型在更新前后的行为差异。"
+    if domain == "evaluation":
+        return f"围绕 {title} 复习时，可以固定一个小 benchmark：写下 prompt、decoding、解析规则和错误分类，再解释分数变化。"
+    if domain == "scaling":
+        return f"围绕 {title} 复习时，可以画三到五个小实验点：记录参数量、token 数、预算和 loss，再检查外推是否合理。"
+    if domain == "model":
+        return f"围绕 {title} 复习时，可以写一个最小 forward pass：标出每个张量形状、状态更新和可能的数值问题。"
+    return f"围绕 {title} 复习时，应写出一个最小例子：输入是什么，哪一步使用这个概念，输出或指标怎样变化，失败条件在哪里出现。"
+
+
+def verification_closing_sentence(section: Any, profile: Any) -> str:
+    domain = section_domain(section)
+    title = clean_text(section.title)
+    if domain == "system":
+        return f"把实验结论放回 {profile.title_cn} 时，要说明 {title} 改变的是训练吞吐、推理延迟、显存峰值还是通信开销。能做出这种归因，才说明读者已经从接口使用进入系统解释。"
+    if domain == "data":
+        return f"把实验结论放回 {profile.title_cn} 时，要说明 {title} 改变的是样本分布、数据质量、污染风险还是可复现性。能追到这些来源，才说明读者真正理解数据机制。"
+    if domain == "alignment":
+        return f"把实验结论放回 {profile.title_cn} 时，要说明 {title} 改变的是目标函数、采样分布、反馈质量还是行为约束。能区分这些来源，才说明读者真正理解后训练。"
+    if domain == "evaluation":
+        return f"把实验结论放回 {profile.title_cn} 时，要说明 {title} 改变的是测量协议、答案解析、统计汇总还是错误分布。能解释这些环节，才说明读者真正理解评估。"
+    if domain == "scaling":
+        return f"把实验结论放回 {profile.title_cn} 时，要说明 {title} 改变的是预算轴、拟合曲线、外推误差还是目标指标。能拆开这些因素，才说明读者真正理解 scaling。"
+    if domain == "model":
+        return f"把实验结论放回 {profile.title_cn} 时，要说明 {title} 改变的是表示、计算图、梯度路径还是 activation memory。能追踪这些对象，才说明读者真正理解模型机制。"
+    return f"把实验结论放回 {profile.title_cn} 时，要说明 {title} 改变了哪一个可观察变量，以及这个变量为什么支持原来的机制判断。"
 
 
 def mechanism_paragraphs_for(section: Any, profile: Any) -> list[str]:
@@ -824,7 +1164,8 @@ def mechanism_paragraphs_for(section: Any, profile: Any) -> list[str]:
     if concepts:
         paragraphs.append(
             concepts[0]
-            + f" 这句话把讨论落在{noun}上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。"
+            + " "
+            + mechanism_opening_sentence(section, domain, noun)
         )
     if len(concepts) >= 2:
         paragraphs.append(
@@ -834,12 +1175,34 @@ def mechanism_paragraphs_for(section: Any, profile: Any) -> list[str]:
     if len(concepts) >= 3:
         paragraphs.append(
             concepts[2]
-            + " 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。"
+            + " "
+            + evidence_sentence(section)
         )
-    paragraphs.append(
-        f"因此，{section.title} 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。"
-    )
+    paragraphs.append(mechanism_closing_sentence(section, profile))
     return paragraphs
+
+
+def chapter_mainline_intro(lecture_id: int, profile: Any) -> str:
+    title = profile.title_cn
+    if lecture_id in {5, 6, 7, 8, 10, 18}:
+        return f"{title} 的主线是把 language model 的抽象计算放回真实机器：哪些张量要移动，哪些状态要保存，哪些瓶颈会在训练或服务时显现。"
+    if lecture_id in {13, 14}:
+        return f"{title} 的主线是把“训练数据”拆成来源、过滤、去重、混合和审计。模型能力不是只由参数决定，也由它反复看到的样本分布决定。"
+    if lecture_id in {15, 16, 17}:
+        return f"{title} 的主线是解释 base model 之后的行为塑形。课程关心的不是单个 post-training 名词，而是示范、偏好、奖励和评估怎样共同约束输出。"
+    if lecture_id in {9, 11}:
+        return f"{title} 的主线是从小规模实验走向大规模决策。读者需要同时追踪参数量、token 数、compute budget、loss 和 benchmark 之间的关系。"
+    if lecture_id == 12:
+        return f"{title} 的主线是把能力声明变成测量协议。一个分数只有在数据版本、prompt、采样、答案解析和误差分析都清楚时才可引用。"
+    return f"{title} 的主线是从一个可观察的问题出发，逐步引出表示、目标、实现和实验。读者应把每个机制放回 language modeling pipeline 的位置。"
+
+
+def mainline_followup(profile: Any, idx: int) -> str:
+    if idx == 1:
+        return f"读完这一段后，应能用一两句话说明 {profile.title_cn} 要解决的瓶颈，并指出这个瓶颈发生在数据、模型、优化、系统还是评估层。"
+    if idx == 2:
+        return "随后把机制写成账本：输入规模是什么，主要状态是什么，成本或质量指标怎样随变量改变。这个账本让后面的公式不再只是符号。"
+    return "最后把课堂讲解转成可复现实验：固定协议，改变一个变量，记录中间量，并解释结果为何支持或反驳原来的机制判断。"
 
 
 def render_guided_reading(lines: list[str], lecture_id: int, profile: Any) -> None:
@@ -847,24 +1210,17 @@ def render_guided_reading(lines: list[str], lecture_id: int, profile: Any) -> No
     if not guides:
         return
     lines.append(r"\section{本章主线}")
-    lines.append(
-        "本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。"
-    )
+    lines.append(latex_escape(chapter_mainline_intro(lecture_id, profile)))
     headings = ["本章要解决的核心问题", "从机制到资源账本", "从课堂讲解到可复现实验"]
     for idx, guide in enumerate(guides, start=1):
         heading = headings[idx - 1] if idx <= len(headings) else f"阅读主线 {idx}"
         lines.append(f"\\subsection{{{latex_escape(heading)}}}")
         lines.append(latex_escape(textbook_prose(guide)))
-        lines.append(
-            "这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。"
-        )
-        lines.append(
-            f"因此，{latex_escape(profile.title_cn)} 不应被读成若干名词的集合，而应被读成一组可检验的机制。"
-        )
+        lines.append(latex_escape(mainline_followup(profile, idx)))
 
 
 def render_source_driven_expansion(lines: list[str], section: Any, profile: Any) -> None:
-    lines.append(f"\\subsection{{常见混淆：{latex_escape(section.title)}}}")
+    lines.append(f"\\subsection{{概念辨析：{latex_escape(section.title)}}}")
     keywords = list(section.keywords)[:6]
     if not keywords:
         keywords = [section.title]
@@ -881,31 +1237,21 @@ def render_source_driven_expansion(lines: list[str], section: Any, profile: Any)
         if len(known_descriptions) >= 2:
             break
     lines.append(
-        latex_escape(
-            f"本节容易混淆的关键词包括 {keyword_text}。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。"
-        )
+        latex_escape(disambiguation_intro(section, keyword_text))
     )
     if known_descriptions:
         lines.append(latex_escape("其中，" + "；".join(strip_sentence_end(desc) for desc in known_descriptions) + "。"))
     lines.append(
         latex_escape(
-            f"区分这些词时，可以先问它们是否改变 {variables}。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。"
+            f"区分这些词时，可以先问它们是否改变 {variables}。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。"
         )
     )
     lines.append(
-        latex_escape(
-            f"因此，复习 {section.title} 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。"
-        )
+        latex_escape(minimal_example_sentence(section))
     )
 
     lines.append(f"\\subsection{{{latex_escape(section.title)} 的小结}}")
-    variables = domain_variables(section_domain(section))
-    propositions = [
-        f"讨论 {section.title} 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 {variables}。",
-        "如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。",
-        "公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。",
-    ]
-    lines.extend(render_itemize(propositions))
+    lines.extend(render_itemize(section_summary_points(section)))
 
 
 def render_section_verification(lines: list[str], section: Any, profile: Any) -> None:
@@ -937,20 +1283,15 @@ def render_section_verification(lines: list[str], section: Any, profile: Any) ->
         )
     )
     lines.append(
-        latex_escape(
-            "对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。"
-            "多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。"
-        )
+        latex_escape(ablation_paragraph(section))
     )
     lines.append(
         latex_escape(
-            f"最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：{caveat_text}。复习时可以把这些限制改写成反例测试。"
+            f"最后检查失败条件。工程判断往往在反例中变清楚：{caveat_text}。复习时可以把这些限制改写成反例测试，观察它们怎样改变 {variables}。"
         )
     )
     lines.append(
-        latex_escape(
-            f"实验结论还要放回 {profile.title_cn} 的整体结构中。{title} 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。"
-        )
+        latex_escape(verification_closing_sentence(section, profile))
     )
 
 
@@ -1001,10 +1342,7 @@ def render_concept_block(
     official: list[dict[str, Any]],
 ) -> None:
     lines.append(f"\\section{{{latex_escape(section.title)}}}")
-    intro_subject = f"本节讨论 {section.title}" if clean_text(section.title).startswith("为什么") else f"现在进入 {section.title}"
-    lines.append(
-        f"{latex_escape(intro_subject)}。它把 {latex_escape(profile.title_cn)} 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。"
-    )
+    lines.append(latex_escape(section_entry_paragraph(section, profile)))
     lines.append(f"\\subsection{{{latex_escape(problem_heading(section))}}}")
     for concept in section.concepts:
         lines.append(latex_escape(textbook_prose(concept)))
@@ -1019,9 +1357,7 @@ def render_concept_block(
     lines.append(formula)
     lines.append(sanitize_formula(section.formula_explain))
     lines.append(latex_escape(formula_commentary(section)))
-    lines.append(
-        "例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。"
-    )
+    lines.append(latex_escape(proxy_paragraph(section)))
 
     lines.append(f"\\subsection{{{latex_escape(implementation_heading(section))}}}")
     lines.append(latex_escape(pseudocode_intro(section)))
@@ -1032,14 +1368,11 @@ def render_concept_block(
 
     lines.append(r"\subsection{边界条件与常见误解}")
     caveats = list(section.caveats)
-    caveats.append("不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。")
-    caveats.append("不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。")
+    caveats.extend(default_caveats(section))
     lines.extend(render_itemize(caveats))
 
     lines.append(r"\subsection{与本章其他概念的关系}")
-    lines.append(
-        f"{latex_escape(section.title)} 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。"
-    )
+    lines.append(latex_escape(relation_paragraph(section, profile)))
     if lecture_id in {4, 8, 10, 14, 15, 16, 17, 18}:
         lines.append(
             "对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。"
@@ -1100,6 +1433,36 @@ def render_experiment_design(lines: list[str], profile: Any) -> None:
     )
     lines.append(
         "若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。"
+    )
+    lines.append(r"\subsection{把本章重新读成一条证据链}")
+    section_titles = [clean_text(section.title) for section in profile.sections]
+    term_text = "、".join(clean_text(term) for term in profile.terms[:6])
+    if len(section_titles) >= 3:
+        lines.append(
+            latex_escape(
+                f"完成小实验之后，可以把 {profile.title_cn} 重新读成一条证据链：先用“{section_titles[0]}”确定问题入口，"
+                f"再用“{section_titles[1]}”解释主要机制，最后用“{section_titles[2]}”检查边界或外推条件。"
+                "这种读法比按页背诵更接近教材训练，因为它要求每个结论都能说明前提、变量和证据。"
+            )
+        )
+    lines.append(
+        latex_escape(
+            f"本章反复使用的术语包括 {term_text}。复习时不要只写定义，而要为每个术语补上一句操作性说明："
+            "它在课程代码、公式、数据记录或评估协议中对应什么对象；如果这个对象被删除、替换或缩放，哪一个观测量会变化。"
+        )
+    )
+    lines.append(
+        latex_escape(
+            "最后，用一个反例结束复习。反例可以是资源估算不准、数据污染、reward 失真、benchmark 解析失败、长上下文显存爆炸或 scaling 外推失效。"
+            "能解释反例的章节，才真正具备自学和引用价值；不能解释反例的章节，只是把课程材料换了一种排版。"
+        )
+    )
+    lines.append(
+        latex_escape(
+            "引用本章结论时，还应保留来源边界：哪些说法直接来自视频、课程页、slides 或代码，哪些是为了串联教材叙述而加入的解释性推导。"
+            "这个边界不会削弱结论，反而让读者知道何处可以复核，何处需要在自己的实验中重新验证。"
+            "如果后续课程材料更新，也可以沿着同一证据链替换来源，而不必重写整章结构。"
+        )
     )
 
 
@@ -1577,8 +1940,14 @@ def merge_book(lectures: list[dict[str, Any]]) -> None:
     tex_path.write_text("\n".join(lines) + "\n")
     compile_tex(tex_path)
     DELIVERABLE_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(tex_path, DELIVERABLE_DIR / tex_path.name)
-    shutil.copy2(tex_path.with_suffix(".pdf"), DELIVERABLE_DIR / tex_path.with_suffix(".pdf").name)
+    deliverable_tex = DELIVERABLE_DIR / f"{DELIVERABLE_BASENAME}.tex"
+    deliverable_pdf = DELIVERABLE_DIR / f"{DELIVERABLE_BASENAME}.pdf"
+    for stale_name in ["cs336_complete_notes.tex", "cs336_complete_notes.pdf"]:
+        stale = DELIVERABLE_DIR / stale_name
+        if stale.exists():
+            stale.unlink()
+    shutil.copy2(tex_path, deliverable_tex)
+    shutil.copy2(tex_path.with_suffix(".pdf"), deliverable_pdf)
 
 
 def write_style_contract() -> None:
@@ -1623,8 +1992,8 @@ def update_manifest(lectures: list[dict[str, Any]]) -> None:
     manifest["lectures"] = lectures
     manifest["final_tex"] = rel(BUILD_DIR / "cs336_complete_notes.tex")
     manifest["final_pdf"] = rel(BUILD_DIR / "cs336_complete_notes.pdf")
-    manifest["deliverable_tex"] = rel(DELIVERABLE_DIR / "cs336_complete_notes.tex")
-    manifest["deliverable_pdf"] = rel(DELIVERABLE_DIR / "cs336_complete_notes.pdf")
+    manifest["deliverable_tex"] = rel(DELIVERABLE_DIR / f"{DELIVERABLE_BASENAME}.tex")
+    manifest["deliverable_pdf"] = rel(DELIVERABLE_DIR / f"{DELIVERABLE_BASENAME}.pdf")
     for lec in manifest["lectures"]:
         lec["latest_eval_report"] = f"lectures/{lec['lecture_slug']}/eval_reports/pass_999.json"
     write_json(BUILD_DIR / "course_manifest.json", manifest)
@@ -1636,8 +2005,8 @@ def write_deliverable_readme() -> None:
 
 Final textbook artifacts:
 
-- `cs336_complete_notes.pdf`
-- `cs336_complete_notes.tex`
+- `{DELIVERABLE_BASENAME}.pdf`
+- `{DELIVERABLE_BASENAME}.tex`
 
 Revision: `{REVISION}`.
 
@@ -1670,7 +2039,7 @@ def main() -> None:
     update_manifest(lectures)
     merge_book(lectures)
     write_deliverable_readme()
-    print(DELIVERABLE_DIR / "cs336_complete_notes.pdf")
+    print(DELIVERABLE_DIR / f"{DELIVERABLE_BASENAME}.pdf")
 
 
 if __name__ == "__main__":

@@ -51,19 +51,16 @@
 \caption{官方材料图页：Scaling laws 进阶与实践 的课程页/PDF/script 图像锚点。}
 \end{figure}
 \section{本章主线}
-本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+Scaling laws 进阶与实践 的主线是从小规模实验走向大规模决策。读者需要同时追踪参数量、token 数、compute budget、loss 和 benchmark 之间的关系。
 \subsection{本章要解决的核心问题}
 本讲继续 scaling laws，重点转向实践细节：muP、WSD learning rate、batch/LR scaling、MiniCPM 和 DeepSeek 等公开案例。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Scaling laws 进阶与实践 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+读完这一段后，应能用一两句话说明 Scaling laws 进阶与实践 要解决的瓶颈，并指出这个瓶颈发生在数据、模型、优化、系统还是评估层。
 \subsection{从机制到资源账本}
 进阶 scaling 的难点是如何降低拟合 scaling law 本身的成本。WSD 等 schedule 允许从稳定阶段重启 decay，以便更便宜地估计数据-模型 tradeoff。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Scaling laws 进阶与实践 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+随后把机制写成账本：输入规模是什么，主要状态是什么，成本或质量指标怎样随变量改变。这个账本让后面的公式不再只是符号。
 \subsection{从课堂讲解到可复现实验}
 实践中要同时预测 loss、选择 batch、学习率、模型宽深比和训练 tokens；任何 recipe 改变都需要重新验证外推可靠性。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Scaling laws 进阶与实践 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+最后把课堂讲解转成可复现实验：固定协议，改变一个变量，记录中间量，并解释结果为何支持或反驳原来的机制判断。
 \section{术语、符号与问题边界}
 本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
 \begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
@@ -78,28 +75,27 @@
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
-\subsection{关键词}
-下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
-\begin{itemize}
-\item scaling, batch, optimal, scale, learning, chinchilla, analysis, size, optimizers, loss, initialization, minicpm, deepseek, rate
-\end{itemize}
+\subsection{术语之间的关系}
+在本章中，forecasting（预测） 给出问题入口，overtraining（过训练/超额训练） 描述主要机制，data-constrained scaling（数据受限缩放） 则把机制连接到可测量的结果。读教材时应当沿着这个链条追问：输入是什么，中间状态怎样改变，输出指标为什么随之变化。
+课程材料还会反复出现 scaling、batch、optimal、scale、learning、chinchilla 等词。它们不是一组同义标签，而是提示本章的不同层次：有的指对象，有的指操作，有的指约束或指标。
+因此，术语表不是背诵清单，而是后文阅读的索引。遇到一个术语时，先定位它属于 representation、optimization、systems、data 还是 evaluation，再判断它改变哪一项账本。
 \section{更复杂的 scaling 问题}
-现在进入 更复杂的 scaling 问题。它把 Scaling laws 进阶与实践 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 更复杂的 scaling 问题。这一节把模型大小、训练 token、compute budget 和 loss 放在同一坐标系里，讨论何时可以从小实验推断大训练。
 \subsection{为什么要讨论 更复杂的 scaling 问题}
 视频开场称本讲是 scaling journey 的继续，覆盖更高级细节和实践中扩展模型的重要问题。
 实践中不只问 loss 怎么随 \textbackslash{}(N,D\textbackslash{}) 变，还要问数据受限、训练长度、architecture 改变、optimizer 改变时预测是否仍成立。
 scaling law 的价值在于减少大 run 风险，而不是替代工程监控。
-更复杂的 scaling 问题 的作用是把 Scaling laws 进阶与实践 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+更复杂的 scaling 问题 把 Scaling laws 进阶与实践 连接到大规模决策。接下来要看的不是曲线是否平滑，而是实验点、预算变量和外推假设是否一致。
 \subsection{更复杂的 scaling 问题 的机制}
-视频开场称本讲是 scaling journey 的继续，覆盖更高级细节和实践中扩展模型的重要问题。 这句话把讨论落在模型规模、token 数和训练预算上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+视频开场称本讲是 scaling journey 的继续，覆盖更高级细节和实践中扩展模型的重要问题。 在 更复杂的 scaling 问题 中，核心对象是模型规模、token 数和训练预算：小实验只有在预算、数据和优化条件清楚时，才可能支持大规模外推。
 实践中不只问 loss 怎么随 \textbackslash{}(N,D\textbackslash{}) 变，还要问数据受限、训练长度、architecture 改变、optimizer 改变时预测是否仍成立。 因而同一个方法在不同规模下可能改变不同的变量，尤其是参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。比较方法时，必须同时给出问题规模和实验条件。
-scaling law 的价值在于减少大 run 风险，而不是替代工程监控。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，更复杂的 scaling 问题 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+scaling law 的价值在于减少大 run 风险，而不是替代工程监控。 可检验性来自多个实验点、残差分析和外推误差估计；单条曲线若没有不确定性，就不能支撑大规模决策。
+因此，更复杂的 scaling 问题 的学习目标是建立一套外推判断：读者应能说明小实验为何能或不能指导 Scaling laws 进阶与实践 中的大训练配置。
 \subsection{更复杂的 scaling 问题 的数学表达}
 \[L(C)=L_\infty + aC^{-\gamma}\]
 符号说明：\(C\) 是总 compute；这个一维形式常用于简化预测，但会隐藏 \(N,D\) tradeoff。
 这个关系式给出 更复杂的 scaling 问题 的缩放假设。它把参数量、训练 token 数和 compute budget 放到同一张账本中，重点是判断小实验能否可靠外推到大训练。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在 scaling 实验中，validation loss、benchmark transfer 和训练吞吐都只是不同侧面的 proxy。外推时要说明哪个 proxy 被拟合，哪个 proxy 只是辅助诊断。
 \subsection{从 更复杂的 scaling 问题 到程序}
 把 更复杂的 scaling 问题 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
@@ -107,101 +103,101 @@ fit_compute_curve(runs)
 check_breakpoints_for_new_regime()
 forecast_only_with_error_bars()
 \end{lstlisting}
-这段伪代码的读法，是找出 更复杂的 scaling 问题 改变了哪些状态，以及这些状态如何对应到 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段流程时，重点看小规模实验怎样产生可外推曲线。参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 需要在每个实验点上同时记录，缺少其中一项都会改变 scaling 解释。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 单变量 compute curve 可能掩盖模型大小和数据量的不同失败模式。
 \item architecture 改变后，把旧曲线直接外推很危险。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 scaling 曲线不一定覆盖大训练的优化不稳定、数据瓶颈和系统瓶颈。
+\item compute-optimal 结论依赖目标指标；以 loss 最优并不自动意味着 benchmark、latency 或成本最优。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-更复杂的 scaling 问题 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+更复杂的 scaling 问题 连接本章的小实验和大规模决策：术语表标出预算变量，公式给出外推结构，伪代码组织实验点，例题检查 compute-optimal 判断是否稳健。
 \subsection{怎样检验 更复杂的 scaling 问题}
 检验 更复杂的 scaling 问题 时，先把抽象说法落到模型规模、token 数和训练预算上。与 forecasting、compute、regime、loss、practice 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(C\textbackslash{}) 是总 compute；这个一维形式常用于简化预测，但会隐藏 \textbackslash{}(N,D\textbackslash{}) tradeoff。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：单变量 compute curve 可能掩盖模型大小和数据量的不同失败模式；architecture 改变后，把旧曲线直接外推很危险。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Scaling laws 进阶与实践 的整体结构中。更复杂的 scaling 问题 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：更复杂的 scaling 问题}
-本节容易混淆的关键词包括 forecasting、compute、regime、loss、practice。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
-区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 更复杂的 scaling 问题 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+scaling 消融通常一次只改变参数量、token 数、数据 pipeline 或优化 schedule。若多个轴同时移动，曲线拟合会混合不同机制。
+最后检查失败条件。工程判断往往在反例中变清楚：单变量 compute curve 可能掩盖模型大小和数据量的不同失败模式；architecture 改变后，把旧曲线直接外推很危险。复习时可以把这些限制改写成反例测试，观察它们怎样改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
+把实验结论放回 Scaling laws 进阶与实践 时，要说明 更复杂的 scaling 问题 改变的是预算轴、拟合曲线、外推误差还是目标指标。能拆开这些因素，才说明读者真正理解 scaling。
+\subsection{概念辨析：更复杂的 scaling 问题}
+forecasting、compute、regime、loss、practice 常一起出现在 scaling 讨论中，但它们分别指预算轴、拟合对象、外推假设或风险来源。读者应先确定曲线中的自变量和因变量。
+区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 更复杂的 scaling 问题 复习时，可以画三到五个小实验点：记录参数量、token 数、预算和 loss，再检查外推是否合理。
 \subsection{更复杂的 scaling 问题 的小结}
 \begin{itemize}
 \item 讨论 更复杂的 scaling 问题 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称可以外推，要说明实验点覆盖范围、拟合形式和数据管线是否一致；曲线本身不是自然定律。
+\item scaling 结论需要把 loss、benchmark 和成本之间的转换关系说清楚，否则 compute-optimal 只是一条局部经验曲线。
 \end{itemize}
 \section{数据受限与重复数据}
-现在进入 数据受限与重复数据。它把 Scaling laws 进阶与实践 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 数据受限与重复数据。这一节关心训练样本如何形成、被筛选并进入混合分布；它直接决定模型看到什么，也决定 evaluation 是否可能被污染。
 \subsection{为什么要讨论 数据受限与重复数据}
 当高质量 token 有限时，简单增加训练 tokens 可能意味着重复数据或低质量数据。
 重复训练同一数据会改变 scaling 行为：短期可能降低 loss，长期可能过拟合或降低泛化。
 这为后续 data lectures 铺垫：scaling law 必须和数据来源、过滤、去重、混合策略一起讨论。
-数据受限与重复数据 的作用是把 Scaling laws 进阶与实践 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+数据受限与重复数据 把 Scaling laws 进阶与实践 连接到训练分布。接下来要看的不是语料名称，而是样本来源、处理顺序和版本记录怎样改变模型可学习的证据。
 \subsection{数据受限与重复数据 的机制}
-当高质量 token 有限时，简单增加训练 tokens 可能意味着重复数据或低质量数据。 这句话把讨论落在模型规模、token 数和训练预算上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
-重复训练同一数据会改变 scaling 行为：短期可能降低 loss，长期可能过拟合或降低泛化。 因而同一个方法在不同规模下可能改变不同的变量，尤其是参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。比较方法时，必须同时给出问题规模和实验条件。
-这为后续 data lectures 铺垫：scaling law 必须和数据来源、过滤、去重、混合策略一起讨论。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，数据受限与重复数据 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+当高质量 token 有限时，简单增加训练 tokens 可能意味着重复数据或低质量数据。 在 数据受限与重复数据 中，核心对象是样本、来源和分布状态：数据管线每改变一次样本集合，模型实际学习的分布也随之改变。
+重复训练同一数据会改变 scaling 行为：短期可能降低 loss，长期可能过拟合或降低泛化。 因而同一个方法在不同规模下可能改变不同的变量，尤其是样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。比较方法时，必须同时给出问题规模和实验条件。
+这为后续 data lectures 铺垫：scaling law 必须和数据来源、过滤、去重、混合策略一起讨论。 可检验性来自 provenance 记录、过滤前后计数、抽样审计和 held-out contamination 检查；没有这些记录，数据结论无法复现。
+因此，数据受限与重复数据 的学习目标是建立一条数据谱系：读者应能从原始来源追到训练 token，并说明每个处理步骤改变了什么分布。
 \subsection{数据受限与重复数据 的数学表达}
 \[D_{\text{effective}}\le D_{\text{raw}}\quad\text{when duplicates and low-quality tokens are present}\]
 符号说明：\(D_{\text{raw}}\) 是原始 token 数，\(D_{\text{effective}}\) 是对泛化真正有贡献的有效 token 数。
-这个关系式给出 数据受限与重复数据 的缩放假设。它把参数量、训练 token 数和 compute budget 放到同一张账本中，重点是判断小实验能否可靠外推到大训练。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+这个关系式刻画 数据受限与重复数据 对数据分布的影响。读者应关心哪些变量来自采集过程，哪些变量来自过滤或混合策略，哪些变量只能通过抽样审计估计。
+在数据实验中，去重率、过滤通过率、语言比例和抽样人工判读都是 proxy。它们不能单独代表数据质量，必须和来源记录、版本号以及污染检查一起解释。
 \subsection{从 数据受限与重复数据 到程序}
-把 数据受限与重复数据 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
+把 数据受限与重复数据 写成程序时，要明确每一步怎样改写样本集合。下面的伪代码强调输入、过滤、统计和输出之间的关系。
 \begin{lstlisting}[language=Python]
 effective_tokens = estimate_after_dedup_and_filter(raw_tokens)
 refit_scaling_law_if_data_pipeline_changes()
 \end{lstlisting}
-这段伪代码的读法，是找出 数据受限与重复数据 改变了哪些状态，以及这些状态如何对应到 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段流程时，重点看 数据受限与重复数据 怎样改变样本集合。每个过滤、去重或混合步骤都应留下计数和抽样检查，使 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险 能够被复核。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 有效 token 数不可直接从文件大小读取。
 \item 低质量数据可能增加 token count 但恶化 downstream behavior。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小样本抽样只能发现部分数据问题，不能证明语料整体无污染或无偏差。
+\item 数据版本、许可状态和处理脚本如果缺失，后续 evaluation 与 scaling 结论都会失去可复现基础。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-数据受限与重复数据 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+数据受限与重复数据 连接本章的数据来源和模型行为：定义说明样本如何进入语料，公式刻画分布变化，伪代码展示处理顺序，例题检验数据决策怎样影响训练结论。
 \subsection{怎样检验 数据受限与重复数据}
-检验 数据受限与重复数据 时，先把抽象说法落到模型规模、token 数和训练预算上。与 data、duplicates、effective tokens、overtraining、quality 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
-一个合适的小实验应当保留本节机制，同时让 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+检验 数据受限与重复数据 时，先把抽象说法落到样本、来源和分布状态上。与 data、duplicates、effective tokens、overtraining、quality 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(D\_\{ ext\{raw\}\}\textbackslash{}) 是原始 token 数，\textbackslash{}(D\_\{ ext\{effective\}\}\textbackslash{}) 是对泛化真正有贡献的有效 token 数。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：有效 token 数不可直接从文件大小读取；低质量数据可能增加 token count 但恶化 downstream behavior。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Scaling laws 进阶与实践 的整体结构中。数据受限与重复数据 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：数据受限与重复数据}
-本节容易混淆的关键词包括 data、duplicates、effective tokens、overtraining、quality。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+数据消融通常一次只改变过滤阈值、去重策略、混合权重或数据版本。若同时更换 tokenizer、语料和评估集，就无法知道改进来自哪一步。
+最后检查失败条件。工程判断往往在反例中变清楚：有效 token 数不可直接从文件大小读取；低质量数据可能增加 token count 但恶化 downstream behavior。复习时可以把这些限制改写成反例测试，观察它们怎样改变 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。
+把实验结论放回 Scaling laws 进阶与实践 时，要说明 数据受限与重复数据 改变的是样本分布、数据质量、污染风险还是可复现性。能追到这些来源，才说明读者真正理解数据机制。
+\subsection{概念辨析：数据受限与重复数据}
+data、duplicates、effective tokens、overtraining、quality 常一起出现在数据管线中，但它们分别指来源、处理动作、版本记录或风险标记。读者应先判断它们改变的是样本集合还是审计证据。
 其中，data（数据）是模型能力、偏差和法律风险的主要来源。
-区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 数据受限与重复数据 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 数据受限与重复数据 复习时，可以构造一小批文档：保留来源和版本，运行一个处理步骤，再比较样本计数和抽样质量。
 \subsection{数据受限与重复数据 的小结}
 \begin{itemize}
-\item 讨论 数据受限与重复数据 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 讨论 数据受限与重复数据 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 样本数量、去重率、过滤阈值、数据混合比例和 contamination 风险。
+\item 如果方法声称数据更好，要说明过滤、去重、混合或合成步骤改变了哪一部分分布，并检查 benchmark contamination。
+\item 数据结论需要抽样审计和版本记录；没有 provenance 的语料变化不能支持可引用结论。
 \end{itemize}
 \section{从 loss 到能力指标}
-现在进入 从 loss 到能力指标。它把 Scaling laws 进阶与实践 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 从 loss 到能力指标。这一节把模型大小、训练 token、compute budget 和 loss 放在同一坐标系里，讨论何时可以从小实验推断大训练。
 \subsection{为什么要讨论 从 loss 到能力指标}
 loss 平滑、可测、适合拟合，但用户关心的是 reasoning、coding、instruction following 等能力。
 能力指标可能出现阈值效应或评估噪声，使其比 loss 更难预测。
 进阶 scaling 分析要把 validation loss、benchmark score、推理成本和安全约束一起纳入。
-从 loss 到能力指标 的作用是把 Scaling laws 进阶与实践 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+从 loss 到能力指标 把 Scaling laws 进阶与实践 连接到大规模决策。接下来要看的不是曲线是否平滑，而是实验点、预算变量和外推假设是否一致。
 \subsection{从 loss 到能力指标 的机制}
-loss 平滑、可测、适合拟合，但用户关心的是 reasoning、coding、instruction following 等能力。 这句话把讨论落在模型规模、token 数和训练预算上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+loss 平滑、可测、适合拟合，但用户关心的是 reasoning、coding、instruction following 等能力。 在 从 loss 到能力指标 中，核心对象是模型规模、token 数和训练预算：小实验只有在预算、数据和优化条件清楚时，才可能支持大规模外推。
 能力指标可能出现阈值效应或评估噪声，使其比 loss 更难预测。 因而同一个方法在不同规模下可能改变不同的变量，尤其是参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。比较方法时，必须同时给出问题规模和实验条件。
-进阶 scaling 分析要把 validation loss、benchmark score、推理成本和安全约束一起纳入。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，从 loss 到能力指标 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+进阶 scaling 分析要把 validation loss、benchmark score、推理成本和安全约束一起纳入。 可检验性来自多个实验点、残差分析和外推误差估计；单条曲线若没有不确定性，就不能支撑大规模决策。
+因此，从 loss 到能力指标 的学习目标是建立一套外推判断：读者应能说明小实验为何能或不能指导 Scaling laws 进阶与实践 中的大训练配置。
 \subsection{从 loss 到能力指标 的数学表达}
 \[\mathbb{E}[\text{score}]\approx h(L,\text{prompt},\text{eval distribution})\]
 符号说明：\(h\) 表示从 loss 到 benchmark score 的经验映射；它依赖评估任务和 prompting。
 这个关系式给出 从 loss 到能力指标 的缩放假设。它把参数量、训练 token 数和 compute budget 放到同一张账本中，重点是判断小实验能否可靠外推到大训练。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在 scaling 实验中，validation loss、benchmark transfer 和训练吞吐都只是不同侧面的 proxy。外推时要说明哪个 proxy 被拟合，哪个 proxy 只是辅助诊断。
 \subsection{从 从 loss 到能力指标 到程序}
 把 从 loss 到能力指标 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
 \begin{lstlisting}[language=Python]
@@ -210,32 +206,32 @@ for checkpoint in training_curve:
     measure_benchmarks(checkpoint)
     fit_loss_to_score_mapping()
 \end{lstlisting}
-这段伪代码的读法，是找出 从 loss 到能力指标 改变了哪些状态，以及这些状态如何对应到 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段流程时，重点看小规模实验怎样产生可外推曲线。参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 需要在每个实验点上同时记录，缺少其中一项都会改变 scaling 解释。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item benchmark score 的方差和 contamination 会扭曲趋势。
 \item 能力不是只由 pretraining loss 决定，post-training 也会改变可见行为。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 scaling 曲线不一定覆盖大训练的优化不稳定、数据瓶颈和系统瓶颈。
+\item compute-optimal 结论依赖目标指标；以 loss 最优并不自动意味着 benchmark、latency 或成本最优。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-从 loss 到能力指标 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+从 loss 到能力指标 连接本章的小实验和大规模决策：术语表标出预算变量，公式给出外推结构，伪代码组织实验点，例题检查 compute-optimal 判断是否稳健。
 \subsection{怎样检验 从 loss 到能力指标}
 检验 从 loss 到能力指标 时，先把抽象说法落到模型规模、token 数和训练预算上。与 benchmark、emergence、score、loss、post-training 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(h\textbackslash{}) 表示从 loss 到 benchmark score 的经验映射；它依赖评估任务和 prompting。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：benchmark score 的方差和 contamination 会扭曲趋势；能力不是只由 pretraining loss 决定，post-training 也会改变可见行为。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Scaling laws 进阶与实践 的整体结构中。从 loss 到能力指标 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：从 loss 到能力指标}
-本节容易混淆的关键词包括 benchmark、emergence、score、loss、post-training。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
-区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 从 loss 到能力指标 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+scaling 消融通常一次只改变参数量、token 数、数据 pipeline 或优化 schedule。若多个轴同时移动，曲线拟合会混合不同机制。
+最后检查失败条件。工程判断往往在反例中变清楚：benchmark score 的方差和 contamination 会扭曲趋势；能力不是只由 pretraining loss 决定，post-training 也会改变可见行为。复习时可以把这些限制改写成反例测试，观察它们怎样改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
+把实验结论放回 Scaling laws 进阶与实践 时，要说明 从 loss 到能力指标 改变的是预算轴、拟合曲线、外推误差还是目标指标。能拆开这些因素，才说明读者真正理解 scaling。
+\subsection{概念辨析：从 loss 到能力指标}
+benchmark、emergence、score、loss、post-training 常一起出现在 scaling 讨论中，但它们分别指预算轴、拟合对象、外推假设或风险来源。读者应先确定曲线中的自变量和因变量。
+区分这些词时，可以先问它们是否改变 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 从 loss 到能力指标 复习时，可以画三到五个小实验点：记录参数量、token 数、预算和 loss，再检查外推是否合理。
 \subsection{从 loss 到能力指标 的小结}
 \begin{itemize}
 \item 讨论 从 loss 到能力指标 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 参数量、训练 token 数、compute budget、loss 外推误差和 benchmark 转化关系。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称可以外推，要说明实验点覆盖范围、拟合形式和数据管线是否一致；曲线本身不是自然定律。
+\item scaling 结论需要把 loss、benchmark 和成本之间的转换关系说清楚，否则 compute-optimal 只是一条局部经验曲线。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 Scaling laws 进阶与实践，但它不应被读成几个相邻知识点的拼接。更复杂的 scaling 问题、数据受限与重复数据、从 loss 到能力指标 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -287,6 +283,11 @@ for checkpoint in training_curve:
 因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
 还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
 若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
+\subsection{把本章重新读成一条证据链}
+完成小实验之后，可以把 Scaling laws 进阶与实践 重新读成一条证据链：先用“更复杂的 scaling 问题”确定问题入口，再用“数据受限与重复数据”解释主要机制，最后用“从 loss 到能力指标”检查边界或外推条件。这种读法比按页背诵更接近教材训练，因为它要求每个结论都能说明前提、变量和证据。
+本章反复使用的术语包括 forecasting（预测）、overtraining（过训练/超额训练）、data-constrained scaling（数据受限缩放）、muP、emergence（涌现）。复习时不要只写定义，而要为每个术语补上一句操作性说明：它在课程代码、公式、数据记录或评估协议中对应什么对象；如果这个对象被删除、替换或缩放，哪一个观测量会变化。
+最后，用一个反例结束复习。反例可以是资源估算不准、数据污染、reward 失真、benchmark 解析失败、长上下文显存爆炸或 scaling 外推失效。能解释反例的章节，才真正具备自学和引用价值；不能解释反例的章节，只是把课程材料换了一种排版。
+引用本章结论时，还应保留来源边界：哪些说法直接来自视频、课程页、slides 或代码，哪些是为了串联教材叙述而加入的解释性推导。这个边界不会削弱结论，反而让读者知道何处可以复核，何处需要在自己的实验中重新验证。如果后续课程材料更新，也可以沿着同一证据链替换来源，而不必重写整章结构。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}

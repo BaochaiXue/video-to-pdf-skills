@@ -51,19 +51,16 @@
 \caption{第 17 讲学习路径：从问题定义进入公式、实现、实验和练习。}
 \end{figure}
 \section{本章主线}
-本章可以沿着三条线索阅读：课程为什么把这个主题放在这里，它改变了哪些变量，以及怎样用小实验检查这些变量。
+Alignment 与 multimodality 的主线是解释 base model 之后的行为塑形。课程关心的不是单个 post-training 名词，而是示范、偏好、奖励和评估怎样共同约束输出。
 \subsection{本章要解决的核心问题}
 本讲补上 multimodality。现代 frontier models 不只处理 text-to-text，而要把 image、video、audio 等模态编码成 token 或 embedding。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Alignment 与 multimodality 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+读完这一段后，应能用一两句话说明 Alignment 与 multimodality 要解决的瓶颈，并指出这个瓶颈发生在数据、模型、优化、系统还是评估层。
 \subsection{从机制到资源账本}
 CLIP/SigLIP 用图文对齐学习 image/text representation，LLaVA 等 VLM 再把视觉特征投影到语言模型输入空间并做 instruction tuning。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Alignment 与 multimodality 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+随后把机制写成账本：输入规模是什么，主要状态是什么，成本或质量指标怎样随变量改变。这个账本让后面的公式不再只是符号。
 \subsection{从课堂讲解到可复现实验}
 多模态模型的关键 caveat 是视觉 grounding：模型可能用语言先验回答，而不是忠实读取图像；OCR、chart、spatial reasoning 和 video 都需要单独评估。
-这一点对应的学习动作是：找出对象，写出变量，说明变量如何被测量。若输入规模、硬件、数据分布或评估协议改变，结论也必须重新检查。
-因此，Alignment 与 multimodality 不应被读成若干名词的集合，而应被读成一组可检验的机制。
+最后把课堂讲解转成可复现实验：固定协议，改变一个变量，记录中间量，并解释结果为何支持或反驳原来的机制判断。
 \section{术语、符号与问题边界}
 本章的术语横跨模型、数据和系统。读者需要先知道每个词指向的对象：有些词描述数学目标，有些词描述张量形状，有些词描述硬件瓶颈，还有一些词描述评估协议。术语边界不清，后面的公式和实现就会变成空洞的缩写。
 \begin{longtable}{p{0.08\linewidth}p{0.42\linewidth}p{0.42\linewidth}}
@@ -79,134 +76,133 @@ CLIP/SigLIP 用图文对齐学习 image/text representation，LLaVA 等 VLM 再�
 \bottomrule
 \end{longtable}
 这些术语之间有依赖关系。例如 tokenization 改变 sequence length，sequence length 又改变 attention FLOPs、KV cache 和 evaluation token budget；parallelism 改变显存占用，也改变通信瓶颈和故障恢复方式。
-\subsection{关键词}
-下面的关键词在课程材料中反复出现。它们不代替定义，只提示读者本章哪些对象需要在后文持续跟踪。
-\begin{itemize}
-\item text, image, data, images, encoder, tokens, vision, clip, stage, train, training, resolution, language, modalities
-\end{itemize}
+\subsection{术语之间的关系}
+在本章中，multimodal model（多模态模型） 给出问题入口，vision-language model (VLM) 描述主要机制，CLIP 则把机制连接到可测量的结果。读教材时应当沿着这个链条追问：输入是什么，中间状态怎样改变，输出指标为什么随之变化。
+课程材料还会反复出现 text、image、data、images、encoder、tokens 等词。它们不是一组同义标签，而是提示本章的不同层次：有的指对象，有的指操作，有的指约束或指标。
+因此，术语表不是背诵清单，而是后文阅读的索引。遇到一个术语时，先定位它属于 representation、optimization、systems、data 还是 evaluation，再判断它改变哪一项账本。
 \section{为什么 CS336 需要 multimodality}
-本节讨论 为什么 CS336 需要 multimodality。它把 Alignment 与 multimodality 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+本节讨论 为什么 CS336 需要 multimodality。它先限定 Alignment 与 multimodality 要回答的基本问题：哪些现象需要解释，哪些变量可以测量，哪些结论必须回到 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率 中检验。
 \subsection{课程目标与问题边界}
 视频说明原计划继续 RL，但课程若完全不讲 multimodality 会不完整，因为主流模型已普遍多模态。
 多模态不是把图片塞进 prompt 那么简单，而是要把图像、视频、音频等信号变成 LM 可处理的 token/embedding。
 本讲是 overview，目标是建立结构图和主要训练阶段，而不是覆盖完整 VLM 课程。
-为什么 CS336 需要 multimodality 的作用是把 Alignment 与 multimodality 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+为什么 CS336 需要 multimodality 把 Alignment 与 multimodality 连接到行为目标。接下来要看的不是 reward 名称，而是反馈信号、采样分布和约束项怎样改变模型更新。
 \subsection{为什么 CS336 需要 multimodality 的机制}
-视频说明原计划继续 RL，但课程若完全不讲 multimodality 会不完整，因为主流模型已普遍多模态。 这句话把讨论落在模型、数据或实验状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
-多模态不是把图片塞进 prompt 那么简单，而是要把图像、视频、音频等信号变成 LM 可处理的 token/embedding。 因而同一个方法在不同规模下可能改变不同的变量，尤其是输入规模、资源使用、指标变化和失败模式。比较方法时，必须同时给出问题规模和实验条件。
-本讲是 overview，目标是建立结构图和主要训练阶段，而不是覆盖完整 VLM 课程。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，为什么 CS336 需要 multimodality 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+视频说明原计划继续 RL，但课程若完全不讲 multimodality 会不完整，因为主流模型已普遍多模态。 在 为什么 CS336 需要 multimodality 中，核心对象是行为、奖励和偏好状态：后训练方法并不直接制造知识，而是通过目标和反馈改变模型选择输出的方式。
+多模态不是把图片塞进 prompt 那么简单，而是要把图像、视频、音频等信号变成 LM 可处理的 token/embedding。 因而同一个方法在不同规模下可能改变不同的变量，尤其是reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。比较方法时，必须同时给出问题规模和实验条件。
+本讲是 overview，目标是建立结构图和主要训练阶段，而不是覆盖完整 VLM 课程。 可检验性来自训练日志、reward 分布、KL/length 统计和行为评估；只看最终回答样例无法判断更新方向。
+因此，为什么 CS336 需要 multimodality 的学习目标是建立一条行为更新链：读者应能区分示范、偏好、奖励和约束分别给模型提供了什么信号。
 \subsection{资源、效率与效果的关系}
 \[z_{\text{text}},z_{\text{image}}\in\mathbb{R}^{d}\]
 符号说明：文本和图像被编码到同一维度的表示空间，后续可用于对齐、检索或作为 LM 输入。
-这个关系式给出 为什么 CS336 需要 multimodality 的最小数学结构。读者应检查变量单位、取值范围和可观测性；如果某个量只能间接估计，就必须说明 proxy。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+这个关系式说明 为什么 CS336 需要 multimodality 如何把行为偏好写入优化目标。关键不是符号复杂度，而是 reward、reference policy、采样分布和约束强度如何共同决定更新方向。
+在后训练实验中，reward model score、verifier pass rate、回答长度和人工偏好都是 proxy。它们会被采样策略和格式约束影响，因此不能直接等同于真实有用性。
 \subsection{把课程目标写成检查流程}
-把 为什么 CS336 需要 multimodality 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
+把 为什么 CS336 需要 multimodality 写成训练流程时，要区分采样、打分、构造 loss 和更新参数。下面的伪代码保留这些边界。
 \begin{lstlisting}[language=Python]
 image_features = vision_encoder(image)
 image_tokens = projector(image_features)
 logits = language_model(concat(image_tokens, text_tokens))
 \end{lstlisting}
-这段伪代码的读法，是找出 为什么 CS336 需要 multimodality 改变了哪些状态，以及这些状态如何对应到 输入规模、资源使用、指标变化和失败模式。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段训练流程时，重点区分采样、打分和参数更新。只有同时记录 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率，才能判断行为改善来自奖励信号、采样分布还是约束强度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item 多模态模型的能力受 vision encoder、数据配对质量和 instruction tuning 共同限制。
 \item 把 image embedding 接到 LM 不保证 spatial reasoning 或视觉 grounding。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 后训练指标可能被格式、长度或 verifier 偏差驱动，不能直接等同于真实能力提升。
+\item 偏好优化可能改善目标行为，也可能牺牲多样性、校准性或某些下游能力。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-为什么 CS336 需要 multimodality 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+为什么 CS336 需要 multimodality 连接本章的训练目标和输出行为：术语表区分示范、偏好与奖励，公式说明优化方向，伪代码展示采样和更新，例题检查行为约束的边界。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 这一课程目标}
-检验 这一课程目标 时，先把抽象说法落到模型、数据或实验状态上。与 multimodal、image、vision、encoder、tokens 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
-一个合适的小实验应当保留本节机制，同时让 输入规模、资源使用、指标变化和失败模式 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+检验 这一课程目标 时，先把抽象说法落到行为、奖励和偏好状态上。与 multimodal、image、vision、encoder、tokens 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：文本和图像被编码到同一维度的表示空间，后续可用于对齐、检索或作为 LM 输入。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：多模态模型的能力受 vision encoder、数据配对质量和 instruction tuning 共同限制；把 image embedding 接到 LM 不保证 spatial reasoning 或视觉 grounding。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Alignment 与 multimodality 的整体结构中。为什么 CS336 需要 multimodality 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：为什么 CS336 需要 multimodality}
-本节容易混淆的关键词包括 multimodal、image、vision、encoder、tokens。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+后训练消融通常一次只改变示范数据、reward scale、KL 约束、采样温度或 verifier。若训练目标和解码策略同时变化，行为差异就很难归因。
+最后检查失败条件。工程判断往往在反例中变清楚：多模态模型的能力受 vision encoder、数据配对质量和 instruction tuning 共同限制；把 image embedding 接到 LM 不保证 spatial reasoning 或视觉 grounding。复习时可以把这些限制改写成反例测试，观察它们怎样改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
+把实验结论放回 Alignment 与 multimodality 时，要说明 为什么 CS336 需要 multimodality 改变的是目标函数、采样分布、反馈质量还是行为约束。能区分这些来源，才说明读者真正理解后训练。
+\subsection{概念辨析：为什么 CS336 需要 multimodality}
+multimodal、image、vision、encoder、tokens 常一起出现在后训练讨论中，但它们分别指数据、反馈、目标函数或行为指标。读者应先判断每个词给优化过程提供什么信号。
 其中，multimodal model（多模态模型）把文本、图像、视频等统一到 token/embedding 接口。
-区分这些词时，可以先问它们是否改变 输入规模、资源使用、指标变化和失败模式。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 为什么 CS336 需要 multimodality 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 为什么 CS336 需要 multimodality 复习时，可以构造几条 prompt-response：明确奖励或偏好规则，观察同一模型在更新前后的行为差异。
 \subsection{为什么 CS336 需要 multimodality 的小结}
 \begin{itemize}
-\item 讨论 为什么 CS336 需要 multimodality 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 输入规模、资源使用、指标变化和失败模式。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 讨论 为什么 CS336 需要 multimodality 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
+\item 如果方法声称行为更好，要说明示范、偏好、reward 或 verifier 哪一项提供了信号，并检查 reward hacking、length bias 和能力退化。
+\item 后训练结论需要把训练目标、采样策略和评估协议分开报告，否则无法判断改进来自哪里。
 \end{itemize}
 \section{CLIP 式对比学习与表示对齐}
-现在进入 CLIP 式对比学习与表示对齐。它把 Alignment 与 multimodality 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 CLIP 式对比学习与表示对齐。这一节把算法放到硬件和运行时中考察：同一个数学表达式在不同 batch、shape、GPU 拓扑和 kernel 实现下会得到不同的成本账本。
 \subsection{为什么要讨论 CLIP 式对比学习与表示对齐}
 字幕关键词显示 CLIP、image、text、encoder 反复出现，是本讲重要主线。
 CLIP 用图文对比学习把匹配图像和文本拉近，把不匹配样本推远。
 这种表示可用于 zero-shot classification、retrieval，也可作为 VLM 的视觉基础。
-CLIP 式对比学习与表示对齐 的作用是把 Alignment 与 multimodality 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+CLIP 式对比学习与表示对齐 把 Alignment 与 multimodality 放进资源账本。接下来要看的不是单个 API，而是张量形状、内存层级、通信和调度怎样共同决定成本。
 \subsection{CLIP 式对比学习与表示对齐 的机制}
-字幕关键词显示 CLIP、image、text、encoder 反复出现，是本讲重要主线。 这句话把讨论落在模型、数据或实验状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
-CLIP 用图文对比学习把匹配图像和文本拉近，把不匹配样本推远。 因而同一个方法在不同规模下可能改变不同的变量，尤其是输入规模、资源使用、指标变化和失败模式。比较方法时，必须同时给出问题规模和实验条件。
-这种表示可用于 zero-shot classification、retrieval，也可作为 VLM 的视觉基础。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，CLIP 式对比学习与表示对齐 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+字幕关键词显示 CLIP、image、text、encoder 反复出现，是本讲重要主线。 在 CLIP 式对比学习与表示对齐 中，核心对象是硬件和系统状态：同一算法会因为 memory hierarchy、通信拓扑或 kernel shape 不同而表现出完全不同的速度。
+CLIP 用图文对比学习把匹配图像和文本拉近，把不匹配样本推远。 因而同一个方法在不同规模下可能改变不同的变量，尤其是吞吐、延迟、显存峰值、通信量和 kernel 利用率。比较方法时，必须同时给出问题规模和实验条件。
+这种表示可用于 zero-shot classification、retrieval，也可作为 VLM 的视觉基础。 可检验性来自 profile trace、roofline 估算和端到端延迟分解；如果这些证据互相矛盾，就要先解释 measurement setup。
+因此，CLIP 式对比学习与表示对齐 的学习目标是建立一张成本地图：读者应能指出瓶颈在计算、内存、通信还是调度，并能设计一个小 benchmark 去验证。
 \subsection{CLIP 式对比学习与表示对齐 的数学表达}
 \[\mathcal{L}_{\text{CLIP}}=-\frac{1}{B}\sum_i \log\frac{\exp(s(z^I_i,z^T_i)/\tau)}{\sum_j\exp(s(z^I_i,z^T_j)/\tau)}\]
 符号说明：\(z^I_i,z^T_i\) 是第 \(i\) 个图像和文本表示，\(s\) 是相似度，\(\tau\) 是 temperature。
-这个关系式给出 CLIP 式对比学习与表示对齐 的最小数学结构。读者应检查变量单位、取值范围和可观测性；如果某个量只能间接估计，就必须说明 proxy。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+这个关系式应被读成 CLIP 式对比学习与表示对齐 的资源账本。它不承诺精确预测每次运行时间，而是帮助判断主要成本来自计算、内存访问、通信还是调度。
+在系统实验中，tokens/s、TTFT、显存峰值和 kernel time 都是 proxy。它们各自只观察一部分系统，因此报告时要同时写清 workload shape、warmup、同步方式和硬件型号。
 \subsection{从 CLIP 式对比学习与表示对齐 到程序}
-把 CLIP 式对比学习与表示对齐 写成程序后，抽象机制会变成输入、状态和输出之间的变换。下面的伪代码保留核心计算顺序。
+把 CLIP 式对比学习与表示对齐 写成程序时，最重要的是暴露状态变化和数据移动。下面的伪代码保留执行顺序，省略框架样板。
 \begin{lstlisting}[language=Python]
 image_emb = image_encoder(images)
 text_emb = text_encoder(captions)
 loss = contrastive_loss(image_emb, text_emb)
 \end{lstlisting}
-这段伪代码的读法，是找出 CLIP 式对比学习与表示对齐 改变了哪些状态，以及这些状态如何对应到 输入规模、资源使用、指标变化和失败模式。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段实现时，重点看 CLIP 式对比学习与表示对齐 怎样移动张量、占用显存并触发通信。实验记录至少要包含 吞吐、延迟、显存峰值、通信量和 kernel 利用率，否则很难判断瓶颈来自算子、内存层级还是调度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item contrastive alignment 不等于能生成细粒度视觉描述。
 \item batch negatives 的质量和规模会影响表示学习。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 小规模 kernel benchmark 不一定预测端到端训练或 serving latency，因为调度、通信和请求形状会改变瓶颈。
+\item 硬件规格表和框架 profiler 都需要结合 workload 解释，不能把单个峰值数字当作机制证明。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-CLIP 式对比学习与表示对齐 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+CLIP 式对比学习与表示对齐 连接本章的数学机制和工程成本：术语表说明对象，公式估算资源，伪代码暴露状态变化，例题则让读者检查一次完整的成本推理。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 CLIP 式对比学习与表示对齐}
-检验 CLIP 式对比学习与表示对齐 时，先把抽象说法落到模型、数据或实验状态上。与 CLIP、contrastive、image encoder、text encoder、temperature 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
-一个合适的小实验应当保留本节机制，同时让 输入规模、资源使用、指标变化和失败模式 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
+检验 CLIP 式对比学习与表示对齐 时，先把抽象说法落到硬件和系统状态上。与 CLIP、contrastive、image encoder、text encoder、temperature 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
+一个合适的小实验应当保留本节机制，同时让 吞吐、延迟、显存峰值、通信量和 kernel 利用率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：\textbackslash{}(z\textasciicircum{}I\_i,z\textasciicircum{}T\_i\textbackslash{}) 是第 \textbackslash{}(i\textbackslash{}) 个图像和文本表示，\textbackslash{}(s\textbackslash{}) 是相似度，\textbackslash{}( au\textbackslash{}) 是 temperature。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：contrastive alignment 不等于能生成细粒度视觉描述；batch negatives 的质量和规模会影响表示学习。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Alignment 与 multimodality 的整体结构中。CLIP 式对比学习与表示对齐 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：CLIP 式对比学习与表示对齐}
-本节容易混淆的关键词包括 CLIP、contrastive、image encoder、text encoder、temperature。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
+系统消融通常一次只改变 batch shape、sequence length、GPU 数、kernel 实现或调度策略。若同时改变硬件和 workload，实验只能说明端到端表现不同，不能定位瓶颈。
+最后检查失败条件。工程判断往往在反例中变清楚：contrastive alignment 不等于能生成细粒度视觉描述；batch negatives 的质量和规模会影响表示学习。复习时可以把这些限制改写成反例测试，观察它们怎样改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+把实验结论放回 Alignment 与 multimodality 时，要说明 CLIP 式对比学习与表示对齐 改变的是训练吞吐、推理延迟、显存峰值还是通信开销。能做出这种归因，才说明读者已经从接口使用进入系统解释。
+\subsection{概念辨析：CLIP 式对比学习与表示对齐}
+CLIP、contrastive、image encoder、text encoder、temperature 常一起出现在系统讲解中，但它们分别指硬件对象、程序操作、瓶颈来源或测量指标。读者应先定位每个词在执行路径中的位置。
 其中，CLIP 用图文对比学习对齐 image encoder 和 text encoder。
-区分这些词时，可以先问它们是否改变 输入规模、资源使用、指标变化和失败模式。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 CLIP 式对比学习与表示对齐 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+区分这些词时，可以先问它们是否改变 吞吐、延迟、显存峰值、通信量和 kernel 利用率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 CLIP 式对比学习与表示对齐 复习时，可以写一个小 benchmark：固定输入形状，改变一个系统变量，记录 profile trace 和端到端时间。
 \subsection{CLIP 式对比学习与表示对齐 的小结}
 \begin{itemize}
-\item 讨论 CLIP 式对比学习与表示对齐 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 输入规模、资源使用、指标变化和失败模式。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 讨论 CLIP 式对比学习与表示对齐 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 吞吐、延迟、显存峰值、通信量和 kernel 利用率。
+\item 如果方法声称更快，要区分计算减少、内存访问减少、通信隐藏和调度改善；这些机制不能用一个 tokens/s 数字互相替代。
+\item profile trace、roofline 估算和端到端 benchmark 应互相校验，单独一个指标不足以解释系统瓶颈。
 \end{itemize}
 \section{VLM instruction tuning 与评估}
-现在进入 VLM instruction tuning 与评估。它把 Alignment 与 multimodality 中的一部分问题推进到可操作层面：哪些对象要被定义，哪些变量要被测量，哪些限制会改变结论。
+现在进入 VLM instruction tuning 与评估。这一节讨论 base model 之外的行为塑形：示范、偏好、reward 或 verifier 怎样把模型输出推向课程定义的目标行为。
 \subsection{为什么要讨论 VLM instruction tuning 与评估}
 LLaVA 等模型把视觉特征投影成 LM tokens，再用图文指令数据训练对话能力。
 多模态 alignment 包含 helpfulness、安全、拒答、视觉事实性和跨模态 grounding。
 评估 VLM 要覆盖 captioning、VQA、OCR、chart/table、spatial reasoning、video understanding 和 hallucination。
-VLM instruction tuning 与评估 的作用是把 Alignment 与 multimodality 中的一个抽象问题变成可计算对象：哪些变量进入公式，哪些状态进入代码，哪些条件会让结果失效。
+VLM instruction tuning 与评估 把 Alignment 与 multimodality 连接到行为目标。接下来要看的不是 reward 名称，而是反馈信号、采样分布和约束项怎样改变模型更新。
 \subsection{VLM instruction tuning 与评估 的机制}
-LLaVA 等模型把视觉特征投影成 LM tokens，再用图文指令数据训练对话能力。 这句话把讨论落在行为、奖励和偏好状态上。读者需要知道哪些量可直接观察，哪些量只能通过日志、profile 或评估协议间接推断。
+LLaVA 等模型把视觉特征投影成 LM tokens，再用图文指令数据训练对话能力。 在 VLM instruction tuning 与评估 中，核心对象是行为、奖励和偏好状态：后训练方法并不直接制造知识，而是通过目标和反馈改变模型选择输出的方式。
 多模态 alignment 包含 helpfulness、安全、拒答、视觉事实性和跨模态 grounding。 因而同一个方法在不同规模下可能改变不同的变量，尤其是reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。比较方法时，必须同时给出问题规模和实验条件。
-评估 VLM 要覆盖 captioning、VQA、OCR、chart/table、spatial reasoning、video understanding 和 hallucination。 这使本节具有可检验性：一个结论若不能在公式、伪代码、profile trace、benchmark 或 ablation 中表现出来，就仍然只是直觉。
-因此，VLM instruction tuning 与评估 应当被理解为可以实现和测试的机制，而不是一个章节标题。CS336 反复强调 from scratch，正是因为只有能被复现的机制，才可能被稳定改进。
+评估 VLM 要覆盖 captioning、VQA、OCR、chart/table、spatial reasoning、video understanding 和 hallucination。 可检验性来自训练日志、reward 分布、KL/length 统计和行为评估；只看最终回答样例无法判断更新方向。
+因此，VLM instruction tuning 与评估 的学习目标是建立一条行为更新链：读者应能区分示范、偏好、奖励和约束分别给模型提供了什么信号。
 \subsection{VLM instruction tuning 与评估 的数学表达}
 \[\mathcal{L}_{\text{VLM}}=-\sum_t \log p_\theta(y_t\mid \text{image tokens},x,y_{<t})\]
 符号说明：image tokens 是视觉编码后的连续或离散表示，\(x\) 是文本指令，\(y\) 是回答。
 这个关系式说明 VLM instruction tuning 与评估 如何把行为偏好写入优化目标。关键不是符号复杂度，而是 reward、reference policy、采样分布和约束强度如何共同决定更新方向。
-例如，validation loss 常被用作模型质量的 proxy，tokens/s 用作吞吐 proxy，Jaccard 或 MinHash 用作近重复 proxy，reward model score 用作偏好 proxy。proxy 不是目标本身；它只在评估协议清楚时才可引用。
+在后训练实验中，reward model score、verifier pass rate、回答长度和人工偏好都是 proxy。它们会被采样策略和格式约束影响，因此不能直接等同于真实有用性。
 \subsection{从 VLM instruction tuning 与评估 到程序}
 把 VLM instruction tuning 与评估 写成训练流程时，要区分采样、打分、构造 loss 和更新参数。下面的伪代码保留这些边界。
 \begin{lstlisting}[language=Python]
@@ -214,33 +210,33 @@ for image, instruction, answer in vlm_sft_data:
     inputs = build_multimodal_prompt(image, instruction)
     update_cross_entropy(inputs, answer)
 \end{lstlisting}
-这段伪代码的读法，是找出 VLM instruction tuning 与评估 改变了哪些状态，以及这些状态如何对应到 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。如果某个状态没有被记录，后续实验就很难解释异常结果。
+阅读这段训练流程时，重点区分采样、打分和参数更新。只有同时记录 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率，才能判断行为改善来自奖励信号、采样分布还是约束强度。
 \subsection{边界条件与常见误解}
 \begin{itemize}
 \item VLM hallucination 可能来自语言先验压过视觉证据。
 \item OCR/图表能力需要专门数据与评估，不能只看通用 caption。
-\item 不要把小实验中的局部结论自动外推到 frontier-scale；scale、数据分布和硬件拓扑都会改变结论。
-\item 不要把 benchmark 或 profile 的单个数字当作机制解释；必须同时记录实验设置、输入形状、版本和评估口径。
+\item 后训练指标可能被格式、长度或 verifier 偏差驱动，不能直接等同于真实能力提升。
+\item 偏好优化可能改善目标行为，也可能牺牲多样性、校准性或某些下游能力。
 \end{itemize}
 \subsection{与本章其他概念的关系}
-VLM instruction tuning 与评估 与本章其他部分的关系是互补的：术语表给出对象名称，公式给出最小数学结构，伪代码给出执行顺序，例题则把这些内容压缩成一个可检查的计算。
+VLM instruction tuning 与评估 连接本章的训练目标和输出行为：术语表区分示范、偏好与奖励，公式说明优化方向，伪代码展示采样和更新，例题检查行为约束的边界。
 对这一类主题，最常见的误解是只列方法名。更有用的做法是比较每个方法改变的成本项、依赖的假设和可能的失败模式。
 \subsection{怎样检验 VLM instruction tuning 与评估}
 检验 VLM instruction tuning 与评估 时，先把抽象说法落到行为、奖励和偏好状态上。与 LLaVA、instruction tuning、VQA、OCR、hallucination 相关的对象必须能被构造、打印、计数或评分；否则实验只能得到描述性观察，不能得到可复现结论。
 一个合适的小实验应当保留本节机制，同时让 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率 中至少一个量发生可解释变化。输入规模不必逼真；关键是读者能手算或打印关键中间量，并说明哪个变量触发了结果变化。
 随后把公式说明转成可记录的数量关系。符号说明：image tokens 是视觉编码后的连续或离散表示，\textbackslash{}(x\textbackslash{}) 是文本指令，\textbackslash{}(y\textbackslash{}) 是回答。 如果数量只能间接观测，就必须说明使用了什么 proxy；如果使用 benchmark 或 reward，也要说明协议和随机性。
-对照实验只应改变一个主要因素，例如 batch size、sequence length、vocabulary size、attention heads、filter threshold、learning rate、decoding 参数或 verifier。多个因素同时变化时，实验最多说明系统表现不同，不能说明是哪一个机制在起作用。
-最后要主动寻找失败条件。教材中的成功路径容易记住，但工程中真正决定方法边界的是失败案例。本节至少要记住这些限制：VLM hallucination 可能来自语言先验压过视觉证据；OCR/图表能力需要专门数据与评估，不能只看通用 caption。复习时可以把这些限制改写成反例测试。
-实验结论还要放回 Alignment 与 multimodality 的整体结构中。VLM instruction tuning 与评估 会影响训练目标、数据选择、系统成本或评估解释中的至少一项；能说清楚这种影响，才说明读者已经从名词记忆进入机制理解。
-\subsection{常见混淆：VLM instruction tuning 与评估}
-本节容易混淆的关键词包括 LLaVA、instruction tuning、VQA、OCR、hallucination。它们在课程材料中可能连续出现，但层级并不相同：有的命名对象，有的描述操作，有的只是指标或约束。
-区分这些词时，可以先问它们是否改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。如果一个词不能对应到变量、状态、代码路径或评估协议，它在本节中就还没有形成可操作含义。
-因此，复习 VLM instruction tuning 与评估 时不应只抄关键词，而应写出至少一个最小例子：输入是什么，哪一步使用这个词，输出或指标怎样变化，失败条件在哪里出现。
+后训练消融通常一次只改变示范数据、reward scale、KL 约束、采样温度或 verifier。若训练目标和解码策略同时变化，行为差异就很难归因。
+最后检查失败条件。工程判断往往在反例中变清楚：VLM hallucination 可能来自语言先验压过视觉证据；OCR/图表能力需要专门数据与评估，不能只看通用 caption。复习时可以把这些限制改写成反例测试，观察它们怎样改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
+把实验结论放回 Alignment 与 multimodality 时，要说明 VLM instruction tuning 与评估 改变的是目标函数、采样分布、反馈质量还是行为约束。能区分这些来源，才说明读者真正理解后训练。
+\subsection{概念辨析：VLM instruction tuning 与评估}
+LLaVA、instruction tuning、VQA、OCR、hallucination 常一起出现在后训练讨论中，但它们分别指数据、反馈、目标函数或行为指标。读者应先判断每个词给优化过程提供什么信号。
+区分这些词时，可以先问它们是否改变 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。一个术语如果不能对应到变量、状态、代码路径或评估协议，就还没有形成可操作含义。
+围绕 VLM instruction tuning 与评估 复习时，可以构造几条 prompt-response：明确奖励或偏好规则，观察同一模型在更新前后的行为差异。
 \subsection{VLM instruction tuning 与评估 的小结}
 \begin{itemize}
 \item 讨论 VLM instruction tuning 与评估 时，应同时报告问题规模、实验设置和主要观测变量，尤其是 reward 分布、偏好差异、KL 约束、回答长度和 verifier 通过率。
-\item 如果一个方法声称降低主要成本，要追问成本是否转移到了显存、通信、数据质量、训练稳定性或评估复杂度。
-\item 公式和伪代码提供推理骨架；结论仍需要 profiler、ablation 或 held-out evaluation 支持。
+\item 如果方法声称行为更好，要说明示范、偏好、reward 或 verifier 哪一项提供了信号，并检查 reward hacking、length bias 和能力退化。
+\item 后训练结论需要把训练目标、采样策略和评估协议分开报告，否则无法判断改进来自哪里。
 \end{itemize}
 \section{综合讨论：从局部机制到完整系统}
 本章的主题是 Alignment 与 multimodality，但它不应被读成几个相邻知识点的拼接。为什么 CS336 需要 multimodality、CLIP 式对比学习与表示对齐、VLM instruction tuning 与评估 共同回答同一个问题：语言模型系统中哪些对象可以被定义，哪些成本可以被估算，哪些结论必须通过实验或评估来确认。
@@ -292,6 +288,11 @@ VLM instruction tuning 与评估 首先提供一个局部解释：LLaVA 等模�
 因此，实验报告最好同时包含正例和反例：正例说明机制在受控条件下怎样工作，反例说明条件稍变时哪里失效。对 CS336 这样的课程，反例尤其重要，因为 language model 的错误常来自多个层面叠加：数据分布、优化稳定性、硬件瓶颈、评估协议和服务负载都可能同时改变观察结果。
 还要记录资料版本与复现边界。公开视频、课程页、配套代码和 PDF 可能在不同时间更新；复现实验应写明使用的材料版本，并说明哪些结论来自课程事实，哪些是为了帮助理解而加入的解释性推导。这样才能把学习笔记变成可检查的技术记录。
 若复现实验与课程结论不一致，首先检查输入、版本和评估协议，而不是立即修改模型假设。
+\subsection{把本章重新读成一条证据链}
+完成小实验之后，可以把 Alignment 与 multimodality 重新读成一条证据链：先用“为什么 CS336 需要 multimodality”确定问题入口，再用“CLIP 式对比学习与表示对齐”解释主要机制，最后用“VLM instruction tuning 与评估”检查边界或外推条件。这种读法比按页背诵更接近教材训练，因为它要求每个结论都能说明前提、变量和证据。
+本章反复使用的术语包括 multimodal model（多模态模型）、vision-language model (VLM)、CLIP、image encoder（图像编码器）、projector（投影器）、LLaVA。复习时不要只写定义，而要为每个术语补上一句操作性说明：它在课程代码、公式、数据记录或评估协议中对应什么对象；如果这个对象被删除、替换或缩放，哪一个观测量会变化。
+最后，用一个反例结束复习。反例可以是资源估算不准、数据污染、reward 失真、benchmark 解析失败、长上下文显存爆炸或 scaling 外推失效。能解释反例的章节，才真正具备自学和引用价值；不能解释反例的章节，只是把课程材料换了一种排版。
+引用本章结论时，还应保留来源边界：哪些说法直接来自视频、课程页、slides 或代码，哪些是为了串联教材叙述而加入的解释性推导。这个边界不会削弱结论，反而让读者知道何处可以复核，何处需要在自己的实验中重新验证。如果后续课程材料更新，也可以沿着同一证据链替换来源，而不必重写整章结构。
 \section{课程资料与回看路径}
 教材正文已经把主要概念、公式和实现逻辑组织成连续叙述；本节只提供回到课程材料的阅读路径。读者复习时可以先完成前文练习，再按下面的时间段或资料组核对细节。
 \subsection{视频回看路径}

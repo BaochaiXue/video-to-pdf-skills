@@ -2,10 +2,10 @@
 
 Final textbook artifacts:
 
-- `cs336_complete_notes.pdf`
-- `cs336_complete_notes.tex`
+- `cs336 textbook.pdf`
+- `cs336 textbook.tex`
 
-Revision: `slp3-style-textbook-v5-polished-prose`.
+Revision: `slp3-style-textbook-v6-narrative-polish`.
 
 This version is a full Chinese textbook-style rewrite. It follows the chapter architecture extracted from the SLP3 draft and the user-provided pasted chapter: motivating case, terminology, mechanisms, formulas, pseudocode, worked examples, caveats, course-material review paths, summary, and exercises.
 
